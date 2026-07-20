@@ -1,0 +1,16 @@
+; ---------------------------------------------------------------------
+;  Lumen — PHP ayar örneği (yalnızca IIS/FastCGI okur; Apache/nginx yok sayar)
+;  Gerekirse bu dosyayı ".user.ini" olarak kopyalayıp yola göre düzenleyin.
+;  Uygulama loglama ve performans ölçümünü kendi içinde yönetir
+;  (includes/app_observability.php), bu yüzden mutlak yol gerekmez.
+;  Özel log konumu için .env içindeki LOG_ROOT değişkenini kullanın.
+; ---------------------------------------------------------------------
+
+log_errors = On
+
+; Üretimde hataları ekrana basma
+display_errors = Off
+display_startup_errors = Off
+
+; PHP hata logunu özel bir dosyaya yazmak isterseniz (mutlak yol verin):
+; error_log = "C:\yol\lumen_logs\php\php_errors.log"

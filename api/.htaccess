@@ -1,0 +1,14 @@
+# Masaüstü API — Apache yapılandırması (XAMPP/dev)
+# Üretim IIS için karşılığı web.config ile sağlanır.
+
+# Authorization header'ını PHP'ye aktar (Bearer token doğrulaması için).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP:Authorization} ^(.+)$
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+</IfModule>
+
+# Ortak include dosyalarına (*.inc) doğrudan web erişimini engelle.
+<FilesMatch "\.inc$">
+    Require all denied
+</FilesMatch>

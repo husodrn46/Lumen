@@ -1,0 +1,43 @@
+{
+  "name": "Lumen Sipariş Yönetimi",
+  "short_name": "Lumen",
+  "description": "Sipariş ve stok yönetim sistemi",
+  "start_url": "/index.php",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6F1022",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Yeni Sipariş",
+      "short_name": "Sipariş",
+      "description": "Yeni sipariş oluştur",
+      "url": "/lg_fis.php",
+      "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ürün Ara",
+      "short_name": "Ürünler",
+      "description": "Ürün arama",
+      "url": "/stok_tara.php",
+      "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
+    }
+  ]
+}

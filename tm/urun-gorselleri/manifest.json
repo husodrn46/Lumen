@@ -1,0 +1,4 @@
+{
+  "_aciklama": "Ürün görseli manifesti. Stok listesinde ürün resmi göstermek için (ayarlar: resimlistoklistesi=1) buraya kendi görsellerinizi ekleyin ve 'products' dizisini doldurun. Görselleri bu klasöre koyup her ürün için { sku, image, ad_tr, kategori, renk } girin.",
+  "products": []
+}

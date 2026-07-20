@@ -1,0 +1,28 @@
+-- ============================================================================
+-- M_PRINT_QUEUE kaldırıldı (2026-07-07, kullanıcı kararı) — UYGULANDI
+-- ============================================================================
+-- Ne idi: D:\mobil altındaki ESKİ .NET/FastReport yazdırma uygulamasının kuyruğu.
+-- mshop kod tabanında HİÇBİR referans yok (PHP/ps1/sql grep temiz, prod dahil);
+-- zamanlanmış görev yok. Son kayıt 2026-01-07, son kayıtlarda hata:
+--   "Rapor şablonu bulunamadı: D:\mobil\fis\FiyatTeklifi.rdlc"
+-- → Ocak'tan beri ölü/terk edilmiş.
+--
+-- YEDEK: Kayıtlar DROP'tan önce alınıp ayrı bir yedek dosyasına kaydedildi.
+--
+-- Uygulanan işlem:
+--   DROP TABLE dbo.M_PRINT_QUEUE;
+--
+-- GERİ DÖNÜŞ (eski D:\mobil uygulaması bir gün canlandırılırsa) — eski şema:
+-- CREATE TABLE dbo.M_PRINT_QUEUE (
+--     ID            INT IDENTITY(1,1) PRIMARY KEY,
+--     FICHE_TYPE    INT           NULL,
+--     FICHE_REF     INT           NULL,
+--     TEMPLATE_NAME NVARCHAR(100) NULL,
+--     PRINTER_NAME  NVARCHAR(100) NULL,
+--     COPIES        INT           NULL,
+--     STATUS        INT           NULL,      -- 1=basarili, 2=hata
+--     CREATED_DATE  DATETIME      NULL,
+--     PRINTED_DATE  DATETIME      NULL,
+--     ERROR_MESSAGE NVARCHAR(500) NULL
+-- );
+-- + veriler yedek JSON'dan geri yüklenebilir.

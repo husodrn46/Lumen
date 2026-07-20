@@ -1,0 +1,22 @@
+# Satır sonlarını normalize et (repoda LF)
+* text=auto eol=lf
+
+# Windows'a özgü / batch dosyaları CRLF kalsın
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# İkili dosyalar (fark/normalizasyon uygulanmaz)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.svg binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.xls binary
+*.xlsx binary

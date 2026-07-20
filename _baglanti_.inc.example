@@ -1,0 +1,34 @@
+<?php
+/**
+ * ============================================================================
+ *  Lumen — VERİTABANI BAĞLANTI AYARLARI (_baglanti_.inc)
+ * ============================================================================
+ *  Bu dosyayı "_baglanti_.inc" olarak kopyalayın. Değerler .env dosyasından
+ *  (getenv) okunur; .env yoksa aşağıdaki varsayılanlar kullanılır.
+ *  Kolay kurulum: tarayıcıda /kurulum.php sihirbazını çalıştırın.
+ *
+ *  GÜVENLİK: Gerçek parolayı buraya YAZMAYIN — .env dosyasına yazın
+ *  (.env sürüm kontrolüne eklenmez; _baglanti_.inc de .gitignore'dadır).
+ * ============================================================================
+ */
+
+// --- Veritabanı bağlantısı (Microsoft SQL Server / LOGO Tiger) ---
+$anamakina  = getenv('AKL_DB_SERVER') ?: 'localhost';   // SQL Server adresi
+$veritabani = getenv('AKL_DB_NAME')   ?: 'LOGODB';       // LOGO veritabanı adı
+$kullanici  = getenv('AKL_DB_USER')   ?: 'sa';           // SQL Server kullanıcı adı
+$sifre      = getenv('AKL_DB_PASS')   ?: '';             // SQL Server parolası (.env'den)
+
+// --- Firma / Dönem tablo önekleri ---
+// LOGO tablo adı biçimi: LG_[FIRMA]_[DÖNEM]_TABLO (örn: LG_001_02_ORFICHE)
+$firmano     = getenv('FIRMA_NO')         ?: '1';        // Firma numarası
+$firma       = getenv('FIRMA_PREFIX')     ?: 'LG_001_';  // Dönemsiz tablolar: {$firma}CLCARD, {$firma}ITEMS
+$firmadonem  = getenv('FIRMA_DONEM')      ?: 'LG_001_02_';  // Güncel dönem: {$firmadonem}ORFICHE
+$firmadonemx = getenv('FIRMA_DONEM_VIEW') ?: 'LV_001_02_';  // Güncel dönem view: {$firmadonemx}STINVTOT
+
+// --- Önceki dönem (geçmiş dönem sorguları — opsiyonel) ---
+$eskifirma       = $firma;
+$eskifirmadonem  = getenv('FIRMA_ESKI_DONEM')      ?: 'LG_001_01_';
+$eskifirmadonemx = getenv('FIRMA_ESKI_DONEM_VIEW') ?: 'LV_001_01_';
+
+// --- Raporlarda/sayfalarda görünen firma başlığı ---
+$firmabaslik = getenv('FIRMA_BASLIK') ?: 'Lumen';

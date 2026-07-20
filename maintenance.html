@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="60">
+    <title>Bakim Calismasi | Lumen</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --text-1: #1f2937;
+            --text-2: #6b7280;
+            --text-3: #9ca3af;
+            --border: #e5e7eb;
+            --red: #6F1022;
+            --indigo: #4f46e5;
+            --indigo-soft: #eef2ff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Avenir Next', 'Montserrat', 'Segoe UI', Tahoma, sans-serif;
+            min-height: 100vh;
+            background:
+                radial-gradient(1200px 600px at 8% -10%, rgba(99, 102, 241, .14), transparent 60%),
+                radial-gradient(900px 500px at 92% 110%, rgba(248, 113, 113, .08), transparent 55%),
+                var(--bg);
+            color: var(--text-1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border: 1px solid rgba(99, 102, 241, 0.20);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+            padding: 42px 32px;
+            text-align: center;
+            max-width: 540px;
+            width: 100%;
+            animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .brand {
+            display: inline-flex; align-items: center; gap: 10px;
+            margin-bottom: 22px;
+            font-size: 11px; font-weight: 600;
+            color: var(--text-2); text-transform: uppercase; letter-spacing: 1.2px;
+        }
+        .brand img { width: 28px; height: 28px; border-radius: 7px; object-fit: cover; }
+        .icon-box {
+            width: 100px; height: 100px;
+            margin: 0 auto 20px;
+            border-radius: 24px;
+            background: var(--indigo-soft);
+            color: var(--indigo);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .icon-box svg {
+            width: 56px; height: 56px;
+            transform-origin: center;
+            animation: wrench 2s ease-in-out infinite;
+        }
+        @keyframes wrench {
+            0%, 100% { transform: rotate(-15deg); }
+            50% { transform: rotate(15deg); }
+        }
+        .title {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-1);
+            margin-bottom: 10px;
+        }
+        .desc {
+            font-size: 14px;
+            color: var(--text-2);
+            line-height: 1.65;
+            margin-bottom: 26px;
+        }
+        .progress {
+            height: 8px;
+            background: #f3f4f6;
+            border-radius: 100px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 65%;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+            background-size: 200% 100%;
+            border-radius: 100px;
+            animation: progress 2.2s linear infinite;
+        }
+        @keyframes progress {
+            0% { background-position: 0% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .info-item {
+            padding: 14px 16px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            text-align: left;
+        }
+        .info-label {
+            font-size: 10px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .info-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--indigo);
+        }
+        .contact {
+            padding-top: 18px;
+            border-top: 1px dashed var(--border);
+            font-size: 12.5px;
+            color: var(--text-3);
+        }
+        .contact a {
+            color: var(--indigo);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .contact a:hover { text-decoration: underline; }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.985); }
+            to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+        }
+        @media (max-width: 480px) {
+            .glass-card { padding: 32px 22px; border-radius: 16px; }
+            .title { font-size: 21px; }
+            .desc { font-size: 13px; }
+            .icon-box { width: 84px; height: 84px; margin-bottom: 16px; }
+            .icon-box svg { width: 44px; height: 44px; }
+            .info-value { font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="glass-card">
+        <div class="brand">
+            <img src="logo.png" alt="Lumen" onerror="this.style.display='none'">
+            Lumen Siparis Sistemi
+        </div>
+
+        <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+        </div>
+
+        <h1 class="title">Bakim Calismasi</h1>
+        <p class="desc">Sistemimizde planli bakim calismasi yapilmaktadir. Daha iyi bir deneyim icin calisiyoruz, kisa sure icinde geri donecegiz.</p>
+
+        <div class="progress">
+            <div class="progress-bar"></div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Tahmini Sure</div>
+                <div class="info-value">~30 dakika</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Durum</div>
+                <div class="info-value">Devam Ediyor</div>
+            </div>
+        </div>
+
+        <p class="contact">
+            Acil durumlar icin: <a href="tel:+905551234567">0555 123 45 67</a>
+        </p>
+    </main>
+</body>
+</html>

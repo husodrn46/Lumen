@@ -1,0 +1,28 @@
+{
+    "name": "lumen/siparis-sistemi",
+    "description": "Lumen — LOGO Tiger uyumlu sipariş ve stok yönetim sistemi",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "phpoffice/phpspreadsheet": "^2.0",
+        "dompdf/dompdf": "^2.0"
+    },
+    "config": {
+        "disable-tls": true,
+        "platform-check": false,
+        "allow-plugins": {
+            "phpoffice/phpspreadsheet": true
+        },
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "autoload": {
+        "psr-4": {
+            "Lumen\\": "src/"
+        }
+    },
+    "require-dev": {
+        "rector/rector": "^1.0"
+    }
+}

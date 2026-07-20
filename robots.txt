@@ -1,0 +1,15 @@
+# Tum arama motorlarinin siteyi indekslemesini engelle
+User-agent: *
+Disallow: /
+
+# Googlebot
+User-agent: Googlebot
+Disallow: /
+
+# Bingbot
+User-agent: Bingbot
+Disallow: /
+
+# Yandex
+User-agent: Yandex
+Disallow: /

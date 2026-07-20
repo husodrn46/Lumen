@@ -1,0 +1,44 @@
+# ============================================================
+#  Lumen — .gitignore
+# ============================================================
+
+# Ortam ve gizli yapılandırma (kurulum sihirbazı veya elle oluşturulur)
+.env
+_baglanti_.inc
+.user.ini
+.mcp.json
+
+# Bağımlılıklar (composer install / npm install ile gelir)
+/vendor/
+/node_modules/
+
+# Loglar ve geçici dosyalar
+/logs/
+/tmp/
+*.log
+error_log.txt
+
+# Kullanıcı yüklemeleri (klasör + koruma dosyaları kalır, içerik versiyonlanmaz)
+gorev_ekleri/*
+!gorev_ekleri/.htaccess
+!gorev_ekleri/web.config
+cek_ekleri/*
+!cek_ekleri/.htaccess
+!cek_ekleri/web.config
+
+# PDF motoru (isteğe bağlı, ayrı indirilir)
+wkhtmltopdf-*/
+cacert.pem
+
+# IDE / editör
+.vscode/
+.idea/
+
+# İşletim sistemi
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Arşiv / geçici Office kilit dosyaları
+*.zip
+~$*

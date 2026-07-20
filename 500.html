@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - Sunucu Hatasi | Lumen</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --text-1: #1f2937;
+            --text-2: #6b7280;
+            --text-3: #9ca3af;
+            --border: #e5e7eb;
+            --red: #6F1022;
+            --red-soft: #fef2f2;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Avenir Next', 'Montserrat', 'Segoe UI', Tahoma, sans-serif;
+            min-height: 100vh;
+            background:
+                radial-gradient(1200px 600px at 8% -10%, rgba(248, 113, 113, .16), transparent 60%),
+                radial-gradient(900px 500px at 92% 110%, rgba(99, 102, 241, .06), transparent 55%),
+                var(--bg);
+            color: var(--text-1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border: 1px solid rgba(248, 113, 113, 0.22);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
+            padding: 40px 32px;
+            text-align: center;
+            max-width: 540px;
+            width: 100%;
+            animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .brand {
+            display: inline-flex; align-items: center; gap: 10px;
+            margin-bottom: 20px;
+            font-size: 11px; font-weight: 600;
+            color: var(--text-2); text-transform: uppercase; letter-spacing: 1.2px;
+        }
+        .brand img { width: 28px; height: 28px; border-radius: 7px; object-fit: cover; }
+        .icon-box {
+            width: 88px; height: 88px;
+            margin: 0 auto 20px;
+            border-radius: 22px;
+            background: var(--red-soft);
+            color: var(--red);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .icon-box svg {
+            width: 52px; height: 52px;
+            animation: spin 3.5s linear infinite;
+        }
+        @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+        .code {
+            font-size: clamp(56px, 9vw, 86px);
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -2px;
+            color: var(--red);
+            margin-bottom: 6px;
+        }
+        .title { font-size: 24px; font-weight: 700; color: var(--text-1); margin-bottom: 10px; }
+        .desc { font-size: 14px; color: var(--text-2); line-height: 1.65; margin-bottom: 26px; }
+        .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            min-width: 160px; padding: 12px 22px;
+            border-radius: 12px;
+            font-family: inherit; font-size: 14px; font-weight: 600;
+            text-decoration: none; cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .btn-primary {
+            background: #ef4444; color: #fff;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.28);
+        }
+        .btn-primary:hover { background: var(--red); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(239, 68, 68, 0.32); }
+        .btn-ghost {
+            background: #fff; color: var(--text-1); border-color: var(--border);
+        }
+        .btn-ghost:hover { border-color: var(--red); color: var(--red); }
+        .status-bar {
+            margin-top: 22px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid #fecaca;
+            background: var(--red-soft);
+            color: var(--red);
+            font-size: 12.5px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .status-bar svg { width: 14px; height: 14px; flex-shrink: 0; }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.985); }
+            to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+        }
+        @media (max-width: 480px) {
+            .glass-card { padding: 32px 22px; border-radius: 16px; }
+            .title { font-size: 20px; }
+            .desc { font-size: 13px; }
+            .btn { min-width: 140px; padding: 11px 18px; font-size: 13px; }
+            .icon-box { width: 72px; height: 72px; margin-bottom: 16px; }
+            .icon-box svg { width: 40px; height: 40px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="glass-card">
+        <div class="brand">
+            <img src="logo.png" alt="Lumen" onerror="this.style.display='none'">
+            Lumen Siparis Sistemi
+        </div>
+
+        <div class="icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+        </div>
+
+        <div class="code">500</div>
+        <h1 class="title">Sunucu Hatasi</h1>
+        <p class="desc">Beklenmeyen bir hata olustu. Teknik ekip bilgilendirildi. Lutfen kisa bir sure sonra tekrar deneyin.</p>
+
+        <div class="actions">
+            <a class="btn btn-primary" href="index.php">Ana Sayfa</a>
+            <button type="button" class="btn btn-ghost" onclick="location.reload()">Tekrar Dene</button>
+        </div>
+
+        <div class="status-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            Sorun devam ederse sistem yoneticinize hata zamani ile birlikte bilgi verin.
+        </div>
+    </main>
+</body>
+</html>

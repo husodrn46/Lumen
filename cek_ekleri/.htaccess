@@ -1,0 +1,9 @@
+# Cek gorsel eklerine dogrudan web erisimi kapalidir.
+# Dosyalar yalnizca cek_ek_goster.php uzerinden, yetki kontrolu ile servis edilir.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

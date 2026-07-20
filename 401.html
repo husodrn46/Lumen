@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="8;url=giris.php">
+    <title>401 - Oturum Gerekli | Lumen</title>
+    <link rel="icon" type="image/jpeg" href="logo.png">
+    <style>
+        :root {
+            --brand-red: #6F1022;
+            --brand-red-dark: #5a0d1c;
+            --brand-black: #141414;
+            --brand-text: #1f2937;
+            --brand-muted: #6b7280;
+            --brand-bg: #f8f9fb;
+            --brand-card: #ffffff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 10% 10%, rgba(215, 25, 32, 0.1) 0%, rgba(215, 25, 32, 0) 45%),
+                radial-gradient(circle at 90% 90%, rgba(20, 20, 20, 0.07) 0%, rgba(20, 20, 20, 0) 40%),
+                var(--brand-bg);
+            color: var(--brand-text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .card {
+            width: min(620px, 100%);
+            background: var(--brand-card);
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            box-shadow: 0 20px 48px rgba(0, 0, 0, 0.1);
+            padding: 34px 30px;
+            text-align: center;
+        }
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .brand img {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid #e5e7eb;
+        }
+        .brand strong {
+            font-size: 18px;
+            color: var(--brand-black);
+        }
+        .code {
+            font-size: clamp(64px, 10vw, 88px);
+            font-weight: 800;
+            line-height: 1;
+            color: var(--brand-red);
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--brand-black);
+            margin-bottom: 10px;
+        }
+        .desc {
+            font-size: 16px;
+            line-height: 1.65;
+            color: var(--brand-muted);
+            margin-bottom: 24px;
+        }
+        .actions {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 160px;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: .2s ease;
+        }
+        .btn-primary {
+            background: var(--brand-red);
+            color: #fff;
+            border: 1px solid var(--brand-red);
+        }
+        .btn-primary:hover { background: var(--brand-red-dark); border-color: var(--brand-red-dark); }
+        .btn-ghost {
+            background: #fff;
+            color: var(--brand-black);
+            border: 1px solid #d1d5db;
+        }
+        .btn-ghost:hover { border-color: var(--brand-red); color: var(--brand-red); }
+        .countdown {
+            font-size: 14px;
+            color: var(--brand-muted);
+        }
+        .countdown b { color: var(--brand-red); }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <div class="brand">
+            <img src="logo.png" alt="Lumen">
+            <strong>Lumen Sipariş Sistemi</strong>
+        </div>
+
+        <div class="code">401</div>
+        <h1 class="title">Oturum Gerekli</h1>
+        <p class="desc">Bu sayfayı görüntülemek için giriş yapmanız gerekiyor. Oturumunuz sona ermiş olabilir.</p>
+
+        <div class="actions">
+            <a class="btn btn-primary" href="giris.php">Giriş Yap</a>
+            <a class="btn btn-ghost" href="index.php">Ana Sayfa</a>
+        </div>
+
+        <p class="countdown"><b id="timer">8</b> saniye sonra giriş sayfasına yönlendirileceksiniz.</p>
+    </main>
+
+    <script>
+        var seconds = 8;
+        var timer = document.getElementById('timer');
+        setInterval(function () {
+            if (seconds <= 0) { return; }
+            seconds -= 1;
+            timer.textContent = seconds;
+        }, 1000);
+    </script>
+</body>
+</html>

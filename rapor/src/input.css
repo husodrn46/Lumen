@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* İsteğe bağlı: Bootstrap JS'in offcanvas bileşeni için temel stiller */
+.offcanvas {
+  transition: transform 0.3s ease-in-out;
+}
+.offcanvas-start {
+  transform: translateX(-100%);
+}
+.offcanvas.show {
+  transform: translateX(0);
+}
