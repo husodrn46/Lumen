@@ -53,6 +53,7 @@ if (!function_exists('yetki_gruplari')) {
                     'M25' => ['name' => 'Dosya Portalı',               'icon' => 'fa-folder-open',    'color' => 'indigo',  'desc' => 'Dosya portalı erişimi',                                   'aktif' => true],
                     'M26' => ['name' => 'Fiyat Listesi (Eski)',        'icon' => 'fa-tags',           'color' => 'orange',  'desc' => 'Kullanılmıyor — fiyat listesi M7 ile açılır',             'aktif' => false],
                     'M27' => ['name' => 'İthalat Modülü',              'icon' => 'fa-ship',           'color' => 'sky',     'desc' => 'İthalat takip modülü',                                    'aktif' => true],
+                    'M30' => ['name' => 'Çek İşlemleri',               'icon' => 'fa-money-check-dollar', 'color' => 'emerald', 'desc' => 'Çek giriş/çıkış: portföy, ciro, kendi çekimiz (bakiye ekranından)', 'aktif' => true],
                 ],
             ],
             'gorev' => [

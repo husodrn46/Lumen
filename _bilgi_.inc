@@ -18,36 +18,11 @@ $satinalmano = "SA";            // Satınalma siparişi numarası ön eki
 $magaza_cari = (int) (getenv('MAGAZA_CARI') ?: 0);
 
 // ============================================================================
-// FATURALAMA (BETA) — siparişi LOGO satış faturasına çevirme
-// Sorun çıktığı an $faturalama_beta = false yapın; özellik ve butonlar anında kapanır.
+// ÇEK İŞLEMLERİ — çek giriş / çıkış / ciro (portföy yönetimi)
+// Erişim "M30 (Çek İşlemleri)" yetki koduyla yönetilir:
+//   Ayarlar → Kullanıcı & Yetki → İzin Matrisi. Yönetici otomatik erişir.
+// (Faturalama ve tahsilat modülleri bu sürümde kapsam dışıdır.)
 // ============================================================================
-$faturalama_beta = false;                 // true = açık | false = kapalı (acil kapatma anahtarı)
-$faturalama_beta_kullanicilar = [1];      // SADECE bu personel id'leri; başka hiç kimse erişemez. Boş [] = KİMSE (fail-closed)
-$fatura_prefix = "SF";                    // Satış faturası seri ön eki (LOGO'nun kendi serisinden AYRI olmalı)
-$fatura_irsaliye_prefix = "IRS";          // İrsaliye seri ön eki (LOGO serisinden AYRI olmalı)
-
-// ============================================================================
-// TAHSILAT (BETA) — nakit tahsilatı LOGO kasa+cari hareketine çevirme
-// Sorun çıktığı an $tahsilat_beta = false yapın; özellik ve butonlar anında kapanır.
-// ============================================================================
-$tahsilat_beta = false;                   // Lumen v1: tahsilat modülü kapsam dışı
-$tahsilat_beta_kullanicilar = [1];        // SADECE bu personel id'leri; başka hiç kimse erişemez. Boş [] = KİMSE (fail-closed)
-
-// ============================================================================
-// ÇEK GİRİŞİ (BETA) — müşteri çekini LOGO portföyüne alma (CSCARD+CSROLL+CSTRANS+CLFLINE)
-// Sorun çıktığı an $cek_beta = false yapın; özellik ve butonlar anında kapanır.
-// Faz-1: yalnız müşteri çeki girişi (tek çek = tek bordro). Çıkış/ciro faz-2.
-// ============================================================================
-$cek_beta = true;                         // true = açık | false = kapalı (acil kapatma anahtarı)
-$cek_beta_kullanicilar = [1];             // SADECE bu personel id'leri; başka hiç kimse erişemez. Boş [] = KİMSE (fail-closed)
-
-// ============================================================================
-// ÇEK ÇIKIŞI / CİRO (BETA) — portföydeki müşteri çekini tedarikçiye ciro etme
-// Çıkış cari bakiye ARTIRIR (girişten riskli) → ayrı bayrak. Sorun anında false yapın.
-// Faz-2a: yalnız CİRO (müşteri çeki → tedarikçi). Kendi çekimiz (DOC=3) sonra.
-// ============================================================================
-$cek_cikis_beta = true;                   // true = açık | false = kapalı (acil kapatma anahtarı)
-$cek_cikis_beta_kullanicilar = [1];       // SADECE bu personel id'leri; Boş [] = KİMSE (fail-closed)
 
 // ============================================================================
 // YAZICI AYARLARI

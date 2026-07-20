@@ -282,7 +282,7 @@ $stokfontx = 40;
 $tarih = date("d/m/Y H:i:s");
 
 $handle = printer_open($fisyazici);
-printer_start_doc($handle, "mshop-doviz");
+printer_start_doc($handle, "Lumen-doviz");
 printer_start_page($handle);
 printer_set_option($handle, PRINTER_MODE, "RAW");
 printer_set_option($handle, PRINTER_TEXT_ALIGN, PRINTER_TA_LEFT);
@@ -357,7 +357,7 @@ while($liste = $stmtList->fetch(PDO::FETCH_ASSOC)) {
         printer_close($handle);
 
         $handle = printer_open($fisyazici);
-        printer_start_doc($handle, "mshop-doviz");
+        printer_start_doc($handle, "Lumen-doviz");
         printer_start_page($handle);
         printer_set_option($handle, PRINTER_MODE, "RAW");
         printer_set_option($handle, PRINTER_TEXT_ALIGN, PRINTER_TA_LEFT);

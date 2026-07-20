@@ -182,7 +182,7 @@ function print_throttle_delay(string $key, int $windowSeconds): void
     $baseTmp = __DIR__ . '/tmp';
     $dir = $baseTmp . '/print_throttle';
     if (!is_dir($baseTmp) || !is_writable($baseTmp)) {
-        $dir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . '/mshop_print_throttle';
+        $dir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . '/lumen_print_throttle';
     }
 
     if (!is_dir($dir)) {

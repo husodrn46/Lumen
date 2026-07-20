@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Gövde: hedef_cari, cek_refleri (JSON int dizisi), aciklama, csrf_token
  * Yanıt: JSON { ok, mesaj, csroll_ref?, clfline_ref?, rollno?, adet?, tutar?, log_id? }
  *
- * BETA: $cek_cikis_beta açık + yönetici (yetkidurum=0) + allow-list + CSRF + POST (fail-closed).
+ * Erişim: M30 (Çek İşlemleri) yetkisi + CSRF + POST (fail-closed).
  */
 
 include_once(__DIR__ . '/ayr.php');
@@ -17,7 +17,6 @@ include_once(__DIR__ . '/log_ip.php');
 include_once(__DIR__ . '/cek_lib.php');
 
 global $dbh, $firma, $firmadonem, $terminalkullanici, $yetkidurum;
-global $cek_cikis_beta, $cek_cikis_beta_kullanicilar;
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -29,15 +28,8 @@ function cek_ciro_json(array $a, int $code = 200): void
 }
 
 // --- Guard zinciri (fail-closed) ---
-if (empty($cek_cikis_beta)) {
-    cek_ciro_json(['ok' => false, 'mesaj' => 'Çek çıkışı özelliği şu an kapalı.'], 403);
-}
-if ((int) ($yetkidurum ?? 1) !== 0) {
-    cek_ciro_json(['ok' => false, 'mesaj' => 'Bu işlem için yöneticilik gerekir.'], 403);
-}
-$izinli = is_array($cek_cikis_beta_kullanicilar ?? null) ? $cek_cikis_beta_kullanicilar : [];
-if (empty($izinli) || !in_array((int) $terminalkullanici, array_map('intval', $izinli), true)) {
-    cek_ciro_json(['ok' => false, 'mesaj' => 'Çek çıkışı beta döneminde size tanımlı değil.'], 403);
+if ((int) m_p_yetki($terminalkullanici, 'M30') !== 1) {
+    cek_ciro_json(['ok' => false, 'mesaj' => 'Çek işlemi için yetkiniz yok.'], 403);
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     cek_ciro_json(['ok' => false, 'mesaj' => 'Yalnızca POST desteklenir.'], 405);

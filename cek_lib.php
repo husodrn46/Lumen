@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * cek_lib.php — mshop "Çek Girişi" (BETA, geri alınabilir)  [Faz-1: yalnız müşteri çeki girişi]
+ * cek_lib.php — Çek Girişi (geri alınabilir)  [Faz-1: yalnız müşteri çeki girişi]
  *
  * Bir müşteri çekinin portföye alınması = tek transaction'da DÖRT kayıt, sırayla bağlı:
  *   [1] CSCARD  (çek kartı)      DOC=1 müşteri çeki, CURRSTAT=1 portföyde

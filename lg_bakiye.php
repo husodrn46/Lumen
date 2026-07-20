@@ -194,16 +194,8 @@ foreach ($rows as $__r) {
 }
 $ozetNet = $ozetBorclu - $ozetAlacakli;
 
-// Cari İşlemleri hub — en az bir özellik (tahsilat / çek giriş / çek çıkış) DURNA'ya açıksa karta "İşlemler" pill'i çıkar
-global $tahsilat_beta, $tahsilat_beta_kullanicilar, $cek_beta, $cek_beta_kullanicilar, $cek_cikis_beta, $cek_cikis_beta_kullanicilar;
-$__hubIzin = static function ($flag, $list) use ($terminalkullanici): bool {
-    return !empty($flag) && is_array($list) && !empty($list) && in_array((int) $terminalkullanici, array_map('intval', $list), true);
-};
-$duranaHub = ((int) ($yetkidurum ?? 1) === 0) && (
-    $__hubIzin($tahsilat_beta ?? null, $tahsilat_beta_kullanicilar ?? []) ||
-    $__hubIzin($cek_beta ?? null, $cek_beta_kullanicilar ?? []) ||
-    $__hubIzin($cek_cikis_beta ?? null, $cek_cikis_beta_kullanicilar ?? [])
-);
+// Cari İşlemleri hub — Çek İşlemleri (M30) yetkisi olana bakiye kartında "İşlemler" pill'i çıkar (yönetici otomatik alır).
+$duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -1014,7 +1006,7 @@ $duranaHub = ((int) ($yetkidurum ?? 1) === 0) && (
                             <i class="fa-solid fa-list-ul"></i> Hareket
                         </a>
                         <?php if ($duranaHub): ?>
-                        <a href="cari_islemleri.php?cari=<?php echo (int)$rowx['CARIID']; ?>" class="action-pill pill-emerald" title="Cari İşlemleri: tahsilat, ödeme, çek giriş/çıkış">
+                        <a href="cari_islemleri.php?cari=<?php echo (int)$rowx['CARIID']; ?>" class="action-pill pill-emerald" title="Cari İşlemleri: çek giriş / çıkış / ciro">
                             <i class="fa-solid fa-right-left"></i> İşlemler
                         </a>
                         <?php endif; ?>

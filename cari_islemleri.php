@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 /**
  * cari_islemleri.php — Cari İşlemleri merkezi (hub).
- * Bir cari için tüm kasa + çek işlemlerini tek yerde toplar; her işlem o cariye önceden bağlı açılır.
- *   Kasa: Tahsilat / Ödeme (tahsilat_panel.php)
- *   Çek : Giriş (cek_panel.php) · Çıkış/Ciro (cek_ciro_panel.php)
- * Her işlem kendi beta bayrağı + allow-list ile ayrı ayrı gösterilir (fail-closed).
+ * Bir cari için çek işlemlerini tek yerde toplar; her işlem o cariye önceden bağlı açılır.
+ *   Çek: Giriş (cek_panel.php) · Çıkış/Ciro (cek_ciro_panel.php) · Kendi Çekimiz (cek_kendi_panel.php)
+ * Erişim: M30 (Çek İşlemleri) yetkisi (fail-closed; yönetici otomatik alır).
  */
 
 include_once(__DIR__ . '/ayr.php');
@@ -16,19 +15,13 @@ include_once(__DIR__ . '/donem_helper.php');
 include_once(__DIR__ . '/log_ip.php');
 
 global $dbh, $firma, $firmadonem, $terminalkullanici, $yetkidurum;
-global $tahsilat_beta, $tahsilat_beta_kullanicilar, $cek_beta, $cek_beta_kullanicilar, $cek_cikis_beta, $cek_cikis_beta_kullanicilar;
-
 $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 $para = static fn($v): string => number_format((float) $v, 2, ',', '.');
 
-$yonetici = ((int) ($yetkidurum ?? 1) === 0);
-$izin = static function ($flag, $list, $user): bool {
-    return !empty($flag) && is_array($list) && !empty($list) && in_array((int) $user, array_map('intval', $list), true);
-};
-$tahsilatOk = $yonetici && $izin($tahsilat_beta ?? null, $tahsilat_beta_kullanicilar ?? [], $terminalkullanici);
-$cekGirisOk = $yonetici && $izin($cek_beta ?? null, $cek_beta_kullanicilar ?? [], $terminalkullanici);
-$cekCikisOk = $yonetici && $izin($cek_cikis_beta ?? null, $cek_cikis_beta_kullanicilar ?? [], $terminalkullanici);
-$erisim = $tahsilatOk || $cekGirisOk || $cekCikisOk;
+// Çek işlemleri erişimi: M30 (Çek İşlemleri) yetkisi — yönetici otomatik alır (fail-closed).
+$cekGirisOk = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
+$cekCikisOk = $cekGirisOk;
+$erisim = $cekGirisOk;
 
 $cariRef = (int) ($_GET['cari'] ?? 0);
 $cari = null; $bakiye = 0.0; $portfoyAdet = 0; $portfoyTutar = 0.0;
@@ -119,7 +112,7 @@ if ($erisim && $cariRef > 0) {
     <?php if (!$erisim): ?>
         <div class="card"><div class="kapali">
             <div><i class="fa-solid fa-lock"></i></div>
-            <div>Cari işlemleri (tahsilat / çek) şu an <b>kapalı</b> veya size tanımlı değil.</div>
+            <div>Çek işlemleri için yetkiniz yok. (Ayarlar → Kullanıcı &amp; Yetki → İzin Matrisi'nden <b>Çek İşlemleri</b> yetkisi verilebilir.)</div>
         </div></div>
     <?php elseif (!$cari): ?>
         <div class="card"><div class="kapali">

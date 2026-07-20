@@ -73,7 +73,7 @@ $handle = printer_open($fisyazici);
 
 
 
-	printer_start_doc($handle, "mshop");
+	printer_start_doc($handle, "Lumen");
 printer_start_page($handle);
 printer_set_option($handle,PRINTER_MODE,"RAW");
 

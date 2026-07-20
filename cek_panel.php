@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * cek_panel.php — Çek Girişi BETA paneli (izole).  [Faz-1: müşteri çeki portföye alma]
  * Cari ara/seç → çek bilgileri (tutar/vade/no/banka/sahibi) → portföye al; girilenleri (geri alınabilir) listeler.
- * Guard: $cek_beta + yönetici + allow-list. Kapalıysa erişilemez.
+ * Erişim: M30 (Çek İşlemleri) yetkisi. Kapalıysa erişilemez.
  */
 
 include_once(__DIR__ . '/ayr.php');
@@ -15,16 +15,12 @@ include_once(__DIR__ . '/log_ip.php');
 include_once(__DIR__ . '/cek_lib.php');
 
 global $dbh, $firma, $firmadonem, $terminalkullanici, $yetkidurum;
-global $cek_beta, $cek_beta_kullanicilar;
 
 $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 $para = static fn($v): string => number_format((float) $v, 2, ',', '.');
 
-$acik = !empty($cek_beta);
-$yonetici = ((int) ($yetkidurum ?? 1) === 0);
-$izinli = is_array($cek_beta_kullanicilar ?? null) ? array_map('intval', $cek_beta_kullanicilar) : [];
-$kullaniciOk = !empty($izinli) && in_array((int) $terminalkullanici, $izinli, true);
-$erisim = $acik && $yonetici && $kullaniciOk;
+$acik = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
+$erisim = $acik;
 
 $ara = trim((string) ($_GET['ara'] ?? ''));
 $cariRef = (int) ($_GET['cari'] ?? 0);
@@ -232,7 +228,7 @@ $bugun = date('Y-m-d');
         <div class="card">
             <div class="card-h"><i class="fa-solid fa-clock-rotate-left"></i> Çek Kayıtları (kim · ne zaman · geri alınabilir)</div>
             <?php if (empty($cekler)): ?>
-                <div class="bos">Henüz mshop'tan çek girilmemiş.</div>
+                <div class="bos">Henüz çek girilmemiş.</div>
             <?php else: ?>
             <div style="overflow-x:auto"><table>
                 <thead><tr><th>Portföy</th><th>Cari</th><th>Çek No</th><th>Banka</th><th>Vade</th><th class="sag">Tutar</th><th>Giren</th><th>Tarih</th><th></th></tr></thead>
