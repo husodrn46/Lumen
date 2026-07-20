@@ -8,7 +8,7 @@ declare(strict_types=1);
  *
  * Token + M16 yetki zorunlu. Aktif ve pasif tüm sistem kullanıcılarını listeler.
  * ÖNEMLİ: LG_SLSMAN ve M_P_YETKI tabloları PREFİKSSİZDİR (sabit ad); $firma/$firmadonem KULLANILMAZ.
- * Web karşılığı: ayar/mobilyetki.php kullanıcı listesi.
+ * Web karşılığı: ayar/kullanici_yetki.php kullanıcı listesi.
  */
 
 include_once(__DIR__ . '/../ayr.php');

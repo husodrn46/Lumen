@@ -14,35 +14,99 @@ ayar_require_m16($terminalkullanici);
 $bilgi_file = __DIR__ . '/../_bilgi_.inc';
 $bilgi_content = file_get_contents($bilgi_file);
 
+// Düzenlenebilir ayarların tipleri (key => tip). Tipler:
+//   'bool' (0/1) · 'boolyn' (evet/hayir) · 'int' (sayı) · 'text' (metin)
+$ayar_tipleri = [
+    'fisyazici' => 'text', 'fisyazici2' => 'text', 'fisyazici3' => 'text', 'fisyazici4' => 'text',
+    'barkodyazici' => 'text', 'barkodyazici2' => 'text',
+    'adetkusurat' => 'int', 'parakusurat' => 'int',
+    'dovizlicalis' => 'bool', 'dovizfirma' => 'int', 'doviztipleri' => 'text', 'tlkodu' => 'int',
+    'kullanicigirisli' => 'bool', 'benihatirla' => 'bool',
+    'bakiyegorunsun' => 'bool', 'extregorunsun' => 'bool', 'carilistesayisi' => 'int',
+    'yenicariac' => 'bool', 'carikoduontaki' => 'text', 'hizlicari' => 'int', 'iletisim' => 'bool',
+    'stoklistesayisi' => 'int', 'stoksonalisfiyati' => 'bool', 'stoksonsatisfiyati' => 'bool',
+    'stokekle' => 'boolyn', 'yenistokac' => 'bool', 'stokkoduontaki' => 'text',
+    'resimlistoklistesi' => 'bool', 'coklustokgiris' => 'boolyn',
+    'sonsiparis_aktif' => 'bool', 'favoriler_aktif' => 'bool',
+    'iskontolu' => 'int', 'iskontolu2' => 'int', 'iskontolu3' => 'int', 'topluiskonto' => 'bool', 'iskontoartir' => 'bool',
+    'sipno' => 'text', 'siparistefiyatduzenle' => 'bool', 'yenialissiparisi' => 'bool', 'reserve' => 'bool',
+    'exceleaktar' => 'bool', 'koliyazdir' => 'bool', 'resimliyazdir' => 'bool', 'barkodyazdir' => 'bool',
+    'depo' => 'int', 'cokludepo' => 'bool',
+    'fiyatgruplu' => 'bool', 'odemekodu' => 'text', 'tanimlialantoplam' => 'bool', 'tanimlialan' => 'bool',
+    'yenifiyatduzenle' => 'bool', 'toplukdv' => 'bool', 'eksik' => 'bool', 'maliyetkontrol' => 'bool',
+    'cokluekledeayniurun' => 'bool', 'dil' => 'int',
+];
+
+/** Değeri tipine göre GÜVENLİ iç-değere (tırnaksız) dönüştür — PHP literalini bozacak karakterler elenir. */
+function sa_temiz(string $tip, $ham): string
+{
+    if ($tip === 'int') {
+        $n = (int) preg_replace('/[^0-9-]/', '', (string) $ham);
+        return (string) max(0, min(999999, $n));
+    }
+    // text: tırnak / ters bölü / ; / kontrol karakterlerini at, 60 karakterle sınırla
+    $s = preg_replace('/[\'"\\\\;\r\n\x00-\x1F]/', '', (string) $ham) ?? '';
+    return mb_substr(trim($s), 0, 60);
+}
+
+/** _bilgi_.inc içinde `$var = ...;` değerini, MEVCUT tırnak stilini koruyarak değiştir. */
+function sa_yaz(string $content, string $var, string $ic): string
+{
+    $pattern = '/(\$' . preg_quote($var, '/') . '\s*=\s*)([\'"]?)(.*?)(\2)(\s*;)/s';
+    $yeni = preg_replace_callback($pattern, static function (array $m) use ($ic): string {
+        return $m[1] . $m[2] . $ic . $m[2] . $m[5];
+    }, $content, 1);
+    return $yeni ?? $content;
+}
+
 // Form gönderildiğinde ayarları güncelle
 $guncelleme_mesaji = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guncelle'])) {
     ayar_require_csrf();
 
-    $yeni_sonsiparis = isset($_POST['sonsiparis_aktif']) ? '1' : '0';
-    $yeni_favoriler = isset($_POST['favoriler_aktif']) ? '1' : '0';
+    $icerik = (string) file_get_contents($bilgi_file);
+    $orijinal = $icerik;
 
-    // Dosya içeriğini güncelle
-    $bilgi_content = preg_replace(
-        '/\$sonsiparis_aktif\s*=\s*[\'"].*?[\'"]\s*;/',
-        "\$sonsiparis_aktif='$yeni_sonsiparis';",
-        $bilgi_content
-    );
+    foreach ($ayar_tipleri as $key => $tip) {
+        if ($tip === 'bool') {
+            $ic = isset($_POST[$key]) ? '1' : '0';
+        } elseif ($tip === 'boolyn') {
+            $ic = isset($_POST[$key]) ? 'evet' : 'hayir';
+        } elseif (isset($_POST[$key])) {
+            $ic = sa_temiz($tip, $_POST[$key]);
+        } else {
+            continue;
+        }
+        $icerik = sa_yaz($icerik, $key, $ic);
+    }
 
-    $bilgi_content = preg_replace(
-        '/\$favoriler_aktif\s*=\s*[\'"].*?[\'"]\s*;/',
-        "\$favoriler_aktif='$yeni_favoriler';",
-        (string) $bilgi_content
-    );
+    // GÜVENLİK: yeni içerik geçerli PHP mi? (bozuk yazma önlenir)
+    $gecerli = true;
+    try {
+        token_get_all($icerik, TOKEN_PARSE);
+    } catch (\ParseError $e) {
+        $gecerli = false;
+    }
 
-    // Dosyayı kaydet
-    if (file_put_contents($bilgi_file, $bilgi_content)) {
-        $guncelleme_mesaji = 'success';
-        // Güncel değerleri yeniden yükle
-        $sonsiparis_aktif = $yeni_sonsiparis;
-        $favoriler_aktif = $yeni_favoriler;
-    } else {
+    if (!$gecerli || strlen($icerik) < strlen($orijinal) * 0.7) {
         $guncelleme_mesaji = 'error';
+    } else {
+        @copy($bilgi_file, $bilgi_file . '.bak'); // yedek
+        if (file_put_contents($bilgi_file, $icerik) !== false) {
+            $guncelleme_mesaji = 'success';
+            // Bu istek için güncel değerleri belleğe yükle (form güncel görünsün)
+            foreach ($ayar_tipleri as $key => $tip) {
+                if ($tip === 'bool') {
+                    ${$key} = isset($_POST[$key]) ? '1' : '0';
+                } elseif ($tip === 'boolyn') {
+                    ${$key} = isset($_POST[$key]) ? 'evet' : 'hayir';
+                } elseif (isset($_POST[$key])) {
+                    ${$key} = sa_temiz($tip, $_POST[$key]);
+                }
+            }
+        } else {
+            $guncelleme_mesaji = 'error';
+        }
     }
 }
 
@@ -412,27 +476,20 @@ function sa_render_value($deger): string
                 font-size: 16px;
             }
         }
+        /* Düzenlenebilir alanlar */
+        .sa-field { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:11px 14px; border:1px solid var(--border); border-radius:11px; background:#fff; margin-bottom:8px; }
+        .sa-field .sa-lbl { font-size:13.5px; font-weight:600; color:var(--text-1); }
+        .sa-field .sa-in { width:200px; max-width:50%; padding:9px 11px; border:1px solid var(--border); border-radius:9px; font-size:14px; font-family:inherit; outline:none; text-align:right; color:var(--text-1); background:#fff; }
+        .sa-field .sa-in:focus { border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft); }
+        .sa-kaydet-bar { position:sticky; bottom:0; z-index:30; background:rgba(255,255,255,.95); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-top:1px solid var(--border); margin:22px -24px -60px; padding:14px 24px; display:flex; align-items:center; gap:12px; box-shadow:0 -4px 16px rgba(0,0,0,.05); }
+        .sa-kaydet-bar .sa-not { margin-right:auto; font-size:12.5px; color:var(--text-3); display:flex; align-items:center; gap:7px; }
+        .sa-kaydet-bar code { background:var(--red-soft); color:var(--red); padding:1px 6px; border-radius:5px; font-size:12px; }
+        @media (max-width:520px){ .sa-field .sa-in { width:130px; } .sa-kaydet-bar { margin:16px -12px -40px; padding:12px 14px; } .sa-kaydet-bar .sa-not { display:none; } }
     </style>
 </head>
 <body>
 
-<header class="top-header">
-    <div class="header-inner">
-        <a href="index.php" class="header-back" title="Ayarlar menusune don">
-            <i class="fa fa-arrow-left"></i>
-        </a>
-        <div class="header-divider"></div>
-        <div class="header-title-wrap">
-            <span class="header-title">
-                <i class="fa-solid fa-sliders"></i>Sistem Ayarlari
-            </span>
-            <span class="header-sub">Uygulama konfigurasyonu</span>
-        </div>
-        <span class="header-badge">
-            <i class="fa-solid fa-shield-halved"></i>M16 Yetki
-        </span>
-    </div>
-</header>
+<?php $saAktifSekme = 'genel'; include __DIR__ . '/sistem_sekmeler.php'; ?>
 
 <main style="max-width:1180px;margin:0 auto;padding:22px 24px 60px;">
 
@@ -441,7 +498,7 @@ function sa_render_value($deger): string
             <i class="fa-solid fa-circle-check"></i>
             <div>
                 <div class="a-title">Ayarlar kaydedildi.</div>
-                <div class="a-body">Stok arama ayarlari guncellendi.</div>
+                <div class="a-body">Tum ayarlar _bilgi_.inc dosyasina yazildi.</div>
             </div>
         </div>
     <?php elseif ($guncelleme_mesaji === 'error'): ?>
@@ -454,93 +511,56 @@ function sa_render_value($deger): string
         </div>
     <?php endif; ?>
 
-    <div class="alert alert-amber">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <div>
-            <div class="a-title">Goruntuleme modu</div>
-            <div class="a-body">
-                Bu sayfa genel olarak salt okunurdur. Diger ayarlari degistirmek icin
-                <code>_bilgi_.inc</code> dosyasini duzenleyin.
-                Istisna: <strong>Stok Arama Ayarlari</strong> kategorisi bu sayfadan duzenlenebilir.
+    <form method="POST" action="">
+        <?php echo csrf_field(); ?>
+        <?php foreach ($ayarlar as $kategori => $ayar_listesi):
+            $ikon = $kategori_ikon[$kategori] ?? 'fa-folder-open'; ?>
+        <section class="glass-card">
+            <div class="card-head">
+                <span class="icon-box"><i class="fa-solid <?php echo $ikon; ?>"></i></span>
+                <div>
+                    <h2><?php echo htmlspecialchars($kategori); ?></h2>
+                    <p><?php echo count($ayar_listesi); ?> ayar</p>
+                </div>
+                <div class="head-right">
+                    <span class="chip chip-amber"><i class="fa-solid fa-pen-to-square"></i>Duzenlenebilir</span>
+                </div>
             </div>
-        </div>
-    </div>
-
-
-    <?php
-    // Once Stok Arama (duzenlenebilir) kartini en uste bas.
-    $oncelikli = 'Stok Arama Ayarları';
-    if (isset($ayarlar[$oncelikli])):
-        $form_ayarlar = $ayarlar[$oncelikli];
-    ?>
-    <section class="glass-card tone-amber">
-        <div class="card-head">
-            <span class="icon-box"><i class="fa-solid <?php echo $kategori_ikon[$oncelikli] ?? 'fa-magnifying-glass'; ?>"></i></span>
-            <div>
-                <h2><?php echo htmlspecialchars($oncelikli); ?></h2>
-                <p>Stok arama ekraninda gorunecek butonlar</p>
-            </div>
-            <div class="head-right">
-                <span class="chip chip-amber"><i class="fa-solid fa-pen-to-square"></i>Duzenlenebilir</span>
-            </div>
-        </div>
-        <div class="card-body">
-            <form method="POST" action="">
-                <?php echo csrf_field(); ?>
-                <?php foreach ($form_ayarlar as $ayar):
-                    $checked = ($ayar[2] === '1' || $ayar[2] === 1) ? 'checked' : '';
+            <div class="card-body">
+                <?php foreach ($ayar_listesi as $ayar):
+                    $key = (string) $ayar[0];
+                    $label = (string) $ayar[1];
+                    $deger = $ayar[2];
+                    $tip = $ayar_tipleri[$key] ?? 'text';
+                    if ($tip === 'bool' || $tip === 'boolyn'):
+                        $isOn = ($tip === 'boolyn') ? ($deger === 'evet') : ($deger === '1' || $deger === 1);
                 ?>
-                <label class="toggle-row">
-                    <span class="toggle-label">
-                        <?php echo htmlspecialchars($ayar[1]); ?>
-                        <small>Anahtari acarak bu butonu stok arama ekraninda gosterin.</small>
-                    </span>
-                    <span class="switch">
-                        <input type="checkbox" name="<?php echo htmlspecialchars($ayar[0]); ?>" <?php echo $checked; ?>>
-                        <span class="slider"></span>
-                    </span>
-                </label>
-                <?php endforeach; ?>
-
-                <div style="display:flex; justify-content:flex-end; margin-top:14px;">
-                    <button type="submit" name="guncelle" class="btn-submit">
-                        <i class="fa-solid fa-floppy-disk"></i>Kaydet
-                    </button>
-                </div>
-            </form>
-        </div>
-    </section>
-    <?php endif; ?>
-
-    <?php
-    // Diger kategoriler (salt okunur)
-    foreach ($ayarlar as $kategori => $ayar_listesi):
-        if ($kategori === $oncelikli) continue;
-        $ikon = $kategori_ikon[$kategori] ?? 'fa-folder-open';
-    ?>
-    <section class="glass-card">
-        <div class="card-head">
-            <span class="icon-box"><i class="fa-solid <?php echo $ikon; ?>"></i></span>
-            <div>
-                <h2><?php echo htmlspecialchars($kategori); ?></h2>
-                <p><?php echo count($ayar_listesi); ?> ayar &middot; Salt okunur</p>
-            </div>
-            <div class="head-right">
-                <span class="chip chip-mute"><i class="fa-solid fa-lock"></i>Goruntule</span>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="settings-grid">
-                <?php foreach ($ayar_listesi as $ayar): ?>
-                <div class="setting-row">
-                    <span class="setting-label"><?php echo htmlspecialchars($ayar[1]); ?></span>
-                    <?php echo sa_render_value($ayar[2]); ?>
-                </div>
+                    <label class="toggle-row">
+                        <span class="toggle-label"><?php echo htmlspecialchars($label); ?></span>
+                        <span class="switch">
+                            <input type="checkbox" name="<?php echo htmlspecialchars($key); ?>" <?php echo $isOn ? 'checked' : ''; ?>>
+                            <span class="slider"></span>
+                        </span>
+                    </label>
+                <?php else: ?>
+                    <div class="sa-field">
+                        <span class="sa-lbl"><?php echo htmlspecialchars($label); ?></span>
+                        <input class="sa-in" type="<?php echo $tip === 'int' ? 'number' : 'text'; ?>"
+                               name="<?php echo htmlspecialchars($key); ?>"
+                               value="<?php echo htmlspecialchars((string) $deger, ENT_QUOTES, 'UTF-8'); ?>"
+                               <?php echo $tip === 'int' ? 'inputmode="numeric"' : ''; ?> autocomplete="off">
+                    </div>
+                <?php endif; ?>
                 <?php endforeach; ?>
             </div>
+        </section>
+        <?php endforeach; ?>
+
+        <div class="sa-kaydet-bar">
+            <span class="sa-not"><i class="fa-solid fa-circle-info"></i> Değişiklikler <code>_bilgi_.inc</code> dosyasına yazılır.</span>
+            <button type="submit" name="guncelle" class="btn-submit"><i class="fa-solid fa-floppy-disk"></i> Tümünü Kaydet</button>
         </div>
-    </section>
-    <?php endforeach; ?>
+    </form>
 
     <div class="file-note">
         <i class="fa-solid fa-file-code"></i>

@@ -564,22 +564,7 @@ $totalPageAudits = count($pageAuditItems);
 </head>
 <body>
 
-<header class="top-header">
-    <div class="header-inner">
-        <a href="index.php" class="header-back" title="Yonetim Paneli">
-            <i class="fa fa-arrow-left"></i>
-        </a>
-        <div class="header-divider"></div>
-        <span class="header-icon"><i class="fa-solid fa-clipboard-check"></i></span>
-        <div class="header-titles">
-            <span class="header-title">Yetki Denetim</span>
-            <span class="header-subtitle">
-                <span class="dot em"></span><?= (int) $summary['aktif'] ?> aktif
-                <span class="dot am" style="margin-left:4px;"></span><?= (int) $summary['pasif'] ?> pasif
-            </span>
-        </div>
-    </div>
-</header>
+<?php $aktifSekme = 'denetim'; include __DIR__ . '/yetki_sekmeler.php'; ?>
 
 <main>
 

@@ -1121,27 +1121,15 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
     </style>
 </head>
 <body>
-    <header class="top-header">
-        <div class="header-inner">
-            <a href="index.php" class="header-back" title="Geri">
-                <i class="fa-solid fa-arrow-left"></i>
-            </a>
-            <div class="header-divider"></div>
-            <div class="header-icon">
-                <i class="fa-solid fa-user-lock"></i>
-            </div>
-            <div class="header-titles">
-                <div class="header-title">Ozel Cari Kisitlari</div>
-                <div class="header-subtitle">
-                    <?php if ($aktifSekme === 'test'): ?>
-                        Yetki kurallarini sinayin &middot; Hedef: <?php echo htmlspecialchars($testSelectedPersonelLabel, ENT_QUOTES, 'UTF-8'); ?>
-                    <?php else: ?>
-                        Kullanici bazli cari erisim kontrolu &middot; Hedef: <?php echo htmlspecialchars($selectedPersonelLabel, ENT_QUOTES, 'UTF-8'); ?>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </header>
+    <?php
+    // Ortak "Kullanıcı & Yetki" üst şeridi. Bu sayfanın kendi $aktifSekme'si
+    // ('kurallar'/'test') iç sekmeler için; şerit için geçici olarak 'ozelcari'
+    // yapıp hemen geri yüklüyoruz ki iç sekmeler bozulmasın.
+    $ky_ic_sekme = $aktifSekme;
+    $aktifSekme = 'ozelcari';
+    include __DIR__ . '/yetki_sekmeler.php';
+    $aktifSekme = $ky_ic_sekme;
+    ?>
 
     <main>
         <?php if ($statusText !== null): ?>

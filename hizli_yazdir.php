@@ -35,6 +35,7 @@ $stokhareket = isset($_GET['stokhareket']) ? (int)$_GET['stokhareket'] : 0;
 $fisno       = isset($_GET['fisno'])       ? trim((string)$_GET['fisno'])    : '';
 $tip         = isset($_GET['tip'])         ? (int)$_GET['tip']               : 1;   // 1=Fiş,2=Barkod,3=Ambar,4=Fiş MAIL
 $dizayn      = isset($_GET['dizayn'])      ? trim((string)$_GET['dizayn'])   : '';
+$tercih      = isset($_GET['tercih'])      ? basename(trim((string)$_GET['tercih'])) : ''; // tercih edilen frx (ör. depo.frx / dovizli.frx); yoksa ilk dosya
 $yazici      = isset($_GET['yazici'])      ? trim((string)$_GET['yazici'])   : '';
 $lokasyon    = isset($_GET['lokasyon'])    ? (int)$_GET['lokasyon']          : 1;
 $miktar      = isset($_GET['miktar'])      ? max(1, (int)$_GET['miktar'])    : 1;
@@ -124,18 +125,23 @@ $dizaynyolu = match ($tip) {
 if ($dizayn === '') {
     try {
         if (is_dir($dizaynyolu)) {
-            $list = scandir($dizaynyolu);
-            $files = [];
-            if ($list !== false) {
-                foreach ($list as $f) {
-                    if ($f !== '.' && $f !== '..' && !is_dir($dizaynyolu . $f)) {
-                        $files[] = $f;
+            // Tercih edilen şablon (ör. depo.frx / dovizli.frx) varsa onu kullan; yoksa ilk dosya
+            if ($tercih !== '' && file_exists($dizaynyolu . $tercih)) {
+                $dizayn = $tercih;
+            } else {
+                $list = scandir($dizaynyolu);
+                $files = [];
+                if ($list !== false) {
+                    foreach ($list as $f) {
+                        if ($f !== '.' && $f !== '..' && !is_dir($dizaynyolu . $f)) {
+                            $files[] = $f;
+                        }
                     }
                 }
-            }
-            if ($files !== []) {
-                sort($files, SORT_NATURAL | SORT_FLAG_CASE);
-                $dizayn = $files[0];
+                if ($files !== []) {
+                    sort($files, SORT_NATURAL | SORT_FLAG_CASE);
+                    $dizayn = $files[0];
+                }
             }
         }
     } catch (Exception $e) {

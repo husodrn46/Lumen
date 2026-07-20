@@ -18,6 +18,10 @@ _baglanti_.inc
 *.log
 error_log.txt
 
+# Kullanıcı ayar verisi (varsayılanlar koda gömülü; kullanıcı özelleştirmesi versiyonlanmaz)
+ayar/roller_ozel.json
+_bilgi_.inc.bak
+
 # Kullanıcı yüklemeleri (klasör + koruma dosyaları kalır, içerik versiyonlanmaz)
 gorev_ekleri/*
 !gorev_ekleri/.htaccess

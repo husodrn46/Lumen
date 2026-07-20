@@ -17,42 +17,11 @@ require_once __DIR__ . '/yetki_tanimlari.php';
 $yetkiGruplari = yetki_gruplari();
 $yetkiler = yetki_tum_tanimlar();
 
-// Hazir rol sablonlari
+// Hazır rol şablonları — TEK KAYNAK: ayar/rol_helper.php
+// Built-in (Yönetici, Tümünü Sıfırla) + ayar/roller.php'den yönetilen özel roller.
 // 'yetki_turu' => M_P_YETKI.YETKI sutunu (0=Yonetici, 1=Personel, 2=Musteri, null=degistirme)
-$rol_sablonlari = [
-    'yonetici' => [
-        'name' => 'Yönetici',
-        'icon' => 'fa-crown',
-        'color' => 'red',
-        'aciklama' => 'Tam yetki (YETKI türü Yönetici olur, kullanımda olan tüm yetkiler açılır)',
-        'yetki_turu' => 0,
-        'yetkiler' => yetki_aktif_kodlar()
-    ],
-    'ortak' => [
-        'name' => 'Ortak',
-        'icon' => 'fa-handshake',
-        'color' => 'indigo',
-        'aciklama' => 'Ayarlar, Loglar ve Dosya Portalı hariç tüm erişim',
-        'yetki_turu' => 1,
-        'yetkiler' => ['M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','M13','M14','M15','M17','M19','M20','M21','M22','M23','M24','M26','M27']
-    ],
-    'satis_temsilcisi' => [
-        'name' => 'Satış Temsilcisi',
-        'icon' => 'fa-user-tag',
-        'color' => 'blue',
-        'aciklama' => 'Sipariş + mağaza satış + stok arama + bakiye',
-        'yetki_turu' => 1,
-        'yetkiler' => ['M1','M2','M3','M4','M7']
-    ],
-    'sifirla' => [
-        'name' => 'Tümünü Sıfırla',
-        'icon' => 'fa-ban',
-        'color' => 'rose',
-        'aciklama' => 'Tüm yetkileri kaldır (YETKI türü değişmez)',
-        'yetki_turu' => null,
-        'yetkiler' => []
-    ],
-];
+require_once __DIR__ . '/rol_helper.php';
+$rol_sablonlari = rol_tum_sablonlar();
 
 // Kullanıcıları ve yetkilerini çek
 $firma_filter = isset($_POST['firma']) ? (int)$_POST['firma'] : (int)$firmano;
@@ -664,25 +633,7 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </style>
 </head>
 <body>
-    <!-- STICKY INDIGO HEADER -->
-    <header class="top-header">
-        <div class="header-inner">
-            <a href="index.php" class="header-back" title="Geri">
-                <i class="fa-solid fa-arrow-left"></i>
-            </a>
-            <div class="header-icon">
-                <i class="fa-solid fa-table-cells-large"></i>
-            </div>
-            <div class="header-title-wrap">
-                <div class="header-title">Yetki Matrisi</div>
-                <div class="header-sub">Preset rol ve kullanıcı bazlı yetki yönetimi</div>
-            </div>
-            <span class="header-badge">
-                <span class="dot"></span>
-                Düzenlenebilir
-            </span>
-        </div>
-    </header>
+    <?php $aktifSekme = 'matris'; include __DIR__ . '/yetki_sekmeler.php'; ?>
 
     <div class="wrap">
         <!-- FIRMA FILTER -->

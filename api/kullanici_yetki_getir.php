@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Yanıt: { ok, yetki:int(YETKI), yonetici:bool, izinler:{ "M1":0|1, ..., "ST1":0|1, ... } }
  *
  * Token + M16 yetki zorunlu. Bir kullanıcının menü/işlem izinlerini döndürür.
- * Web karşılığı: ayar/mobilyetki.php izin matrisi (yetki_guncelle_ajax.php okuma yönü).
+ * Web karşılığı: ayar/yetki_matrisi.php izin matrisi (yetki_guncelle_ajax.php okuma yönü).
  * ÖNEMLİ: M_P_YETKI tablosu PREFİKSSİZDİR (sabit ad); $firma/$firmadonem KULLANILMAZ.
  * PERSONEL ve SIFRE sütunları ASLA yanıtta dönmez; YETKI ayrı alan olarak döner.
  */

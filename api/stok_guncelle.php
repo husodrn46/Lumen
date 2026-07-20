@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Yanıt: { ok, mesaj }
  *
  * Token + ST2 yetkisi zorunlu. Mevcut ürünün kodu/adı/özel kod2 (+ opsiyonel KDV) günceller.
- * Kod başka bir karta atanmışsa reddeder. (Web stokduzenle.php UPDATE sözleşmesi.)
+ * Kod başka bir karta atanmışsa reddeder. (Web lg_stok_duzenle.php UPDATE sözleşmesi.)
  */
 
 include_once(__DIR__ . '/../ayr.php');

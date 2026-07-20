@@ -115,12 +115,7 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
-            <a href="index.php" class="geri" title="Ayarlara dön"><i class="fa fa-arrow-left"></i></a>
-            <span class="baslik"><i class="fa-solid fa-percent"></i> Hızlı İskonto Kısayolları</span>
-        </div>
-    </header>
+    <?php $saAktifSekme = 'iskonto'; include __DIR__ . '/sistem_sekmeler.php'; ?>
     <main>
         <?php if ($mesaj !== ''): ?>
             <div class="mesaj <?php echo $mesajTip === 'ok' ? 'ok' : 'error'; ?>">

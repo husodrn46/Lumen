@@ -1556,6 +1556,8 @@ foreach ($resultRows as $r) {
         </div>
     </header>
 
+    <?php $sipAktifSekme = 'acik'; include __DIR__ . '/siparis_sekmeler.php'; ?>
+
     <!-- Main Content -->
     <main style="max-width:1280px;margin:0 auto;padding:24px 16px;">
 
@@ -1911,7 +1913,7 @@ foreach ($resultRows as $r) {
                                 <a href="hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
                                     <i class="fa-solid fa-bolt"></i> Hızlı Yazdır
                                 </a>
-                                <a href="hizli_yazdir_depo.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="hizli_yazdir.php?tercih=depo.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
                                     <i class="fa-solid fa-warehouse"></i> Depo Yazdır
                                 </a>
                                 <a href="fisyazhtml.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
@@ -1921,7 +1923,7 @@ foreach ($resultRows as $r) {
                                     <i class="fa-solid fa-file"></i> PDF (Fiyatsız)
                                 </a>
                                 <?php if ($hasDoviz): ?>
-                                <a href="hizli_yazdir_doviz.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="hizli_yazdir.php?tercih=dovizli.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
                                     <i class="fa-solid <?php echo $dovizIcon; ?>"></i> <?php echo htmlspecialchars($dovizLabel, ENT_QUOTES, 'UTF-8'); ?>
                                 </a>
                                 <?php endif; ?>

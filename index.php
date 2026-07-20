@@ -168,9 +168,15 @@ $themeMap = [
 
 $visible_menu_items = [];
 foreach ($menu_items as $item) {
-    $menuVisible = ((string) $item[3] === 'lg_bakiye.php')
-        ? m_p_bakiye_erisim_var_mi($terminalkullanici)
-        : (m_p_yetki($terminalkullanici, $item[0]) == 1);
+    if ((string) $item[3] === 'lg_bakiye.php') {
+        $menuVisible = m_p_bakiye_erisim_var_mi($terminalkullanici);
+    } elseif ((string) $item[3] === 'lg_tumsiparisler.php') {
+        // "Tüm Siparişler" artık "Siparişler" ekranındaki sekme şeridinden açılır.
+        // Ayrı kutucuk yalnız M5 olup M2 OLMAYAN kullanıcıya gösterilir (erişim kaybı olmasın).
+        $menuVisible = (m_p_yetki($terminalkullanici, 'M5') == 1 && m_p_yetki($terminalkullanici, 'M2') != 1);
+    } else {
+        $menuVisible = (m_p_yetki($terminalkullanici, $item[0]) == 1);
+    }
 
     if (!$menuVisible) {
         continue;

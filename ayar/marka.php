@@ -144,12 +144,7 @@ $v = time(); // önizleme cache-bust
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
-            <a href="index.php" class="geri" title="Ayarlara dön"><i class="fa fa-arrow-left"></i></a>
-            <span class="baslik"><i class="fa-solid fa-palette"></i> Marka / Logo</span>
-        </div>
-    </header>
+    <?php $saAktifSekme = 'marka'; include __DIR__ . '/sistem_sekmeler.php'; ?>
     <main>
         <?php foreach ($mesajlar as [$tip, $metin]): ?>
             <div class="mesaj <?php echo $tip === 'ok' ? 'ok' : 'error'; ?>">

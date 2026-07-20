@@ -4,8 +4,8 @@ declare(strict_types=1);
 /**
  * POST /api/kullanici_kaydet.php
  * Gövde: { "id"?:0, "kod":"KOD-1", "ad":"Ad Soyad", "sifre"?:"1234", "firma":1, "yetki":1 }
- *   id yok / 0  -> EKLE   (web: ayar/mobilkullanici.php)
- *   id > 0      -> GÜNCELLE (web: ayar/mobilkullanicix.php)
+ *   id yok / 0  -> EKLE   (web: ayar/kullanici_yetki.php — Kullanıcılar sekmesi)
+ *   id > 0      -> GÜNCELLE (web: ayar/kullanici_yetki.php — Kullanıcılar sekmesi)
  *   yetki: 0=Yönetici, 1=Personel, 2=Müşteri
  * Yanıt: { ok, id, mesaj }
  *
@@ -53,7 +53,7 @@ $sifreGecerli = !($sifre === '' || $sifre === '0' || strlen($sifre) < 4);
 
 if ($id <= 0) {
     /* ==========================  EKLE  ========================== */
-    /* ayar/mobilkullanici.php birebir */
+    /* ayar/kullanici_yetki.php ekleme mantığıyla birebir */
 
     // 1) Şifre zorunlu
     if (!$sifreGecerli) {
@@ -102,7 +102,7 @@ if ($id <= 0) {
 }
 
 /* ==========================  GÜNCELLE  ========================== */
-/* ayar/mobilkullanicix.php birebir */
+/* ayar/kullanici_yetki.php düzenleme mantığıyla birebir */
 try {
     // 1) M_P_YETKI satırı var mı
     $check = $dbh->prepare("SELECT COUNT(*) FROM M_P_YETKI WHERE PERSONEL = :id");

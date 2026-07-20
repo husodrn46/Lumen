@@ -616,7 +616,7 @@ elseif ($role === 1) { $roleChipClass = 'chip-amber'; }
                 <i class="fa-solid fa-copy"></i>
                 CSV Kopyala
             </button>
-            <a href="mobilkullanicix.php?perid=<?php echo $userRef; ?>" class="btn btn-indigo">
+            <a href="kullanici_yetki.php?duzenle=<?php echo $userRef; ?>" class="btn btn-indigo">
                 <i class="fa-solid fa-pen-to-square"></i>
                 Duzenle
             </a>

@@ -70,10 +70,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setPageParam('stokhareket', $stokhareket, 'fisyazexcel');
             return "fisyazexcel.php";
         })(),
-        'print_resimli' => (function() use ($stokhareket) {
-            setPageParam('stokhareket', $stokhareket, 'fisyazresimli');
-            return "fisyazresimli.php";
-        })(),
         'print_kolili' => (function() use ($stokhareket) {
             setPageParam('stokhareket', $stokhareket, 'fisyazkoli');
             return "fisyazkoli.php";
@@ -118,7 +114,6 @@ $printActions = [
     ['action' => 'print_fisyaz',      'label' => 'Yazdir',         'icon' => 'fa-receipt',             'show' => true],
     ['action' => 'print_html',        'label' => 'PC Yazdir',      'icon' => 'fa-desktop',             'show' => true],
     ['action' => 'export_excel',      'label' => "Excel'e Aktar",  'icon' => 'fa-file-excel',          'show' => (isset($exceleaktar) && $exceleaktar == 1), 'tone' => 'green'],
-    ['action' => 'print_resimli',     'label' => 'Resimli Yazdir', 'icon' => 'fa-image',               'show' => (isset($resimliyazdir) && $resimliyazdir == 1)],
     ['action' => 'print_kolili',      'label' => 'Kolili Yazdir',  'icon' => 'fa-boxes-stacked',       'show' => (isset($koliyazdir) && $koliyazdir == 1)],
     ['action' => 'print_barkodlu',    'label' => 'Barkodlu Yazdir','icon' => 'fa-barcode',             'show' => (isset($barkodyazdir) && $barkodyazdir == 1)],
     ['action' => 'print_dovizli',     'label' => 'Dovizli Yazdir', 'icon' => 'fa-dollar-sign',         'show' => ($doviz !== '0' && isset($dovizlicalis) && $dovizlicalis == '1')],

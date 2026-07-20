@@ -11,12 +11,9 @@ ayar_require_m16($terminalkullanici);
 <?php
 // Menu tanimlari — ikon + renk + baslik + aciklama
 $menuItems = [
-    ['yetki_yonetimi.php',     'fa-user-shield',       'red',     'Yetki Yonetimi',       'Kullanici yonetimi, izin matrisi ve yetki denetimi'],
+    ['kullanici_yetki.php',    'fa-users-gear',        'red',     'Kullanıcı & Yetki',    'Kullanıcılar, izin matrisi ve denetim tek ekranda'],
     ['guvenlik.php',           'fa-shield-halved',     'rose',    'Guvenlik',             'Hesap kilidi acma ve acil saldiri modu'],
-    ['sistem_ayarlari.php',    'fa-gear',              'sky',     'Sistem Ayarlari',      'Genel sistem yapilandirmalari ve parametreler'],
-    ['ozel_cari_kisitlari.php','fa-user-lock',         'amber',   'Ozel Cari Kisitlari',  'Kullanici bazli cari yasak kurallari ve test araci'],
-    ['hizli_iskonto.php',      'fa-percent',           'emerald', 'Hizli Iskonto',        'Siparis ekrani iskonto kisayollari (etiket + oran)'],
-    ['marka.php',              'fa-image',             'purple',  'Marka / Logo',         'Kendi logonuzu ve uygulama ikonunuzu yukleyin'],
+    ['sistem_ayarlari.php',    'fa-gear',              'sky',     'Sistem Ayarları',      'Genel parametreler, hızlı iskonto ve marka/logo tek ekranda'],
 ];
 ?>
 <!DOCTYPE html>

@@ -682,6 +682,8 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </header>
 
+    <?php $sipAktifSekme = 'tum'; include __DIR__ . '/siparis_sekmeler.php'; ?>
+
     <main>
 
         <div class="glass-card filter-panel">
