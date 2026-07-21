@@ -7,7 +7,8 @@ declare(strict_types=1);
  *
  * İlk kurulumda tek seferlik çalışır:
  *   Adım 1: Veritabanı bağlantısı + firma/dönem/başlık/mağaza carisi → .env yazılır,
- *           _baglanti_.inc oluşturulur, bağlantı test edilir.
+ *           _baglanti_.inc oluşturulur, bağlantı test edilir ve Lumen'e özel
+ *           tablolar (sql/*.sql — M_P_YETKI, M_CEK_*, M_GOREV vb.) otomatik kurulur.
  *   Adım 2: Yönetici kullanıcı (mevcut LOGO satış temsilcisi kodu + parola) → M_P_YETKI
  *           satırı (YETKI=0) yazılır.
  * Tamamlanınca `.installed` kilit dosyası oluşur; sihirbaz bir daha açılmaz.
@@ -66,6 +67,41 @@ function kurulum_env_yaz(string $yol, array $kv): bool
     return @file_put_contents($yol, implode("\n", $satirlar) . "\n") !== false;
 }
 
+/**
+ * sql/ klasöründeki tüm şema betiklerini sırayla uygular (Lumen'e özel M_* tabloları).
+ * Betikler idempotenttir (IF NOT EXISTS), tekrar çalıştırmak güvenlidir.
+ * SQL Server "GO" toplu iş ayırıcısı PDO tarafından anlaşılmadığından batch'lere bölünür.
+ *
+ * @return array{basarili:int, toplam:int, hatalar:array<string,string>}
+ */
+function kurulum_sema_uygula(PDO $pdo, string $dir): array
+{
+    $dosyalar = glob(rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . '*.sql') ?: [];
+    sort($dosyalar, SORT_NATURAL | SORT_FLAG_CASE);
+
+    $basarili = 0;
+    $hatalar  = [];
+    foreach ($dosyalar as $yol) {
+        $ad = basename($yol);
+        try {
+            $icerik = (string) file_get_contents($yol);
+            $batchler = preg_split('/^\s*GO\s*;?\s*$/mi', $icerik) ?: [];
+            foreach ($batchler as $batch) {
+                $batch = trim($batch);
+                if ($batch === '') {
+                    continue;
+                }
+                $pdo->exec($batch);
+            }
+            $basarili++;
+        } catch (Throwable $e) {
+            $hatalar[$ad] = $e->getMessage();
+        }
+    }
+
+    return ['basarili' => $basarili, 'toplam' => count($dosyalar), 'hatalar' => $hatalar];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($csrf, (string) ($_POST['csrf'] ?? ''))) {
         $hata = 'Güvenlik doğrulaması başarısız. Sayfayı yenileyip tekrar deneyin.';
@@ -115,6 +151,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'onek' => $onek];
                     $adim = 2;
                     $notlar[] = 'Bağlantı başarılı, yapılandırma kaydedildi.';
+
+                    // Lumen'e özel tabloları (M_*) burada kur — kullanıcı elle SQL çalıştırmasın.
+                    $sema = kurulum_sema_uygula($test, $KOK . '/sql');
+                    if ($sema['hatalar'] === []) {
+                        $notlar[] = 'Veritabanı tabloları hazırlandı (' . $sema['basarili'] . '/' . $sema['toplam'] . ' betik).';
+                    } else {
+                        $notlar[] = 'Tablolar kısmen hazırlandı (' . $sema['basarili'] . '/' . $sema['toplam']
+                            . '). Atlanan: ' . implode(', ', array_keys($sema['hatalar']))
+                            . ' — bu betikleri sql/ klasöründen elle çalıştırabilirsiniz.';
+                    }
                 }
             } catch (Throwable $e) {
                 $hata = 'Bağlantı/doğrulama başarısız: ' . $e->getMessage();

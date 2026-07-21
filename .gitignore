@@ -8,6 +8,11 @@ _baglanti_.inc
 .user.ini
 .mcp.json
 
+# Yapay zekâ / geliştirme asistanı dosyaları (ürünün parçası değil)
+CLAUDE.md
+AGENTS.md
+.claude/
+
 # Bağımlılıklar (composer install / npm install ile gelir)
 /vendor/
 /node_modules/
