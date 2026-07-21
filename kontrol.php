@@ -29,8 +29,8 @@ if (function_exists('saldiri_modu_erisim_engelli_mi') && saldiri_modu_erisim_eng
     saldiri_modu_engelle_ve_cik();
 }
 
-if (!function_exists('akl_kontrol_json_istegi_mi')) {
-    function akl_kontrol_json_istegi_mi(): bool
+if (!function_exists('lumen_kontrol_json_istegi_mi')) {
+    function lumen_kontrol_json_istegi_mi(): bool
     {
         $accept = (string) ($_SERVER['HTTP_ACCEPT'] ?? '');
         $requestedWith = (string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '');
@@ -42,10 +42,10 @@ if (!function_exists('akl_kontrol_json_istegi_mi')) {
     }
 }
 
-if (!function_exists('akl_kontrol_yonlendir_veya_json')) {
-    function akl_kontrol_yonlendir_veya_json(string $url, string $message, int $statusCode = 401)
+if (!function_exists('lumen_kontrol_yonlendir_veya_json')) {
+    function lumen_kontrol_yonlendir_veya_json(string $url, string $message, int $statusCode = 401)
     {
-        if (akl_kontrol_json_istegi_mi()) {
+        if (lumen_kontrol_json_istegi_mi()) {
             while (ob_get_level() > 0) {
                 ob_end_clean();
             }
@@ -147,7 +147,7 @@ if (!isset($_SESSION['plasiyer_id']) || empty($_SESSION['plasiyer_id'])) {
 
     // Remember me ile de kurtarılamadıysa giriş sayfasına yönlendir
     if (!$rememberRestored) {
-        akl_kontrol_yonlendir_veya_json(
+        lumen_kontrol_yonlendir_veya_json(
             APP_ROOT_URL . '/giris.php?hata=oturum_gerekli',
             'Oturum suresi dolmus. Lutfen tekrar giris yap.',
             401
@@ -175,7 +175,7 @@ try {
             if ($oturumKapatmaTs > 0 && (int) $_SESSION['login_ts'] < $oturumKapatmaTs) {
                 session_unset();
                 session_destroy();
-                akl_kontrol_yonlendir_veya_json(
+                lumen_kontrol_yonlendir_veya_json(
                     APP_ROOT_URL . '/giris.php?hata=oturum_kapatildi',
                     'Oturumunuz yonetici tarafindan kapatildi. Lutfen tekrar giris yapin.',
                     401
@@ -208,7 +208,7 @@ switch ($kullaniciYetkiKodu) {
         // Güvenli bir varsayılan olarak, oturumu sonlandırıp kullanıcıyı dışarı at.
         session_unset();
         session_destroy();
-        akl_kontrol_yonlendir_veya_json(
+        lumen_kontrol_yonlendir_veya_json(
             APP_ROOT_URL . '/giris.php?hata=gecersiz_yetki',
             'Kullanici yetkisi gecersiz. Lutfen tekrar giris yap.',
             403
@@ -220,7 +220,7 @@ switch ($kullaniciYetkiKodu) {
 if ($yetkidurum === 2) {
     session_unset();
     session_destroy();
-    akl_kontrol_yonlendir_veya_json(
+    lumen_kontrol_yonlendir_veya_json(
         APP_ROOT_URL . '/musteri/giris.php?hata=musteri_erisim',
         'Musteri kullanicisi bu ekrana erisemez.',
         403
@@ -233,8 +233,8 @@ if ($yetkidurum === 2) {
 require_once __DIR__ . '/log_ip.php';
 require_once __DIR__ . '/includes/page_visit_shortcuts.php';
 
-if (function_exists('akl_log_current_page_visit')) {
-    akl_log_current_page_visit($dbh, $terminalkullanici);
+if (function_exists('lumen_log_current_page_visit')) {
+    lumen_log_current_page_visit($dbh, $terminalkullanici);
 }
 
 ?>

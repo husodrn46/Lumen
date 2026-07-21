@@ -12,7 +12,7 @@ declare(strict_types=1);
  *   [4] CLFLINE (cari alacak)    MODULENR=6, TRCODE=61, SIGN=1 → cari bakiye DÜŞER
  *                                SOURCEFREF = CSROLL.LOGICALREF (bordroya bağlanır!), TRANNO = ROLLNO
  *
- * KRİTİK (adversarial doğrulandı, [[akl-logo-cek-mekanigi]]):
+ * KRİTİK (LOGO veritabanında birebir doğrulandı):
  *  - Cari ayak MODULENR=6/TRCODE=61 (MODULENR=4/TRCODE=31 DEĞİL — o manuel dekont modülü).
  *  - CLFLINE.SOURCEFREF → CSROLL (CSTRANS değil; LOGICALREF çakışır). Okuma tarafı (../cari/lg_hareket.php)
  *    bordro yolunu bekler → yazma böyle olmalı.

@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-if (!function_exists('akl_page_visit_normalize_path')) {
-    function akl_page_visit_normalize_path(string $path): string
+if (!function_exists('lumen_page_visit_normalize_path')) {
+    function lumen_page_visit_normalize_path(string $path): string
     {
         $path = str_replace('\\', '/', trim($path));
         $path = preg_replace('#/+#', '/', $path) ?? $path;
@@ -21,16 +21,16 @@ if (!function_exists('akl_page_visit_normalize_path')) {
     }
 }
 
-if (!function_exists('akl_page_visit_path_from_href')) {
-    function akl_page_visit_path_from_href(string $href): string
+if (!function_exists('lumen_page_visit_path_from_href')) {
+    function lumen_page_visit_path_from_href(string $href): string
     {
         $path = (string) (parse_url($href, PHP_URL_PATH) ?: $href);
-        return akl_page_visit_normalize_path($path);
+        return lumen_page_visit_normalize_path($path);
     }
 }
 
-if (!function_exists('akl_page_visit_current_path')) {
-    function akl_page_visit_current_path(): string
+if (!function_exists('lumen_page_visit_current_path')) {
+    function lumen_page_visit_current_path(): string
     {
         $scriptFile = realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? ''));
         $rootDir = realpath(dirname(__DIR__));
@@ -40,16 +40,16 @@ if (!function_exists('akl_page_visit_current_path')) {
             $rootDir = rtrim(str_replace('\\', '/', $rootDir), '/');
 
             if (str_starts_with($scriptFile, $rootDir . '/')) {
-                return akl_page_visit_normalize_path(substr($scriptFile, strlen($rootDir) + 1));
+                return lumen_page_visit_normalize_path(substr($scriptFile, strlen($rootDir) + 1));
             }
         }
 
-        return akl_page_visit_normalize_path((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        return lumen_page_visit_normalize_path((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
     }
 }
 
-if (!function_exists('akl_page_visit_is_trackable_request')) {
-    function akl_page_visit_is_trackable_request(): bool
+if (!function_exists('lumen_page_visit_is_trackable_request')) {
+    function lumen_page_visit_is_trackable_request(): bool
     {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
             return false;
@@ -70,7 +70,7 @@ if (!function_exists('akl_page_visit_is_trackable_request')) {
             return false;
         }
 
-        $script = akl_page_visit_current_path();
+        $script = lumen_page_visit_current_path();
         $base = basename($script);
 
         if (!str_ends_with($base, '.php')) {
@@ -97,8 +97,8 @@ if (!function_exists('akl_page_visit_is_trackable_request')) {
     }
 }
 
-if (!function_exists('akl_page_visit_title_from_path')) {
-    function akl_page_visit_title_from_path(string $path): string
+if (!function_exists('lumen_page_visit_title_from_path')) {
+    function lumen_page_visit_title_from_path(string $path): string
     {
         $base = basename($path, '.php');
         $base = str_replace(['_', '-'], ' ', $base);
@@ -110,11 +110,11 @@ if (!function_exists('akl_page_visit_title_from_path')) {
     }
 }
 
-if (!function_exists('akl_page_visit_ensure_table')) {
-    function akl_page_visit_ensure_table(PDO $dbh): bool
+if (!function_exists('lumen_page_visit_ensure_table')) {
+    function lumen_page_visit_ensure_table(PDO $dbh): bool
     {
-        if (isset($_SESSION['akl_page_visit_table_ready'])) {
-            return $_SESSION['akl_page_visit_table_ready'] === true;
+        if (isset($_SESSION['lumen_page_visit_table_ready'])) {
+            return $_SESSION['lumen_page_visit_table_ready'] === true;
         }
 
         try {
@@ -156,29 +156,29 @@ if (!function_exists('akl_page_visit_ensure_table')) {
                 END
             ");
 
-            $_SESSION['akl_page_visit_table_ready'] = true;
+            $_SESSION['lumen_page_visit_table_ready'] = true;
             return true;
         } catch (Throwable $e) {
             error_log('M_SAYFA_ZIYARET tablo kontrol hatasi: ' . $e->getMessage());
-            unset($_SESSION['akl_page_visit_table_ready']);
+            unset($_SESSION['lumen_page_visit_table_ready']);
             return false;
         }
     }
 }
 
-if (!function_exists('akl_log_current_page_visit')) {
-    function akl_log_current_page_visit(PDO $dbh, int|string $personelId): void
+if (!function_exists('lumen_log_current_page_visit')) {
+    function lumen_log_current_page_visit(PDO $dbh, int|string $personelId): void
     {
-        if (!akl_page_visit_is_trackable_request()) {
+        if (!lumen_page_visit_is_trackable_request()) {
             return;
         }
 
-        if (!akl_page_visit_ensure_table($dbh)) {
+        if (!lumen_page_visit_ensure_table($dbh)) {
             return;
         }
 
-        $page = akl_page_visit_current_path();
-        $title = akl_page_visit_title_from_path($page);
+        $page = lumen_page_visit_current_path();
+        $title = lumen_page_visit_title_from_path($page);
         $url = $page;
 
         try {
@@ -220,10 +220,10 @@ if (!function_exists('akl_log_current_page_visit')) {
     }
 }
 
-if (!function_exists('akl_page_visit_shortcuts')) {
-    function akl_page_visit_shortcuts(PDO $dbh, int|string $personelId, array $visibleItems, int $limit = 5): array
+if (!function_exists('lumen_page_visit_shortcuts')) {
+    function lumen_page_visit_shortcuts(PDO $dbh, int|string $personelId, array $visibleItems, int $limit = 5): array
     {
-        if ($limit <= 0 || $visibleItems === [] || !akl_page_visit_ensure_table($dbh)) {
+        if ($limit <= 0 || $visibleItems === [] || !lumen_page_visit_ensure_table($dbh)) {
             return [];
         }
 
@@ -234,7 +234,7 @@ if (!function_exists('akl_page_visit_shortcuts')) {
                 continue;
             }
 
-            $path = akl_page_visit_path_from_href($href);
+            $path = lumen_page_visit_path_from_href($href);
             $itemMap[$path] = $item;
         }
 
@@ -258,7 +258,7 @@ if (!function_exists('akl_page_visit_shortcuts')) {
 
         $shortcuts = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-            $path = akl_page_visit_normalize_path((string) ($row['SAYFA'] ?? ''));
+            $path = lumen_page_visit_normalize_path((string) ($row['SAYFA'] ?? ''));
             if (!isset($itemMap[$path])) {
                 continue;
             }

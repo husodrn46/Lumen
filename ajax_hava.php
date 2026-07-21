@@ -54,7 +54,7 @@ if ($cache_dosya !== '' && is_file($cache_dosya) && (time() - filemtime($cache_d
 
 // Cache yok veya suresi dolmus, API'ye git
 $sehir = 'Istanbul';
-$ctx = stream_context_create(['http' => ['timeout' => 3, 'header' => "User-Agent: akl-dashboard/1.0\r\n"]]);
+$ctx = stream_context_create(['http' => ['timeout' => 3, 'header' => "User-Agent: lumen/1.0\r\n"]]);
 $json = @file_get_contents('https://wttr.in/' . urlencode($sehir) . '?format=j1', false, $ctx);
 
 if ($json === false) {

@@ -335,7 +335,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
     .bulk-submit-btn:active { transform: translateY(0); }
 
     /* ═══════ MODAL ═══════ */
-    .akl-modal {
+    .lumen-modal {
       position: fixed; inset: 0;
       background: rgba(15, 23, 42, 0.42);
       backdrop-filter: blur(6px);
@@ -345,8 +345,8 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
       align-items: flex-start; justify-content: center;
       padding: 60px 16px 16px;
     }
-    .akl-modal.is-open { display: flex; animation: fadeIn 0.2s ease both; }
-    .akl-modal-dialog {
+    .lumen-modal.is-open { display: flex; animation: fadeIn 0.2s ease both; }
+    .lumen-modal-dialog {
       background: #fff; border: 1px solid var(--border);
       border-radius: 16px;
       box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
@@ -354,16 +354,16 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
       display: flex; flex-direction: column;
       animation: modalIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    .akl-modal-head {
+    .lumen-modal-head {
       display: flex; align-items: center; justify-content: space-between;
       gap: 10px; padding: 14px 18px;
       border-bottom: 1px solid var(--border);
     }
-    .akl-modal-head h3 {
+    .lumen-modal-head h3 {
       font-size: 14px; font-weight: 700; color: var(--text-1);
       display: inline-flex; align-items: center; gap: 8px;
     }
-    .akl-modal-head h3 i { color: var(--red); font-size: 13px; }
+    .lumen-modal-head h3 i { color: var(--red); font-size: 13px; }
     .modal-close {
       background: transparent; border: none;
       font-size: 18px; line-height: 1;
@@ -372,11 +372,11 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
       transition: all 0.15s ease;
     }
     .modal-close:hover { background: rgba(0,0,0,0.05); color: var(--red); }
-    .akl-modal-body {
+    .lumen-modal-body {
       padding: 16px 18px; overflow-y: auto;
       font-size: 13px; color: var(--text-1);
     }
-    .akl-modal-foot {
+    .lumen-modal-foot {
       padding: 12px 18px; border-top: 1px solid var(--border);
       background: #fafafa;
       display: flex; justify-content: flex-end;
@@ -477,7 +477,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
       .bulk-submit-btn { padding: 12px 22px; font-size: 13px; }
       .bulk-submit-btn:hover { transform: none; }
 
-      .akl-modal { padding: 40px 12px 12px; }
+      .lumen-modal { padding: 40px 12px 12px; }
     }
     @media (max-width: 480px) {
       .stok-actions { gap: 6px; }
@@ -591,11 +591,13 @@ if (str_contains($a_barkod, ',')) {
       WHEN URUN.CODE LIKE ? THEN 3
       ELSE 9
     END, URUN.CODE";
+    // Ön ek tanımlıysa "<ÖNEK>123" ve "<ÖNEK>-123" varyantları da aranır (_bilgi_.inc).
+    $kodOnek = urun_kodu_oneki();
     $numericCodeParams = [
       $a_barkod_normalized,
       $a_barkod_normalized . "%",
-      "AKL" . $a_barkod_normalized . "%",
-      "AKL-" . $a_barkod_normalized . "%",
+      ($kodOnek !== '' ? $kodOnek : '') . $a_barkod_normalized . "%",
+      ($kodOnek !== '' ? $kodOnek . '-' : '') . $a_barkod_normalized . "%",
     ];
     $params = array_merge($numericCodeParams, $numericCodeParams);
   } else {
@@ -670,10 +672,10 @@ while ($row = $stmt_list->fetch(PDO::FETCH_ASSOC)) {
   $miktarGoster = (m_p_yetki($terminalkullanici, 'ST1') == 1 || $yetkidurum == 0);
   $fiyatGoster  = (m_p_yetki($terminalkullanici, 'ST2') == 1 || $yetkidurum == 0);
   $cardDelay = min(($xi - 1) * 30, 240);
-  $stokGorsel = akl_stok_gorsel_bul((string) $row['URUN_KODU'], (string) $row['URUN_ADI']);
+  $stokGorsel = lumen_stok_gorsel_bul((string) $row['URUN_KODU'], (string) $row['URUN_ADI']);
   $resim_src = $stokGorsel['src'];
   $resimGoster = $stokGorsel['found'] || (isset($resimlistoklistesi) && $resimlistoklistesi == 1);
-  $urunRenkHex = function_exists('akl_stok_gorsel_renk_hex') ? akl_stok_gorsel_renk_hex((string) ($stokGorsel['renk'] ?? '')) : '';
+  $urunRenkHex = function_exists('lumen_stok_gorsel_renk_hex') ? lumen_stok_gorsel_renk_hex((string) ($stokGorsel['renk'] ?? '')) : '';
   $cardClass = 'stok-card' . ($urunRenkHex !== '' ? ' has-color-glow' : '');
   $cardStyle = 'animation-delay: ' . $cardDelay . 'ms;';
   if ($urunRenkHex !== '') {
@@ -792,7 +794,12 @@ while ($row = $stmt_list->fetch(PDO::FETCH_ASSOC)) {
                       FROM {$firma}ITEMS URUN
                       WHERE URUN.CARDTYPE <> '22' AND URUN.ACTIVE = 0
                         AND (URUN.CODE LIKE ? OR URUN.CODE LIKE ? OR URUN.CODE LIKE ?)");
-                  $stmtOneri->execute([$prefix . '%', 'AKL' . $prefix . '%', 'AKL-' . $prefix . '%']);
+                  $kodOnek = urun_kodu_oneki();
+                  $stmtOneri->execute([
+                      $prefix . '%',
+                      ($kodOnek !== '' ? $kodOnek : '') . $prefix . '%',
+                      ($kodOnek !== '' ? $kodOnek . '-' : '') . $prefix . '%',
+                  ]);
                   $adaylar = $stmtOneri->fetchAll(PDO::FETCH_ASSOC);
                   foreach ($adaylar as &$aday) {
                       $aday['_d'] = (preg_match('/\d+/', (string) $aday['K'], $mm) === 1) ? abs((int) $mm[0] - $hedefSayi) : PHP_INT_MAX;
@@ -855,22 +862,22 @@ while ($row = $stmt_list->fetch(PDO::FETCH_ASSOC)) {
   </main>
 
   <!-- Modal -->
-  <div id="empModal" class="akl-modal" role="dialog" aria-modal="true" aria-labelledby="empModalTitle">
-    <div class="akl-modal-dialog">
-      <div class="akl-modal-head">
+  <div id="empModal" class="lumen-modal" role="dialog" aria-modal="true" aria-labelledby="empModalTitle">
+    <div class="lumen-modal-dialog">
+      <div class="lumen-modal-head">
         <h3 id="empModalTitle"><i class="fa-solid fa-chart-line"></i> Stok Satis Detayi</h3>
         <button id="empModalClose" type="button" class="modal-close" aria-label="Kapat">&times;</button>
       </div>
-      <div id="empModalBody" class="akl-modal-body">
+      <div id="empModalBody" class="lumen-modal-body">
         <!-- AJAX icerik -->
       </div>
-      <div class="akl-modal-foot">
+      <div class="lumen-modal-foot">
         <button id="empModalCloseBtn" type="button" class="btn-modal-close">Kapat</button>
       </div>
     </div>
   </div>
 
-  <div id="imageModal" class="akl-modal image-modal" role="dialog" aria-modal="true" aria-label="Urun gorseli">
+  <div id="imageModal" class="lumen-modal image-modal" role="dialog" aria-modal="true" aria-label="Urun gorseli">
     <div class="image-modal-dialog">
       <button id="imageModalClose" type="button" class="image-modal-close" aria-label="Kapat">&times;</button>
       <img id="imageModalImg" class="image-modal-img" src="" alt="">

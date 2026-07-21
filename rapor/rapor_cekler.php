@@ -279,7 +279,7 @@ $rozet = static function (int $gun, $vade): array {
             .top, .filtreler { display:none !important; }
             .cekler, .kok-kart { box-shadow:none; break-inside:avoid; }
         }
-        html.akl-dark .kok-kart, html.akl-dark .cekler, html.akl-dark .cip, html.akl-dark .geri { background:var(--card); }
+        html.lumen-dark .kok-kart, html.lumen-dark .cekler, html.lumen-dark .cip, html.lumen-dark .geri { background:var(--card); }
     </style>
 </head>
 <body>

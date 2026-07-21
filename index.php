@@ -221,8 +221,8 @@ if (m_p_yetki($terminalkullanici, 'M18') == 1 || m_p_yetki($terminalkullanici, '
     ];
 }
 
-$kisisel_kisayollar = function_exists('akl_page_visit_shortcuts')
-    ? akl_page_visit_shortcuts($dbh, $terminalkullanici, $visible_menu_items, 5)
+$kisisel_kisayollar = function_exists('lumen_page_visit_shortcuts')
+    ? lumen_page_visit_shortcuts($dbh, $terminalkullanici, $visible_menu_items, 5)
     : [];
 
 // Günün saatine göre selamlama
@@ -760,8 +760,8 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
             .satis-tutar { font-size: 23px; }
             .uyari-grid { grid-template-columns: 1fr; gap: 8px; }
         }
-        html.akl-dark .satis-kart, html.akl-dark .uyari-kart { background: #1e293b; border-color: var(--border, #2f3d52); }
-        html.akl-dark .satis-kalemler { border-left-color: #2f3d52; }
+        html.lumen-dark .satis-kart, html.lumen-dark .uyari-kart { background: #1e293b; border-color: var(--border, #2f3d52); }
+        html.lumen-dark .satis-kalemler { border-left-color: #2f3d52; }
 
         /* ═══════════ KISISEL KISAYOLLAR ═══════════ */
         .quick-section {
@@ -1084,17 +1084,17 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
             color: var(--card-title);
         }
 
-        /* Kişisel vurgu rengi SEÇİLİYSE (html.akl-accent): TÜM menü kart ikonları +
+        /* Kişisel vurgu rengi SEÇİLİYSE (html.lumen-accent): TÜM menü kart ikonları +
            başlık hover accent rengini izler. Renk seçilmemişse çok-renkli varsayılan korunur. */
-        html.akl-accent .mc .mc-icon {
+        html.lumen-accent .mc .mc-icon {
             color: var(--red);
             background: linear-gradient(135deg, #fee2e2, #fecaca);
         }
-        html.akl-accent .mc:hover .mc-icon {
+        html.lumen-accent .mc:hover .mc-icon {
             background: linear-gradient(135deg, var(--red), var(--red));
             color: #fff;
         }
-        html.akl-accent .mc:hover .mc-title { color: var(--red); }
+        html.lumen-accent .mc:hover .mc-title { color: var(--red); }
 
         /* Card themes — Lumen tek renk (bordo); tüm kutular ve hover'lar aynı */
         .mc.t-red,
@@ -1255,15 +1255,15 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
             }
             .mc { opacity: 1 !important; }
         }
-        /* ═══════ KOYU TEMA (kişisel ayar: html.akl-dark) — pano yüzeyleri ═══════ */
-        html.akl-dark .top-header { background: rgba(15,23,42,0.9); }
-        html.akl-dark .mc { background: #1e293b; }
-        html.akl-dark .mc:hover { background: #232f43; }
-        html.akl-dark .mc::before { background: linear-gradient(120deg, transparent 15%, rgba(255,255,255,0.06) 45%, transparent 75%); }
-        html.akl-dark .kasa-card,
-        html.akl-dark .quick-widget,
-        html.akl-dark .ithalat-widget { background: #1e293b; border-color: var(--border); color: var(--text-1); }
-        html.akl-dark .kasa-toplam { background: #232f43; }
+        /* ═══════ KOYU TEMA (kişisel ayar: html.lumen-dark) — pano yüzeyleri ═══════ */
+        html.lumen-dark .top-header { background: rgba(15,23,42,0.9); }
+        html.lumen-dark .mc { background: #1e293b; }
+        html.lumen-dark .mc:hover { background: #232f43; }
+        html.lumen-dark .mc::before { background: linear-gradient(120deg, transparent 15%, rgba(255,255,255,0.06) 45%, transparent 75%); }
+        html.lumen-dark .kasa-card,
+        html.lumen-dark .quick-widget,
+        html.lumen-dark .ithalat-widget { background: #1e293b; border-color: var(--border); color: var(--text-1); }
+        html.lumen-dark .kasa-toplam { background: #232f43; }
     </style>
 </head>
 <body>

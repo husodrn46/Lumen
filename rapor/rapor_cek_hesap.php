@@ -373,7 +373,7 @@ $kisa = static function ($v): string {
             .vurgu, .ay-kart, .lig-kart { box-shadow:none; break-inside:avoid; }
             .deger-hucre .dolgu, .ay-bar span { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
         }
-        html.akl-dark .vurgu, html.akl-dark .ay-kart, html.akl-dark .lig-kart, html.akl-dark .geri, html.akl-dark .btn, html.akl-dark .cip, html.akl-dark .sekme { background:var(--card); }
+        html.lumen-dark .vurgu, html.lumen-dark .ay-kart, html.lumen-dark .lig-kart, html.lumen-dark .geri, html.lumen-dark .btn, html.lumen-dark .cip, html.lumen-dark .sekme { background:var(--card); }
     </style>
 </head>
 <body>

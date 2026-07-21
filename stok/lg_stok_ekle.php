@@ -776,7 +776,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     }
 
     /* ═══════ MODAL ═══════ */
-    .akl-modal {
+    .lumen-modal {
       position: fixed;
       inset: 0;
       background: rgba(15, 23, 42, 0.42);
@@ -788,8 +788,8 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
       justify-content: center;
       padding: 16px;
     }
-    .akl-modal.is-open { display: flex; animation: fadeIn 0.2s ease both; }
-    .akl-modal-dialog {
+    .lumen-modal.is-open { display: flex; animation: fadeIn 0.2s ease both; }
+    .lumen-modal-dialog {
       background: #fff;
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -801,16 +801,16 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
       flex-direction: column;
       animation: modalIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    .akl-modal-head {
+    .lumen-modal-head {
       display: flex; align-items: center; justify-content: space-between;
       gap: 10px; padding: 14px 18px;
       border-bottom: 1px solid var(--border);
     }
-    .akl-modal-head h5 {
+    .lumen-modal-head h5 {
       font-size: 14px; font-weight: 700; color: var(--text-1);
       display: inline-flex; align-items: center; gap: 8px;
     }
-    .akl-modal-head h5 i { color: var(--red); font-size: 13px; }
+    .lumen-modal-head h5 i { color: var(--red); font-size: 13px; }
     .modal-close {
       background: transparent; border: none;
       font-size: 22px; line-height: 1;
@@ -819,11 +819,11 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
       transition: all 0.15s ease;
     }
     .modal-close:hover { background: rgba(0,0,0,0.05); color: var(--red); }
-    .akl-modal-body {
+    .lumen-modal-body {
       padding: 18px; overflow-y: auto;
       font-size: 13px; color: var(--text-1);
     }
-    .akl-modal-foot {
+    .lumen-modal-foot {
       padding: 12px 18px; border-top: 1px solid var(--border);
       background: #fafafa;
       display: flex; justify-content: flex-end;
@@ -1234,16 +1234,16 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
   </main>
 
   <!-- Modal -->
-  <div id="empModal" class="akl-modal" role="dialog" aria-modal="true" aria-labelledby="empModalTitle">
-    <div class="akl-modal-dialog">
-      <div class="akl-modal-head">
+  <div id="empModal" class="lumen-modal" role="dialog" aria-modal="true" aria-labelledby="empModalTitle">
+    <div class="lumen-modal-dialog">
+      <div class="lumen-modal-head">
         <h5 id="empModalTitle"><i class="fa-solid fa-chart-line"></i> Stok Satis Detayi</h5>
         <button id="empModalClose" type="button" class="modal-close" aria-label="Kapat">&times;</button>
       </div>
-      <div id="empModalBody" class="akl-modal-body">
+      <div id="empModalBody" class="lumen-modal-body">
         <!-- AJAX ile yuklenecek icerik -->
       </div>
-      <div class="akl-modal-foot">
+      <div class="lumen-modal-foot">
         <button id="empModalCloseBtn" type="button" class="btn-modal-close">Kapat</button>
       </div>
     </div>

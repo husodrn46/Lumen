@@ -220,7 +220,7 @@ $kisa = static function ($v): string {
             .vurgu, .kasa { box-shadow:none; break-inside:avoid; }
             .k-detay { display:none !important; }
         }
-        html.akl-dark .vurgu, html.akl-dark .kasa, html.akl-dark .geri, html.akl-dark .btn { background:var(--card); }
+        html.lumen-dark .vurgu, html.lumen-dark .kasa, html.lumen-dark .geri, html.lumen-dark .btn { background:var(--card); }
     </style>
 </head>
 <body>

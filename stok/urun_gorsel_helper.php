@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-if (!function_exists('akl_stok_gorsel_normalize')) {
-    function akl_stok_gorsel_normalize(string|int|float|null $value): string
+if (!function_exists('lumen_stok_gorsel_normalize')) {
+    function lumen_stok_gorsel_normalize(string|int|float|null $value): string
     {
         $text = function_exists('turkce') ? turkce($value) : (string) $value;
         $text = strtr($text, [
@@ -25,18 +25,18 @@ if (!function_exists('akl_stok_gorsel_normalize')) {
     }
 }
 
-if (!function_exists('akl_stok_gorsel_compact')) {
-    function akl_stok_gorsel_compact(string|int|float|null $value): string
+if (!function_exists('lumen_stok_gorsel_compact')) {
+    function lumen_stok_gorsel_compact(string|int|float|null $value): string
     {
-        return str_replace(' ', '', akl_stok_gorsel_normalize($value));
+        return str_replace(' ', '', lumen_stok_gorsel_normalize($value));
     }
 }
 
-if (!function_exists('akl_stok_gorsel_manifest')) {
+if (!function_exists('lumen_stok_gorsel_manifest')) {
     /**
      * @return array<int,array<string,string>>
      */
-    function akl_stok_gorsel_manifest(): array
+    function lumen_stok_gorsel_manifest(): array
     {
         static $products = null;
 
@@ -59,13 +59,26 @@ if (!function_exists('akl_stok_gorsel_manifest')) {
     }
 }
 
-if (!function_exists('akl_stok_gorsel_sku_candidates')) {
+if (!function_exists('lumen_stok_gorsel_onek')) {
+    /**
+     * Ürün kodu ön eki (_bilgi_.inc -> $urun_kodu_oneki), normalize edilmiş.
+     * Boşsa ön ek temelli eşleştirme/eleme uygulanmaz.
+     */
+    function lumen_stok_gorsel_onek(): string
+    {
+        global $urun_kodu_oneki;
+        return (string) preg_replace('/[^A-Z0-9]/', '', strtoupper((string) ($urun_kodu_oneki ?? '')));
+    }
+}
+
+if (!function_exists('lumen_stok_gorsel_sku_candidates')) {
     /**
      * @return array<int,string>
      */
-    function akl_stok_gorsel_sku_candidates(string $urunKodu): array
+    function lumen_stok_gorsel_sku_candidates(string $urunKodu): array
     {
-        $tokens = explode(' ', akl_stok_gorsel_normalize($urunKodu));
+        $onek = lumen_stok_gorsel_onek();
+        $tokens = explode(' ', lumen_stok_gorsel_normalize($urunKodu));
         $skip = ['BEYAZ', 'SIYAH', 'KIRMIZI', 'MAVI', 'YESIL', 'DESENLI', 'DESEN'];
         $bases = [];
         $variants = [];
@@ -76,8 +89,8 @@ if (!function_exists('akl_stok_gorsel_sku_candidates')) {
                 continue;
             }
 
-            if (str_starts_with($token, 'AKL')) {
-                $token = substr($token, 3);
+            if ($onek !== '' && str_starts_with($token, $onek)) {
+                $token = substr($token, strlen($onek));
             }
 
             if ($token === '') {
@@ -91,7 +104,7 @@ if (!function_exists('akl_stok_gorsel_sku_candidates')) {
                 continue;
             }
 
-            // Kısa varyant son eki: "AKL400-5" -> "5", "AKL400-1" -> "1", "1S" gibi.
+            // Kısa varyant son eki: "<ÖNEK>400-5" -> "5", "...400-1" -> "1", "1S" gibi.
             // Normalize tireyi boşluğa çevirdiği için varyant ayrı token olur ve tek
             // haneli olduğunda baz regex'ine takılmaz. Bir önceki baz kodla birleştirilir:
             // "400" + "5" => "4005". Bu yapılmazsa tüm seri "400"e çöker ve manifestte
@@ -119,13 +132,13 @@ if (!function_exists('akl_stok_gorsel_sku_candidates')) {
     }
 }
 
-if (!function_exists('akl_stok_gorsel_color_candidates')) {
+if (!function_exists('lumen_stok_gorsel_color_candidates')) {
     /**
      * @return array<int,string>
      */
-    function akl_stok_gorsel_color_candidates(string $urunKodu, string $urunAdi): array
+    function lumen_stok_gorsel_color_candidates(string $urunKodu, string $urunAdi): array
     {
-        $text = akl_stok_gorsel_normalize($urunKodu . ' ' . $urunAdi);
+        $text = lumen_stok_gorsel_normalize($urunKodu . ' ' . $urunAdi);
         $colors = [];
 
         foreach (['BEYAZ', 'SIYAH', 'KIRMIZI', 'MAVI', 'YESIL', 'DESENLI', 'DESEN'] as $color) {
@@ -138,17 +151,19 @@ if (!function_exists('akl_stok_gorsel_color_candidates')) {
     }
 }
 
-if (!function_exists('akl_stok_gorsel_variant_candidates')) {
+if (!function_exists('lumen_stok_gorsel_variant_candidates')) {
     /**
      * @return array<int,string>
      */
-    function akl_stok_gorsel_variant_candidates(string $urunKodu, string $urunAdi): array
+    function lumen_stok_gorsel_variant_candidates(string $urunKodu, string $urunAdi): array
     {
-        $code = akl_stok_gorsel_compact($urunKodu);
-        $text = akl_stok_gorsel_normalize($urunKodu . ' ' . $urunAdi);
+        $code = lumen_stok_gorsel_compact($urunKodu);
+        $text = lumen_stok_gorsel_normalize($urunKodu . ' ' . $urunAdi);
         $candidates = [];
 
-        if (preg_match('/AKL([0-9]{2,4})/', $code, $matches) !== 1) {
+        $onek = lumen_stok_gorsel_onek();
+        $desen = '/' . ($onek !== '' ? preg_quote($onek, '/') : '') . '([0-9]{2,4})/';
+        if (preg_match($desen, $code, $matches) !== 1) {
             return $candidates;
         }
 
@@ -179,12 +194,12 @@ if (!function_exists('akl_stok_gorsel_variant_candidates')) {
     }
 }
 
-if (!function_exists('akl_stok_gorsel_keyword_score')) {
-    function akl_stok_gorsel_keyword_score(string $productName, string $category, string $haystack): int
+if (!function_exists('lumen_stok_gorsel_keyword_score')) {
+    function lumen_stok_gorsel_keyword_score(string $productName, string $category, string $haystack): int
     {
         $score = 0;
-        $name = akl_stok_gorsel_normalize($productName);
-        $category = akl_stok_gorsel_normalize($category);
+        $name = lumen_stok_gorsel_normalize($productName);
+        $category = lumen_stok_gorsel_normalize($category);
 
         $keywords = [
             'KASE' => 40,
@@ -209,10 +224,10 @@ if (!function_exists('akl_stok_gorsel_keyword_score')) {
     }
 }
 
-if (!function_exists('akl_stok_gorsel_renk_hex')) {
-    function akl_stok_gorsel_renk_hex(string|int|float|null $renk): string
+if (!function_exists('lumen_stok_gorsel_renk_hex')) {
+    function lumen_stok_gorsel_renk_hex(string|int|float|null $renk): string
     {
-        $normalized = akl_stok_gorsel_normalize($renk);
+        $normalized = lumen_stok_gorsel_normalize($renk);
 
         if (str_contains($normalized, 'KIRMIZI')) {
             return '#ef4444';
@@ -238,14 +253,14 @@ if (!function_exists('akl_stok_gorsel_renk_hex')) {
     }
 }
 
-if (!function_exists('akl_stok_gorsel_bul')) {
+if (!function_exists('lumen_stok_gorsel_bul')) {
     /**
      * @return array{src:string,found:bool,renk:string}
      */
-    function akl_stok_gorsel_bul(string|int|float|null $urunKodu, string|int|float|null $urunAdi = ''): array
+    function lumen_stok_gorsel_bul(string|int|float|null $urunKodu, string|int|float|null $urunAdi = ''): array
     {
         $default = 'tm/rs/urunyok.jpg';
-        $products = akl_stok_gorsel_manifest();
+        $products = lumen_stok_gorsel_manifest();
 
         if ($products === []) {
             return ['src' => $default, 'found' => false, 'renk' => ''];
@@ -254,20 +269,21 @@ if (!function_exists('akl_stok_gorsel_bul')) {
         $code = (string) $urunKodu;
         $name = (string) $urunAdi;
 
-        // Görsel manifesti YALNIZCA AKL serisi ürünler içindir. AKL kodu içermeyen
-        // seriler (KSMT, LV, CP, RCB...) normalize sırasında çıplak sayısal koda
-        // indirgenir (KSMT-011 -> "011") ve manifestteki aynı numaralı AKL görseline
-        // (günlük-011.webp vb.) yanlış eşleşirdi. Bu seriler görsel almasın.
-        if (!str_contains(akl_stok_gorsel_compact($code), 'AKL')) {
+        // Ürün kodu ön eki tanımlıysa (_bilgi_.inc -> $urun_kodu_oneki) görsel manifesti
+        // YALNIZCA o seri için geçerlidir. Ön eki içermeyen seriler normalize sırasında
+        // çıplak sayısal koda indirgenir (ör. KSMT-011 -> "011") ve manifestteki aynı
+        // numaralı başka bir görsele yanlış eşleşirdi. Ön ek boşsa bu eleme uygulanmaz.
+        $onek = lumen_stok_gorsel_onek();
+        if ($onek !== '' && !str_contains(lumen_stok_gorsel_compact($code), $onek)) {
             return ['src' => $default, 'found' => false, 'renk' => ''];
         }
 
         $skuCandidates = array_values(array_unique(array_merge(
-            akl_stok_gorsel_variant_candidates($code, $name),
-            akl_stok_gorsel_sku_candidates($code)
+            lumen_stok_gorsel_variant_candidates($code, $name),
+            lumen_stok_gorsel_sku_candidates($code)
         )));
-        $colors = akl_stok_gorsel_color_candidates($code, $name);
-        $haystack = akl_stok_gorsel_normalize($code . ' ' . $name);
+        $colors = lumen_stok_gorsel_color_candidates($code, $name);
+        $haystack = lumen_stok_gorsel_normalize($code . ' ' . $name);
 
         $best = null;
         $bestScore = 0;
@@ -277,8 +293,8 @@ if (!function_exists('akl_stok_gorsel_bul')) {
                 continue;
             }
 
-            $sku = akl_stok_gorsel_compact((string) $product['sku']);
-            $renk = akl_stok_gorsel_normalize((string) ($product['renk'] ?? ''));
+            $sku = lumen_stok_gorsel_compact((string) $product['sku']);
+            $renk = lumen_stok_gorsel_normalize((string) ($product['renk'] ?? ''));
             $score = 0;
 
             foreach ($skuCandidates as $candidate) {
@@ -306,7 +322,7 @@ if (!function_exists('akl_stok_gorsel_bul')) {
                 }
             }
 
-            $score += akl_stok_gorsel_keyword_score(
+            $score += lumen_stok_gorsel_keyword_score(
                 (string) ($product['ad_tr'] ?? ''),
                 (string) ($product['kategori'] ?? ''),
                 $haystack

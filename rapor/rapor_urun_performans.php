@@ -10,7 +10,7 @@ declare(strict_types=1);
  * (Ciro/Adet/Ort.Fiyat) tabloyu CANLI yeniden sıralar. Kimlik: Lumen bordosu.
  *
  * Veri tanımı (2026-07-09, kullanıcı isteği): NET satış — satış (TRCODE 7,8)
- * eksi satış iadesi (TRCODE 2,3); yalnız Firma 1 AKL%. Satır tutarı
+ * eksi satış iadesi (TRCODE 2,3); yalnız Firma 1. Satır tutarı
  * PRICE*AMOUNT-DISTDISC. Excel çıktısı aynı tanımı kullanır.
  * Yıl <= 2025 eski dönem tablosundan (LG_001_01_) okunur.
  */
@@ -243,7 +243,7 @@ $kisa = static function ($v): string {
             .vurgu, .pod, .lig-kart { box-shadow:none; break-inside:avoid; }
             .deger-hucre .dolgu { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
         }
-        html.akl-dark .vurgu, html.akl-dark .pod, html.akl-dark .lig-kart, html.akl-dark .geri, html.akl-dark .btn, html.akl-dark .yil-sec, html.akl-dark .cip { background:var(--card); }
+        html.lumen-dark .vurgu, html.lumen-dark .pod, html.lumen-dark .lig-kart, html.lumen-dark .geri, html.lumen-dark .btn, html.lumen-dark .yil-sec, html.lumen-dark .cip { background:var(--card); }
     </style>
 </head>
 <body>
@@ -253,7 +253,7 @@ $kisa = static function ($v): string {
             <span class="t-ico"><i class="fa-solid fa-ranking-star"></i></span>
             <div class="t-baslik">
                 <h1>Ürün Ligi</h1>
-                <p><?php echo $year; ?> · Firma 1 · AKL ürünleri net satış (iadeler düşülmüş)</p>
+                <p><?php echo $year; ?> · Firma 1 · net satış (iadeler düşülmüş)</p>
             </div>
             <div class="aksiyon">
                 <form method="get">
@@ -407,7 +407,7 @@ $kisa = static function ($v): string {
             <div class="sayfalar" id="sayfalar"></div>
         </section>
 
-        <p class="dipnot"><b>Net satış:</b> satış hareketleri − satış iadeleri (iptaller hariç), yalnız Firma 1 AKL ürünleri. Ciro, adet ve ortalama fiyat iade düşülmüş net değerlerdir; bekleyen (faturalanmamış) siparişler dahil değildir.</p>
+        <p class="dipnot"><b>Net satış:</b> satış hareketleri − satış iadeleri (iptaller hariç), yalnız Firma 1. Ciro, adet ve ortalama fiyat iade düşülmüş net değerlerdir; bekleyen (faturalanmamış) siparişler dahil değildir.</p>
         <?php endif; ?>
     </main>
 

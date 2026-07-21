@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Gövde: { "year"?: 2026, "limit"?: 50 }
  * Yanıt: { ok, year, ozet:{...}, musteriler:[{kod, ad, sehir, ciro, ciro_metin}] }
  *
- * En değerli müşteriler — yıl bazlı satış cirosu (INVOICE+STLINE TRCODE 7,8, AKL% ürünler).
+ * En değerli müşteriler — yıl bazlı satış cirosu (INVOICE+STLINE TRCODE 7,8, ürün kodu ön ekine göre).
  * rapor_musteriler_top.php (web) mantığıyla birebir. Token zorunlu, salt-okuma.
  */
 

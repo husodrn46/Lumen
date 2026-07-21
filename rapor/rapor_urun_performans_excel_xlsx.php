@@ -96,7 +96,7 @@ $spreadsheet->getProperties()
     ->setCreator('Lumen')
     ->setTitle('Urun Performans')
     ->setSubject('Urun Performans')
-    ->setDescription('Urun performans raporu (AKL% urunleri, NET: satis 7,8 - iade 2,3).');
+    ->setDescription('Urun performans raporu (urun kodu on ekine gore, NET: satis 7,8 - iade 2,3).');
 
 $sheet = $spreadsheet->getActiveSheet();
 $sheet->setTitle('Ürün Performansı');

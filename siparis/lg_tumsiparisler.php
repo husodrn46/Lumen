@@ -721,7 +721,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="field">
                         <label for="code">Cari Kodu</label>
                         <input type="text" id="code" name="code" value="<?= htmlspecialchars((string) $code); ?>"
-                            placeholder="Örn: AKL-001">
+                            placeholder="Örn: URN-001">
                     </div>
 
                     <div class="field">

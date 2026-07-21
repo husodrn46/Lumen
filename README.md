@@ -101,7 +101,7 @@ LOGO lisansınız olmadan denemek ister misiniz? `sql/` altındaki şema betikle
 | `_baglanti_.inc` | `.env`'i okuyan bağlantı katmanı |
 | `_bilgi_.inc` | Özellik bayrakları ve varsayılanlar (döviz, çoklu depo, çek, mağaza satışı…) |
 
-Öne çıkan bayraklar: `MAGAZA_CARI` (mağaza hızlı satış carisi, 0 = kapalı), `$dovizlicalis`, `$cokludepo`, `$cek_beta`. Loglar `.env` `LOG_ROOT` verilmezse `logs/` klasörüne yazılır.
+Öne çıkan ayarlar: `MAGAZA_CARI` (mağaza hızlı satış carisi, 0 = kapalı), `$dovizlicalis`, `$cokludepo`, `$urun_kodu_oneki` (raporları belirli bir ürün kodu ön ekiyle sınırlar; boş = tüm ürünler). Loglar `.env` `LOG_ROOT` verilmezse `logs/` klasörüne yazılır.
 
 ## Kendi Markanız
 
@@ -127,7 +127,7 @@ bash scripts/validate.sh     # sözdizim denetimi + sağlık taraması
 php -l path/to/file.php       # tek dosya
 ```
 
-Yeni PHP dosyalarında `declare(strict_types=1);` kullanın, mevcut kod stiline uyun, sorgularda daima prepared statement tercih edin. Ayrıntılı mimari için [`CLAUDE.md`](CLAUDE.md) ve [`AGENTS.md`](AGENTS.md) dosyalarına bakın.
+Yeni PHP dosyalarında `declare(strict_types=1);` kullanın, mevcut kod stiline uyun, sorgularda daima prepared statement tercih edin.
 
 ## Lisans
 

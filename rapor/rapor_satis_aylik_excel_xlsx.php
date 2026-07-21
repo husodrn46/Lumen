@@ -96,7 +96,7 @@ $spreadsheet->getProperties()
     ->setCreator('Lumen')
     ->setTitle('Aylik Satis')
     ->setSubject('Aylik Satis')
-    ->setDescription('Aylik satis raporu (AKL% urunleri, TRCODE 7,8).');
+    ->setDescription('Aylik satis raporu (urun kodu on ekine gore, TRCODE 7,8).');
 
 $sheet = $spreadsheet->getActiveSheet();
 $sheet->setTitle('Aylık Satış');

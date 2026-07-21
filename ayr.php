@@ -1675,6 +1675,18 @@ if (!function_exists('m_p_ozel_cari_goruntulebilir_mi')) {
   }
 }
 
+if (!function_exists('urun_kodu_oneki')) {
+  /**
+   * Ayarlardaki ürün kodu ön ekini temizlenmiş biçimde döndürür (_bilgi_.inc).
+   * LIKE parametresi kurarken kullanılır; tanımsızsa boş string döner.
+   */
+  function urun_kodu_oneki(): string
+  {
+    global $urun_kodu_oneki;
+    return (string) preg_replace('/[^A-Za-z0-9_\-]/', '', (string) ($urun_kodu_oneki ?? ''));
+  }
+}
+
 if (!function_exists('urun_kodu_kosulu')) {
   /**
    * Rapor ve API sorgularında ürün kodu ön ek filtresi üretir.
@@ -2177,13 +2189,13 @@ function musteri_portal_kapali_cik(): never
  * arındırılmış okunabilir bir cihaz etiketine çevirir (ör. "iPhone/iPad · Safari").
  * Böylece aynı telefonun her IP/sürüm değişiminde "yeni cihaz" sanılması önlenir.
  */
-function akl_cihaz_etiket(string|null $userAgent): string
+function lumen_cihaz_etiket(string|null $userAgent): string
 {
     $ua = trim((string) $userAgent);
     if ($ua === '') {
         return 'Bilinmeyen';
     }
-    if (akl_cihaz_anormal_mi($ua)) {
+    if (lumen_cihaz_anormal_mi($ua)) {
         if (stripos($ua, 'curl') !== false)     return 'curl (otomasyon)';
         if (stripos($ua, 'wget') !== false)     return 'wget (otomasyon)';
         if (stripos($ua, 'python') !== false)   return 'Python (script)';
@@ -2213,7 +2225,7 @@ function akl_cihaz_etiket(string|null $userAgent): string
  * User-agent bir tarayıcı yerine otomasyon/script aracı mı (curl, bot, vb.)?
  * Boş user-agent da şüpheli sayılır.
  */
-function akl_cihaz_anormal_mi(string|null $userAgent): bool
+function lumen_cihaz_anormal_mi(string|null $userAgent): bool
 {
     $ua = trim((string) $userAgent);
     if ($ua === '') {

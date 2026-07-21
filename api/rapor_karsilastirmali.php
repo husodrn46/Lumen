@@ -10,7 +10,7 @@ declare(strict_types=1);
  *          ozet:{ bu_yil_toplam, bu_yil_toplam_metin, onceki_toplam, onceki_toplam_metin,
  *                 degisim, degisim_yuzde } }
  *
- * Token zorunlu. Seçili yıl ile bir önceki yılın aylık satış cirosunu (AKL% ürünler,
+ * Token zorunlu. Seçili yıl ile bir önceki yılın aylık satış cirosunu (ürün kodu ön ekine göre,
  * STLINE TRCODE 7/8, KDV dahil net) karşılaştırır. İki dönem tablosu (aktif + önceki)
  * UNION ALL ile birleştirilir; yıl tarih aralığı int-türevli literalle gömülür (named
  * parametre tekrarı tuzağına düşmeden). rapor_satis_aylik.php ile aynı net formülü.

@@ -764,8 +764,8 @@ if ($activeTab === 'cihaz') {
             $ua = (string) ($g['TARAYICI'] ?? '');
             $tarih = substr((string) $g['TARIH'], 0, 19); // milisaniyeyi at (strtotime için)
             $tarihTs = strtotime($tarih) ?: 0;
-            $etiket = akl_cihaz_etiket($ua);
-            $anormal = akl_cihaz_anormal_mi($ua);
+            $etiket = lumen_cihaz_etiket($ua);
+            $anormal = lumen_cihaz_anormal_mi($ua);
 
             if (!isset($czKullanicilar[$ka])) {
                 $czKullanicilar[$ka] = [

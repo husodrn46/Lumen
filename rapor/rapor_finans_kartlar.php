@@ -363,7 +363,7 @@ $yoyHtml = static function (float $simdiki, float $onceki): string {
             .matris-kart, .karne, .vurgu { box-shadow:none; break-inside:avoid; }
             .hucre .dolgu { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
         }
-        html.akl-dark .vurgu, html.akl-dark .filtre-kart, html.akl-dark .matris-kart, html.akl-dark .karne, html.akl-dark .geri, html.akl-dark .btn, html.akl-dark .yil-sec { background:var(--card); }
+        html.lumen-dark .vurgu, html.lumen-dark .filtre-kart, html.lumen-dark .matris-kart, html.lumen-dark .karne, html.lumen-dark .geri, html.lumen-dark .btn, html.lumen-dark .yil-sec { background:var(--card); }
     </style>
 </head>
 <body>

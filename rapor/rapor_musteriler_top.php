@@ -244,7 +244,7 @@ $sonRozet = static function (int $gun, bool $guncel): array {
             .vurgu, .pod, .lig-kart { box-shadow:none; break-inside:avoid; }
             .deger-hucre .dolgu, .son-rozet { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
         }
-        html.akl-dark .vurgu, html.akl-dark .pod, html.akl-dark .lig-kart, html.akl-dark .geri, html.akl-dark .btn, html.akl-dark .yil-sec, html.akl-dark .cip { background:var(--card); }
+        html.lumen-dark .vurgu, html.lumen-dark .pod, html.lumen-dark .lig-kart, html.lumen-dark .geri, html.lumen-dark .btn, html.lumen-dark .yil-sec, html.lumen-dark .cip { background:var(--card); }
     </style>
 </head>
 <body>

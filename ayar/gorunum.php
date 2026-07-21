@@ -101,7 +101,7 @@ $csrf = csrf_token();
 $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html>
-<?php $__htmlcls = trim(($yaziBoyut !== '' ? 'akl-yazi-' . $yaziBoyut . ' ' : '') . (($koyuTemaAktif && $koyu) ? 'akl-dark' : '')); ?>
+<?php $__htmlcls = trim(($yaziBoyut !== '' ? 'lumen-yazi-' . $yaziBoyut . ' ' : '') . (($koyuTemaAktif && $koyu) ? 'lumen-dark' : '')); ?>
 <html lang="tr"<?php echo $__htmlcls !== '' ? ' class="' . $__htmlcls . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
@@ -119,12 +119,12 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
         * { box-sizing:border-box; margin:0; }
         body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--t1); min-height:100vh; }
         /* Bu sayfada canlı önizleme için görünüm sınıfları (diğer sayfalarda pwa-header basar) */
-        html.akl-buyuk, html.akl-yazi-buyuk { zoom:1.12; }
-        html.akl-yazi-kucuk { zoom:.92; }
-        html.akl-yazi-cokbuyuk { zoom:1.24; }
-        @media print { html.akl-buyuk, html[class*="akl-yazi"] { zoom:1 !important; } }
-        html.akl-hiz .stok-img { display:none !important; }
-        html.akl-kompakt table td, html.akl-kompakt table th { padding-top:6px !important; padding-bottom:6px !important; }
+        html.lumen-buyuk, html.lumen-yazi-buyuk { zoom:1.12; }
+        html.lumen-yazi-kucuk { zoom:.92; }
+        html.lumen-yazi-cokbuyuk { zoom:1.24; }
+        @media print { html.lumen-buyuk, html[class*="lumen-yazi"] { zoom:1 !important; } }
+        html.lumen-hiz .stok-img { display:none !important; }
+        html.lumen-kompakt table td, html.lumen-kompakt table th { padding-top:6px !important; padding-bottom:6px !important; }
         .top { position:sticky; top:0; z-index:40; height:60px; background:rgba(255,255,255,.9); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); }
         .top-in { max-width:820px; margin:0 auto; height:100%; display:flex; align-items:center; gap:12px; padding:0 20px; }
         .top-in a.geri { width:36px; height:36px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); text-decoration:none; border:1px solid var(--border); background:#fff; }
@@ -321,20 +321,20 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
                 document.querySelectorAll('#seg-yazi button').forEach(function (x) { x.classList.remove('on'); });
                 b.classList.add('on');
                 var val = b.getAttribute('data-val');
-                d.classList.remove('akl-yazi-kucuk', 'akl-yazi-buyuk', 'akl-yazi-cokbuyuk', 'akl-buyuk');
-                if (val) { d.classList.add('akl-yazi-' + val); }
+                d.classList.remove('lumen-yazi-kucuk', 'lumen-yazi-buyuk', 'lumen-yazi-cokbuyuk', 'lumen-buyuk');
+                if (val) { d.classList.add('lumen-yazi-' + val); }
                 kaydet('gor_yazi', val);
             });
         });
         // Hız modu
         document.getElementById('tg-hiz').addEventListener('change', function () {
-            d.classList.toggle('akl-hiz', this.checked);
+            d.classList.toggle('lumen-hiz', this.checked);
             kaydet('gor_hiz', this.checked ? '1' : '');
         });
         // Koyu tema (rafa kaldırıldıysa toggle DOM'da yok)
         var __tkoyu = document.getElementById('tg-koyu');
         if (__tkoyu) __tkoyu.addEventListener('change', function () {
-            d.classList.toggle('akl-dark', this.checked);
+            d.classList.toggle('lumen-dark', this.checked);
             if (this.checked) {
                 var hex = (getComputedStyle(d).getPropertyValue('--red') || '#6F1022').trim().replace('#', '');
                 var m = hex.match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
@@ -350,7 +350,7 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
                 document.querySelectorAll('#seg-yogun button').forEach(function (x) { x.classList.remove('on'); });
                 b.classList.add('on');
                 var val = b.getAttribute('data-val');
-                d.classList.toggle('akl-kompakt', val === 'kompakt');
+                d.classList.toggle('lumen-kompakt', val === 'kompakt');
                 kaydet('gor_yogunluk', val);
             });
         });
@@ -360,7 +360,7 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
                 document.querySelectorAll('#seg-liste button').forEach(function (x) { x.classList.remove('on'); });
                 b.classList.add('on');
                 var val = b.getAttribute('data-val');
-                d.classList.toggle('akl-liste', val === 'liste');
+                d.classList.toggle('lumen-liste', val === 'liste');
                 kaydet('gor_liste', val);
             });
         });

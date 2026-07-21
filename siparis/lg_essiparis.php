@@ -915,35 +915,35 @@ foreach ($resultRows as $r) {
             gap: 8px;
         }
 
-        /* ═══ LİSTE GÖRÜNÜMÜ (kişisel ayar gor_liste=liste → html.akl-liste) — kompakt tek-satır.
+        /* ═══ LİSTE GÖRÜNÜMÜ (kişisel ayar gor_liste=liste → html.lumen-liste) — kompakt tek-satır.
               Sadece ≥768px; mobilde kart düzeni korunur. Ödeme paneli KORUNUR (chip); yalnız
               ikincil/bilgi öğeleri (meta/açıklama/döviz) gizlenir. ═══ */
         @media (min-width: 768px) {
-            html.akl-liste .order-grid { grid-template-columns: 1fr; gap: 7px; }
-            html.akl-liste .order-card {
+            html.lumen-liste .order-grid { grid-template-columns: 1fr; gap: 7px; }
+            html.lumen-liste .order-card {
                 flex-direction: row; flex-wrap: wrap; align-items: center;
                 border-radius: 10px; box-shadow: 0 1px 3px rgba(15,23,42,0.07);
             }
-            html.akl-liste .order-card:hover { transform: none; }
-            html.akl-liste .oc-header {
+            html.lumen-liste .order-card:hover { transform: none; }
+            html.lumen-liste .oc-header {
                 flex: 0 0 auto; padding: 8px 14px; border-bottom: none;
                 gap: 8px; flex-wrap: nowrap; justify-content: flex-start;
             }
-            html.akl-liste .oc-body {
+            html.lumen-liste .oc-body {
                 flex: 1 1 260px; flex-direction: row; flex-wrap: wrap;
                 align-items: center; gap: 6px 14px; padding: 8px 6px;
             }
-            html.akl-liste .oc-customer { flex: 1 1 auto; min-width: 90px; }
-            html.akl-liste .oc-price-box {
+            html.lumen-liste .oc-customer { flex: 1 1 auto; min-width: 90px; }
+            html.lumen-liste .oc-price-box {
                 flex: 0 0 auto; padding: 0; background: transparent;
                 border: none; border-radius: 0; text-align: right;
             }
-            html.akl-liste .oc-price { font-size: 16px; }
-            html.akl-liste .oc-meta,
-            html.akl-liste .oc-note,
-            html.akl-liste .oc-price-doviz { display: none; }
-            html.akl-liste .odeme-secim { flex: 0 0 auto; margin: 0; }
-            html.akl-liste .oc-footer {
+            html.lumen-liste .oc-price { font-size: 16px; }
+            html.lumen-liste .oc-meta,
+            html.lumen-liste .oc-note,
+            html.lumen-liste .oc-price-doviz { display: none; }
+            html.lumen-liste .odeme-secim { flex: 0 0 auto; margin: 0; }
+            html.lumen-liste .oc-footer {
                 flex: 0 0 auto; padding: 8px 14px; border-top: none; gap: 6px;
             }
         }

@@ -37,7 +37,7 @@ if (function_exists('kisisel_ayarlar')) {
             $__ts = htmlspecialchars((string) $__renk[1], ENT_QUOTES);
             $__js .= "d.style.setProperty('--red','" . $__th . "');"
                    . "d.style.setProperty('--red-soft','" . $__ts . "');"
-                   . "d.classList.add('akl-accent');"
+                   . "d.classList.add('lumen-accent');"
                    . 'var m=document.querySelector(\'meta[name="theme-color"]\');'
                    . "if(m){m.setAttribute('content','" . $__th . "');}";
         }
@@ -46,12 +46,12 @@ if (function_exists('kisisel_ayarlar')) {
         $__yz = $__ay['gor_yazi'] ?? '';
         if (!in_array($__yz, ['kucuk', 'buyuk', 'cokbuyuk'], true)) { $__yz = ''; }
         if ($__yz === '' && ($__ay['gor_buyuk'] ?? '') === '1') { $__yz = 'buyuk'; }
-        if ($__yz !== '')                                { $__cls[] = 'akl-yazi-' . $__yz; }
-        if (($__ay['gor_hiz'] ?? '') === '1')            { $__cls[] = 'akl-hiz'; }
-        if (($__ay['gor_yogunluk'] ?? '') === 'kompakt') { $__cls[] = 'akl-kompakt'; }
-        if (($__ay['gor_liste'] ?? '') === 'liste')      { $__cls[] = 'akl-liste'; }   // kayıt görünümü: kart→liste (sayfa-özel CSS)
-        if (false && ($__ay['gor_koyu'] ?? '') === '1') {   // KOYU TEMA RAFTA — akl-dark basılmıyor (stale session'da da koyu görünmez). Un-shelve: "false && " sil + gorunum.php $koyuTemaAktif=true.
-            $__cls[] = 'akl-dark';
+        if ($__yz !== '')                                { $__cls[] = 'lumen-yazi-' . $__yz; }
+        if (($__ay['gor_hiz'] ?? '') === '1')            { $__cls[] = 'lumen-hiz'; }
+        if (($__ay['gor_yogunluk'] ?? '') === 'kompakt') { $__cls[] = 'lumen-kompakt'; }
+        if (($__ay['gor_liste'] ?? '') === 'liste')      { $__cls[] = 'lumen-liste'; }   // kayıt görünümü: kart→liste (sayfa-özel CSS)
+        if (false && ($__ay['gor_koyu'] ?? '') === '1') {   // KOYU TEMA RAFTA — lumen-dark basılmıyor (stale session'da da koyu görünmez). Un-shelve: "false && " sil + gorunum.php $koyuTemaAktif=true.
+            $__cls[] = 'lumen-dark';
             // Koyu modda vurgu-soft rengini koyu tona çevir (aksi halde açık pembe/mavi kalır)
             $__ah = ltrim((is_array($__renk) && isset($__renk[0])) ? (string) $__renk[0] : '#6F1022', '#');
             $__ds = (strlen($__ah) === 6)
@@ -67,25 +67,25 @@ if (function_exists('kisisel_ayarlar')) {
         }
         // Kişiselleştirme CSS'i HER ZAMAN bas — ilgili sınıf yoksa etkisiz; böylece canlı toggle her sayfada çalışır.
         echo '<style>'
-           . 'html.akl-buyuk,html.akl-yazi-buyuk{zoom:1.12;}'
-           . 'html.akl-yazi-kucuk{zoom:.92;}'
-           . 'html.akl-yazi-cokbuyuk{zoom:1.24;}'
-           . '@media print{html.akl-buyuk,html[class*="akl-yazi"]{zoom:1 !important;}}'
-           . 'html.akl-hiz .stok-img{display:none !important;}'
-           . 'html.akl-kompakt table td,html.akl-kompakt table th{padding-top:6px !important;padding-bottom:6px !important;}'
-           . 'html.akl-kompakt .stok-card{padding:9px 12px !important;}'
-           . 'html.akl-dark{color-scheme:dark;--bg:#0f172a;--surface:#1e293b;--card:#1e293b;--text-1:#e6e9f0;--text-2:#9aa7bd;--text-3:#7b899f;--t1:#e6e9f0;--t2:#9aa7bd;--t3:#7b899f;--border:#2f3d52;--border-hover:#425068;--emerald-soft:#0e2a22;--indigo-soft:#1a2040;--amber-soft:#2b2113;}'
-           . 'html.akl-dark body{background:var(--bg);color:var(--text-1);}'
-           . 'html.akl-dark input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),html.akl-dark select,html.akl-dark textarea{background:#1e293b;color:var(--text-1);border-color:var(--border);}'
-           . 'html.akl-dark ::placeholder{color:#6b7a92;opacity:1;}'
+           . 'html.lumen-buyuk,html.lumen-yazi-buyuk{zoom:1.12;}'
+           . 'html.lumen-yazi-kucuk{zoom:.92;}'
+           . 'html.lumen-yazi-cokbuyuk{zoom:1.24;}'
+           . '@media print{html.lumen-buyuk,html[class*="lumen-yazi"]{zoom:1 !important;}}'
+           . 'html.lumen-hiz .stok-img{display:none !important;}'
+           . 'html.lumen-kompakt table td,html.lumen-kompakt table th{padding-top:6px !important;padding-bottom:6px !important;}'
+           . 'html.lumen-kompakt .stok-card{padding:9px 12px !important;}'
+           . 'html.lumen-dark{color-scheme:dark;--bg:#0f172a;--surface:#1e293b;--card:#1e293b;--text-1:#e6e9f0;--text-2:#9aa7bd;--text-3:#7b899f;--t1:#e6e9f0;--t2:#9aa7bd;--t3:#7b899f;--border:#2f3d52;--border-hover:#425068;--emerald-soft:#0e2a22;--indigo-soft:#1a2040;--amber-soft:#2b2113;}'
+           . 'html.lumen-dark body{background:var(--bg);color:var(--text-1);}'
+           . 'html.lumen-dark input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),html.lumen-dark select,html.lumen-dark textarea{background:#1e293b;color:var(--text-1);border-color:var(--border);}'
+           . 'html.lumen-dark ::placeholder{color:#6b7a92;opacity:1;}'
            // Legacy glassmorphism sayfaları (lg_bakiye/cari/stok/essiparis/hareket...): sabit-beyaz yüzeyleri koyulaştır (yeni paneller .card/var kullandığı için etkilenmez).
-           . 'html.akl-dark .top-header{background:rgba(15,23,42,.92) !important;border-bottom-color:var(--border) !important;}'
-           . 'html.akl-dark .search-panel,html.akl-dark .filter-panel,html.akl-dark .list-panel,html.akl-dark .bulk-panel,html.akl-dark .topcari-panel,html.akl-dark .summary-panel,html.akl-dark .firma-card,html.akl-dark .glass-card,html.akl-dark .stat-card,html.akl-dark .table-card,html.akl-dark .summary-card,html.akl-dark .ozet-bandi,html.akl-dark .ozet-band,html.akl-dark .empty-state,html.akl-dark .modal-box,html.akl-dark .modal-dialog,html.akl-dark .akl-modal-dialog,html.akl-dark .ekstre-modal,html.akl-dark .image-modal-dialog,html.akl-dark .print-dropdown,html.akl-dark .suggest-list{background:#1e293b !important;border-color:var(--border) !important;color:var(--text-1);}'
-           . 'html.akl-dark .firma-head{background:#232f43 !important;border-bottom-color:var(--border) !important;}'
-           . 'html.akl-dark .firma-footer,html.akl-dark .bakiye-box{background:#172033 !important;border-color:var(--border) !important;}'
-           . 'html.akl-dark .action-pill,html.akl-dark .suggest-item,html.akl-dark .topcari-item,html.akl-dark .paging-btn,html.akl-dark .odeme-btn{background:#232f43 !important;border-color:var(--border) !important;color:var(--text-1);}'
-           . 'html.akl-dark .cek-senet-box{background:#2a2113 !important;border-color:#4a3a1a !important;}'
-           . 'html.akl-dark .prev{background:#172033 !important;border-color:var(--border) !important;}'
+           . 'html.lumen-dark .top-header{background:rgba(15,23,42,.92) !important;border-bottom-color:var(--border) !important;}'
+           . 'html.lumen-dark .search-panel,html.lumen-dark .filter-panel,html.lumen-dark .list-panel,html.lumen-dark .bulk-panel,html.lumen-dark .topcari-panel,html.lumen-dark .summary-panel,html.lumen-dark .firma-card,html.lumen-dark .glass-card,html.lumen-dark .stat-card,html.lumen-dark .table-card,html.lumen-dark .summary-card,html.lumen-dark .ozet-bandi,html.lumen-dark .ozet-band,html.lumen-dark .empty-state,html.lumen-dark .modal-box,html.lumen-dark .modal-dialog,html.lumen-dark .lumen-modal-dialog,html.lumen-dark .ekstre-modal,html.lumen-dark .image-modal-dialog,html.lumen-dark .print-dropdown,html.lumen-dark .suggest-list{background:#1e293b !important;border-color:var(--border) !important;color:var(--text-1);}'
+           . 'html.lumen-dark .firma-head{background:#232f43 !important;border-bottom-color:var(--border) !important;}'
+           . 'html.lumen-dark .firma-footer,html.lumen-dark .bakiye-box{background:#172033 !important;border-color:var(--border) !important;}'
+           . 'html.lumen-dark .action-pill,html.lumen-dark .suggest-item,html.lumen-dark .topcari-item,html.lumen-dark .paging-btn,html.lumen-dark .odeme-btn{background:#232f43 !important;border-color:var(--border) !important;color:var(--text-1);}'
+           . 'html.lumen-dark .cek-senet-box{background:#2a2113 !important;border-color:#4a3a1a !important;}'
+           . 'html.lumen-dark .prev{background:#172033 !important;border-color:var(--border) !important;}'
            . '</style>' . "\n";
     } catch (Throwable $__e) {
         // görünüm uygulanamazsa sessiz geç; sayfa normal render olsun
@@ -115,7 +115,7 @@ if (function_exists('kisisel_ayarlar')) {
 <script>
 // Mevcut Service Worker'i bir kez kaldir; her sayfa yuklemesinde cache temizleme yapma.
 (function() {
-    var cleanupKey = 'akl_sw_cleanup_done_v1';
+    var cleanupKey = 'lumen_sw_cleanup_done_v1';
     try {
         if (window.localStorage && localStorage.getItem(cleanupKey) === '1') {
             return;
@@ -194,28 +194,28 @@ if (function_exists('kisisel_ayarlar')) {
 </script>
 
 <!-- ==== "Müşteri yanında" gizli mod — tek dokunuşla para/bakiye gizle (client-side, localStorage, görsel blur; yetkiye dokunmaz) ==== -->
-<script>try{if(localStorage.getItem('akl_gizli')==='1')document.documentElement.classList.add('akl-gizli');}catch(e){}</script>
+<script>try{if(localStorage.getItem('lumen_gizli')==='1')document.documentElement.classList.add('lumen-gizli');}catch(e){}</script>
 <style>
   /* Bilinen para/bakiye GÖSTERİM sınıfları — yükleme anında blur (flaş önleme). Input değil, geniş seçici yok. */
-  html.akl-gizli .amount,html.akl-gizli .oz-val,html.akl-gizli .kasa-value,html.akl-gizli .kasa-amount,
-  html.akl-gizli .grand-total-value,html.akl-gizli .cs-tutar,html.akl-gizli .bakiye-box .amount,
-  html.akl-gizli .satis-tutar,html.akl-gizli .sk-deger,
-  html.akl-gizli .akl-para-gizli{
+  html.lumen-gizli .amount,html.lumen-gizli .oz-val,html.lumen-gizli .kasa-value,html.lumen-gizli .kasa-amount,
+  html.lumen-gizli .grand-total-value,html.lumen-gizli .cs-tutar,html.lumen-gizli .bakiye-box .amount,
+  html.lumen-gizli .satis-tutar,html.lumen-gizli .sk-deger,
+  html.lumen-gizli .lumen-para-gizli{
     filter:blur(7px)!important;-webkit-filter:blur(7px)!important;transition:filter .12s;
     user-select:none;-webkit-user-select:none;pointer-events:none;
   }
-  #akl-gizli-btn{position:fixed;right:16px;bottom:16px;z-index:99990;width:46px;height:46px;border-radius:50%;
+  #lumen-gizli-btn{position:fixed;right:16px;bottom:16px;z-index:99990;width:46px;height:46px;border-radius:50%;
     border:none;background:rgba(31,41,55,.82);color:#fff;font-size:17px;display:flex;align-items:center;
     justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28);opacity:.5;
     transition:opacity .15s,background .15s,transform .1s;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
-  #akl-gizli-btn:hover{opacity:1;}
-  #akl-gizli-btn:active{transform:scale(.93);}
-  html.akl-gizli #akl-gizli-btn{background:#b91c1c;opacity:.92;}
-  @media print{#akl-gizli-btn{display:none!important;}}
+  #lumen-gizli-btn:hover{opacity:1;}
+  #lumen-gizli-btn:active{transform:scale(.93);}
+  html.lumen-gizli #lumen-gizli-btn{background:#b91c1c;opacity:.92;}
+  @media print{#lumen-gizli-btn{display:none!important;}}
 </style>
 <script>
 (function(){
-  var KEY='akl_gizli', TL='₺';
+  var KEY='lumen_gizli', TL='₺';
   function kok(){return document.documentElement;}
   function paraTara(root){
     if(!root)return;
@@ -223,11 +223,11 @@ if (function_exists('kisisel_ayarlar')) {
       var els=root.querySelectorAll('*'),i,el,j,cocukVar;
       for(i=0;i<els.length;i++){
         el=els[i];
-        if(el.id==='akl-gizli-btn'||el.classList.contains('akl-para-gizli'))continue;
+        if(el.id==='lumen-gizli-btn'||el.classList.contains('lumen-para-gizli'))continue;
         if(el.textContent.indexOf(TL)===-1)continue;          /* ₺ yoksa atla */
         cocukVar=false;
         for(j=0;j<el.children.length;j++){ if(el.children[j].textContent.indexOf(TL)!==-1){cocukVar=true;break;} }
-        if(!cocukVar) el.classList.add('akl-para-gizli');       /* ₺ içeren EN DERİN öğe = leaf para */
+        if(!cocukVar) el.classList.add('lumen-para-gizli');       /* ₺ içeren EN DERİN öğe = leaf para */
       }
     }catch(e){}
   }
@@ -240,8 +240,8 @@ if (function_exists('kisisel_ayarlar')) {
   }
   function gozlemDur(){if(gozlemci){gozlemci.disconnect();gozlemci=null;}}
   function uygula(acik){
-    kok().classList.toggle('akl-gizli',acik);
-    var b=document.getElementById('akl-gizli-btn');
+    kok().classList.toggle('lumen-gizli',acik);
+    var b=document.getElementById('lumen-gizli-btn');
     if(b){
       b.innerHTML=acik?'<i class="fa-solid fa-eye-slash"></i>':'<i class="fa-solid fa-eye"></i>';
       b.title=acik?'Gizli mod AÇIK — para/bakiye gizli (kapatmak için dokun)':'Müşteri yanında gizli mod';
@@ -249,10 +249,10 @@ if (function_exists('kisisel_ayarlar')) {
     if(acik){paraTara(document.body);gozlemBasla();}else{gozlemDur();}
   }
   function kur(){
-    if(document.getElementById('akl-gizli-btn')||!document.body)return;
+    if(document.getElementById('lumen-gizli-btn')||!document.body)return;
     if(/giris\.php/i.test(location.pathname))return;   /* giriş ekranında gösterme */
     var b=document.createElement('button');
-    b.id='akl-gizli-btn';b.type='button';b.setAttribute('aria-label','Gizli mod');
+    b.id='lumen-gizli-btn';b.type='button';b.setAttribute('aria-label','Gizli mod');
     b.innerHTML='<i class="fa-solid fa-eye"></i>';
     b.addEventListener('click',function(){
       var yeni=!(localStorage.getItem(KEY)==='1');

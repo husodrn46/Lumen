@@ -237,7 +237,7 @@ function fetch_item_by_value(PDO $dbh, string $firma, mixed $value): ?array
             ORDER BY S.CODE
         ';
         $stmt = $dbh->prepare($sqlLike);
-        $stmt->execute(array_merge(['AKL%'], $params));
+        $stmt->execute(array_merge([urun_kodu_oneki() . '%'], $params));
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
     }
     return normalize_item_row($row);
@@ -281,7 +281,7 @@ function search_items(PDO $dbh, string $firma, string $term, int $limit = 10): a
         $limit = 50;
     }
 
-    $codePrefix = 'AKL%';
+    $codePrefix = urun_kodu_oneki() . '%';
     $likeAny = '%' . $term . '%';
 
     // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama

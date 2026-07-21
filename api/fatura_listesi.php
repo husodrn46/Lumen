@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * GET/POST /api/fatura_listesi.php
- * Gövde: { "cari_id"?:123, "query"?:"AKL", "donem"?:"aktif"|"onceki"|"tumu", "limit"?:100 }
+ * Gövde: { "cari_id"?:123, "query"?:"ARAMA", "donem"?:"aktif"|"onceki"|"tumu", "limit"?:100 }
  * Yanıt: { ok, faturalar:[{ id, fisno, tarih, tur, net, net_metin, brut, brut_metin,
  *          kdv, kdv_metin, cari_kod, cari_ad }], sayi, toplam, toplam_metin, donem }
  *

@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Gövde: { "year"?: 2026 }   (verilmezse içinde bulunulan yıl)
  * Yanıt: { ok, year, aylar:[{ay, ay_adi, islem, adet, net, net_metin}], ozet:{...} }
  *
- * Aylık satış cirosu (STLINE TRCODE 7,8; AKL% ürünler; net = LINENET + KDV).
+ * Aylık satış cirosu (STLINE TRCODE 7,8; ürün kodu ön ekine göre; net = LINENET + KDV).
  * rapor_satis_aylik.php (web) mantığıyla birebir. Token zorunlu, salt-okuma.
  */
 

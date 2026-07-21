@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * GET/POST /api/fiyat_listesi.php
- * Gövde: { "query"?:"akl", "limit"?:1000 }
+ * Gövde: { "query"?:"arama", "limit"?:1000 }
  * Yanıt: { ok, urunler:[{ kod, ad, fiyat, fiyat_metin, kdv, kdv_dahil, kdv_dahil_metin }], sayi }
  *
  * Token zorunlu. Aktif ürünlerin (ITEMS ACTIVE=0) satış fiyat listesi: PRCLIST (CARDREF,

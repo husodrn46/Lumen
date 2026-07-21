@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Yanıt: { ok, ozet:{...}, urunler:[{kod, ad, birim, koli_ici, stok_miktar, stok_koli,
  *                                      bekleyen_miktar, bekleyen_koli, uret_koli}] }
  *
- * Üretim planı: AKL ürünleri için eldeki stok ile bekleyen (sevkedilmemiş) sipariş
+ * Üretim planı: ürün kodu ön ekine göre eldeki stok ile bekleyen (sevkedilmemiş) sipariş
  * dengesi; üretilmesi gereken koli. ../siparis/bekleyen_siparis.php (web) mantığıyla birebir.
  * Token zorunlu, salt-okuma.
  */

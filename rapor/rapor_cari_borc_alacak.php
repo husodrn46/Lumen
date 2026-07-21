@@ -352,7 +352,7 @@ $sonRozet = static function (int $gun): array {
             .vurgu, .lig-kart { box-shadow:none; break-inside:avoid; }
             .deger-hucre .dolgu, .son-rozet { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
         }
-        html.akl-dark .vurgu, html.akl-dark .filtre-kart, html.akl-dark .lig-kart, html.akl-dark .geri, html.akl-dark .btn, html.akl-dark .cip { background:var(--card); }
+        html.lumen-dark .vurgu, html.lumen-dark .filtre-kart, html.lumen-dark .lig-kart, html.lumen-dark .geri, html.lumen-dark .btn, html.lumen-dark .cip { background:var(--card); }
     </style>
 </head>
 <body>

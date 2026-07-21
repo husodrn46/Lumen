@@ -367,8 +367,8 @@ $yoyHtml = static function (float $simdiki, float $onceki): string {
             .grafik-alan { height: 300px; }
         }
         /* Koyu tema hazırlığı (raf açılınca otomatik) */
-        html.akl-dark body { background: var(--bg); }
-        html.akl-dark .kutu, html.akl-dark .kpi, html.akl-dark .geri, html.akl-dark .btn, html.akl-dark .yil-sec { background: var(--card); }
+        html.lumen-dark body { background: var(--bg); }
+        html.lumen-dark .kutu, html.lumen-dark .kpi, html.lumen-dark .geri, html.lumen-dark .btn, html.lumen-dark .yil-sec { background: var(--card); }
     </style>
 </head>
 <body>
