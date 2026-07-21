@@ -154,6 +154,14 @@ $maliyetkontrol = 1;            // Maliyet kontrolü (satış < alış uyarısı
 // Boş bırakılırsa hiçbir cari elenmez. Örnek: ['MAGAZA SATIS', 'GIDER']
 $rapor_haric_cari_kelimeleri = [];
 
+// Ürün kodu ön eki filtresi. Raporlar ve API'ler yalnız bu ön ekle BAŞLAYAN
+// ürünleri kapsar. Yalnız kendi ürettiğiniz ürünleri raporlamak isterseniz
+// kullanın (ör. 'URN'). BOŞ bırakılırsa tüm ürünler dahil edilir (varsayılan).
+$urun_kodu_oneki = '';
+
+// Yukarıdaki kapsamdan ayrıca hariç tutulacak ön ekler. Örnek: ['URN-HURDA']
+$urun_kodu_haric_onekleri = [];
+
 // ============================================================================
 // YETKİ AYARLARI
 // ============================================================================

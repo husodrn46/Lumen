@@ -210,8 +210,9 @@ function fetch_item_by_value(PDO $dbh, string $firma, mixed $value): ?array
         return null;
     }
     // BARKOD ARAMASI DEAKTİF - Sadece CODE ile arama
+    $urunKosulu = urun_kodu_kosulu('S');
     $sql = 'SELECT TOP 1 ' . item_select_columns($firma) . "
-        WHERE S.ACTIVE = 0 AND S.CODE LIKE 'AKL%' AND S.CODE = ?
+        WHERE S.ACTIVE = 0 AND {$urunKosulu} AND S.CODE = ?
         ORDER BY S.LOGICALREF
     ";
     $stmt = $dbh->prepare($sql);

@@ -36,7 +36,9 @@ $aylarTr = [1=>'Oca',2=>'Şub',3=>'Mar',4=>'Nis',5=>'May',6=>'Haz',7=>'Tem',8=>'
 $netSql  = 'ISNULL(SL.LINENET, (SL.PRICE * SL.AMOUNT - SL.DISTDISC)) + ISNULL(SL.VATAMNT, 0)';
 
 /** Bir yılın 12 aylık net cirosunu (dizi: ay=>tutar) döndürür. */
-$yilAylari = function (int $y) use ($dbh, $firma, $periyotlar, $netSql): array {
+$urunKosulu = urun_kodu_kosulu('ITM');
+
+$yilAylari = function (int $y) use ($dbh, $firma, $periyotlar, $netSql, $urunKosulu): array {
     $bas = sprintf('%04d-01-01', $y);
     $bit = sprintf('%04d-01-01', $y + 1); // yarı açık üst sınır
     $parcalar = [];
@@ -44,7 +46,7 @@ $yilAylari = function (int $y) use ($dbh, $firma, $periyotlar, $netSql): array {
         $parcalar[] = "SELECT MONTH(SL.DATE_) AS AY, {$netSql} AS NET
             FROM {$tbl}STLINE SL WITH(NOLOCK)
             JOIN {$firma}ITEMS ITM WITH(NOLOCK) ON ITM.LOGICALREF = SL.STOCKREF
-            WHERE ITM.CODE LIKE 'AKL%' AND SL.TRCODE IN (7, 8)
+            WHERE {$urunKosulu} AND SL.TRCODE IN (7, 8)
               AND SL.CANCELLED = 0 AND SL.LINETYPE = 0
               AND SL.DATE_ >= '{$bas}' AND SL.DATE_ < '{$bit}'";
     }

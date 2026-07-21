@@ -22,6 +22,8 @@ $body  = api_body();
 $limit = max(1, min(2000, (int) ($body['limit'] ?? 1000)));
 
 try {
+    $urunKosulu = urun_kodu_kosulu('URUN');
+
     $sql = "
     SELECT
         b.[URUN KODU] AS UrunKodu, b.[URUN ADI] AS UrunAdi, b.[URUN ID] AS UrunID,
@@ -48,7 +50,7 @@ try {
             LEFT JOIN {$firma}ITMUNITA ICBIRIM ON URUN.LOGICALREF = ICBIRIM.ITEMREF
         }
         WHERE URUN.CARDTYPE <> '22' AND BIRIM.LINENR = 1 AND URUN.ACTIVE = 0
-            AND URUN.CODE LIKE 'AKL%' AND URUN.CODE NOT LIKE 'AKL-PLS%'
+            AND {$urunKosulu}
         GROUP BY URUN.CODE, URUN.NAME, URUN.LOGICALREF, BIRIM.CODE, AMBARM.MIKTAR
     ) AS b
     LEFT JOIN (

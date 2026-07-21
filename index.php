@@ -242,7 +242,7 @@ if ($saat < 12) {
 // ajax_hava.php ile ayni fallback sirasini takip et: tmp/ yazilabilirse orada, degilse sys_get_temp_dir()
 $hava_cache_dosya = __DIR__ . '/tmp/hava_cache.json';
 if (!is_file($hava_cache_dosya)) {
-    $altCache = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'akl_hava_cache.json';
+    $altCache = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lumen_hava_cache.json';
     if (is_file($altCache)) {
         $hava_cache_dosya = $altCache;
     }
@@ -1594,7 +1594,7 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
     (function(){
         // Client-side cache: hava durumunu 2 saat localStorage'da tut, her sayfa acilisinda
         // sunucuya gitme (ajax_hava.php cagri sayisini buyuk olcude azaltir).
-        var KEY = 'akl_hava_v1', TTL = 7200000; // 2 saat
+        var KEY = 'lumen_hava_v1', TTL = 7200000; // 2 saat
         try {
             var c = JSON.parse(localStorage.getItem(KEY) || 'null');
             if (c && c.kod && (Date.now() - c.t) < TTL) { havaUygula(c.kod); return; }

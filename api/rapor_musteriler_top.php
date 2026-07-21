@@ -23,6 +23,8 @@ if ($year < 2000 || $year > 2100) {
     $year = (int) date('Y');
 }
 
+$urunKosulu = urun_kodu_kosulu('IT');
+
 try {
     // Özet (tüm müşteriler): müşteri sayısı + toplam ciro.
     $kpi = $dbh->prepare("
@@ -33,7 +35,7 @@ try {
         JOIN {$firma}ITEMS IT WITH(NOLOCK) ON IT.LOGICALREF = L.STOCKREF
         JOIN {$firma}CLCARD C WITH(NOLOCK) ON I.CLIENTREF = C.LOGICALREF
         WHERE C.ACTIVE = 0 AND I.CANCELLED = 0 AND I.TRCODE IN (7,8)
-          AND YEAR(I.DATE_) = :y AND IT.CODE LIKE 'AKL%'
+          AND YEAR(I.DATE_) = :y AND {$urunKosulu}
     ");
     $kpi->execute([':y' => $year]);
     $k = $kpi->fetch(PDO::FETCH_ASSOC) ?: [];
@@ -52,7 +54,7 @@ try {
         JOIN {$firma}ITEMS IT WITH(NOLOCK) ON IT.LOGICALREF = L.STOCKREF
         JOIN {$firma}CLCARD C WITH(NOLOCK) ON I.CLIENTREF = C.LOGICALREF
         WHERE C.ACTIVE = 0 AND I.CANCELLED = 0 AND I.TRCODE IN (7,8)
-          AND YEAR(I.DATE_) = :y AND IT.CODE LIKE 'AKL%'
+          AND YEAR(I.DATE_) = :y AND {$urunKosulu}
         GROUP BY C.CODE, C.DEFINITION_, C.CITY
         ORDER BY ciro DESC
     ");

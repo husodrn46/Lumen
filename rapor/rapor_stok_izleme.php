@@ -24,6 +24,7 @@ $nf = static fn($x, int $d = 0): string => number_format((float) $x, $d, ',', '.
 
 // Son N gun: gercek satis (cikis, sayim haric) ve uretim/giris (sayim haric) + mevcut stok
 $rows = [];
+$urunKosulu = urun_kodu_kosulu('I');
 try {
     $sql = "
         SELECT I.CODE, I.NAME,
@@ -44,7 +45,7 @@ try {
             WHERE S.CANCELLED = 0 AND S.DATE_ >= DATEADD(day, -{$gun}, GETDATE())
             GROUP BY S.STOCKREF
         ) SH ON SH.STOCKREF = I.LOGICALREF
-        WHERE I.CODE LIKE 'AKL%' AND I.ACTIVE = 0
+        WHERE {$urunKosulu} AND I.ACTIVE = 0
           AND (ISNULL(SH.SATIS,0) > 0 OR ISNULL(ST.ONHAND,0) < 0)
     ";
     $rows = $dbh->query($sql)->fetchAll(PDO::FETCH_ASSOC);

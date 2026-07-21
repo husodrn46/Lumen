@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * Aylık Satış Raporu — yıl karnesi görünümü (yeniden tasarım 2026-07-07).
  *
- * Veri tanımı: STLINE satış(7,8) − iade(2,3) + AKL% ürün + LINETYPE=0; NET = LINENET+VATAMNT (KDV dahil, iadeler düşülmüş).
+ * Veri tanımı: STLINE satış(7,8) − iade(2,3) + ürün kodu ön eki filtresi + LINETYPE=0; NET = LINENET+VATAMNT (KDV dahil, iadeler düşülmüş).
  * Geçen yıl karşılaştırması DOĞRU dönem tablosundan (yıl<=2025 → LG_001_01_) — eski
  * "Karşılaştırmalı Satış" raporu buraya birleştirilmiştir (2026-07-07, git geçmişinde).
  */
@@ -26,6 +26,8 @@ for ($i = 1; $i <= 12; $i++) {
     $monthly[$i] = ['C' => 0, 'QTY' => 0.0, 'NET' => 0.0];
 }
 
+$urunKosulu = urun_kodu_kosulu('ITM');
+
 $sql = "
     SELECT
         MONTH(SL.DATE_) AS M,
@@ -36,7 +38,7 @@ $sql = "
                  ELSE -(ISNULL(SL.LINENET, (SL.PRICE * SL.AMOUNT - SL.DISTDISC)) + ISNULL(SL.VATAMNT, 0)) END) AS NET
     FROM {$firmadonem}STLINE SL WITH(NOLOCK)
     JOIN {$firma}ITEMS ITM ON SL.STOCKREF = ITM.LOGICALREF
-    WHERE ITM.CODE LIKE 'AKL%'
+    WHERE {$urunKosulu}
       AND SL.TRCODE IN (2,3,7,8)
       AND SL.DATE_ >= :startDate
       AND SL.DATE_ < :endDate
@@ -69,7 +71,7 @@ try {
                         ELSE -(ISNULL(SL.LINENET, (SL.PRICE * SL.AMOUNT - SL.DISTDISC)) + ISNULL(SL.VATAMNT, 0)) END) AS NET
         FROM {$prevDonem}STLINE SL WITH(NOLOCK)
         JOIN {$firma}ITEMS ITM ON SL.STOCKREF = ITM.LOGICALREF
-        WHERE ITM.CODE LIKE 'AKL%'
+        WHERE {$urunKosulu}
           AND SL.TRCODE IN (2,3,7,8) AND SL.CANCELLED = 0 AND SL.LINETYPE = 0
           AND SL.DATE_ >= :startDate AND SL.DATE_ < :endDate
         GROUP BY MONTH(SL.DATE_)");
@@ -377,7 +379,7 @@ $yoyHtml = static function (float $simdiki, float $onceki): string {
         <span class="t-ico"><i class="fa-solid fa-calendar-days"></i></span>
         <div class="t-baslik">
             <h1>Aylık Satış Raporu</h1>
-            <p>AKL ürünleri · KDV dahil net ciro (iadeler düşülmüş) · geçen yıl kıyası</p>
+            <p>KDV dahil net ciro (iadeler düşülmüş) · geçen yıl kıyası</p>
         </div>
         <div class="aksiyon">
             <form method="get">

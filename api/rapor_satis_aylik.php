@@ -27,6 +27,8 @@ for ($i = 1; $i <= 12; $i++) {
     $aylar[$i] = ['islem' => 0, 'adet' => 0.0, 'net' => 0.0];
 }
 
+$urunKosulu = urun_kodu_kosulu('ITM');
+
 try {
     $sql = "
         SELECT
@@ -36,7 +38,7 @@ try {
             SUM(ISNULL(SL.LINENET, (SL.PRICE * SL.AMOUNT - SL.DISTDISC)) + ISNULL(SL.VATAMNT, 0)) AS NET
         FROM {$firmadonem}STLINE SL WITH(NOLOCK)
         JOIN {$firma}ITEMS ITM WITH(NOLOCK) ON SL.STOCKREF = ITM.LOGICALREF
-        WHERE ITM.CODE LIKE 'AKL%'
+        WHERE {$urunKosulu}
           AND SL.TRCODE IN (7, 8)
           AND SL.DATE_ >= :baslangic
           AND SL.DATE_ <  :bitis

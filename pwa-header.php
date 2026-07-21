@@ -154,7 +154,7 @@ if (function_exists('kisisel_ayarlar')) {
 })();
 </script>
 
-<!-- Frontend JS hata yakalama -> /js_hata_log.php -> D:\AKL_LOGS (scope: js-error) -->
+<!-- Frontend JS hata yakalama -> /js_hata_log.php -> uygulama log dizini (scope: js-error) -->
 <script>
 (function(){
     var sent = 0, MAX = 10;

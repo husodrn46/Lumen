@@ -1675,6 +1675,43 @@ if (!function_exists('m_p_ozel_cari_goruntulebilir_mi')) {
   }
 }
 
+if (!function_exists('urun_kodu_kosulu')) {
+  /**
+   * Rapor ve API sorgularında ürün kodu ön ek filtresi üretir.
+   *
+   * Ayarlar _bilgi_.inc'ten gelir:
+   *   $urun_kodu_oneki          -> yalnız bu ön ekle başlayan ürünler
+   *   $urun_kodu_haric_onekleri -> bunlarla başlayanlar hariç
+   *
+   * İkisi de boşsa "1=1" döner, yani hiçbir ürün elenmez (varsayılan).
+   * Değerler ayar dosyasından gelir; yine de yalnız harf/rakam/_/- kabul edilir.
+   *
+   * @param string $alias Tablo takma adı ('' ise sütun doğrudan CODE olarak kullanılır)
+   */
+  function urun_kodu_kosulu(string $alias = ''): string
+  {
+    global $urun_kodu_oneki, $urun_kodu_haric_onekleri;
+
+    $temizle = static fn($v): string => (string) preg_replace('/[^A-Za-z0-9_\-]/', '', (string) $v);
+    $sutun = $alias === '' ? 'CODE' : ($alias . '.CODE');
+
+    $parcalar = [];
+    $onek = $temizle($urun_kodu_oneki ?? '');
+    if ($onek !== '') {
+      $parcalar[] = "{$sutun} LIKE '{$onek}%'";
+    }
+
+    foreach ((array) ($urun_kodu_haric_onekleri ?? []) as $haric) {
+      $h = $temizle($haric);
+      if ($h !== '') {
+        $parcalar[] = "{$sutun} NOT LIKE '{$h}%'";
+      }
+    }
+
+    return $parcalar === [] ? '1=1' : implode(' AND ', $parcalar);
+  }
+}
+
 if (!function_exists('m_p_ozel_cari_sql_filtresi')) {
   /**
    * SQL sorgularında ayarlardan gizlenen cari referanslarını filtreler.

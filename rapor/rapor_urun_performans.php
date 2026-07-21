@@ -30,6 +30,8 @@ $year = (isset($_GET['year']) && is_numeric($_GET['year'])) ? (int) $_GET['year'
 // Yıl <= 2025 verisi eski dönem tablosunda (rapor_satis_aylik ile aynı eşleme)
 $donemTablo = ($year <= 2025) ? 'LG_001_01_' : $firmadonem;
 
+$urunKosulu = urun_kodu_kosulu('I');
+
 $sql = "
     SELECT
         I.CODE AS URUN_KODU,
@@ -39,7 +41,7 @@ $sql = "
                  ELSE -(S.PRICE * S.AMOUNT - S.DISTDISC) END) AS SATILAN_TUTAR
     FROM {$donemTablo}STLINE S WITH(NOLOCK)
     JOIN {$firma}ITEMS I ON S.STOCKREF = I.LOGICALREF
-    WHERE I.CODE LIKE 'AKL%'
+    WHERE {$urunKosulu}
       AND S.TRCODE IN (2,3,7,8)
       AND YEAR(S.DATE_) = :y
       AND S.CANCELLED = 0

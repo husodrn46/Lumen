@@ -12,8 +12,12 @@ $offset = ($sayfa - 1) * $limit;
 // Arama
 $arama = isset($_GET['arama']) ? trim($_GET['arama']) : '';
 
+// Ürün kodu ön eki filtresi (_bilgi_.inc -> $urun_kodu_oneki); ayar boşsa tüm ürünler.
+$urunKosuluDuz = urun_kodu_kosulu();
+$urunKosulu = urun_kodu_kosulu('I');
+
 // Toplam kayıt sayısı
-$countSql = "SELECT COUNT(*) as toplam FROM {$firma}ITEMS WHERE CODE LIKE 'AKL%' AND ACTIVE = 0";
+$countSql = "SELECT COUNT(*) as toplam FROM {$firma}ITEMS WHERE {$urunKosuluDuz} AND ACTIVE = 0";
 $countParams = [];
 
 if ($arama !== '') {
@@ -41,7 +45,7 @@ $sql = "
         U.LOGICALREF AS ITMUNITA_REF
     FROM {$firma}ITEMS I
     LEFT JOIN {$firma}ITMUNITA U ON I.LOGICALREF = U.ITEMREF AND U.LINENR = 1
-    WHERE I.CODE LIKE 'AKL%' AND I.ACTIVE = 0
+    WHERE {$urunKosulu} AND I.ACTIVE = 0
 ";
 
 $params = [];

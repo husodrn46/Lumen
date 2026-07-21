@@ -22,6 +22,10 @@ $currentYearEnd = "$selectedYear-12-31";
 $previousYearStart = "$previousYear-01-01";
 $previousYearEnd = "$previousYear-12-31";
 
+// Ürün kodu ön eki filtresi (_bilgi_.inc -> $urun_kodu_oneki); ayar boşsa tüm ürünler.
+$urunKosulu = urun_kodu_kosulu('IT');
+$urunKosulu2 = urun_kodu_kosulu('IT2');
+
 // =============================================================================
 // 1. ANA KPI'LAR
 // =============================================================================
@@ -41,7 +45,7 @@ $stmtYearSales = $dbh->prepare("
 	    AND I.DATE_ >= :startDate
 	    AND I.DATE_ <= :endDate
 	    AND I.CANCELLED = 0
-	    AND IT.CODE LIKE 'AKL%'
+	    AND {$urunKosulu}
 	");
 // PDO_SQLSRV: ayni statement'i yeniden calistirmadan once result set'in TAMAMI
 // tuketilmeli (fetchAll) — fetch+closeCursor "Invalid cursor state" (24000) veriyor.
@@ -95,7 +99,7 @@ $stmtMonthlySales = $dbh->prepare("
 	      WHERE I.CANCELLED = 0
 	        AND YEAR(I.DATE_) = :year
 	        AND MONTH(I.DATE_) = :month
-	        AND IT.CODE LIKE 'AKL%'
+	        AND {$urunKosulu}
 	    ");
 
 $monthlySales = [];
@@ -180,7 +184,7 @@ $stmtTopProducts = $dbh->prepare("
 	    AND I.DATE_ <= :endDate
 	    AND I.CANCELLED = 0
 	    AND L.LINETYPE = 0
-	    AND IT.CODE LIKE 'AKL%'
+	    AND {$urunKosulu}
 	    GROUP BY IT.CODE, IT.NAME
 	    ORDER BY SUM(CASE WHEN L.TRCODE IN (7,8)
 	                      THEN ISNULL(L.LINENET, 0) + ISNULL(L.VATAMNT, 0)
@@ -216,7 +220,7 @@ $stmtTopCustomers = $dbh->prepare("
 	    AND I.DATE_ >= :startDate
 	    AND I.DATE_ <= :endDate
 	    AND I.CANCELLED = 0
-	    AND IT.CODE LIKE 'AKL%'
+	    AND {$urunKosulu}
 	    GROUP BY C.CODE, C.DEFINITION_
 	    ORDER BY SUM(CASE WHEN L.TRCODE IN (7,8)
 	                      THEN ISNULL(L.LINENET, 0) + ISNULL(L.VATAMNT, 0)
@@ -247,7 +251,7 @@ $stmtNewCustomers = $dbh->prepare("
 	        AND I.DATE_ >= :startDate
 	        AND I.DATE_ <= :endDate
 	        AND I.CANCELLED = 0
-	        AND IT.CODE LIKE 'AKL%'
+	        AND {$urunKosulu}
 	        AND I.CLIENTREF NOT IN (
 	            SELECT DISTINCT I2.CLIENTREF
 	            FROM {$firmadonem}INVOICE I2
@@ -256,7 +260,7 @@ $stmtNewCustomers = $dbh->prepare("
 	            WHERE I2.TRCODE IN (7,8)
 	            AND I2.DATE_ < :cutoffDate
 	            AND I2.CANCELLED = 0
-	            AND IT2.CODE LIKE 'AKL%'
+	            AND {$urunKosulu2}
 	        )
 	    )
 	");

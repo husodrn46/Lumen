@@ -9,6 +9,8 @@ require_once(__DIR__ . "/../kontrol.php");
 include_once(__DIR__ . "/../log_ip.php");
 
 /* ---- Sorgu (TOP 20) ----------------------------------------------------- */
+$urunKosulu = urun_kodu_kosulu('I');
+
 $sql = "
 ;WITH STOK_SATIS AS (
     SELECT
@@ -21,7 +23,7 @@ $sql = "
     FROM {$firmadonem}STLINE AS S WITH (NOLOCK)
     JOIN {$firma}ITEMS     AS I ON I.LOGICALREF = S.STOCKREF
     WHERE S.TRCODE IN (2,3,7,8)
-      AND I.CODE        LIKE 'AKL%'
+      AND {$urunKosulu}
       AND S.DATE_       >= DATEADD(DAY,-30,GETDATE())
       AND S.DATE_       <  GETDATE()
       AND S.CANCELLED   = 0

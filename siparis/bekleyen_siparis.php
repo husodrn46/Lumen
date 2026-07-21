@@ -17,6 +17,8 @@ if (m_p_yetki($terminalkullanici, 'M8') != 1) {
 }
 
 // Veritabani sorgusu. Bu sorgu kullanici girdisi almadigi icin guvenlidir.
+$urunKosulu = urun_kodu_kosulu('URUN');
+
 $sql = "
 SELECT
     b.[URUN KODU] AS UrunKodu, b.[URUN ADI] AS UrunAdi, b.[URUN ID] AS UrunID,
@@ -43,7 +45,7 @@ FROM (
         LEFT JOIN {$firma}ITMUNITA ICBIRIM ON URUN.LOGICALREF = ICBIRIM.ITEMREF
     }
     WHERE URUN.CARDTYPE <> '22' AND BIRIM.LINENR = 1 AND URUN.ACTIVE = 0
-        AND URUN.CODE LIKE 'AKL%' AND URUN.CODE NOT LIKE 'AKL-PLS%'
+        AND {$urunKosulu}
     GROUP BY URUN.CODE, URUN.NAME, URUN.LOGICALREF, BIRIM.CODE, AMBARM.MIKTAR
 ) AS b
 LEFT JOIN (

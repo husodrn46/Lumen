@@ -28,7 +28,7 @@ function hava_cache_path(): string
     // Fallback: sys temp
     $fallback = sys_get_temp_dir();
     if (is_dir($fallback) && is_writable($fallback)) {
-        $cached = $fallback . DIRECTORY_SEPARATOR . 'akl_hava_cache.json';
+        $cached = $fallback . DIRECTORY_SEPARATOR . 'lumen_hava_cache.json';
         return $cached;
     }
 

@@ -29,6 +29,8 @@ $year = (isset($_GET['year']) && is_numeric($_GET['year'])) ? (int) $_GET['year'
 $donemTablo = ($year <= 2025) ? 'LG_001_01_' : $firmadonem;
 
 // SQL: tüm ürünler, NET satışa göre desc (satış 7,8 − iade 2,3; rapor sayfasıyla birebir aynı tanım)
+$urunKosulu = urun_kodu_kosulu('I');
+
 $sql = "
 SELECT
     I.CODE AS URUN_KODU,
@@ -39,7 +41,7 @@ SELECT
 FROM {$donemTablo}STLINE S  WITH (NOLOCK)
 JOIN {$firma}ITEMS  I ON S.STOCKREF = I.LOGICALREF
 WHERE
-      I.CODE      LIKE 'AKL%'
+      {$urunKosulu}
   AND S.TRCODE IN (2,3,7,8)
   AND YEAR(S.DATE_)   = :y
   AND S.CANCELLED     = 0

@@ -28,11 +28,13 @@ $year = (isset($_GET['year']) && is_numeric($_GET['year'])) ? (int) $_GET['year'
 // Ay isimleri
 $monthNames = [1 => 'Ocak', 2 => 'Şubat', 3 => 'Mart', 4 => 'Nisan', 5 => 'Mayıs', 6 => 'Haziran', 7 => 'Temmuz', 8 => 'Ağustos', 9 => 'Eylül', 10 => 'Ekim', 11 => 'Kasım', 12 => 'Aralık'];
 
-// SQL: FATURALI SATIŞLAR (TRCODE 7,8) + AKL% ürünleri
+// SQL: FATURALI SATIŞLAR (TRCODE 7,8) + ürün kodu ön eki filtresi (_bilgi_.inc)
 $monthly = [];
 for ($i = 1; $i <= 12; $i++) {
     $monthly[$i] = ['C' => 0, 'NET' => 0.0];
 }
+
+$urunKosulu = urun_kodu_kosulu('ITM');
 
 $sql = "
     SELECT
@@ -43,7 +45,7 @@ $sql = "
                  ELSE -(ISNULL(SL.LINENET, (SL.PRICE * SL.AMOUNT - SL.DISTDISC)) + ISNULL(SL.VATAMNT, 0)) END) AS NET
     FROM {$firmadonem}STLINE SL WITH(NOLOCK)
     JOIN {$firma}ITEMS ITM ON SL.STOCKREF = ITM.LOGICALREF
-    WHERE ITM.CODE LIKE 'AKL%'
+    WHERE {$urunKosulu}
       AND SL.TRCODE IN (2,3,7,8)
       AND SL.DATE_ >= :startDate
       AND SL.DATE_ < :endDate
