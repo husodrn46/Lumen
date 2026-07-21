@@ -140,6 +140,7 @@ $menu_items = [
     ['M21', 'Döviz İşlemleri', 'fa-dollar-sign', 'doviz/index.php', 'theme-emerald'],
     ['M3', 'Mağaza Satış', 'fa-store', 'siparis/fisekle.php?cariid=' . $magaza_cari . '&stokhareket=0', 'theme-red'],
     ['M4', 'Müşteri Bakiye', 'fa-wallet', 'cari/lg_bakiye.php', 'theme-emerald'],
+    ['M14', 'Hızlı Erişim', 'fa-bolt', 'cari/hizli_erisim.php', 'theme-emerald'],
     ['M5', 'Tüm Siparişler', 'fa-box-archive', 'siparis/lg_tumsiparisler.php', 'theme-red'],
     ['M6', 'Barkodlar', 'fa-barcode', 'barkod/barkodlar.php', 'theme-amber'],
     ['M7', 'Stok Ara', 'fa-search', 'stok/stok_tara.php', 'theme-amber'],

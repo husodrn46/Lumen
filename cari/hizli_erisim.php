@@ -1,9 +1,18 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . '/ayr.php');
-include(__DIR__ . '/kontrol.php');
-include_once(__DIR__ . '/log_ip.php');
+include_once(__DIR__ . '/../ayr.php');
+include(__DIR__ . '/../kontrol.php');
+include_once(__DIR__ . '/../log_ip.php');
+
+// M14 = Hizli Erisim. Yonetici (YETKI=0) bu kodu otomatik alir.
+if ((int) m_p_yetki($terminalkullanici, 'M14') !== 1) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
+// Bakiye ve risk limiti yalniz CR1 (Cari Bakiye Gorme) yetkisiyle hesaplanir.
+$bakiyeYetkisi = ((int) m_p_yetki($terminalkullanici, 'CR1') === 1);
 
 $siparisCariAramaRaw = trim((string)($_GET['siparis_cari'] ?? ''));
 $seciliSiparisCariId = isset($_GET['siparis_cariid']) ? (int)$_GET['siparis_cariid'] : 0;
@@ -101,72 +110,74 @@ if ($seciliSiparisCariId > 0) {
         $stmtSiparis->execute([':cariid' => $seciliSiparisCariId]);
         $seciliCariSiparisler = $stmtSiparis->fetchAll(PDO::FETCH_ASSOC);
 
-        $stmtBakiye = $dbh->prepare("
-            SELECT (ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE
-            FROM {$firmadonemx}GNTOTCL G WITH(NOLOCK)
-            WHERE G.CARDREF = :cariid AND G.TOTTYP = 1
-        ");
-        $stmtBakiye->execute([':cariid' => $seciliSiparisCariId]);
-        $seciliCariBakiye = (float)$stmtBakiye->fetchColumn();
+        if ($bakiyeYetkisi) {
+            $stmtBakiye = $dbh->prepare("
+                SELECT (ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE
+                FROM {$firmadonemx}GNTOTCL G WITH(NOLOCK)
+                WHERE G.CARDREF = :cariid AND G.TOTTYP = 1
+            ");
+            $stmtBakiye->execute([':cariid' => $seciliSiparisCariId]);
+            $seciliCariBakiye = (float)$stmtBakiye->fetchColumn();
 
-        // Cari kartında risk limiti alanını dinamik tespit et.
-        $tableName = $firma . 'CLCARD';
-        $stmtRiskCols = $dbh->prepare("
-            SELECT COLUMN_NAME
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = :table
-              AND (
-                COLUMN_NAME LIKE '%RISK%'
-                OR COLUMN_NAME LIKE '%LIMIT%'
-                OR COLUMN_NAME LIKE '%CREDIT%'
-              )
-        ");
-        $stmtRiskCols->execute([':table' => $tableName]);
-        $riskCols = $stmtRiskCols->fetchAll(PDO::FETCH_COLUMN);
+            // Cari kartında risk limiti alanını dinamik tespit et.
+            $tableName = $firma . 'CLCARD';
+            $stmtRiskCols = $dbh->prepare("
+                SELECT COLUMN_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = :table
+                  AND (
+                    COLUMN_NAME LIKE '%RISK%'
+                    OR COLUMN_NAME LIKE '%LIMIT%'
+                    OR COLUMN_NAME LIKE '%CREDIT%'
+                  )
+            ");
+            $stmtRiskCols->execute([':table' => $tableName]);
+            $riskCols = $stmtRiskCols->fetchAll(PDO::FETCH_COLUMN);
 
-        $riskColsUpperMap = [];
-        foreach ($riskCols as $col) {
-            $riskColsUpperMap[strtoupper((string)$col)] = (string)$col;
-        }
-
-        $priorityCols = ['RISKLIMIT', 'CREDITLIMIT', 'CRLIMIT', 'RISK_LIM', 'RISKLIM', 'CREDIT_LIMIT'];
-        foreach ($priorityCols as $col) {
-            if (isset($riskColsUpperMap[$col])) {
-                $riskLimitKolon = $riskColsUpperMap[$col];
-                break;
+            $riskColsUpperMap = [];
+            foreach ($riskCols as $col) {
+                $riskColsUpperMap[strtoupper((string)$col)] = (string)$col;
             }
-        }
-        if ($riskLimitKolon === '' && !empty($riskCols)) {
-            $riskLimitKolon = (string)$riskCols[0];
-        }
 
-        if ($riskLimitKolon !== '') {
-            $riskColSafe = preg_replace('/[^A-Za-z0-9_]/', '', $riskLimitKolon);
-            if ($riskColSafe !== '') {
-                $stmtRiskLimit = $dbh->prepare("
-                    SELECT TRY_CONVERT(DECIMAL(18,2), [{$riskColSafe}]) AS RISK_LIMIT
-                    FROM {$firma}CLCARD
-                    WHERE LOGICALREF = :cariid
-                ");
-                $stmtRiskLimit->execute([':cariid' => $seciliSiparisCariId]);
-                $riskLimit = $stmtRiskLimit->fetchColumn();
-                $seciliCariRiskLimit = ($riskLimit !== false && $riskLimit !== null) ? (float)$riskLimit : null;
-            }
-        }
-
-        if ($seciliCariBakiye !== null && $seciliCariBakiye > 0) {
-            if ($seciliCariRiskLimit !== null && $seciliCariRiskLimit > 0) {
-                $riskOran = $seciliCariBakiye / $seciliCariRiskLimit;
-                if ($riskOran >= 1) {
-                    $riskDurum = 'kritik';
-                    $riskMesaj = 'Cari bakiyesi risk limitini aştı.';
-                } elseif ($riskOran >= 0.8) {
-                    $riskDurum = 'uyari';
-                    $riskMesaj = 'Cari bakiyesi risk limitine çok yaklaştı.';
+            $priorityCols = ['RISKLIMIT', 'CREDITLIMIT', 'CRLIMIT', 'RISK_LIM', 'RISKLIM', 'CREDIT_LIMIT'];
+            foreach ($priorityCols as $col) {
+                if (isset($riskColsUpperMap[$col])) {
+                    $riskLimitKolon = $riskColsUpperMap[$col];
+                    break;
                 }
-            } elseif ($seciliCariBakiye >= 250000) {
-                $riskDurum = 'uyari';
-                $riskMesaj = 'Cari bakiyesi yüksek. (Risk limit alanı bulunamadı, bakiye bazlı uyarı verildi.)';
+            }
+            if ($riskLimitKolon === '' && !empty($riskCols)) {
+                $riskLimitKolon = (string)$riskCols[0];
+            }
+
+            if ($riskLimitKolon !== '') {
+                $riskColSafe = preg_replace('/[^A-Za-z0-9_]/', '', $riskLimitKolon);
+                if ($riskColSafe !== '') {
+                    $stmtRiskLimit = $dbh->prepare("
+                        SELECT TRY_CONVERT(DECIMAL(18,2), [{$riskColSafe}]) AS RISK_LIMIT
+                        FROM {$firma}CLCARD
+                        WHERE LOGICALREF = :cariid
+                    ");
+                    $stmtRiskLimit->execute([':cariid' => $seciliSiparisCariId]);
+                    $riskLimit = $stmtRiskLimit->fetchColumn();
+                    $seciliCariRiskLimit = ($riskLimit !== false && $riskLimit !== null) ? (float)$riskLimit : null;
+                }
+            }
+
+            if ($seciliCariBakiye !== null && $seciliCariBakiye > 0) {
+                if ($seciliCariRiskLimit !== null && $seciliCariRiskLimit > 0) {
+                    $riskOran = $seciliCariBakiye / $seciliCariRiskLimit;
+                    if ($riskOran >= 1) {
+                        $riskDurum = 'kritik';
+                        $riskMesaj = 'Cari bakiyesi risk limitini aştı.';
+                    } elseif ($riskOran >= 0.8) {
+                        $riskDurum = 'uyari';
+                        $riskMesaj = 'Cari bakiyesi risk limitine çok yaklaştı.';
+                    }
+                } elseif ($seciliCariBakiye >= 250000) {
+                    $riskDurum = 'uyari';
+                    $riskMesaj = 'Cari bakiyesi yüksek. (Risk limit alanı bulunamadı, bakiye bazlı uyarı verildi.)';
+                }
             }
         }
     } catch (PDOException $e) {
@@ -188,8 +199,8 @@ function paraYaz(float|int|string|null $tutar): string
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hizli Erisim</title>
-    <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once(__DIR__ . '/pwa-header.php'); } ?>
+    <link rel="icon" type="image/png" href="../icon.png">
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -644,7 +655,7 @@ function paraYaz(float|int|string|null $tutar): string
 
     <header class="top-header">
         <div class="header-inner">
-            <a href="index.php" class="header-back" title="Ana Sayfa">
+            <a href="../index.php" class="header-back" title="Ana Sayfa">
                 <i class="fa fa-arrow-left"></i>
             </a>
             <div class="header-divider"></div>
@@ -736,11 +747,11 @@ function paraYaz(float|int|string|null $tutar): string
                                     class="pill pill-red">
                                     <i class="fa-solid fa-check"></i> Bu Cariyi Sec
                                 </a>
-                                <a href="cari/lg_hareket.php?cariid=<?php echo (int)$row['CARIID']; ?>" target="_blank" rel="noopener noreferrer"
+                                <a href="lg_hareket.php?cariid=<?php echo (int)$row['CARIID']; ?>" target="_blank" rel="noopener noreferrer"
                                     class="pill pill-slate">
                                     <i class="fa-solid fa-file-invoice"></i> Ekstre
                                 </a>
-                                <a href="siparis/fisekle.php?cariid=<?php echo (int)$row['CARIID']; ?>&stokhareket=0" target="_blank" rel="noopener noreferrer"
+                                <a href="../siparis/fisekle.php?cariid=<?php echo (int)$row['CARIID']; ?>&stokhareket=0" target="_blank" rel="noopener noreferrer"
                                     class="pill pill-emerald">
                                     <i class="fa-solid fa-basket-shopping"></i> Siparis Ac
                                 </a>
@@ -858,15 +869,15 @@ function paraYaz(float|int|string|null $tutar): string
                                             <td class="td-right"><?php echo $brutTutar > 0 ? paraYaz($brutTutar) . ' TL' : ''; ?></td>
                                             <td>
                                                 <div class="row-actions">
-                                                    <a href="stok/stok_hareket_excel_xlsx.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
+                                                    <a href="../stok/stok_hareket_excel_xlsx.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
                                                         class="mini-pill tone-emerald">
                                                         <i class="fa-solid fa-file-excel"></i> XLSX
                                                     </a>
-                                                    <a href="yazdir/fisyazexcel.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
+                                                    <a href="../yazdir/fisyazexcel.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
                                                         class="mini-pill tone-sky">
                                                         <i class="fa-solid fa-file-export"></i> XLS
                                                     </a>
-                                                    <a href="siparis/lg_siparis.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
+                                                    <a href="../siparis/lg_siparis.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
                                                         class="mini-pill tone-purple">
                                                         <i class="fa-solid fa-pen-to-square"></i> Siparis
                                                     </a>

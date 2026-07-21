@@ -1189,7 +1189,7 @@ if (!function_exists('m_p_yetki_etiketleri')) {
       'M11' => 'Yeni Stok',
       'M12' => 'Yeni Cari',
       'M13' => 'Günlük İşlemler',
-      'M14' => 'Alışlar',
+      'M14' => 'Hızlı Erişim',
       'M15' => 'Stoklar',
       'M16' => 'Ayarlar',
       'M17' => 'Raporlar',
