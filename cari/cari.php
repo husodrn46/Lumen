@@ -21,7 +21,7 @@ if (empty($_GET) && empty($_POST) && !$isFromSamePage) {
 // Cagiran sayfa isterse hedef URL'leri override edebilir (resmi modul gibi).
 $cariBackUrl = (isset($cariBackUrl) && is_string($cariBackUrl) && $cariBackUrl !== '')
     ? $cariBackUrl
-    : 'index.php';
+    : '../index.php';
 $cariOrderUrl = (isset($cariOrderUrl) && is_string($cariOrderUrl) && $cariOrderUrl !== '')
     ? $cariOrderUrl
     : '../siparis/fisekle.php';

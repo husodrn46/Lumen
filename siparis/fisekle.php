@@ -38,7 +38,7 @@ $status = 4;     // 1 öneri 2SEVKEDİLEMEZ 4 SEVKEDİLEBİLİR
 // Validasyon: cariid zorunlu (session bazlı)
 $cariid = getPageParamInt('cariid');
 if ($cariid <= 0) {
-	die('<script>if (window.toast) { toast("Hata: Müşteri seçilmedi!", "error"); } else { alert("Hata: Müşteri seçilmedi!"); } window.location="index.php";</script>');
+	die('<script>if (window.toast) { toast("Hata: Müşteri seçilmedi!", "error"); } else { alert("Hata: Müşteri seçilmedi!"); } window.location="../index.php";</script>');
 }
 if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $cariid)) {
     header('Location: ' . APP_ROOT_URL . '/403.html');

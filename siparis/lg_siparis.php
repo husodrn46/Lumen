@@ -56,33 +56,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'print_yeni_dizayn' => (function() use ($stokhareket) {
             setPageParam('stokhareket', $stokhareket, 'yeni_dizayn');
             setPageParam('tipdurum', 1, 'yeni_dizayn');
-            return "yazdir/yeni_dizayn.php";
+            return "../yazdir/yeni_dizayn.php";
         })(),
         'print_fisyaz' => (function() use ($stokhareket) {
             setPageParam('stokhareket', $stokhareket, 'fisyaz');
-            return "yazdir/fisyaz.php";
+            return "../yazdir/fisyaz.php";
         })(),
         'print_html' => (function() use ($stokhareket) {
             setPageParam('stokhareket', $stokhareket, 'fisyazhtml');
-            return "yazdir/fisyazhtml.php";
+            return "../yazdir/fisyazhtml.php";
         })(),
         'export_excel' => (function() use ($stokhareket) {
             setPageParam('stokhareket', $stokhareket, 'fisyazexcel');
-            return "yazdir/fisyazexcel.php";
+            return "../yazdir/fisyazexcel.php";
         })(),
         'print_kolili' => (function() use ($stokhareket) {
             setPageParam('stokhareket', $stokhareket, 'fisyazkoli');
-            return "yazdir/fisyazkoli.php";
+            return "../yazdir/fisyazkoli.php";
         })(),
         'print_dovizli' => (function() use ($stokhareket) {
             setPageParam('stokhareket', $stokhareket, 'fisyazdoviz');
-            return "yazdir/fisyazdoviz.php";
+            return "../yazdir/fisyazdoviz.php";
         })(),
         'print_barkodlu' => (function() use ($stokhareket) {
             setPageParam('stokhareket', $stokhareket, 'barkodluyaz');
-            return "yazdir/barkodluyaz.php";
+            return "../yazdir/barkodluyaz.php";
         })(),
-        default => 'index.php',
+        default => '../index.php',
     };
 
     header("Location: {$redirect_url}");

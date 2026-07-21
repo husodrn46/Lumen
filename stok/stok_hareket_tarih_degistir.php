@@ -7,7 +7,7 @@ include_once(__DIR__ . "/../log_ip.php");
 
 $stokhareket = isset($_GET['stokhareket']) ? (int) $_GET['stokhareket'] : 0;
 if ($stokhareket <= 0) {
-    echo "<script>if (window.toast) { toast('Geçersiz stok hareketi!', 'error'); } else { alert('Geçersiz stok hareketi!'); } window.location='index.php';</script>";
+    echo "<script>if (window.toast) { toast('Geçersiz stok hareketi!', 'error'); } else { alert('Geçersiz stok hareketi!'); } window.location='../index.php';</script>";
     exit;
 }
 
@@ -25,7 +25,7 @@ if (isset($_POST['yeni_tarih'])) {
     $gncl = $stmt->execute([':tarih' => $yeni_tarih, ':stokhareket' => $stokhareket]);
 
     if ($gncl) {
-        echo "<script>if (window.toast) { toast('Stok hareketinin tarihi güncellendi!', 'success'); } else { alert('Stok hareketinin tarihi güncellendi!'); } window.location='index.php';</script>";
+        echo "<script>if (window.toast) { toast('Stok hareketinin tarihi güncellendi!', 'success'); } else { alert('Stok hareketinin tarihi güncellendi!'); } window.location='../index.php';</script>";
     } else {
         echo "<script>if (window.toast) { toast('Hata oluştu!', 'error'); } else { alert('Hata oluştu!'); }</script>";
     }

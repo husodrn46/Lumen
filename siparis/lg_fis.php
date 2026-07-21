@@ -43,7 +43,7 @@ if ($stokhareket > 0 && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma
     exit;
 }
 
-$lgFisBackUrl = 'index.php';
+$lgFisBackUrl = '../index.php';
 if ($stokhareket > 0) {
     $returnSessionKey = 'lg_fis_return_to_' . $stokhareket;
     if (isset($_GET['return_to'])) {

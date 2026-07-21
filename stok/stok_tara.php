@@ -19,26 +19,26 @@ function getSafeReturnLink(string $candidate): string
 {
     $candidate = trim($candidate);
     if ($candidate === '') {
-        return 'index.php';
+        return '../index.php';
     }
 
     // javascript:, data:, http:, https: gibi şemaları ve // ile başlayanları engelle
     if (preg_match('/^[a-z][a-z0-9+\-.]*:/i', $candidate) || substr($candidate, 0, 2) === '//') {
-        return 'index.php';
+        return '../index.php';
     }
 
     // Dışarı çıkış ve kontrol karakterleri engeli
     if (strpos($candidate, '..') !== false || preg_match('/[\x00-\x1F\x7F]/', $candidate)) {
-        return 'index.php';
+        return '../index.php';
     }
 
     // Uygulama içi basit path + query karakterleri
     if (!preg_match('/^[A-Za-z0-9_\/\-.?=&%#]+$/', $candidate)) {
-        return 'index.php';
+        return '../index.php';
     }
 
     $normalized = ltrim($candidate, '/');
-    return $normalized !== '' ? $normalized : 'index.php';
+    return $normalized !== '' ? $normalized : '../index.php';
 }
 
 $rawLink = isset($_GET['link']) ? (string) $_GET['link'] : '';
