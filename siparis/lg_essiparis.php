@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-include(__DIR__ . "/kontrol.php");
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+include(__DIR__ . "/../kontrol.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 // YETKI KONTROLÜ: M2 (Siparişler) yetkisi kontrolü
 if (m_p_yetki($terminalkullanici, 'M2') != 1) {
@@ -459,7 +459,7 @@ foreach ($resultRows as $r) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Siparis Listesi</title>
-    <?php include_once(__DIR__ . '/pwa-header.php'); ?>
+    <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" onerror="(function(){var s=document.createElement('script');s.defer=true;s.src='https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -1547,7 +1547,7 @@ foreach ($resultRows as $r) {
     <header class="top-header">
         <div class="header-inner">
             <div class="header-left">
-                <a href="index.php" class="header-back" title="Ana Sayfa">
+                <a href="../index.php" class="header-back" title="Ana Sayfa">
                     <i class="fa fa-arrow-left"></i>
                 </a>
                 <div class="header-divider"></div>
@@ -1800,7 +1800,7 @@ foreach ($resultRows as $r) {
                             <?php if ($hasDoviz): ?>
                                 <span class="status-badge status-doviz"><i class="fa-solid <?php echo $dovizIcon; ?>" style="margin-right:3px;font-size:10px;"></i><?php echo htmlspecialchars($dovizSembol, ENT_QUOTES, 'UTF-8'); ?></span>
                             <?php endif; ?>
-                            <a href="yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>"
+                            <a href="../yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>"
                                class="btn-flat btn-red" style="padding:6px 10px;font-size:12px;" title="Hızlı Yazdır">
                                 <i class="fa-solid fa-print"></i>
                             </a>
@@ -1898,7 +1898,7 @@ foreach ($resultRows as $r) {
                         </a>
 
                         <?php if (m_p_yetki($terminalkullanici, 'M18') == 1): ?>
-                            <a href="yazdir/fis_gecmis.php?fis=<?php echo intcevir($ila['LOGICALREF']); ?>&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>" class="btn-flat btn-light" style="padding:10px 12px;" title="Geçmiş">
+                            <a href="../yazdir/fis_gecmis.php?fis=<?php echo intcevir($ila['LOGICALREF']); ?>&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>" class="btn-flat btn-light" style="padding:10px 12px;" title="Geçmiş">
                                 <i class="fa fa-history"></i>
                             </a>
                         <?php endif; ?>
@@ -1910,29 +1910,29 @@ foreach ($resultRows as $r) {
                                 <i class="fa fa-chevron-down" style="font-size:10px;margin-left:2px;"></i>
                             </button>
                             <div class="print-dropdown" style="display:none;">
-                                <a href="yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="../yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
                                     <i class="fa-solid fa-bolt"></i> Hızlı Yazdır
                                 </a>
-                                <a href="yazdir/hizli_yazdir.php?tercih=depo.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="../yazdir/hizli_yazdir.php?tercih=depo.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
                                     <i class="fa-solid fa-warehouse"></i> Depo Yazdır
                                 </a>
-                                <a href="yazdir/fisyazhtml.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
+                                <a href="../yazdir/fisyazhtml.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
                                     <i class="fa-solid fa-file-pdf"></i> PDF (Fiyatlı)
                                 </a>
-                                <a href="yazdir/fisyazhtmlfiyatsiz.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
+                                <a href="../yazdir/fisyazhtmlfiyatsiz.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
                                     <i class="fa-solid fa-file"></i> PDF (Fiyatsız)
                                 </a>
                                 <?php if ($hasDoviz): ?>
-                                <a href="yazdir/hizli_yazdir.php?tercih=dovizli.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="../yazdir/hizli_yazdir.php?tercih=dovizli.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
                                     <i class="fa-solid <?php echo $dovizIcon; ?>"></i> <?php echo htmlspecialchars($dovizLabel, ENT_QUOTES, 'UTF-8'); ?>
                                 </a>
                                 <?php endif; ?>
                                 <div class="print-dropdown-sep"></div>
-                                <a href="yazdir/yeni_dizayn.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&tipdurum=1">
+                                <a href="../yazdir/yeni_dizayn.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&tipdurum=1">
                                     <i class="fa-solid fa-print"></i> Normal Yazdır
                                 </a>
                                 <?php if ($hasDoviz): ?>
-                                <a href="yazdir/fisyazdoviz.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir">
+                                <a href="../yazdir/fisyazdoviz.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir">
                                     <i class="fa-solid fa-money-bill-wave"></i> Dövizli Fiyat Listesi
                                 </a>
                                 <?php endif; ?>
@@ -2254,7 +2254,7 @@ foreach ($resultRows as $r) {
             document.getElementById('yazdirmaModal').classList.remove('hidden');
             document.getElementById('modalIcerik').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;padding:32px 0;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#6366f1;"></i><span style="margin-left:12px;color:#6b7280;">Yukleniyor...</span></div>';
 
-            fetch('yazdir/yazdirma_detay.php?fis=' + fisRef)
+            fetch('../yazdir/yazdirma_detay.php?fis=' + fisRef)
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.data.length > 0) {
@@ -2428,7 +2428,7 @@ foreach ($resultRows as $r) {
             });
         })();
     </script>
-    <?php include_once(__DIR__ . '/ux_katman.php'); ?>
+    <?php include_once(__DIR__ . '/../ux_katman.php'); ?>
 </body>
 
 </html>

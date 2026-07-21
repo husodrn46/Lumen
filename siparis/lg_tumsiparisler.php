@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-include(__DIR__ . "/kontrol.php");
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+include(__DIR__ . "/../kontrol.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 // YETKI KONTROLÜ: M5 (Tüm Siparişler) yetkisi kontrolü
 if (m_p_yetki($terminalkullanici, 'M5') != 1) {
@@ -201,7 +201,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tüm Siparişler</title>
     <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -670,7 +670,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <header class="top-header">
         <div class="header-inner">
-            <a href="index.php" class="header-back" title="Ana Sayfa"><i class="fa-solid fa-arrow-left"></i></a>
+            <a href="../index.php" class="header-back" title="Ana Sayfa"><i class="fa-solid fa-arrow-left"></i></a>
             <div class="header-divider"></div>
             <div class="header-title">
                 <i class="fa-solid fa-rectangle-list"></i>
@@ -886,7 +886,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <i class="fa fa-list-alt"></i> Detay
                                     </a>
                                     <?php if (m_p_yetki($terminalkullanici, 'M18') == 1): ?>
-                                        <a href="yazdir/fis_gecmis.php?fis=<?php echo intval($ila['LOGICALREF']); ?>"
+                                        <a href="../yazdir/fis_gecmis.php?fis=<?php echo intval($ila['LOGICALREF']); ?>"
                                             class="row-btn history" title="Değişiklik Geçmişi">
                                             <i class="fa fa-history"></i> Geçmiş
                                         </a>
@@ -1015,7 +1015,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             modal.classList.add('show');
             icerik.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;padding:32px;color:#6b7280;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#0284c7;"></i><span style="margin-left:12px;">Yükleniyor...</span></div>';
 
-            fetch('yazdir/yazdirma_detay.php?fis=' + fisRef)
+            fetch('../yazdir/yazdirma_detay.php?fis=' + fisRef)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.data.length > 0) {

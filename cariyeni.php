@@ -223,7 +223,7 @@ $csrf = function_exists('csrf_field') ? csrf_field() : '';
                     <div class="kod"><?php echo htmlspecialchars($olusanCariKod, ENT_QUOTES, 'UTF-8'); ?></div>
                 </div>
                 <div class="success-actions">
-                    <a class="act act-red" href="fisekle.php?cariid=<?php echo (int) $olusanCariId; ?>&stokhareket=0"><i class="fa-solid fa-cart-plus"></i> Bu cariye siparis ver</a>
+                    <a class="act act-red" href="siparis/fisekle.php?cariid=<?php echo (int) $olusanCariId; ?>&stokhareket=0"><i class="fa-solid fa-cart-plus"></i> Bu cariye siparis ver</a>
                     <a class="act act-light" href="cariyeni.php"><i class="fa-solid fa-user-plus"></i> Yeni cari ekle</a>
                     <a class="act act-light" href="cari.php?q=<?php echo rawurlencode($olusanCariKod); ?>"><i class="fa-solid fa-list"></i> Cari listesinde gor</a>
                 </div>

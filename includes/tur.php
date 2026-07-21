@@ -46,7 +46,7 @@
   var SURUM = 'lumen_tur_v1';
   var adimlar = [
     { sel:null, baslik:'Lumen’e Hoş Geldiniz 👋', metin:'Kısa bir turla ana ekranı tanıyalım. İstediğiniz an "Atla" diyebilirsiniz.' },
-    { sel:'.mc[data-fav="cari.php"], .mc[data-fav="lg_fis.php"]', baslik:'Yeni Sipariş', metin:'Cari seçip ürün ekleyerek hızlıca sipariş oluşturursunuz.' },
+    { sel:'.mc[data-fav="cari.php"], .mc[data-fav="../siparis/lg_fis.php"]', baslik:'Yeni Sipariş', metin:'Cari seçip ürün ekleyerek hızlıca sipariş oluşturursunuz.' },
     { sel:'.mc[data-fav="stok_tara.php"]', baslik:'Stok Arama', metin:'Ürün adı/kodu ile arayıp fiyat ve anlık stok miktarını görürsünüz.' },
     { sel:'.mc[data-fav="lg_bakiye.php"]', baslik:'Müşteri Bakiye', metin:'Cari bakiye, ekstre ve alınan çek/senet durumu.' },
     { sel:'.mc[data-fav="rapor/dashboard.php"]', baslik:'Raporlar', metin:'Satış, cari yaşlandırma, stok ve çek raporları tek yerde.' },

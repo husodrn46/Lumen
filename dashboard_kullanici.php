@@ -1212,7 +1212,7 @@ function kullaniciDetayGoster(kullaniciId) {
     $('#kullaniciModal').addClass('open');
 
     $.ajax({
-        url: 'kullanici_siparisler.php',
+        url: 'siparis/kullanici_siparisler.php',
         type: 'POST',
         data: { kullanici_id: kullaniciId, donem: donem, gun: gun },
         success: function (response) {

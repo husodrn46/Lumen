@@ -274,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // İşlem bittikten sonra yönlendir
-    header("Location: ../lg_essiparis.php");
+    header("Location: ../siparis/lg_essiparis.php");
     exit;
 }
 
@@ -309,7 +309,7 @@ if (!is_array($eyne)) {
 
 // Tip durumuna göre dizayn yolunu belirle (session bazlı)
 $tipdurum = getPageParamInt('tipdurum') ?: 1;
-// lg_fis.php tarafindan set edilen ikinci iskonto bilgisi
+// ../siparis/lg_fis.php tarafindan set edilen ikinci iskonto bilgisi
 $iskonto2_var = getPageParamInt('iskonto2_var', 0);
 
 // Yol birleştirmesini düzelt (Windows için \ kullan)
@@ -694,7 +694,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
 
   <header class="top-header">
     <div class="header-inner">
-      <a href="../lg_siparis.php?stokhareket=<?php echo $stokhareket; ?>&sipariskaydet"
+      <a href="../siparis/lg_siparis.php?stokhareket=<?php echo $stokhareket; ?>&sipariskaydet"
          class="header-back" title="Siparise Geri Don">
         <i class="fa fa-arrow-left"></i>
       </a>
@@ -870,7 +870,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
           <button type="submit" class="btn-flat btn-red">
             <i class="fa-solid fa-print"></i> Yazdirma Kuyruguna Ekle
           </button>
-          <a href="../lg_siparis.php?stokhareket=<?php echo $stokhareket; ?>&sipariskaydet" class="btn-flat btn-light">
+          <a href="../siparis/lg_siparis.php?stokhareket=<?php echo $stokhareket; ?>&sipariskaydet" class="btn-flat btn-light">
             <i class="fa-solid fa-xmark"></i> Iptal
           </a>
         </div>

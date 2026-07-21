@@ -88,9 +88,9 @@ if (!function_exists('canli_sayfa_adi')) {
         $p = strtolower(ltrim($path, '/'));
         $rapor = str_starts_with($p, 'rapor/') || str_contains($p, 'dashboard');
         $map = [
-            'lg_fis.php' => 'Siparis Ekrani', 'fisekle.php' => 'Yeni Siparis',
-            'lg_essiparis.php' => 'Siparisler', 'lg_tumsiparisler.php' => 'Tum Siparisler',
-            'lg_siparis.php' => 'Siparis Detayi', 'lg_stok_bul.php' => 'Stok Arama',
+            'siparis/lg_fis.php' => 'Siparis Ekrani', 'siparis/fisekle.php' => 'Yeni Siparis',
+            'siparis/lg_essiparis.php' => 'Siparisler', 'siparis/lg_tumsiparisler.php' => 'Tum Siparisler',
+            'siparis/lg_siparis.php' => 'Siparis Detayi', 'lg_stok_bul.php' => 'Stok Arama',
             'lg_stok_ekle.php' => 'Stok Ekle', 'lg_stok_duzenle.php' => 'Stok Duzenle',
             'stok_tara.php' => 'Stok Tara', 'lg_bakiye.php' => 'Musteri Bakiye',
             'lg_bakiye_restrict.php' => 'Musteri Bakiye', 'cari.php' => 'Cari Secim',
@@ -102,8 +102,8 @@ if (!function_exists('canli_sayfa_adi')) {
             'lg_fatura_yazdir.php' => 'Fatura Yazdir', 'stok_hareket_excel.php' => 'Stok Excel',
             'stok/uretim_giris.php' => 'Uretim Girisi', 'stok/index.php' => 'Stoklar',
             'ai_siparis_beta.php' => 'AI Siparis', 'index.php' => 'Ana Sayfa',
-            'lg_geridonusum.php' => 'Sil (Geri Donusum)', 'bildirimler.php' => 'Musteri Talepleri',
-            'bildirim_detay.php' => 'Talep Detayi', 'bekleyen_siparis.php' => 'Bekleyen Urunler',
+            'siparis/lg_geridonusum.php' => 'Sil (Geri Donusum)', 'bildirimler.php' => 'Musteri Talepleri',
+            'bildirim_detay.php' => 'Talep Detayi', 'siparis/bekleyen_siparis.php' => 'Bekleyen Urunler',
             'fiyat_listesi.php' => 'Fiyat Listesi', 'gunluk_islemler.php' => 'Gunluk Islemler',
         ];
         if (isset($map[$p])) {

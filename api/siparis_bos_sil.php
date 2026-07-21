@@ -9,7 +9,7 @@ declare(strict_types=1);
  * Token + M10 (Sil / Geri Dönüşüm) yetkisi zorunlu.
  * YALNIZCA oturum sahibinin (SALESMANREF) SATIRSIZ ve NETTOTAL=0 olan satış siparişi
  * (TRCODE=1) taslaklarını siler. Dolu / sevkli / başkasına ait fiş ASLA silinmez.
- * (Web lg_geridonusum.php silme kriterleriyle birebir — boş kabuk kaydı temizliği.)
+ * (Web ../siparis/lg_geridonusum.php silme kriterleriyle birebir — boş kabuk kaydı temizliği.)
  */
 
 include_once(__DIR__ . '/../ayr.php');

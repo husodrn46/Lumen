@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-	require_once __DIR__ . '/kontrol.php';
-	include_once(__DIR__ . "/log_ip.php");
+	require_once __DIR__ . '/../kontrol.php';
+	include_once(__DIR__ . "/../log_ip.php");
 
 	// AJAX istegi olup olmadigi (lg_fis.php sayfa yenilemeden iskonto uygulamak icin)
 	$isIskontoAjax = isset($_POST['ajax']) && $_POST['ajax'] === '1';

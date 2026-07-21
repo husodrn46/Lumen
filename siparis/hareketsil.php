@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");  // DB bağlantısı ve loglama fonksiyonları için GEREKLİ!
-require_once __DIR__ . '/kontrol.php';
+include_once(__DIR__ . "/../ayr.php");  // DB bağlantısı ve loglama fonksiyonları için GEREKLİ!
+require_once __DIR__ . '/../kontrol.php';
 
 // Silme işlemi POST ile ve CSRF doğrulaması ile yapılmalı
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hareketsil'])) {

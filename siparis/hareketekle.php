@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");  // DB bağlantısı ve loglama fonksiyonları için GEREKLİ!
-require_once __DIR__ . '/kontrol.php';
+include_once(__DIR__ . "/../ayr.php");  // DB bağlantısı ve loglama fonksiyonları için GEREKLİ!
+require_once __DIR__ . '/../kontrol.php';
 include_once(__DIR__ . "/iskonto_lib.php"); // yeni urunde mevcut iskontoyu otomatik uygulamak icin
 
 if (!function_exists('hareketekle_trace_log')) {
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   exit;
 }
 
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../log_ip.php");
 if (isset($_POST['stkid'])) {
   // CSRF koruması (POST istekleri için)
   $csrfOk = csrf_verify();

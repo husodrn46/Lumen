@@ -7,7 +7,7 @@ declare(strict_types=1);
  *   miktar = yeni AMOUNT (ana birim). fiyat/kdv verilmezse mevcut korunur.
  * Yanıt: { ok, toplam:{...}, mesaj }
  *
- * hareketduzenle.php sözleşmesi: ORFLINE UPDATE (AMOUNT/PRICE/VAT/VATAMNT/TOTAL/
+ * ../siparis/hareketduzenle.php sözleşmesi: ORFLINE UPDATE (AMOUNT/PRICE/VAT/VATAMNT/TOTAL/
  * VATMATRAH/LINENET). Ek olarak satır iskontosu (DISTDISC/DISTCOST) SIFIRLANIR —
  * miktar/fiyat değişince eski dağıtım geçersizdir; böylece toplam tutarlı kalır.
  * Ardından ORFICHE toplamı tüm satırlardan yeniden hesaplanır.

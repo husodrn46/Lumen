@@ -36,9 +36,9 @@ if ($dovizlicalis == '1' && $fisid > 0) {
 
 if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
   if ($fisid > 0) {
-    // lg_fis.php için session'a kaydet ve temiz URL'ye yönlendir
+    // siparis/lg_fis.php için session'a kaydet ve temiz URL'ye yönlendir
     setPageParam('stokhareket', $fisid, 'lg_fis');
-    echo '<script>if (window.toast) { toast("Lütfen bir ürün kodu veya adı girin.", "warning"); } else { alert("Lütfen bir ürün kodu veya adı girin."); } window.location="lg_fis.php";</script>';
+    echo '<script>if (window.toast) { toast("Lütfen bir ürün kodu veya adı girin.", "warning"); } else { alert("Lütfen bir ürün kodu veya adı girin."); } window.location="siparis/lg_fis.php";</script>';
   } else {
     die('<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Hata</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-red-100 flex items-center justify-center min-h-screen"><div class="p-6 bg-white rounded-lg shadow text-center"><h2 class="text-xl font-bold text-red-700 mb-1">Hata!</h2><p class="text-gray-600 text-sm">Geçersiz veya eksik parametre. Lütfen işlemi tekrar deneyin.</p><a href="index.php" class="mt-3 inline-block px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">Ana Sayfaya Dön</a></div></body></html>');
   }
@@ -512,7 +512,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
   <!-- Header -->
   <header class="top-header">
     <div class="header-inner">
-      <a href="lg_fis.php?stokhareket=<?php echo $fisid; ?>" class="header-back" title="Fise Geri Don">
+      <a href="siparis/lg_fis.php?stokhareket=<?php echo $fisid; ?>" class="header-back" title="Fise Geri Don">
         <i class="fa fa-arrow-left"></i>
       </a>
       <div class="header-divider"></div>
@@ -540,7 +540,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
       </div>
     </div>
 
-    <form name="frm" id="frm" method="POST" action="lg_fis.php?stokhareket=<?php echo $fisid; ?>" onsubmit="return bak()" autocomplete="off">
+    <form name="frm" id="frm" method="POST" action="siparis/lg_fis.php?stokhareket=<?php echo $fisid; ?>" onsubmit="return bak()" autocomplete="off">
       <?php echo csrf_field(); ?>
       <input type="hidden" name="stokhareket" value="<?php echo $fisid; ?>">
       <input type="hidden" name="coklusecim" value="evet">

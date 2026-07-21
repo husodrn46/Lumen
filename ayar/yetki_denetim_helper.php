@@ -9,18 +9,18 @@ if (!function_exists('denetimSayfaListesi')) {
     {
         return [
             ['kod' => 'M1', 'label' => 'Yeni Sipariş', 'path' => 'cari.php', 'menu' => true],
-            ['kod' => 'M2', 'label' => 'Siparişler', 'path' => 'lg_essiparis.php', 'menu' => true],
+            ['kod' => 'M2', 'label' => 'Siparişler', 'path' => '../siparis/lg_essiparis.php', 'menu' => true],
             ['kod' => 'M21', 'label' => 'Döviz İşlemleri', 'path' => 'doviz/index.php', 'menu' => true],
             // NOT: M3 (Mağaza Satış) öğesi kaldırıldı — probe hedefi fiyat_sec.php
-            // emekliye ayrıldı; fisekle.php GET'i fiş OLUŞTURDUĞU için probe hedefi
+            // emekliye ayrıldı; ../siparis/fisekle.php GET'i fiş OLUŞTURDUĞU için probe hedefi
             // yapılamaz. M3 yalnız index.php kart görünürlüğünü kontrol eder.
             ['kod' => 'M4', 'label' => 'Müşteri Bakiye', 'path' => 'lg_bakiye.php', 'menu' => true, 'allow_codes' => ['M4', 'M20'], 'kod_label' => 'M4/M20'],
-            ['kod' => 'M5', 'label' => 'Tüm Siparişler', 'path' => 'lg_tumsiparisler.php', 'menu' => true],
+            ['kod' => 'M5', 'label' => 'Tüm Siparişler', 'path' => '../siparis/lg_tumsiparisler.php', 'menu' => true],
             ['kod' => 'M6', 'label' => 'Barkodlar', 'path' => 'husodrn46/barkodlar.php', 'menu' => true],
             ['kod' => 'M7', 'label' => 'Stok Ara', 'path' => 'stok_tara.php', 'menu' => true],
             ['kod' => 'M7', 'label' => 'Fiyat Listesi', 'path' => 'fiyat_listesi.php', 'menu' => true],
-            ['kod' => 'M8', 'label' => 'Bekleyen Ürünler', 'path' => 'bekleyen_siparis.php', 'menu' => true],
-            ['kod' => 'M10', 'label' => 'Geri Dönüşüm', 'path' => 'lg_geridonusum.php', 'menu' => true],
+            ['kod' => 'M8', 'label' => 'Bekleyen Ürünler', 'path' => '../siparis/bekleyen_siparis.php', 'menu' => true],
+            ['kod' => 'M10', 'label' => 'Geri Dönüşüm', 'path' => '../siparis/lg_geridonusum.php', 'menu' => true],
             ['kod' => 'M13', 'label' => 'Günlük İşlemler', 'path' => 'gunluk_islemler.php', 'menu' => true],
             ['kod' => 'M15', 'label' => 'Stoklar', 'path' => 'stok/index.php', 'menu' => true],
             ['kod' => 'M16', 'label' => 'Ayarlar', 'path' => 'ayar/', 'menu' => true],

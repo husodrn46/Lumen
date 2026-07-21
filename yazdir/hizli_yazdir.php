@@ -266,7 +266,7 @@ try {
     if ($back !== '') {
         header("oocation: " . $back);
     } else {
-        header('oocation: lg_essiparis.php');
+        header('oocation: ../siparis/lg_essiparis.php');
     }
     exit;
 

@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-include(__DIR__ . "/kontrol.php");
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+include(__DIR__ . "/../kontrol.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 $resmiKdvZorunlu = defined('RESMI_FORCE_KDV');
 $resmiKdvOrani = $resmiKdvZorunlu ? (float) RESMI_FORCE_KDV : 0.0;
@@ -65,7 +65,7 @@ if ($stokhareket > 0) {
 
         if ($dovizKontrol && (int)$dovizKontrol['TRCURR'] > 0 && (float)$dovizKontrol['TRRATE'] > 0) {
             // Dövizli sipariş - doviz modülüne yönlendir
-            header("Location: doviz/fis.php?id=" . $stokhareket);
+            header("Location: ../doviz/fis.php?id=" . $stokhareket);
             exit;
         }
     } catch (Exception $e) {
@@ -197,7 +197,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
    <meta charset="UTF-8" />
    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
    <title>Stok Hareket</title>
-   <?php include_once(__DIR__ . '/pwa-header.php'); ?>
+   <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
    <script src="/tm/css/tailwind.js"></script>
    <script>
       if (typeof tailwind !== 'undefined') {
@@ -719,7 +719,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          </a>
 
          <!-- Search Form -->
-         <form name="form" method="GET" action="lg_stok_bul.php" class="search-form">
+         <form name="form" method="GET" action="../lg_stok_bul.php" class="search-form">
             <input type="text" name="barkod" id="barkod" class="search-input"
                autocomplete="off" aria-label="Urun veya barkod ara"
                placeholder="🔍 Ürün ara veya barkod okut...">
@@ -806,14 +806,14 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                </div>
                <!-- Butonlar -->
                <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
-                  <a href="yazdir/yeni_dizayn.php?stokhareket=<?php echo $stokhareket; ?>&tipdurum=1"
+                  <a href="../yazdir/yeni_dizayn.php?stokhareket=<?php echo $stokhareket; ?>&tipdurum=1"
                      class="btn-flat btn-amber" title="Yazdır" style="padding:8px 14px;">
                      <i class="fa fa-print"></i>
                      <span class="hidden sm:inline">Yazdır</span>
                   </a>
                   <button id="btnFastPrint" type="button"
                      class="btn-flat btn-red" style="padding:8px 14px;"
-                     data-url="yazdir/hizli_yazdir.php?stokhareket=<?php echo $stokhareket; ?>&tip=1&ajax=1"
+                     data-url="../yazdir/hizli_yazdir.php?stokhareket=<?php echo $stokhareket; ?>&tip=1&ajax=1"
                      title="Hızlı Yazdır">
                      <i class="fa fa-bolt"></i><i class="fa fa-print"></i>
                   </button>
@@ -825,14 +825,14 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                      <div x-show="open" x-transition
                         class="dropdown-menu dropdown-actions absolute mt-2 w-52"
                         style="z-index:999;max-height:70vh;overflow-y:auto;">
-                        <a href="stok_hareket_excel.php?stokhareket=<?php echo $stokhareket; ?>">
+                        <a href="../stok_hareket_excel.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-file-excel" style="color:#059669;"></i> Excel'e Aktar
                         </a>
-                        <a href="stok_hareket_pdf.php?stokhareket=<?php echo $stokhareket; ?>">
+                        <a href="../stok_hareket_pdf.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-file-pdf" style="color:var(--red,#ef4444);"></i> PDF'e Aktar
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a href="stok_hareket_aktar.php?stokhareket=<?php echo $stokhareket; ?>">
+                        <a href="../stok_hareket_aktar.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-exchange-alt" style="color:#3b82f6;"></i> Başka Cariye Aktar
                         </a>
                         <?php if (m_p_yetki($terminalkullanici, 'M12') == 1): ?>
@@ -840,7 +840,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                            <i class="fa fa-user-plus" style="color:#10b981;"></i> Yeni Cari Aç &amp; Aktar
                         </a>
                         <?php endif; ?>
-                        <a href="stok_hareket_tarih_degistir.php?stokhareket=<?php echo $stokhareket; ?>">
+                        <a href="../stok_hareket_tarih_degistir.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-calendar" style="color:#8b5cf6;"></i> Tarih Değiştir
                         </a>
                         <div class="dropdown-divider"></div>
@@ -1052,7 +1052,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
           </form>
         </td>
         <td class="name-cell" style="max-width:300px;" title="' . e_tr($liste['LINEEXP']) . '">
-          <a style="text-decoration:none;color:var(--text-1);font-weight:600;display:flex;align-items:center;gap:6px;font-size:13px;" href="lg_stok_duzenle.php?stokid=' . $stokhid . '&stokhareket=' . $stokhareket . '">
+          <a style="text-decoration:none;color:var(--text-1);font-weight:600;display:flex;align-items:center;gap:6px;font-size:13px;" href="../lg_stok_duzenle.php?stokid=' . $stokhid . '&stokhareket=' . $stokhareket . '">
             <i class="fa fa-edit" style="font-size:11px;color:var(--text-3);"></i>
             <span style="overflow:hidden;text-overflow:ellipsis;">' . e_tr($liste['ADI']) . '</span>
           </a>
@@ -1706,7 +1706,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
             fd.append('sehir', document.getElementById('ycaSehir').value.trim());
             fd.append('ilce', document.getElementById('ycaIlce').value.trim());
             fd.append('csrf_token', YCA_CSRF);
-            fetch('cari_olustur_ve_aktar.php', { method:'POST', body:fd, credentials:'same-origin' })
+            fetch('../cari_olustur_ve_aktar.php', { method:'POST', body:fd, credentials:'same-origin' })
                .then(function(r){ return r.json(); })
                .then(function(j){
                   if(j.ok){ location.reload(); }

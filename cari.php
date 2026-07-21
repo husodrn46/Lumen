@@ -24,7 +24,7 @@ $cariBackUrl = (isset($cariBackUrl) && is_string($cariBackUrl) && $cariBackUrl !
     : 'index.php';
 $cariOrderUrl = (isset($cariOrderUrl) && is_string($cariOrderUrl) && $cariOrderUrl !== '')
     ? $cariOrderUrl
-    : 'fisekle.php';
+    : 'siparis/fisekle.php';
 
 // Bu fonksiyon ayr.php'de de bulunabilir; yeniden tanimlamayi engelle.
 if (!function_exists('paraformat')) {

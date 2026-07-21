@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-include(__DIR__ . "/kontrol.php");
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+include(__DIR__ . "/../kontrol.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 // YETKI: fisekle hem Yeni Sipariş (M1) hem Mağaza Satış (M3) akışının ortak
 // yazma kapısı — menüde buton gizlemek yetki değildir; endpoint'te doğrula.

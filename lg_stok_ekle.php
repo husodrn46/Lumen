@@ -59,7 +59,7 @@ $stokid = getPageParamInt('stok');
 $fisid = getPageParamInt('fisid');
 $lgStokEkleBackUrl = safeLocalReturnUrl(
   getPageParamString('return_to', ''),
-  'lg_fis.php?stokhareket=' . $fisid
+  'siparis/lg_fis.php?stokhareket=' . $fisid
 );
 
 if ($stokid > 0 && $fisid > 0) {
@@ -1025,7 +1025,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
         <?php }
       } ?>
 
-      <form name="frm" id="frm" method="POST" action="lg_fis.php?stokhareket=<?php echo $fisid; ?>" onsubmit="return bak()" autocomplete="off">
+      <form name="frm" id="frm" method="POST" action="siparis/lg_fis.php?stokhareket=<?php echo $fisid; ?>" onsubmit="return bak()" autocomplete="off">
         <?php echo csrf_field(); ?>
         <input type="hidden" name="stkid" id="stkid" value="<?php echo $stokara['URUN ID']; ?>">
         <input type="hidden" name="kontrol" id="kontrol" value="<?php echo uniqid(); ?>" />

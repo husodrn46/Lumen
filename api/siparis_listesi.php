@@ -17,7 +17,7 @@ declare(strict_types=1);
  * - durum=sevk     : sevkiyatı başlamış (STLINE eşleşmesi olan) fişler
  * - durum=bekleyen : henüz sevkedilmemiş fişler
  * - durum=taslak   : YALNIZCA oturum sahibinin (SALESMANREF) satırsız + NETTOTAL=0 taslakları
- *   (web lg_tumsiparisler.php / lg_geridonusum.php filtreleriyle uyumlu).
+ *   (web ../siparis/lg_tumsiparisler.php / ../siparis/lg_geridonusum.php filtreleriyle uyumlu).
  */
 
 include_once(__DIR__ . '/../ayr.php');

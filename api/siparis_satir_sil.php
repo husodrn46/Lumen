@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Gövde: { "satir_id":456 }   (ORFLINE.LOGICALREF)
  * Yanıt: { ok, toplam:{...}, mesaj }
  *
- * Bir sipariş satırını siler (yalnızca LINETYPE=0 ürün satırı). hareketsil.php
+ * Bir sipariş satırını siler (yalnızca LINETYPE=0 ürün satırı). ../siparis/hareketsil.php
  * sözleşmesi: DELETE + LINENO_ yeniden sıralama; ardından ORFICHE toplamı
  * tüm satırlardan yeniden hesaplanır (web'deki manuel düzeltmeden daha tutarlı).
  */

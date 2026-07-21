@@ -16,7 +16,7 @@ $stokid = getPageParamInt('stokid');
 $fisid = getPageParamInt('stokhareket');
 $lgStokDuzenleBackUrl = safeLocalReturnUrl(
     getPageParamString('return_to', ''),
-    'lg_fis.php?stokhareket=' . $fisid
+    'siparis/lg_fis.php?stokhareket=' . $fisid
 );
 
 if ($stokid <= 0 || $fisid <= 0) {
@@ -694,7 +694,7 @@ function kusuratadet1(float|int|string|null $kusurata): string
             </div>
 
             <div class="form-body">
-                <form name="frm" id="frm" method="POST" action="lg_fis.php?stokhareket=<?php echo $fisid; ?>" onsubmit="return validateForm()" autocomplete="off">
+                <form name="frm" id="frm" method="POST" action="siparis/lg_fis.php?stokhareket=<?php echo $fisid; ?>" onsubmit="return validateForm()" autocomplete="off">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="stkduzenle" value="<?php echo $stokara['ID']; ?>">
                     <input type="hidden" name="kontrol" value="<?php echo uniqid(); ?>">

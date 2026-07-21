@@ -55,7 +55,7 @@ $trrate = (float)$siparis['TRRATE'];
 
 // Döviz TL ise veya kur 0 ise, döviz modülünden çık
 if ($trcurr == 0 || $trrate <= 0) {
-    die('<script>if (window.toast) { toast("Bu sipariş TL cinsindendir. Dövizli siparişler için bu modülü kullanın.", "warning"); } else { alert("Bu sipariş TL cinsindendir. Dövizli siparişler için bu modülü kullanın."); } window.location="../lg_fis.php?stokhareket=' . $siparisId . '";</script>');
+    die('<script>if (window.toast) { toast("Bu sipariş TL cinsindendir. Dövizli siparişler için bu modülü kullanın.", "warning"); } else { alert("Bu sipariş TL cinsindendir. Dövizli siparişler için bu modülü kullanın."); } window.location="../siparis/lg_fis.php?stokhareket=' . $siparisId . '";</script>');
 }
 
 // LOGO döviz kodları: 1=USD, 20=EUR
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
             $kayitsaat = $saat * 65536 + $dakika * 256 + $saniye;
             $guid = function_exists('guid') ? guid() : uniqid('', true);
 
-            // Satır ekle - hareketekle.php ile AYNI yapı kullanılıyor
+            // Satır ekle - ../siparis/hareketekle.php ile AYNI yapı kullanılıyor
             $stmtEkle = $dbh->prepare("
                 INSERT INTO {$firmadonem}ORFLINE (
                     STOCKREF, ORDFICHEREF, CLIENTREF, LINETYPE, PREVLINEREF, PREVLINENO, DETLINE, LINENO_, TRCODE,

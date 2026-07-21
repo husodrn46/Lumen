@@ -4,8 +4,8 @@ declare(strict_types=1);
 // JSON çıktısı için buffer başlat
 ob_start();
 
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../kontrol.php");
 
 // Buffer'ı temizle (HTML çıktısını engelle)
 ob_end_clean();

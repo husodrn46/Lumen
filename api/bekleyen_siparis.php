@@ -8,7 +8,7 @@ declare(strict_types=1);
  *                                      bekleyen_miktar, bekleyen_koli, uret_koli}] }
  *
  * Üretim planı: AKL ürünleri için eldeki stok ile bekleyen (sevkedilmemiş) sipariş
- * dengesi; üretilmesi gereken koli. bekleyen_siparis.php (web) mantığıyla birebir.
+ * dengesi; üretilmesi gereken koli. ../siparis/bekleyen_siparis.php (web) mantığıyla birebir.
  * Token zorunlu, salt-okuma.
  */
 

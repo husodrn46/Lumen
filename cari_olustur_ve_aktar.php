@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * cari_olustur_ve_aktar.php — Yeni cari olusturur ve mevcut fisi (ORFICHE) o
- * cariye aktarir. lg_fis.php'den AJAX (JSON) ile cagrilir.
+ * cariye aktarir. siparis/lg_fis.php'den AJAX (JSON) ile cagrilir.
  * POST: stokhareket, unvan, telefon, sehir, ilce, csrf_token
  * Erisim: M12 (Yeni Cari) yetkisi.
  */

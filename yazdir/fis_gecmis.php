@@ -24,7 +24,7 @@ if ($fisRef <= 0) {
 
 $fisGecmisBackUrl = safeLocalReturnUrl(
     isset($_GET['return_to']) ? (string) $_GET['return_to'] : '',
-    'lg_fis.php?stokhareket=' . $fisRef
+    '../siparis/lg_fis.php?stokhareket=' . $fisRef
 );
 
 // Para ve miktar formatlama fonksiyonları

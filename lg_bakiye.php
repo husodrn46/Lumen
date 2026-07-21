@@ -6,7 +6,7 @@ include_once(__DIR__ . "/log_ip.php");
 include_once(__DIR__ . "/ayr.php");
 include_once(__DIR__ . "/kontrol.php");
 
-// Eski ?cari=... bağlantıları bozulmasın; yeni arama lg_essiparis.php gibi ?q=... ile çalışır.
+// Eski ?cari=... bağlantıları bozulmasın; yeni arama siparis/lg_essiparis.php gibi ?q=... ile çalışır.
 if (isset($_GET['cari']) && !isset($_GET['q'])) {
     $legacyCari = trim((string) $_GET['cari']);
     $target = 'lg_bakiye.php' . ($legacyCari !== '' ? '?q=' . rawurlencode($legacyCari) : '');

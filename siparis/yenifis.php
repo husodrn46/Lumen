@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
- include_once(__DIR__ . "/ayr.php"); ?>
+ include_once(__DIR__ . "/../ayr.php"); ?>
 
 
 
 <?php
-require_once __DIR__ . '/kontrol.php';
+require_once __DIR__ . '/../kontrol.php';
 $bilgi=fopen('ayr.php','r');
 $tarih=date("d/m/Y H:i:s");
 $handle = printer_open("Microsoft Print to PDF");

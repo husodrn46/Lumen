@@ -12,8 +12,8 @@ declare(strict_types=1);
 ob_start();
 
 // Veritabanı bağlantısı ve kimlik doğrulama
-require_once __DIR__ . '/ayr.php';
-require_once __DIR__ . '/kontrol.php';
+require_once __DIR__ . '/../ayr.php';
+require_once __DIR__ . '/../kontrol.php';
 
 // Tüm önceki output'u temizle
 ob_end_clean();

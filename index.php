@@ -110,7 +110,7 @@ if ($kasa_ozet_yetki && $magaza_cari > 0) {
         }
 
         // Kullanicinin KENDI isaretsiz siparis ID'leri
-        // NOT: lg_essiparis.php ile AYNI filtre kullanilir -
+        // NOT: siparis/lg_essiparis.php ile AYNI filtre kullanilir -
         //      STLINE'da karsiligi olan (faturalanmis/sevk edilmis) siparisler haric tutulur
         $stmt2 = $dbh->prepare("
             SELECT LOGICALREF, NETTOTAL
@@ -136,16 +136,16 @@ if ($kasa_ozet_yetki && $magaza_cari > 0) {
 
 $menu_items = [
     ['M1', 'Yeni Sipariş', 'fa-cart-plus', 'cari.php', 'theme-red'],
-    ['M2', 'Siparişler', 'fa-list-check', 'lg_essiparis.php', 'theme-red'],
+    ['M2', 'Siparişler', 'fa-list-check', 'siparis/lg_essiparis.php', 'theme-red'],
     ['M21', 'Döviz İşlemleri', 'fa-dollar-sign', 'doviz/index.php', 'theme-emerald'],
-    ['M3', 'Mağaza Satış', 'fa-store', 'fisekle.php?cariid=' . $magaza_cari . '&stokhareket=0', 'theme-red'],
+    ['M3', 'Mağaza Satış', 'fa-store', 'siparis/fisekle.php?cariid=' . $magaza_cari . '&stokhareket=0', 'theme-red'],
     ['M4', 'Müşteri Bakiye', 'fa-wallet', 'lg_bakiye.php', 'theme-emerald'],
-    ['M5', 'Tüm Siparişler', 'fa-box-archive', 'lg_tumsiparisler.php', 'theme-red'],
+    ['M5', 'Tüm Siparişler', 'fa-box-archive', 'siparis/lg_tumsiparisler.php', 'theme-red'],
     ['M6', 'Barkodlar', 'fa-barcode', 'barkod/barkodlar.php', 'theme-amber'],
     ['M7', 'Stok Ara', 'fa-search', 'stok_tara.php', 'theme-amber'],
     ['M26', 'Fiyat Listesi', 'fa-tags', 'fiyat_listesi.php', 'theme-amber'],
-    ['M8', 'Bekleyen Ürünler', 'fa-clock', 'bekleyen_siparis.php', 'theme-red'],
-    ['M10', 'Sil', 'fa-trash', 'lg_geridonusum.php', 'theme-amber'],
+    ['M8', 'Bekleyen Ürünler', 'fa-clock', 'siparis/bekleyen_siparis.php', 'theme-red'],
+    ['M10', 'Sil', 'fa-trash', 'siparis/lg_geridonusum.php', 'theme-amber'],
     ['M13', 'Günlük İşlemler', 'fa-calendar-day', 'gunluk_islemler.php', 'theme-red'],
     ['M28', 'Görevler', 'fa-clipboard-list', 'gorev/gorevler.php', 'theme-indigo'],
     ['M15', 'Stoklar', 'fa-boxes-stacked', 'stok/index.php', 'theme-amber'],
@@ -170,7 +170,7 @@ $visible_menu_items = [];
 foreach ($menu_items as $item) {
     if ((string) $item[3] === 'lg_bakiye.php') {
         $menuVisible = m_p_bakiye_erisim_var_mi($terminalkullanici);
-    } elseif ((string) $item[3] === 'lg_tumsiparisler.php') {
+    } elseif ((string) $item[3] === 'siparis/lg_tumsiparisler.php') {
         // "Tüm Siparişler" artık "Siparişler" ekranındaki sekme şeridinden açılır.
         // Ayrı kutucuk yalnız M5 olup M2 OLMAYAN kullanıcıya gösterilir (erişim kaybı olmasın).
         $menuVisible = (m_p_yetki($terminalkullanici, 'M5') == 1 && m_p_yetki($terminalkullanici, 'M2') != 1);
@@ -1466,7 +1466,7 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
             </a>
             <?php endif; ?>
             <?php if (!empty($kendi_isaretsiz_refler)): ?>
-            <?php $vurgulaUrl = 'lg_essiparis.php?vurgula=' . urlencode(implode(',', $kendi_isaretsiz_refler)); ?>
+            <?php $vurgulaUrl = 'siparis/lg_essiparis.php?vurgula=' . urlencode(implode(',', $kendi_isaretsiz_refler)); ?>
             <a href="<?php echo $vurgulaUrl; ?>" class="uyari-kart u-orange" title="Ödeme şekli işaretlenmemiş siparişler">
                 <span class="uk-ikon"><i class="fa-solid fa-triangle-exclamation"></i></span>
                 <span class="uk-metin"><b>Ödeme İşaretsiz</b><span><?php echo number_format($kendi_isaretsiz_tutar, 2, ',', '.'); ?> ₺ — tıkla, göster</span></span>

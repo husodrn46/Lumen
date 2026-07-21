@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/ayr.php");
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../ayr.php");
 
 // YETKI KONTROLÜ: M23 (Kullanıcı Aktivite Dashboard) veya yönetici
 if (m_p_yetki($terminalkullanici, 'M23') != 1 && $yetkidurum !== 0) {

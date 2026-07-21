@@ -5,9 +5,9 @@ declare(strict_types=1);
  * fiyat_sec.php — KALDIRILDI (2026-07-13).
  *
  * "Sipariş Seçenekleri" (döviz / fiyat grubu) ara ekranıydı; akış artık
- * bu adımı kullanmıyor: Yeni Sipariş cari.php'den doğrudan fisekle.php'ye
+ * bu adımı kullanmıyor: Yeni Sipariş cari.php'den doğrudan siparis/fisekle.php'ye
  * gider (TL), dövizli sipariş doviz/ modülünde açılır, fiyat grubu
- * fisekle.php?fiyat= parametresiyle opsiyonel geçilir.
+ * siparis/fisekle.php?fiyat= parametresiyle opsiyonel geçilir.
  *
  * Kanıt (kaldırma öncesi denetim): kod tabanında hiçbir link/yönlendirme
  * kalmamıştı; 30 günlük IIS erişim logunda tek istek yetki denetim
@@ -22,7 +22,7 @@ $cariid = isset($_GET['cariid']) ? (int) $_GET['cariid'] : 0;
 $stokhareket = isset($_GET['stokhareket']) ? (int) $_GET['stokhareket'] : 0;
 
 $hedef = $cariid > 0
-    ? 'fisekle.php?cariid=' . $cariid . '&stokhareket=' . $stokhareket
+    ? 'siparis/fisekle.php?cariid=' . $cariid . '&stokhareket=' . $stokhareket
     : 'cari.php';
 header('Location: ' . $hedef, true, 301);
 exit;

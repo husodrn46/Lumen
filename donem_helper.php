@@ -15,7 +15,7 @@ $donemParam = '';
 if (isset($_GET['donem'])) {
     $donemParam = $_GET['donem'];
 }
-// 2. Session'daki siparis_donem (lg_fis.php için)
+// 2. Session'daki siparis_donem (siparis/lg_fis.php için)
 elseif (isset($_SESSION['siparis_donem'])) {
     $donemParam = $_SESSION['siparis_donem'];
 }

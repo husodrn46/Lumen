@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");  // DB bağlantısı ve loglama fonksiyonları için GEREKLİ!
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");  // DB bağlantısı ve loglama fonksiyonları için GEREKLİ!
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../log_ip.php");
 if(isset($_POST['stkduzenle'])){
 	// CSRF koruması
 	if (!csrf_verify()) {

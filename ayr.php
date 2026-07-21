@@ -290,9 +290,9 @@ function tema_vurgu_renk(): ?array
 function tema_acilis_hedef(string $key): string
 {
     $harita = [
-        'siparisler' => 'lg_essiparis.php',
+        'siparisler' => 'siparis/lg_essiparis.php',
         'stok'       => 'stok_tara.php',
-        'bekleyen'   => 'bekleyen_siparis.php',
+        'bekleyen'   => 'siparis/bekleyen_siparis.php',
     ];
     return $harita[$key] ?? '';
 }

@@ -861,7 +861,7 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
                 // POST ile gonder: kur modal'da onaylandi, fisekle direkt fis acar (form tekrar sormaz)
                 var f = document.createElement('form');
                 f.method = 'POST';
-                f.action = 'fisekle.php?cariid=' + encodeURIComponent(kmCariid) + '&doviz=' + encodeURIComponent(kmDoviz) + '&kur=' + encodeURIComponent(kur);
+                f.action = '../siparis/fisekle.php?cariid=' + encodeURIComponent(kmCariid) + '&doviz=' + encodeURIComponent(kmDoviz) + '&kur=' + encodeURIComponent(kur);
                 var inp = document.createElement('input');
                 inp.type = 'hidden'; inp.name = 'kur'; inp.value = String(kur);
                 f.appendChild(inp);

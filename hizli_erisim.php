@@ -740,7 +740,7 @@ function paraYaz(float|int|string|null $tutar): string
                                     class="pill pill-slate">
                                     <i class="fa-solid fa-file-invoice"></i> Ekstre
                                 </a>
-                                <a href="fisekle.php?cariid=<?php echo (int)$row['CARIID']; ?>&stokhareket=0" target="_blank" rel="noopener noreferrer"
+                                <a href="siparis/fisekle.php?cariid=<?php echo (int)$row['CARIID']; ?>&stokhareket=0" target="_blank" rel="noopener noreferrer"
                                     class="pill pill-emerald">
                                     <i class="fa-solid fa-basket-shopping"></i> Siparis Ac
                                 </a>
@@ -866,7 +866,7 @@ function paraYaz(float|int|string|null $tutar): string
                                                         class="mini-pill tone-sky">
                                                         <i class="fa-solid fa-file-export"></i> XLS
                                                     </a>
-                                                    <a href="lg_siparis.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
+                                                    <a href="siparis/lg_siparis.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
                                                         class="mini-pill tone-purple">
                                                         <i class="fa-solid fa-pen-to-square"></i> Siparis
                                                     </a>

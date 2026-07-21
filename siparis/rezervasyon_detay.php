@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/ayr.php");
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../ayr.php");
 
 // YETKI KONTROLÜ: M8 (Rezervasyon Takibi) yetkisi kontrolü
 if (m_p_yetki($terminalkullanici, 'M8') != 1) {

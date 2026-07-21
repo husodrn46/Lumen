@@ -14,7 +14,7 @@ if (!isset($_GET['stokhareket'])) {
 	$stokhareket = (int)$_GET['stokhareket'];
 	$fisyazBackUrl = safeLocalReturnUrl(
 	  isset($_GET['return_to']) ? (string) $_GET['return_to'] : '',
-	  'lg_essiparis.php'
+	  '../siparis/lg_essiparis.php'
 	);
 
 	// Yazdırma işlemini logla

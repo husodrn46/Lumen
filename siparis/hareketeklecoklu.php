@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/log_ip.php");
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../log_ip.php");
 include_once(__DIR__ . "/iskonto_lib.php"); // yeni urunde mevcut iskontoyu otomatik uygulamak icin
 if (isset($_POST['cstok_miktari'])) {
 

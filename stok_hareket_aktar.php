@@ -614,7 +614,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
 
     <header class="top-header">
         <div class="header-inner">
-            <a href="<?php echo $stokhareket > 0 ? 'lg_fis.php?stokhareket=' . $stokhareket : 'index.php'; ?>" class="header-back" title="Geri">
+            <a href="<?php echo $stokhareket > 0 ? 'siparis/lg_fis.php?stokhareket=' . $stokhareket : 'index.php'; ?>" class="header-back" title="Geri">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <div class="header-divider"></div>
@@ -740,7 +740,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
                     </div>
 
                     <div class="action-row">
-                        <a href="<?php echo $stokhareket > 0 ? 'lg_fis.php?stokhareket=' . $stokhareket : 'index.php'; ?>" class="btn-flat btn-ghost">
+                        <a href="<?php echo $stokhareket > 0 ? 'siparis/lg_fis.php?stokhareket=' . $stokhareket : 'index.php'; ?>" class="btn-flat btn-ghost">
                             <i class="fa-solid fa-xmark"></i> Vazgec
                         </a>
                         <button type="submit" id="confirm_btn" disabled

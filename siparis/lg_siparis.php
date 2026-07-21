@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-include_once __DIR__ . "/ayr.php";
-include    __DIR__ . "/kontrol.php";
-include_once __DIR__ . "/log_ip.php";
+include_once __DIR__ . "/../ayr.php";
+include    __DIR__ . "/../kontrol.php";
+include_once __DIR__ . "/../log_ip.php";
 
 // URL parametrelerini session'a aktar ve temiz URL'ye yönlendir
 migrateUrlToSession(['stokhareket', 'sipariskaydet']);
@@ -126,7 +126,7 @@ $printActions = [
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Siparis Islemleri</title>
   <link rel="icon" type="image/png" href="icon.png">
-  <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+  <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">

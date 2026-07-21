@@ -44,8 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mesaj = "Döviz başarıyla değiştirildi!";
             $mesaj_tip = "success";
 
-            // 2 saniye sonra lg_fis.php'ye yönlendir
-            header("refresh:2;url=lg_fis.php?stokhareket=$stokhareket");
+            // 2 saniye sonra siparis/lg_fis.php'ye yönlendir
+            header("refresh:2;url=siparis/lg_fis.php?stokhareket=$stokhareket");
 
         } catch (Exception $e) {
             error_log('doviz_degistir hata: ' . $e->getMessage());
@@ -475,7 +475,7 @@ $mevcut_trcode = (int)$fis['TRCODE'];
 <body>
     <header class="top-header">
         <div class="top-header-inner">
-            <a href="lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="back-btn" aria-label="Geri">
+            <a href="siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="back-btn" aria-label="Geri">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <span class="header-icon"><i class="fas fa-money-bill-transfer"></i></span>
@@ -572,7 +572,7 @@ $mevcut_trcode = (int)$fis['TRCODE'];
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-check"></i> Döviz Değiştir
                 </button>
-                <a href="lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="btn btn-secondary">
+                <a href="siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="btn btn-secondary">
                     <i class="fas fa-xmark"></i> İptal
                 </a>
             </div>

@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Yanıt: { ok, satir:{...}, toplam:{...}, mesaj }
  *
  * Mevcut bir siparişe TEK satır ekler. ORFLINE INSERT sözleşmesi siparis_olustur.php
- * (hareketeklecoklu.php) ile birebirdir; ekleme sonrası LINENO_ yeniden sıralanır ve
+ * (../siparis/hareketeklecoklu.php) ile birebirdir; ekleme sonrası LINENO_ yeniden sıralanır ve
  * ORFICHE toplamı satırlardan yeniden hesaplanır (siparis_fis_toplam_yenile).
  */
 
