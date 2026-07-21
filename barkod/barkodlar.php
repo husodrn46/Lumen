@@ -4,6 +4,12 @@ declare(strict_types=1);
 require_once __DIR__ . '/../kontrol.php';
 include_once(__DIR__ . "/../ayr.php");
 
+// Barkod modulu yetkisi (M6)
+if ((int) m_p_yetki($terminalkullanici, 'M6') !== 1) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 // UTF-8 BOM ve geçersiz karakterleri temizle
 function cleanCsvValue(string $value): string {
   $value = preg_replace('/^\xEF\xBB\xBF/', '', $value);
@@ -22,6 +28,25 @@ function toDbSafe(string $value): string {
 $importMesajlari = [];   // [ [tip, html], ... ]
 
 if (isset($_POST['do_import']) && isset($_FILES['import_file'])) {
+  if (!csrf_verify()) {
+    http_response_code(403);
+    exit('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
+  }
+
+  // Yuklenen dosya gercekten POST ile mi geldi + makul boyutta mi
+  if (!is_uploaded_file($_FILES['import_file']['tmp_name'] ?? '')
+      || ($_FILES['import_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK
+      || ($_FILES['import_file']['size'] ?? 0) > 5 * 1024 * 1024) {
+    $importMesajlari[] = ['error', 'Gecerli bir CSV dosyasi secin (en fazla 5 MB).'];
+    goto import_bitti;
+  }
+
+  $uzanti = strtolower(pathinfo((string) ($_FILES['import_file']['name'] ?? ''), PATHINFO_EXTENSION));
+  if (!in_array($uzanti, ['csv', 'txt'], true)) {
+    $importMesajlari[] = ['error', 'Yalnizca .csv veya .txt dosyasi yuklenebilir.'];
+    goto import_bitti;
+  }
+
   $file = $_FILES['import_file']['tmp_name'];
   $content = file_get_contents($file);
 
@@ -114,6 +139,8 @@ if (isset($_POST['do_import']) && isset($_FILES['import_file'])) {
       $importMesajlari[] = ['warn', 'LOGO sisteminde bulunamayan kodlar (' . count($uniqueSkipped) . '): ' . $liste];
     }
   }
+
+  import_bitti:
 }
 
 // Barkod durum sorguları (aktif ürünler)
@@ -223,6 +250,7 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
       <div class="kart-govde">
         <p class="aciklama">CSV yükleyin (başlık satırı: <code>product_code,barcode</code>). Türkiye Excel'i için <code>;</code> ayracı da desteklenir.</p>
         <form method="post" enctype="multipart/form-data" class="ice">
+          <?php echo csrf_field(); ?>
           <input type="file" name="import_file" accept=".csv" required>
           <button type="submit" name="do_import" class="btn btn-red"><i class="fa-solid fa-upload"></i> İçe Aktar</button>
           <a href="barkod_sablon.csv" download class="btn btn-hat"><i class="fa-solid fa-download"></i> Şablon İndir</a>

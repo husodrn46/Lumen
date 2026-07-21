@@ -32,9 +32,19 @@ function paraformat(float|int|string|null $kusurat): string
 
 $mdoviz = "₺";
 
+/**
+ * Sorgu hatasinda kullaniciya jenerik mesaj, ayrintiyi yalniz sunucu loguna yaz.
+ * (Onceden errorInfo() dogrudan ekrana basiliyordu: SQLSTATE + tablo/sema ipucu.)
+ */
+$nakitHata = static function (string $nerede) use ($dbh): never {
+    error_log('lg_nakit_2025 ' . $nerede . ': ' . print_r($dbh->errorInfo(), true));
+    http_response_code(500);
+    die('Kayit goruntulenemedi. Lutfen tekrar deneyin.');
+};
+
 // KASA SATIRI
 $qKs = $dbh->prepare("SELECT * FROM {$firmadonem}KSLINES WHERE LOGICALREF = :ref");
-$qKs->execute([':ref' => $REF]) || die("KSLINES hatası: " . print_r($dbh->errorInfo(), true));
+$qKs->execute([':ref' => $REF]) || $nakitHata('KSLINES');
 $ks = $qKs->fetch(PDO::FETCH_ASSOC);
 if (!$ks) {
     die("Bu LOGICALREF için kasa hareketi bulunamadı.");
@@ -46,7 +56,7 @@ $kasaRef = (isset($ks['CARDREF']) && (int)$ks['CARDREF'] > 0) ? (int)$ks['CARDRE
 
 if ($kasaRef > 0) {
     $qKasa = $dbh->prepare("SELECT * FROM {$firma}KSCARD WHERE LOGICALREF = :kasaRef");
-    $qKasa->execute([':kasaRef' => $kasaRef]) || die("KSCARD hatası: " . print_r($dbh->errorInfo(), true));
+    $qKasa->execute([':kasaRef' => $kasaRef]) || $nakitHata('KSCARD');
     $kasa = $qKasa->fetch(PDO::FETCH_ASSOC);
 }
 
@@ -59,8 +69,8 @@ if ($kasaRef > 0) {
       AND TRCODE IN (1,2)
       AND CANCELLED = 0
     ORDER BY LOGICALREF DESC
-")) || die("CLFLINE hatası: " . print_r($dbh->errorInfo(), true));
-$qCl->execute([':cariid' => $CARIID, ':ref' => $REF]) || die("CLFLINE hatası: " . print_r($dbh->errorInfo(), true));
+")) || $nakitHata('CLFLINE prepare');
+$qCl->execute([':cariid' => $CARIID, ':ref' => $REF]) || $nakitHata('CLFLINE');
 $cl = $qCl->fetch(PDO::FETCH_ASSOC);
 
 // Cari kart
@@ -68,8 +78,8 @@ $cl = $qCl->fetch(PDO::FETCH_ASSOC);
     SELECT DEFINITION_, CITY, TELNRS1
     FROM {$firma}CLCARD
     WHERE LOGICALREF = :cariid
-")) || die("CLCARD hatası: " . print_r($dbh->errorInfo(), true));
-$qCari->execute([':cariid' => $CARIID]) || die("CLCARD hatası: " . print_r($dbh->errorInfo(), true));
+")) || $nakitHata('CLCARD prepare');
+$qCari->execute([':cariid' => $CARIID]) || $nakitHata('CLCARD');
 $cari = $qCari->fetch(PDO::FETCH_ASSOC);
 
 // Başlık + tutar + açıklama

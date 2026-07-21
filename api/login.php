@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 include_once(__DIR__ . '/../ayr.php');   // DB ($dbh), $firmano, sifre_dogrula, m_p_yetki, normalize_login_username
 include_once(__DIR__ . '/_api.inc');
+include_once(__DIR__ . '/../includes/giris_koruma.php');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     api_json(['ok' => false, 'mesaj' => 'Yalnizca POST destekleniyor.'], 405);
@@ -29,6 +30,25 @@ if ($kullanici === '' || $parola === '') {
 }
 
 global $dbh, $firmano;
+
+// Brute-force sertlestirme: web girisiyle (giris.php) ayni esikler.
+// Aksi halde saldirgan web tarafindaki sinirlamayi API uzerinden atlayabilirdi.
+$istekIp = function_exists('getUserIP') ? getUserIP() : (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+
+if (giris_ip_engelli_mi($dbh, $istekIp)) {
+    if (function_exists('logGiris')) {
+        logGiris(0, $kullanici, false, 'Brute-force engellendi (API)');
+    }
+    api_json(['ok' => false, 'mesaj' => 'Cok fazla hatali giris denemesi. Lutfen 15 dakika bekleyin.'], 429);
+}
+
+$kilit = giris_hesap_kilitli_mi($dbh, $kullanici);
+if ($kilit['kilitli']) {
+    api_json([
+        'ok' => false,
+        'mesaj' => "Cok fazla hatali giris nedeniyle hesap gecici olarak kilitlendi. {$kilit['kalan_dk']} dakika sonra tekrar deneyin.",
+    ], 429);
+}
 
 try {
     $stmt = $dbh->prepare("
@@ -49,7 +69,11 @@ try {
 }
 
 // Hatalı kullanıcı/şifre: tek tip mesaj (kullanıcı var mı bilgisini sızdırma).
+// Basarisiz deneme loglanir; yoksa IP/hesap esikleri hic dolmaz.
 if (!$row || !isset($row['SIFRE']) || !sifre_dogrula($parola, (string) $row['SIFRE'])) {
+    if (function_exists('logGiris')) {
+        logGiris((int) ($row['LOGICALREF'] ?? 0), $kullanici, false, 'Hatali sifre (API)');
+    }
     api_json(['ok' => false, 'mesaj' => 'Kullanici adi veya sifre hatali.'], 401);
 }
 
@@ -59,6 +83,12 @@ $yetkidurum = is_numeric($yetkiKodu) ? (int) $yetkiKodu : -1;
 
 if (!in_array($yetkidurum, [0, 1], true)) {
     api_json(['ok' => false, 'mesaj' => 'Bu hesabin masaustu uygulamasina giris yetkisi yok.'], 403);
+}
+
+// Basarili girisi logla: hesap kilidi sorgusu "son basarili giristen sonraki
+// basarisizlar" uzerinden calisiyor, bu kayit olmazsa kilit penceresi sifirlanmaz.
+if (function_exists('logGiris')) {
+    logGiris($personel, $kullanici, true, 'Basarili giris (API)');
 }
 
 $token = api_token_olustur($dbh, $personel, $kullanici);

@@ -6,6 +6,13 @@ include_once(__DIR__ . "/../../ayr.php");
 require_once __DIR__ . '/../../kontrol.php';
 header('Content-Type: application/json; charset=UTF-8');
 
+// Rapor yetkisi (M17) — kasa_hareket.php ile ayni kapi.
+if ((int) m_p_yetki($terminalkullanici, 'M17') !== 1) {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'error' => 'forbidden']);
+    exit;
+}
+
 try {
 
     // Kur fonksiyonu (aynı kaldı)

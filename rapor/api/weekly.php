@@ -4,6 +4,14 @@ declare(strict_types=1);
 // api/weekly.php
 include_once(__DIR__ . "/../../ayr.php");
 require_once __DIR__ . '/../../kontrol.php';
+
+// Rapor yetkisi (M17)
+if ((int) m_p_yetki($terminalkullanici, 'M17') !== 1) {
+    header('Content-Type: application/json; charset=UTF-8', true, 403);
+    echo json_encode(['ok' => false, 'error' => 'forbidden']);
+    exit;
+}
+
 try {
 } catch (PDOException) {
     header('Content-Type: application/json; charset=UTF-8', true, 500);

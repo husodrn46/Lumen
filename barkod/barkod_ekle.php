@@ -5,6 +5,12 @@ require_once __DIR__ . '/../kontrol.php';
 include_once(__DIR__ . "/../ayr.php");
 include_once(__DIR__ . "/../stok/ean.php");
 
+// Barkod modulu yetkisi (M6)
+if ((int) m_p_yetki($terminalkullanici, 'M6') !== 1) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 // 1) Stok ID
 if (isset($_GET['stok'])) {
     $stokid = intval($_GET['stok']);
@@ -15,22 +21,34 @@ if (isset($_GET['stok'])) {
 
 $mesajlar = [];   // [ [tip, metin], ... ]
 
-// GET ile ean parametresi gelirse POST gibi işle
+// ean13.php'den donen barkod: GET ile gelir, POST gibi islenir.
+// CSRF acisindan guvenli, cunku deger kullanicinin kendi oturumunda uretilir
+// ve asagidaki ekleme blogu ayrica token dogrular.
 if (isset($_GET['ean']) && $stokid) {
     $_POST['barkod'] = trim((string) $_GET['ean']);
+    $_POST['csrf_token'] = csrf_token();
     $_SERVER['REQUEST_METHOD'] = 'POST';
 }
 
-// 2) Silme
-if (isset($_GET['hareketsil'])) {
-    $hareketsil = intval($_GET['hareketsil']);
-    $sil = $dbh->prepare("DELETE FROM {$firma}UNITBARCODE WHERE LOGICALREF = :lr");
-    $ok = $sil->execute([':lr' => $hareketsil]);
-    $mesajlar[] = $ok ? ['ok', 'Barkod silindi.'] : ['error', 'Silme işlemi başarısız.'];
+// 2) Silme — yalniz POST + CSRF (GET ile silme kaldirildi: onceden link
+//    onizlemesi/crawler ile tetiklenebiliyordu).
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hareketsil'])) {
+    if (!csrf_verify()) {
+        $mesajlar[] = ['error', 'Gecersiz guvenlik dogrulamasi. Sayfayi yenileyin.'];
+    } else {
+        $hareketsil = intval($_POST['hareketsil']);
+        $sil = $dbh->prepare("DELETE FROM {$firma}UNITBARCODE WHERE LOGICALREF = :lr AND ITEMREF = :it");
+        $ok = $sil->execute([':lr' => $hareketsil, ':it' => $stokid]);
+        $mesajlar[] = $ok ? ['ok', 'Barkod silindi.'] : ['error', 'Silme işlemi başarısız.'];
+    }
 }
 
 // 3) Barkod ekleme
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['barkod'])) {
+    if (!csrf_verify()) {
+        $mesajlar[] = ['error', 'Gecersiz guvenlik dogrulamasi. Sayfayi yenileyin.'];
+        $_POST['barkod'] = '';
+    }
     $barkod = trim((string) $_POST['barkod']);
 
     if ($barkod === '') {
@@ -154,6 +172,7 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
       <div class="kart-bas"><i class="fa-solid fa-plus"></i> Yeni Barkod Ekle</div>
       <div class="kart-govde">
         <form method="post" class="ekle">
+          <?php echo csrf_field(); ?>
           <div class="alan">
             <label for="barkod">Barkod</label>
             <input type="text" id="barkod" name="barkod" required autofocus placeholder="Barkod okutun veya yazın">
@@ -176,9 +195,12 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
               <td><?php echo $h($row['LINENR']); ?></td>
               <td><span class="kod2"><?php echo $h($row['BARCODE']); ?></span></td>
               <td>
-                <a href="?stok=<?php echo (int) $stokid; ?>&hareketsil=<?php echo (int) $row['LOGICALREF']; ?>"
-                   class="btn btn-sm btn-ikon btn-sil" title="Sil"
-                   onclick="return confirm('<?php echo $h($row['BARCODE']); ?> silinecek. Emin misiniz?')"><i class="fa-solid fa-trash"></i></a>
+                <form method="post" style="display:inline"
+                      onsubmit="return confirm('<?php echo $h($row['BARCODE']); ?> silinecek. Emin misiniz?')">
+                  <?php echo csrf_field(); ?>
+                  <input type="hidden" name="hareketsil" value="<?php echo (int) $row['LOGICALREF']; ?>">
+                  <button type="submit" class="btn btn-sm btn-ikon btn-sil" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                </form>
               </td>
             </tr>
           <?php endforeach; endif; ?>

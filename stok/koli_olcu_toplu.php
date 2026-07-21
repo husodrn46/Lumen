@@ -4,6 +4,12 @@ declare(strict_types=1);
 include_once(__DIR__ . "/../ayr.php");
 include(__DIR__ . "/../kontrol.php");
 
+// Stok yonetimi yetkisi (M15) — ekran urun adi ve koli olculerini degistirir.
+if ((int) m_p_yetki($terminalkullanici, 'M15') !== 1) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 // Sayfalama
 $sayfa = isset($_GET['sayfa']) ? max(1, (int)$_GET['sayfa']) : 1;
 $limit = 50;
@@ -642,6 +648,9 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+    // CSRF token — koli_olcu_kaydet.php JSON govdesinde bekliyor.
+    const KOLI_CSRF = <?php echo json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+
     function markModified(input) {
         const row = input.closest('tr');
         const id = input.dataset.id;
@@ -736,6 +745,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
         try {
+            data.csrf_token = KOLI_CSRF;
             const response = await fetch('koli_olcu_kaydet.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

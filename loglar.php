@@ -101,7 +101,7 @@ if (!function_exists('canli_sayfa_adi')) {
             'gorevler.php' => 'Gorevler', 'gorev/gorevler.php' => 'Gorevler', 'yeni_dizayn.php' => 'Fis Dizayni', 'yazdir/yeni_dizayn.php' => 'Fis Dizayni',
             'cari/lg_fatura_yazdir.php' => 'Fatura Yazdir', 'stok/stok_hareket_excel.php' => 'Stok Excel',
             'stok/uretim_giris.php' => 'Uretim Girisi', 'stok/index.php' => 'Stoklar',
-            'ai_siparis_beta.php' => 'AI Siparis', 'index.php' => 'Ana Sayfa',
+            'index.php' => 'Ana Sayfa',
             'siparis/lg_geridonusum.php' => 'Sil (Geri Donusum)', 'bildirimler.php' => 'Musteri Talepleri',
             'bildirim_detay.php' => 'Talep Detayi', 'siparis/bekleyen_siparis.php' => 'Bekleyen Urunler',
             'fiyat/fiyat_listesi.php' => 'Fiyat Listesi', 'rapor/gunluk_islemler.php' => 'Gunluk Islemler',
@@ -757,7 +757,8 @@ if ($activeTab === 'cihaz') {
         $czGirisler = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($czGirisler as $g) {
-            // Kullanıcı adını normalize et: "HUSEYIN" / "Huseyin" / "Hüseyin" tek kullanıcı sayılsın
+            // Kullanıcı adını normalize et: büyük/küçük harf ve Türkçe karakter
+            // farkları ("AYSE" / "Ayse" / "Ayşe") tek kullanıcı sayılsın
             $ka = function_exists('turkce') ? strtoupper(turkce((string) $g['KULLANICI_ADI'])) : strtoupper((string) $g['KULLANICI_ADI']);
             $id = (int) $g['KULLANICI_ID'];
             $ip = (string) ($g['IP_ADRESI'] ?? '');

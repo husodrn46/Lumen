@@ -1,1 +1,54 @@
-﻿
+# ============================================================================
+#  Lumen — Apache güvenlik yapılandırması (kök dizin)
+# ============================================================================
+#  IIS kullanıyorsanız karşılığı web.config dosyasındadır; bu dosya Apache
+#  (XAMPP / cPanel / Plesk) ve Apache uyumlu kurulumlar içindir.
+#
+#  ÖNEMLİ: Bu kurallar .env ve _baglanti_.inc gibi VERİTABANI PAROLASI içeren
+#  dosyaların tarayıcıdan indirilmesini engeller. Kaldırmayın.
+#
+#  nginx kullanıyorsanız README'deki "Güvenlik" bölümündeki location
+#  bloklarını sunucu yapılandırmanıza ekleyin — nginx .htaccess okumaz.
+# ============================================================================
+
+# --- Dizin listelemeyi kapat -------------------------------------------------
+Options -Indexes
+
+# --- Gizli dosyalar (.env, .git, .user.ini, .htaccess ...) -------------------
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# --- Hassas uzantılar --------------------------------------------------------
+#  .inc  : _baglanti_.inc / _bilgi_.inc — bağlantı ve ayar dosyaları
+#  .ini  : .user.ini ve PHP yapılandırmaları
+#  .sql  : şema betikleri (tablo yapısını ifşa eder)
+#  .log  : uygulama logları
+#  .bak / .old / .orig / .example : yedek ve örnek dosyalar
+<FilesMatch "\.(inc|ini|sql|log|bak|old|orig|example)$">
+    Require all denied
+</FilesMatch>
+
+# --- Hassas dizinler ---------------------------------------------------------
+#  Apache 2.4: RedirectMatch, mod_rewrite olmadan da çalışır.
+RedirectMatch 404 (?i)/\.git(/|$)
+RedirectMatch 404 (?i)/\.claude(/|$)
+RedirectMatch 404 (?i)/logs?(/|$)
+RedirectMatch 404 (?i)/tmp(/|$)
+RedirectMatch 404 (?i)/sql(/|$)
+RedirectMatch 404 (?i)/vendor(/|$)
+RedirectMatch 404 (?i)/scripts(/|$)
+
+# --- Güvenlik başlıkları -----------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# --- Authorization header'ını PHP'ye aktar (Bearer token) --------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP:Authorization} ^(.+)$
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+</IfModule>

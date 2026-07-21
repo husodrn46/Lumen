@@ -18,7 +18,7 @@
 
 **Lumen** is a modern, mobile-friendly web front-end for businesses running **LOGO Tiger ERP**. It runs on top of your existing LOGO SQL Server database and provides a fast sales-terminal experience — order entry, customer/stock lookup, balances, cheques, multi-currency and reporting — in Turkish, on any device.
 
-Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source under the **MIT** license. First-time setup is a browser wizard (`/kurulum.php`). Ships with a synthetic demo so you can try it without touching production data.
+Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source under the **MIT** license. First-time setup is a browser wizard (`/kurulum.php`), which also creates the tables Lumen needs from the scripts in `sql/`. You can build a synthetic demo database from those same scripts to try it without touching production data.
 
 **Used in production** at [AKEL Melamin](https://github.com/akel-melamin) — a Turkish melamine tableware manufacturer — for daily order entry, stock lookup and collections on a live LOGO Tiger installation. This repository is the de-branded, configurable open-source edition of that same codebase.
 
@@ -125,6 +125,28 @@ Ayarlar → **Marka / Logo** ekranından kendi yatay logonuzu ve uygulama ikonun
 - Tüm sorgular PDO prepared statement; çıktıda `htmlspecialchars`
 - Oturum sabitleme koruması, HttpOnly + SameSite=Strict çerezler
 - Gizli bilgiler `.env` / `_baglanti_.inc` içinde tutulur ve `.gitignore` ile korunur
+
+### Sunucu yapılandırması (önemli)
+
+`.env` ve `_baglanti_.inc` **veritabanı parolanızı** içerir; web sunucusunun bu
+dosyaları servis etmemesi gerekir. Depodaki hazır yapılandırmalar:
+
+| Sunucu | Dosya | Durum |
+|---|---|---|
+| Apache | `.htaccess` | Depoda hazır gelir |
+| IIS | `web.config` | Depoda hazır gelir |
+| nginx | — | **Kendiniz eklemelisiniz** (nginx `.htaccess` okumaz) |
+
+nginx kullanıyorsanız `server { … }` bloğunuza şunu ekleyin:
+
+```nginx
+location ~ /\.            { deny all; }          # .env, .git, .user.ini …
+location ~* \.(inc|ini|sql|log|bak|example)$ { deny all; }
+location ~ ^/(logs|tmp|sql|vendor|scripts)/   { deny all; }
+```
+
+Kurulumdan sonra `https://siteniz/.env` adresini tarayıcıda deneyin —
+**403/404 dönmeli**, dosya içeriği görünmemelidir.
 
 Güvenlik açığı bildirmek için lütfen bir **issue** açın (hassas konularda ayrıntıyı özel paylaşın).
 

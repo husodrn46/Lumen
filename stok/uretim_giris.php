@@ -2363,8 +2363,8 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
                         if (stokInput) stokInput.value = item.code || '';
                         if (barkodHidden) barkodHidden.value = '';
                         if (urunBilgisi) {
-                            urunBilgisi.innerHTML = '<strong>Kod:</strong> ' + (item.code || '') +
-                                '<br><strong>Ad:</strong> ' + (item.name || '') +
+                            urunBilgisi.innerHTML = '<strong>Kod:</strong> ' + escapeHtml(item.code || '') +
+                                '<br><strong>Ad:</strong> ' + escapeHtml(item.name || '') +
                                 '<br><strong>Koli içi:</strong> ' + parseFloat(item.koli_adet || 0).toLocaleString('tr-TR', {minimumFractionDigits: 0, maximumFractionDigits: 3});
                         }
                         if (koliInfo) {
@@ -2502,8 +2502,8 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
                         var koliInfo = document.getElementById('koli_info');
                         if (stokRefHidden) stokRefHidden.value = item.logicalref || '';
                         if (urunBilgisi) {
-                            urunBilgisi.innerHTML = '<strong>Kod:</strong> ' + (item.code || '') +
-                                '<br><strong>Ad:</strong> ' + (item.name || '') +
+                            urunBilgisi.innerHTML = '<strong>Kod:</strong> ' + escapeHtml(item.code || '') +
+                                '<br><strong>Ad:</strong> ' + escapeHtml(item.name || '') +
                                 '<br><strong>Koli içi:</strong> ' + parseFloat(item.koli_adet || 0).toLocaleString('tr-TR', {minimumFractionDigits: 0, maximumFractionDigits: 3});
                         }
                         if (koliInfo) {

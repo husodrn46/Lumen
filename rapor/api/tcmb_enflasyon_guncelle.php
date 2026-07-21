@@ -12,6 +12,13 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../ayr.php';
 require_once __DIR__ . '/../../kontrol.php';
 
+// Rapor yetkisi (M17) — dis TCMB cagrisi yapip yerel veritabanina yazar.
+if ((int) m_p_yetki($terminalkullanici, 'M17') !== 1) {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'error' => 'forbidden']);
+    exit;
+}
+
 // SQLite bağlantısı
 $db_path = __DIR__ . '/../../database/enflasyon.db';
 try {

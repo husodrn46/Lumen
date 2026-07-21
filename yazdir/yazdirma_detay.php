@@ -67,9 +67,12 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (PDOException $e) {
+    // Ayrinti yalniz sunucu loguna; kullaniciya jenerik mesaj.
+    error_log('yazdirma_detay: ' . $e->getMessage());
+    http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Veritabanı hatası: ' . $e->getMessage()
+        'message' => 'Kayitlar alinamadi. Lutfen tekrar deneyin.'
     ], JSON_UNESCAPED_UNICODE);
 }
 ?>

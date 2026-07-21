@@ -14,6 +14,20 @@ if (!$input || !isset($input['id'])) {
     exit;
 }
 
+// Stok yonetimi yetkisi (M15): urun adi + koli olculeri guncelleniyor.
+if ((int) m_p_yetki($terminalkullanici, 'M15') !== 1) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Bu islem icin yetkiniz yok']);
+    exit;
+}
+
+// CSRF: istemci token'i JSON govdesinde gonderir.
+if (!csrf_verify((string) ($input['csrf_token'] ?? ''))) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Gecersiz guvenlik dogrulamasi. Sayfayi yenileyin.']);
+    exit;
+}
+
 $id = (int)$input['id'];
 $name = trim($input['name'] ?? '');
 $width = (float)($input['width'] ?? 0);

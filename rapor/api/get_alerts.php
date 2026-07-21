@@ -5,23 +5,37 @@ declare(strict_types=1);
 include_once(__DIR__ . "/../../ayr.php");
 require_once __DIR__ . '/../../kontrol.php';
 header('Content-Type: application/json; charset=utf-8');
-$alerts = [];
 
-// Örnek 1: Kritik Stok Seviyesi (STLINE tablosundaki bir custom alana veya başka bir mantığa göre uyarlanabilir)
-$stmtLowStock = $dbh->prepare("SELECT COUNT(*) FROM LG_001_ITEMS WHERE ACTIVE=0 AND STOCK_LEVEL < MIN_STOCK_LEVEL");
-$stmtLowStock->execute();
-$low_stock_count = (int)$stmtLowStock->fetchColumn();
-if ($low_stock_count > 0) {
-	    $alerts[] = ['type' => 'warning', 'text' => "$low_stock_count ürünün stoğu kritik seviyede.", 'link' => 'rapor_hareketsiz_stok.php'];
+// Rapor yetkisi (M17) — kasa/satis verisi doner.
+if ((int) m_p_yetki($terminalkullanici, 'M17') !== 1) {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'error' => 'forbidden']);
+    exit;
 }
 
-// Örnek 2: Vadesi Geçmiş Faturalar
-$stmtPastDue = $dbh->prepare("SELECT COUNT(*) FROM {$firmadonem}CLFLINE WHERE TRCODE = 1 AND DUEDATE < GETDATE() AND STATUS = 0");
-$stmtPastDue->execute();
-$past_due_count = (int)$stmtPastDue->fetchColumn();
-if ($past_due_count > 0) {
-	    $alerts[] = ['type' => 'danger', 'text' => "$past_due_count faturanın vadesi geçti.", 'link' => '#'];
+/*
+ * DURUM: Bu uç şu an hiçbir uyarı üretmiyor ve kod tabanında çağıran yok.
+ *
+ * İçindeki iki örnek sorgu da LOGO şemasında bulunmayan sütunlara dayanıyordu
+ * ve her istekte hata veriyordu:
+ *   - ITEMS.STOCK_LEVEL / MIN_STOCK_LEVEL  (LOGO'da ürün bazlı minimum stok
+ *     alanı standart değildir; ayrıca firma öneki "LG_001_" olarak sabit
+ *     yazılmıştı, başka firma numarasında zaten çalışmazdı)
+ *   - CLFLINE.DUEDATE                      (vade bilgisi CLFLINE'da tutulmaz)
+ *
+ * Kendi uyarılarınızı eklemek için $alerts dizisine
+ *   ['type' => 'warning'|'danger', 'text' => '...', 'link' => '...']
+ * biçiminde öğe ekleyin. Sorgu hatasının panoyu kırmaması için blok
+ * try/catch içindedir; hata durumunda boş liste döner ve loga yazılır.
+ */
+
+$alerts = [];
+
+try {
+    // Örnek: kendi uyarı sorgularınızı buraya ekleyin.
+} catch (Throwable $e) {
+    error_log('rapor/api/get_alerts: ' . $e->getMessage());
+    $alerts = [];
 }
 
 echo json_encode($alerts, JSON_UNESCAPED_UNICODE);
-?>
