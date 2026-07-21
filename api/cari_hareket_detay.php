@@ -34,6 +34,11 @@ if ($cariId <= 0 || $belgeRef <= 0) {
     api_json(['ok' => false, 'mesaj' => 'Cari ve belge seçimi gerekiyor.'], 400);
 }
 
+// Özel Cari kısıtı (web ../cari/lg_hareket.php ile aynı kural).
+if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $personel, $cariId, 'M4')) {
+    api_json(['ok' => false, 'mesaj' => 'Cari bulunamadi.'], 404);
+}
+
 $prefix = ($donem === 'onceki' && isset($eskifirmadonem) && $eskifirmadonem !== '')
     ? $eskifirmadonem
     : $firmadonem;

@@ -37,6 +37,13 @@ $iskonto2 = max(0.0, min(100.0, siparis_sayi($body['iskonto2'] ?? 0)));
 if ($cariId <= 0) {
     api_json(['ok' => false, 'mesaj' => 'Cari seçimi gerekiyor.'], 400);
 }
+
+// Özel Cari kısıtı: kısıtlı cariye sipariş açılamaz
+// (web ../siparis/fisekle.php ile aynı kural).
+if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $personel, $cariId)) {
+    api_json(['ok' => false, 'mesaj' => 'Cari bulunamadi.'], 404);
+}
+
 if (!$kalemler) {
     api_json(['ok' => false, 'mesaj' => 'En az bir kalem gerekiyor.'], 400);
 }

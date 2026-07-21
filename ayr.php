@@ -1447,8 +1447,8 @@ if (!function_exists('m_p_ozel_cari_tablo_yapilandir')) {
     foreach (m_p_ozel_cari_kisit_yetki_kodlari() as $yetkiKodu) {
       $safeYetkiKodu = str_replace("'", "''", $yetkiKodu);
       $dbh->exec("
-        INSERT INTO {$tableName} (PERSONEL_ID, CARIREF, YETKI_KODU, OLUSTURAN)
-        SELECT S.PERSONEL_ID, S.CARIREF, '{$safeYetkiKodu}', MIN(S.OLUSTURAN)
+        INSERT INTO {$tableName} (PERSONEL_ID, CARIREF, YETKI_KODU, OLUSTURAN, OLUSTURMA_TARIHI)
+        SELECT S.PERSONEL_ID, S.CARIREF, '{$safeYetkiKodu}', MIN(S.OLUSTURAN), GETDATE()
         FROM {$tableName} S
         WHERE NOT EXISTS (
           SELECT 1

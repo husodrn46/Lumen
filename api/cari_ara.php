@@ -14,7 +14,8 @@ include_once(__DIR__ . '/../ayr.php');   // $dbh, $firma, trcevir, m_p_yetki
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma;
-api_oturum_gerekli($dbh);
+$oturum   = api_oturum_gerekli($dbh);
+$personel = (int) $oturum['personel'];
 
 $body  = api_body();
 $query = trim((string) ($body['query'] ?? ($_GET['q'] ?? '')));
@@ -28,6 +29,11 @@ $norm     = api_arama_norm($query);
 $codeNorm = api_sql_norm('C.CODE');
 $defNorm  = api_sql_norm('C.DEFINITION_');
 $cityNorm = api_sql_norm('C.CITY');
+
+// Özel Cari kısıtı: kısıtlı cariler arama sonuçlarında hiç görünmez
+// (web ../cari/cari.php ile aynı kural).
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($personel, 'C.LOGICALREF', 'api_cari_ara');
+$ozelCariSql = ($ozelCariFiltresi['sql'] ?? '') !== '' ? "\n          AND " . $ozelCariFiltresi['sql'] : '';
 
 try {
     $sql = "
@@ -50,11 +56,11 @@ try {
                 {$codeNorm} LIKE :w_code
              OR {$defNorm}  LIKE :w_def
              OR {$cityNorm} LIKE :w_city
-          )
+          ){$ozelCariSql}
         ORDER BY score DESC, C.DEFINITION_ ASC
     ";
     $stmt = $dbh->prepare($sql);
-    $stmt->execute([
+    $stmt->execute(array_merge([
         ':exact_code'  => $norm,
         ':exact_def'   => $norm,
         ':prefix_code' => $norm . '%',
@@ -63,7 +69,7 @@ try {
         ':w_code'      => '%' . $norm . '%',
         ':w_def'       => '%' . $norm . '%',
         ':w_city'      => '%' . $norm . '%',
-    ]);
+    ], $ozelCariFiltresi['params'] ?? []));
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     error_log('api/cari_ara: ' . $e->getMessage());

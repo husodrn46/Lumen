@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * GET/POST /api/siparis_listesi.php
  * Gövde (tüm alanlar opsiyonel):
- *   { "cari_id"?:123, "query"?:"akal", "limit"?:50,
+ *   { "cari_id"?:123, "query"?:"ar", "limit"?:50,
  *     "baslangic"?:"2026-06-01", "bitis"?:"2026-06-30",
  *     "sehir"?:"istanbul",
  *     "durum"?:"all"|"sevk"|"bekleyen"|"taslak",
@@ -44,6 +44,14 @@ $gecerliTarih = static fn(string $d): bool => $d !== '' && (bool) preg_match('/^
 
 $wheres = ['F.TRCODE = 1', 'ISNULL(F.CANCELLED, 0) = 0'];
 $params = [];
+
+// Özel Cari kısıtı: kısıtlı carilerin siparişleri listede hiç görünmez
+// (web ../siparis/lg_tumsiparisler.php ile aynı kural).
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($personel, 'F.CLIENTREF', 'api_siparis_listesi');
+if (($ozelCariFiltresi['sql'] ?? '') !== '') {
+    $wheres[] = $ozelCariFiltresi['sql'];
+    $params = array_merge($params, $ozelCariFiltresi['params']);
+}
 
 if ($cariId > 0) {
     $wheres[] = 'F.CLIENTREF = :cari_id';

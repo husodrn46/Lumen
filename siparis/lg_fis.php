@@ -1661,7 +1661,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                </div>
             </div>
             <div id="ycaHata" class="yca-hata"></div>
-            <p style="font-size:11.5px;color:#9ca3af;margin:0;">Cari kodu otomatik (ANDL serisi) atanır; bu fiş yeni cariye aktarılır.</p>
+            <p style="font-size:11.5px;color:#9ca3af;margin:0;">Cari kodu, ayarlardaki ön eke göre otomatik atanır; bu fiş yeni cariye aktarılır.</p>
          </div>
          <div class="yca-foot">
             <button type="button" onclick="ycaKapat()" class="yca-btn yca-btn-iptal">İptal</button>

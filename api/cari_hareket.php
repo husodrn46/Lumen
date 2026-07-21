@@ -32,6 +32,11 @@ if ($cariId <= 0) {
     api_json(['ok' => false, 'mesaj' => 'Cari seçimi gerekiyor.'], 400);
 }
 
+// Özel Cari kısıtı (web tarafındaki lg_hareket.php ile aynı kural).
+if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $personel, $cariId, 'M4')) {
+    api_json(['ok' => false, 'mesaj' => 'Cari bulunamadi.'], 404);
+}
+
 // Dönem prefixleri (eskifirmadonem yoksa yalnız aktif döneme düş).
 $eski = (isset($eskifirmadonem) && $eskifirmadonem !== '') ? $eskifirmadonem : $firmadonem;
 $prefixler = match ($donem) {

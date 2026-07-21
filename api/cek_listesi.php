@@ -17,7 +17,13 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma, $firmadonem;
-api_oturum_gerekli($dbh);
+$oturum   = api_oturum_gerekli($dbh);
+$personel = (int) $oturum['personel'];
+
+// Çek portföyü: web'deki çek ekranlarıyla aynı kapı (M30).
+if (!api_yetki_var($personel, 'M30')) {
+    api_json(['ok' => false, 'mesaj' => 'Çek işlemleri yetkiniz yok.'], 403);
+}
 
 $body = api_body();
 $tur  = strtolower(trim((string) ($body['tur'] ?? ($_GET['tur'] ?? 'hepsi'))));

@@ -18,7 +18,16 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma, $firmadonem, $firmadonemx;
-api_oturum_gerekli($dbh);
+$oturum   = api_oturum_gerekli($dbh);
+$personel = (int) $oturum['personel'];
+
+// Web ikizi (../rapor/rapor_pazarlamaci_performans.php) M17 + CR1 istiyor.
+if (!api_yetki_var($personel, 'M17')) {
+    api_json(['ok' => false, 'mesaj' => 'Bu rapora erişim yetkiniz yok.'], 403);
+}
+if (!api_yetki_var($personel, 'CR1')) {
+    api_json(['ok' => false, 'mesaj' => 'Cari bakiye görme yetkiniz yok.'], 403);
+}
 
 $body   = api_body();
 $prefix = trim((string) ($body['prefix'] ?? ($_GET['prefix'] ?? '')));

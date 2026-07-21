@@ -3,18 +3,44 @@
 declare(strict_types=1);
 
 /**
- * cari_olustur_lib.php — ANDL serisinde yeni cari olusturma (template-copy).
- * cariyeni.php ve cari_olustur_ve_aktar.php tarafindan paylasilir.
+ * cari_olustur_lib.php — yapilandirilabilir on ekle yeni cari olusturma
+ * (template-copy). On ek _bilgi_.inc'teki $carikoduontaki ayarindan gelir.
  * ayr.php (guid, $dbh) onceden include edilmis olmalidir.
  */
 
+if (!function_exists('cariyeni_onek_temizle')) {
+    /** On eki guvenli karakter kumesine indirger; bossa notr 'C' doner. */
+    function cariyeni_onek_temizle(string $onek): string
+    {
+        $temiz = preg_replace('/[^A-Za-z0-9._-]/', '', $onek) ?? '';
+        return $temiz !== '' ? $temiz : 'C';
+    }
+}
+
+if (!function_exists('cariyeni_onek_like')) {
+    /** On eki T-SQL LIKE deseni icin kacisla ('_' tek karakter joker olmasin). */
+    function cariyeni_onek_like(string $onek): string
+    {
+        return str_replace(['[', '_', '%'], ['[[]', '[_]', '[%]'], $onek);
+    }
+}
+
+if (!function_exists('cariyeni_varsayilan_onek')) {
+    /** Ayarlardan on eki cozer ($carikoduontaki), tanimsizsa 'C'. */
+    function cariyeni_varsayilan_onek(): string
+    {
+        global $carikoduontaki;
+        return cariyeni_onek_temizle((string) ($carikoduontaki ?? ''));
+    }
+}
+
 if (!function_exists('cariyeni_sonraki_kod')) {
     /**
-     * Siradaki ANDL kodu uret: ANDL0001 formatinda, mevcut en buyukten +1.
+     * Siradaki cari kodunu uret: <onek>0001 formatinda, mevcut en buyukten +1.
      */
     function cariyeni_sonraki_kod(PDO $dbh, string $firma, string $onek): string
     {
-        $like = $onek . str_repeat('[0-9]', 4);
+        $like = cariyeni_onek_like($onek) . str_repeat('[0-9]', 4);
         $max = $dbh->query("SELECT MAX(CODE) FROM {$firma}CLCARD WHERE CODE LIKE '{$like}'")->fetchColumn();
         $n = 1;
         if ($max && preg_match('/^' . preg_quote($onek, '/') . '(\d+)$/', (string) $max, $m)) {
@@ -24,15 +50,17 @@ if (!function_exists('cariyeni_sonraki_kod')) {
     }
 }
 
-if (!function_exists('cari_olustur_andl')) {
+if (!function_exists('cari_olustur_yeni')) {
     /**
-     * ANDL serisinde yeni cari olusturur (calisan bir ANDL carisini sablon alip
-     * cari-spesifik alanlari override ederek; LOGO butunlugu korunur).
-     * Kod cakismasinda (2601/2627) 3 kez tekrar dener.
+     * Yapilandirilmis on ekle yeni cari olusturur (ayni on ekle acilmis bir
+     * cariyi sablon alip cari-spesifik alanlari override ederek; LOGO
+     * butunlugu korunur). Kod cakismasinda (2601/2627) 3 kez tekrar dener.
+     *
+     * $onek bos birakilirsa $carikoduontaki ayarindan cozulur.
      *
      * @return array{ok:bool, cariid:int, kod:string, ad:string, mesaj:string}
      */
-    function cari_olustur_andl(
+    function cari_olustur_yeni(
         PDO $dbh,
         string $firma,
         int $kullanici,
@@ -40,8 +68,9 @@ if (!function_exists('cari_olustur_andl')) {
         string $telefon = '',
         string $sehir = '',
         string $ilce = '',
-        string $onek = 'ANDL'
+        string $onek = ''
     ): array {
+        $onek = $onek !== '' ? cariyeni_onek_temizle($onek) : cariyeni_varsayilan_onek();
         $hata = static fn(string $m): array => ['ok' => false, 'cariid' => 0, 'kod' => '', 'ad' => '', 'mesaj' => $m];
 
         $unvan = mb_substr(trim($unvan), 0, 200);
@@ -57,8 +86,10 @@ if (!function_exists('cari_olustur_andl')) {
             $denendi++;
             $yeniKod = cariyeni_sonraki_kod($dbh, $firma, $onek);
             try {
-                // Sablon: calisan en son ANDL cari (tum alanlar = LOGO butunlugu)
-                $ref = $dbh->query("SELECT TOP 1 * FROM {$firma}CLCARD WHERE CODE LIKE '{$onek}%' AND ACTIVE=0 ORDER BY LOGICALREF DESC")->fetch(PDO::FETCH_ASSOC);
+                // Sablon: ayni on ekle acilmis en son cari (tum alanlar = LOGO butunlugu)
+                $sablon = $dbh->prepare("SELECT TOP 1 * FROM {$firma}CLCARD WHERE CODE LIKE :onek AND ACTIVE=0 ORDER BY LOGICALREF DESC");
+                $sablon->execute([':onek' => cariyeni_onek_like($onek) . '%']);
+                $ref = $sablon->fetch(PDO::FETCH_ASSOC);
                 if (!$ref) {
                     $ref = $dbh->query("SELECT TOP 1 * FROM {$firma}CLCARD WHERE ACTIVE=0 ORDER BY LOGICALREF DESC")->fetch(PDO::FETCH_ASSOC);
                 }
@@ -111,10 +142,10 @@ if (!function_exists('cari_olustur_andl')) {
                 if (in_array($kod, [2601, 2627], true) && $denendi < 3) {
                     continue; // kod cakismasi -> yeni kod ile tekrar
                 }
-                error_log('cari_olustur_andl INSERT: ' . $e->getMessage());
+                error_log('cari_olustur_yeni INSERT: ' . $e->getMessage());
                 return $hata('Cari olusturulamadi. Lutfen tekrar deneyin.');
             } catch (Throwable $e) {
-                error_log('cari_olustur_andl: ' . $e->getMessage());
+                error_log('cari_olustur_yeni: ' . $e->getMessage());
                 return $hata('Cari olusturulamadi.');
             }
         }

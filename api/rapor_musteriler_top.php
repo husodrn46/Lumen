@@ -14,7 +14,13 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma, $firmadonem;
-api_oturum_gerekli($dbh);
+$oturum   = api_oturum_gerekli($dbh);
+$personel = (int) $oturum['personel'];
+
+// Web ikizi (../rapor/rapor_musteriler_top.php) M17 istiyor.
+if (!api_yetki_var($personel, 'M17')) {
+    api_json(['ok' => false, 'mesaj' => 'Bu rapora erişim yetkiniz yok.'], 403);
+}
 
 $body  = api_body();
 $year  = (int) ($body['year'] ?? ($_GET['year'] ?? 0));

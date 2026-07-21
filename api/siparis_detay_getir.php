@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * GET/POST /api/siparis_detay_getir.php
- * Gövde: { "order_id":123 }  ·  veya  { "fisno":"AKLSP008745" }
+ * Gövde: { "order_id":123 }  ·  veya  { "fisno":"SIP008745" }
  * Yanıt: { ok, fis:{ id, fisno, tarih, cari_kod, cari_ad, brut, iskonto, kdv, net, iptal }, satirlar:[...], satir_sayisi }
  *
  * Token zorunlu. Bir siparişin başlık + ürün satırlarını (LINETYPE=0) döndürür.
@@ -14,7 +14,8 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma, $firmadonem;
-api_oturum_gerekli($dbh);
+$oturum   = api_oturum_gerekli($dbh);
+$personel = (int) $oturum['personel'];
 
 $body    = api_body();
 $orderId = (int) ($body['order_id'] ?? ($_GET['order_id'] ?? 0));
@@ -28,6 +29,11 @@ try {
         $orderId = (int) ($st->fetchColumn() ?: 0);
     }
     if ($orderId <= 0) {
+        api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı.'], 404);
+    }
+
+    // Özel Cari kısıtı: kısıtlı carinin siparişi görüntülenemez.
+    if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $personel, $orderId)) {
         api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı.'], 404);
     }
 

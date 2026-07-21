@@ -56,7 +56,7 @@ try {
 }
 
 // 1) Yeni cari olustur
-$sonuc = cari_olustur_andl($dbh, $firma, (int) $terminalkullanici, $unvan, $telefon, $sehir, $ilce);
+$sonuc = cari_olustur_yeni($dbh, $firma, (int) $terminalkullanici, $unvan, $telefon, $sehir, $ilce);
 if (!$sonuc['ok']) {
     coa_cik(false, $sonuc['mesaj']);
 }

@@ -7,7 +7,8 @@ declare(strict_types=1);
  * Yanıt: { ok, cari:{...}, bakiye:{...}, son_satislar:[...], acik_siparis:{...} }
  *
  * Token zorunlu. Bakiye tutarı yalnızca CR1 yetkisi olan personele döner
- * (yetki yoksa bakiye.deger=null, metin='Yetki yok').
+ * (yetki yoksa bakiye.deger=null, metin='Yetki yok'). Özel Cari kısıtı olan
+ * cariler kimlik alanları dahil hiç dönmez (web arayüzüyle aynı kural).
  */
 
 include_once(__DIR__ . '/../ayr.php');
@@ -21,6 +22,13 @@ $body   = api_body();
 $cariId = (int) ($body['cari_id'] ?? ($_GET['cari_id'] ?? 0));
 if ($cariId <= 0) {
     api_json(['ok' => false, 'mesaj' => 'Cari secimi gerekiyor.'], 400);
+}
+
+// Özel Cari kısıtı: kısıtlı cari için kimlik alanları da dönmemeli.
+// (Aksi halde cari_id sayarak tüm müşteri listesi çıkarılabilir.)
+// Kapsam 'M4': bakiye/ekstre ekranlarıyla (../cari/lg_hareket.php) aynı sıkılık.
+if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $personel, $cariId, 'M4')) {
+    api_json(['ok' => false, 'mesaj' => 'Cari bulunamadi.'], 404);
 }
 
 $bakiyeYetki = api_yetki_var($personel, 'CR1');

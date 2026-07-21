@@ -12,7 +12,13 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma, $firmadonem;
-api_oturum_gerekli($dbh);
+$oturum   = api_oturum_gerekli($dbh);
+$personel = (int) $oturum['personel'];
+
+// Web ikizi (../rapor/rapor_cek_hesap.php) M17 istiyor.
+if (!api_yetki_var($personel, 'M17')) {
+    api_json(['ok' => false, 'mesaj' => 'Bu rapora erişim yetkiniz yok.'], 403);
+}
 
 $body = api_body();
 $gun  = max(1, min(180, (int) ($body['gun'] ?? ($_GET['gun'] ?? 30))));

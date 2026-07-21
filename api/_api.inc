@@ -86,8 +86,10 @@ function api_token_olustur(PDO $dbh, int $personel, string $kullaniciAdi): strin
 {
     api_ensure_token_table($dbh);
     $token = bin2hex(random_bytes(32));
-    $stmt = $dbh->prepare("INSERT INTO M_API_TOKEN (TOKEN, PERSONEL, KULLANICI_ADI, IP)
-                           VALUES (:t, :p, :k, :ip)");
+    // OLUSTURMA/AKTIF acikca yazilir: tablo eski bir surumden gelip DEFAULT
+    // tanimi tasimiyorsa da (NOT NULL) insert basarisiz olmasin.
+    $stmt = $dbh->prepare("INSERT INTO M_API_TOKEN (TOKEN, PERSONEL, KULLANICI_ADI, IP, OLUSTURMA, AKTIF)
+                           VALUES (:t, :p, :k, :ip, GETDATE(), 1)");
     $stmt->execute([
         ':t' => $token,
         ':p' => $personel,

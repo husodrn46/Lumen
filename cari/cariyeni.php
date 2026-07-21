@@ -14,16 +14,33 @@ if (m_p_yetki($terminalkullanici, 'M12') != 1) {
 // Ozellik kapali mi? (_bilgi_.inc $yenicariac)
 $yeniCariAcik = !isset($yenicariac) || (string) $yenicariac === '1';
 
-$onek = isset($carikoduontaki) && (string) $carikoduontaki !== '' ? (string) $carikoduontaki : 'ANDL';
-// Kullanici ANDL onekiyle gidiyor; _bilgi_.inc 'c-' olsa bile cari kodlari ANDL
-$onek = 'ANDL';
+// Cari kodu on eki _bilgi_.inc'ten gelir ($carikoduontaki), Sistem Ayarlari'ndan
+// duzenlenebilir. Tanimsizsa notr 'C' kullanilir.
+$onek = cariyeni_onek_temizle((string) ($carikoduontaki ?? ''));
 
 /**
- * Siradaki ANDL kodu uret: ANDL0001 formatinda, mevcut en buyukten +1.
+ * On eki guvenli karakter kumesine indirger (SQL LIKE deseni olarak gomulecek).
+ */
+function cariyeni_onek_temizle(string $onek): string
+{
+    $temiz = preg_replace('/[^A-Za-z0-9._-]/', '', $onek) ?? '';
+    return $temiz !== '' ? $temiz : 'C';
+}
+
+/**
+ * On eki T-SQL LIKE deseni icin kacisla ('_' tek karakter joker olmasin).
+ */
+function cariyeni_onek_like(string $onek): string
+{
+    return str_replace(['[', '_', '%'], ['[[]', '[_]', '[%]'], $onek);
+}
+
+/**
+ * Siradaki cari kodunu uret: <onek>0001 formatinda, mevcut en buyukten +1.
  */
 function cariyeni_sonraki_kod(PDO $dbh, string $firma, string $onek): string
 {
-    $like = $onek . str_repeat('[0-9]', 4);
+    $like = cariyeni_onek_like($onek) . str_repeat('[0-9]', 4);
     $max = $dbh->query("SELECT MAX(CODE) FROM {$firma}CLCARD WHERE CODE LIKE '{$like}'")->fetchColumn();
     $n = 1;
     if ($max && preg_match('/^' . preg_quote($onek, '/') . '(\d+)$/', (string) $max, $m)) {
@@ -66,8 +83,11 @@ if ($yeniCariAcik && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cari
             $denendi++;
             $yeniKod = cariyeni_sonraki_kod($dbh, $firma, $onek);
             try {
-                // Sablon: calisan en son ANDL cari (LOGO butunlugu icin tum alanlar)
-                $ref = $dbh->query("SELECT TOP 1 * FROM {$firma}CLCARD WHERE CODE LIKE 'ANDL%' AND ACTIVE=0 ORDER BY LOGICALREF DESC")->fetch(PDO::FETCH_ASSOC);
+                // Sablon: ayni on ekle acilmis en son cari (LOGO butunlugu icin tum alanlar)
+                $onekLike = cariyeni_onek_like($onek) . '%';
+                $sablon = $dbh->prepare("SELECT TOP 1 * FROM {$firma}CLCARD WHERE CODE LIKE :onek AND ACTIVE=0 ORDER BY LOGICALREF DESC");
+                $sablon->execute([':onek' => $onekLike]);
+                $ref = $sablon->fetch(PDO::FETCH_ASSOC);
                 if (!$ref) {
                     // Sablon yoksa herhangi bir aktif cari
                     $ref = $dbh->query("SELECT TOP 1 * FROM {$firma}CLCARD WHERE ACTIVE=0 ORDER BY LOGICALREF DESC")->fetch(PDO::FETCH_ASSOC);
