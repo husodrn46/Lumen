@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/log_ip.php");
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 // YETKI KONTROLÜ: CR1 (Cari Bakiye) yetkisi kontrolü
 if (m_p_yetki($terminalkullanici, 'CR1') != 1) {

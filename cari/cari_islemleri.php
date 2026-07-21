@@ -9,10 +9,10 @@ declare(strict_types=1);
  * Erişim: M30 (Çek İşlemleri) yetkisi (fail-closed; yönetici otomatik alır).
  */
 
-include_once(__DIR__ . '/ayr.php');
-include_once(__DIR__ . '/kontrol.php');
-include_once(__DIR__ . '/donem_helper.php');
-include_once(__DIR__ . '/log_ip.php');
+include_once(__DIR__ . '/../ayr.php');
+include_once(__DIR__ . '/../kontrol.php');
+include_once(__DIR__ . '/../donem_helper.php');
+include_once(__DIR__ . '/../log_ip.php');
 
 global $dbh, $firma, $firmadonem, $terminalkullanici, $yetkidurum;
 $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
@@ -48,7 +48,7 @@ if ($erisim && $cariRef > 0) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cari İşlemleri</title>
     <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once(__DIR__ . '/pwa-header.php'); } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -145,7 +145,7 @@ if ($erisim && $cariRef > 0) {
         <div class="bolum-h"><i class="fa-solid fa-money-check-dollar"></i> Çek İşlemleri</div>
         <div class="aksiyonlar">
             <?php if ($cekGirisOk): ?>
-            <a class="aksiyon" href="cek/cek_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
+            <a class="aksiyon" href="../cek/cek_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
                 <span class="ico giris"><i class="fa-solid fa-arrow-down-long"></i></span>
                 <span class="metin">
                     <span class="baslik">Çek Girişi</span>
@@ -155,7 +155,7 @@ if ($erisim && $cariRef > 0) {
             </a>
             <?php endif; ?>
             <?php if ($cekCikisOk): ?>
-            <a class="aksiyon" href="cek/cek_ciro_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
+            <a class="aksiyon" href="../cek/cek_ciro_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
                 <span class="ico cikis"><i class="fa-solid fa-share-from-square"></i></span>
                 <span class="metin">
                     <span class="baslik">Çek Çıkışı / Ciro</span>
@@ -163,7 +163,7 @@ if ($erisim && $cariRef > 0) {
                 </span>
                 <i class="fa-solid fa-chevron-right ok"></i>
             </a>
-            <a class="aksiyon" href="cek/cek_kendi_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
+            <a class="aksiyon" href="../cek/cek_kendi_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
                 <span class="ico cikis"><i class="fa-solid fa-money-check"></i></span>
                 <span class="metin">
                     <span class="baslik">Kendi Çekimiz</span>

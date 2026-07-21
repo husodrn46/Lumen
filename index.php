@@ -135,11 +135,11 @@ if ($kasa_ozet_yetki && $magaza_cari > 0) {
 }
 
 $menu_items = [
-    ['M1', 'Yeni Sipariş', 'fa-cart-plus', 'cari.php', 'theme-red'],
+    ['M1', 'Yeni Sipariş', 'fa-cart-plus', 'cari/cari.php', 'theme-red'],
     ['M2', 'Siparişler', 'fa-list-check', 'siparis/lg_essiparis.php', 'theme-red'],
     ['M21', 'Döviz İşlemleri', 'fa-dollar-sign', 'doviz/index.php', 'theme-emerald'],
     ['M3', 'Mağaza Satış', 'fa-store', 'siparis/fisekle.php?cariid=' . $magaza_cari . '&stokhareket=0', 'theme-red'],
-    ['M4', 'Müşteri Bakiye', 'fa-wallet', 'lg_bakiye.php', 'theme-emerald'],
+    ['M4', 'Müşteri Bakiye', 'fa-wallet', 'cari/lg_bakiye.php', 'theme-emerald'],
     ['M5', 'Tüm Siparişler', 'fa-box-archive', 'siparis/lg_tumsiparisler.php', 'theme-red'],
     ['M6', 'Barkodlar', 'fa-barcode', 'barkod/barkodlar.php', 'theme-amber'],
     ['M7', 'Stok Ara', 'fa-search', 'stok_tara.php', 'theme-amber'],
@@ -168,7 +168,7 @@ $themeMap = [
 
 $visible_menu_items = [];
 foreach ($menu_items as $item) {
-    if ((string) $item[3] === 'lg_bakiye.php') {
+    if ((string) $item[3] === 'cari/lg_bakiye.php') {
         $menuVisible = m_p_bakiye_erisim_var_mi($terminalkullanici);
     } elseif ((string) $item[3] === 'siparis/lg_tumsiparisler.php') {
         // "Tüm Siparişler" artık "Siparişler" ekranındaki sekme şeridinden açılır.

@@ -589,17 +589,17 @@ $testModulHaritasi = [
     'M4' => [
         'baslik' => 'Bakiye Modulu',
         'sayfalar' => [
-            ['ad' => 'lg_bakiye.php', 'tur' => 'SQL Filtre', 'aciklama' => 'Bakiye arama listesinde gizlenir'],
-            ['ad' => 'lg_bakiyex.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Detay sayfasinda erisim engellenir'],
-            ['ad' => 'lg_hareket.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Hareket gecmisi engellenir'],
-            ['ad' => 'lg_nakit.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Nakit islem sayfasinda engellenir'],
-            ['ad' => 'lg_nakit_2025.php', 'tur' => 'Tek Kayit', 'aciklama' => '2025 nakit sayfasinda engellenir'],
+            ['ad' => '../cari/lg_bakiye.php', 'tur' => 'SQL Filtre', 'aciklama' => 'Bakiye arama listesinde gizlenir'],
+            ['ad' => '../cari/lg_bakiyex.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Detay sayfasinda erisim engellenir'],
+            ['ad' => '../cari/lg_hareket.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Hareket gecmisi engellenir'],
+            ['ad' => '../cari/lg_nakit.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Nakit islem sayfasinda engellenir'],
+            ['ad' => '../cari/lg_nakit_2025.php', 'tur' => 'Tek Kayit', 'aciklama' => '2025 nakit sayfasinda engellenir'],
         ],
     ],
     'M19' => [
         'baslik' => 'Siparis / Cari Modulu',
         'sayfalar' => [
-            ['ad' => 'cari.php', 'tur' => 'SQL Filtre', 'aciklama' => 'Cari listesinde gizlenir'],
+            ['ad' => '../cari/cari.php', 'tur' => 'SQL Filtre', 'aciklama' => 'Cari listesinde gizlenir'],
             ['ad' => '../siparis/lg_essiparis.php', 'tur' => 'SQL Filtre', 'aciklama' => 'Siparis listesinde gizlenir'],
             ['ad' => '../siparis/lg_tumsiparisler.php', 'tur' => 'SQL Filtre', 'aciklama' => 'Tum siparisler listesinde gizlenir'],
             ['ad' => '../siparis/lg_fis.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Siparis fisi acilirken engellenir'],

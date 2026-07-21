@@ -137,7 +137,7 @@ $csrf = function_exists('csrf_token') ? csrf_token() : '';
 <body>
     <header class="top">
         <div class="top-in">
-            <a href="<?php echo $cariRef > 0 ? 'cari_islemleri.php?cari=' . $cariRef : APP_ROOT_URL . '/index.php'; ?>" class="geri" title="<?php echo $cariRef > 0 ? 'Cari işlemlerine dön' : 'Ana sayfa'; ?>"><i class="fa fa-arrow-left"></i></a>
+            <a href="<?php echo $cariRef > 0 ? '../cari/cari_islemleri.php?cari=' . $cariRef : APP_ROOT_URL . '/index.php'; ?>" class="geri" title="<?php echo $cariRef > 0 ? 'Cari işlemlerine dön' : 'Ana sayfa'; ?>"><i class="fa fa-arrow-left"></i></a>
             <span class="top-title"><i class="fa-solid fa-share-from-square"></i> Çek Çıkışı / Ciro</span>
         </div>
     </header>

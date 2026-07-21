@@ -36,7 +36,7 @@ const GOREV_HAR_EK       = 4;
 
 if (!function_exists('gorev_durum_bilgi')) {
     /**
-     * Durum kodundan etiket + renk + ikon dondurur (cari.php paletiyle uyumlu).
+     * Durum kodundan etiket + renk + ikon dondurur (../cari/cari.php paletiyle uyumlu).
      */
     function gorev_durum_bilgi(int $durum): array
     {

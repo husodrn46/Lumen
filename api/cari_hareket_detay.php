@@ -9,7 +9,7 @@ declare(strict_types=1);
  *
  * Token + CR1 yetkisi. Bir cari hareketinin bağlı olduğu faturanın (INVOICE.LOGICALREF =
  * belge_ref) ürün satırlarını (STLINE LINETYPE=0) döner — "fiş ayrıntıları" drill-down.
- * INVOICE.CLIENTREF doğrulanır (başka cariye ait fatura getirilemez). lg_hareketdetay.php kalıbı.
+ * INVOICE.CLIENTREF doğrulanır (başka cariye ait fatura getirilemez). ../cari/lg_hareketdetay.php kalıbı.
  */
 
 include_once(__DIR__ . '/../ayr.php');

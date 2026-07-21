@@ -1,8 +1,8 @@
 <?php declare(strict_types=1); ?>
 <?php
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/log_ip.php");
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 // Dönem kontrolü - 2025 dönemi için eski tabloları kullan
 $donemParam = isset($_GET['donem']) ? $_GET['donem'] : '';

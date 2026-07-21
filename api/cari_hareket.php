@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Gövde: { "cari_id":123, "donem"?: "aktif" | "onceki" | "tumu" }
  * Yanıt: { ok, bakiye:{...}, ozet:{toplam_giris, toplam_cikis}, baslangic:{...}, hareketler:[...] }
  *
- * Cari hesap ekstresi (CLFLINE borç/alacak hareketleri + yürüyen bakiye). lg_hareket.php
+ * Cari hesap ekstresi (CLFLINE borç/alacak hareketleri + yürüyen bakiye). ../cari/lg_hareket.php
  * mantığıyla birebir: resmi bakiye GNTOTCL'den; başlangıç = resmi − gösterilen hareket neti.
  * Token + CR1 (cari finansal) yetkisi zorunlu. Salt-okuma.
  */
@@ -40,7 +40,7 @@ $prefixler = match ($donem) {
     default  => [$firmadonem],
 };
 
-// İşlem türü (lg_hareket.php ile birebir TRCODE eşlemesi).
+// İşlem türü (../cari/lg_hareket.php ile birebir TRCODE eşlemesi).
 $trcase = "CASE H.TRCODE
     WHEN 1 THEN 'Nakit Tahsilat' WHEN 2 THEN 'Nakit Ödeme' WHEN 3 THEN 'Borç Dekontu' WHEN 4 THEN 'Alacak Dekontu' WHEN 5 THEN 'Virman Fişi'
     WHEN 6 THEN 'Kur Farkı Fişi' WHEN 12 THEN 'Özel Fiş' WHEN 14 THEN 'Açılış Fişi' WHEN 20 THEN 'Gelen Havale' WHEN 21 THEN 'Gönderilen Havale'
@@ -57,7 +57,7 @@ $trcase = "CASE H.TRCODE
     ELSE 'Diğer' END";
 
 try {
-    // Resmi bakiye (GNTOTCL — lg_bakiye.php ile aynı kaynak).
+    // Resmi bakiye (GNTOTCL — ../cari/lg_bakiye.php ile aynı kaynak).
     $st = $dbh->prepare("SELECT (ISNULL(G.DEBIT,0) - ISNULL(G.CREDIT,0)) AS BAK
                          FROM {$firmadonemx}GNTOTCL G WITH(NOLOCK)
                          WHERE G.CARDREF = :c AND G.TOTTYP = 1");
@@ -101,7 +101,7 @@ foreach ($rows as $r) {
 }
 $baslangic = round($resmi - ($toplamBorc - $toplamAlacak), 2);
 
-// Yürüyen bakiye (lg_hareket.php: borç +, alacak −).
+// Yürüyen bakiye (../cari/lg_hareket.php: borç +, alacak −).
 $bak = $baslangic;
 $hareketler = [];
 foreach ($rows as $r) {

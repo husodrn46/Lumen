@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/log_ip.php");
-include_once(__DIR__ . "/ayr.php"); // $dbh, $firma, $firmadonem, tarihcevir()
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../log_ip.php");
+include_once(__DIR__ . "/../ayr.php"); // $dbh, $firma, $firmadonem, tarihcevir()
 
 // Dönem kontrolü (2025 dönemi için eski tabloları kullan)
 $donemParam = isset($_GET['donem']) ? $_GET['donem'] : '';
@@ -136,7 +136,7 @@ if ($kasa) {
     <title><?php echo htmlspecialchars($trtext); ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

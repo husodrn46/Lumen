@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
-include_once __DIR__ . "/ayr.php";                       // DB bağlantısı
+require_once __DIR__ . '/../kontrol.php';
+include_once __DIR__ . "/../ayr.php";                       // DB bağlantısı
 header('Content-Type: application/json; charset=utf-8');
 
 /* -------------------------------------------------------

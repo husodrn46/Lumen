@@ -174,7 +174,7 @@ function paraformat(float|int|string|null $kusurat): string
             <span class="donem-badge">2025 Dönemi</span>
         </div>
         <div class="topbar-actions">
-            <a href="../lg_hareket.php?cariid=<?php echo (int)$CARIID; ?>" class="btn back">← Geri Dön</a>
+            <a href="../cari/lg_hareket.php?cariid=<?php echo (int)$CARIID; ?>" class="btn back">← Geri Dön</a>
             <button class="btn" onclick="window.print()">PDF Olarak Kaydet</button>
         </div>
     </div>

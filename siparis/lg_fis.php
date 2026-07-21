@@ -1706,7 +1706,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
             fd.append('sehir', document.getElementById('ycaSehir').value.trim());
             fd.append('ilce', document.getElementById('ycaIlce').value.trim());
             fd.append('csrf_token', YCA_CSRF);
-            fetch('../cari_olustur_ve_aktar.php', { method:'POST', body:fd, credentials:'same-origin' })
+            fetch('../cari/cari_olustur_ve_aktar.php', { method:'POST', body:fd, credentials:'same-origin' })
                .then(function(r){ return r.json(); })
                .then(function(j){
                   if(j.ok){ location.reload(); }

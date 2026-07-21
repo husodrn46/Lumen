@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-require_once(__DIR__ . "/kontrol.php");
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+require_once(__DIR__ . "/../kontrol.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 // YETKI: M12 (Yeni Cari) yetkisi olan personel cari acabilir
 if (m_p_yetki($terminalkullanici, 'M12') != 1) {
@@ -153,7 +153,7 @@ $csrf = function_exists('csrf_field') ? csrf_field() : '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yeni Cari</title>
     <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -223,7 +223,7 @@ $csrf = function_exists('csrf_field') ? csrf_field() : '';
                     <div class="kod"><?php echo htmlspecialchars($olusanCariKod, ENT_QUOTES, 'UTF-8'); ?></div>
                 </div>
                 <div class="success-actions">
-                    <a class="act act-red" href="siparis/fisekle.php?cariid=<?php echo (int) $olusanCariId; ?>&stokhareket=0"><i class="fa-solid fa-cart-plus"></i> Bu cariye siparis ver</a>
+                    <a class="act act-red" href="../siparis/fisekle.php?cariid=<?php echo (int) $olusanCariId; ?>&stokhareket=0"><i class="fa-solid fa-cart-plus"></i> Bu cariye siparis ver</a>
                     <a class="act act-light" href="cariyeni.php"><i class="fa-solid fa-user-plus"></i> Yeni cari ekle</a>
                     <a class="act act-light" href="cari.php?q=<?php echo rawurlencode($olusanCariKod); ?>"><i class="fa-solid fa-list"></i> Cari listesinde gor</a>
                 </div>

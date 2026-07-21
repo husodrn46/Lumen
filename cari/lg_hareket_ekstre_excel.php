@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 ob_start();
 
-require_once __DIR__ . '/kontrol.php';
-include_once __DIR__ . '/ayr.php';
-include_once __DIR__ . '/log_ip.php';
+require_once __DIR__ . '/../kontrol.php';
+include_once __DIR__ . '/../ayr.php';
+include_once __DIR__ . '/../log_ip.php';
 
 require __DIR__ . '/vendor/autoload.php';
 

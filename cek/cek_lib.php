@@ -14,7 +14,7 @@ declare(strict_types=1);
  *
  * KRİTİK (adversarial doğrulandı, [[akl-logo-cek-mekanigi]]):
  *  - Cari ayak MODULENR=6/TRCODE=61 (MODULENR=4/TRCODE=31 DEĞİL — o manuel dekont modülü).
- *  - CLFLINE.SOURCEFREF → CSROLL (CSTRANS değil; LOGICALREF çakışır). Okuma tarafı (lg_hareket.php)
+ *  - CLFLINE.SOURCEFREF → CSROLL (CSTRANS değil; LOGICALREF çakışır). Okuma tarafı (../cari/lg_hareket.php)
  *    bordro yolunu bekler → yazma böyle olmalı.
  *  - CLFLINE'da 3 trigger var → OUTPUT INSERTED.LOGICALREF ile kesin kimlik (klon tekniği).
  *    CSCARD/CSROLL/CSTRANS'ta trigger yok ama tutarlılık için hepsinde aynı desen.

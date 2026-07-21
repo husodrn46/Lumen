@@ -44,7 +44,7 @@ if (!function_exists('kurulum_eksik_adimlar')) {
             ['anahtar' => 'firma', 'baslik' => 'Firma adınızı girin', 'aciklama' => 'Raporlarda ve sayfa başlıklarında görünür.', 'ikon' => 'fa-building', 'link' => 'ayar/sistem_ayarlari.php', 'tamam' => $firmaTamam, 'ops' => false],
             ['anahtar' => 'logo', 'baslik' => 'Kendi logonuzu yükleyin', 'aciklama' => 'Giriş ekranı ve üst menüde görünür.', 'ikon' => 'fa-image', 'link' => 'ayar/marka.php', 'tamam' => $logoTamam, 'ops' => false],
             ['anahtar' => 'yazici', 'baslik' => 'Fiş yazıcısını tanımlayın', 'aciklama' => 'Fiş/etiket çıktısı için (opsiyonel).', 'ikon' => 'fa-print', 'link' => 'ayar/sistem_ayarlari.php', 'tamam' => $yaziciTamam, 'ops' => true],
-            ['anahtar' => 'siparis', 'baslik' => 'İlk siparişinizi oluşturun', 'aciklama' => 'Bir cari seçip ürün ekleyerek deneyin.', 'ikon' => 'fa-cart-plus', 'link' => 'cari.php', 'tamam' => $siparisTamam, 'ops' => false],
+            ['anahtar' => 'siparis', 'baslik' => 'İlk siparişinizi oluşturun', 'aciklama' => 'Bir cari seçip ürün ekleyerek deneyin.', 'ikon' => 'fa-cart-plus', 'link' => '../cari/cari.php', 'tamam' => $siparisTamam, 'ops' => false],
         ];
     }
 }

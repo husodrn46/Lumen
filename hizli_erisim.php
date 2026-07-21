@@ -736,7 +736,7 @@ function paraYaz(float|int|string|null $tutar): string
                                     class="pill pill-red">
                                     <i class="fa-solid fa-check"></i> Bu Cariyi Sec
                                 </a>
-                                <a href="lg_hareket.php?cariid=<?php echo (int)$row['CARIID']; ?>" target="_blank" rel="noopener noreferrer"
+                                <a href="cari/lg_hareket.php?cariid=<?php echo (int)$row['CARIID']; ?>" target="_blank" rel="noopener noreferrer"
                                     class="pill pill-slate">
                                     <i class="fa-solid fa-file-invoice"></i> Ekstre
                                 </a>

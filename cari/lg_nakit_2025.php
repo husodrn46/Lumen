@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/log_ip.php");
-include_once(__DIR__ . "/ayr.php");
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
 
 // 2025 dönemi için eski tabloları kullan
 $firmadonem = $eskifirmadonem;

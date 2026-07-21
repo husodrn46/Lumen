@@ -5,7 +5,7 @@ declare(strict_types=1);
  * fiyat_sec.php — KALDIRILDI (2026-07-13).
  *
  * "Sipariş Seçenekleri" (döviz / fiyat grubu) ara ekranıydı; akış artık
- * bu adımı kullanmıyor: Yeni Sipariş cari.php'den doğrudan siparis/fisekle.php'ye
+ * bu adımı kullanmıyor: Yeni Sipariş cari/cari.php'den doğrudan siparis/fisekle.php'ye
  * gider (TL), dövizli sipariş doviz/ modülünde açılır, fiyat grubu
  * siparis/fisekle.php?fiyat= parametresiyle opsiyonel geçilir.
  *
@@ -23,6 +23,6 @@ $stokhareket = isset($_GET['stokhareket']) ? (int) $_GET['stokhareket'] : 0;
 
 $hedef = $cariid > 0
     ? 'siparis/fisekle.php?cariid=' . $cariid . '&stokhareket=' . $stokhareket
-    : 'cari.php';
+    : 'cari/cari.php';
 header('Location: ' . $hedef, true, 301);
 exit;

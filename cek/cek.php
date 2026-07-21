@@ -343,7 +343,7 @@ if ($mod === 'bordro') {
 
     <header class="top-header">
         <div class="header-inner">
-            <a href="../lg_hareket.php?cariid=<?php echo (int) $CARIID; ?>" class="header-back" title="Geri">
+            <a href="../cari/lg_hareket.php?cariid=<?php echo (int) $CARIID; ?>" class="header-back" title="Geri">
                 <i class="fa fa-arrow-left"></i>
             </a>
             <span class="header-title"><i class="fa-solid fa-money-check-dollar"></i><?php echo $h($sayfaBasligi); ?></span>
