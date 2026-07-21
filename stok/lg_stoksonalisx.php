@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/kontrol.php");
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../kontrol.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 // Input validation ve güvenlik
 if (!isset($_POST['userid'])) {

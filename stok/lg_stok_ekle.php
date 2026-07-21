@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-include_once(__DIR__ . "/ayr.php");
-include(__DIR__ . "/kontrol.php");
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+include(__DIR__ . "/../kontrol.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 // URL parametrelerini session'a aktar ve temiz URL'ye yönlendir
 migrateUrlToSession(['stok', 'fisid', 'return_to']);
@@ -59,7 +59,7 @@ $stokid = getPageParamInt('stok');
 $fisid = getPageParamInt('fisid');
 $lgStokEkleBackUrl = safeLocalReturnUrl(
   getPageParamString('return_to', ''),
-  'siparis/lg_fis.php?stokhareket=' . $fisid
+  '../siparis/lg_fis.php?stokhareket=' . $fisid
 );
 
 if ($stokid > 0 && $fisid > 0) {
@@ -165,7 +165,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Stok Ekle</title>
-  <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+  <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <script src="/tm/js/jquery-3.7.1.min.js"></script>
@@ -1025,7 +1025,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
         <?php }
       } ?>
 
-      <form name="frm" id="frm" method="POST" action="siparis/lg_fis.php?stokhareket=<?php echo $fisid; ?>" onsubmit="return bak()" autocomplete="off">
+      <form name="frm" id="frm" method="POST" action="../siparis/lg_fis.php?stokhareket=<?php echo $fisid; ?>" onsubmit="return bak()" autocomplete="off">
         <?php echo csrf_field(); ?>
         <input type="hidden" name="stkid" id="stkid" value="<?php echo $stokara['URUN ID']; ?>">
         <input type="hidden" name="kontrol" id="kontrol" value="<?php echo uniqid(); ?>" />
@@ -1249,7 +1249,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     </div>
   </div>
 
-    <?php include_once(__DIR__ . '/ux_katman.php'); ?>
+    <?php include_once(__DIR__ . '/../ux_katman.php'); ?>
 </body>
 <script type='text/javascript'>
   // Animation render bug fix

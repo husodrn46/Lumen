@@ -291,7 +291,7 @@ function tema_acilis_hedef(string $key): string
 {
     $harita = [
         'siparisler' => 'siparis/lg_essiparis.php',
-        'stok'       => 'stok_tara.php',
+        'stok'       => 'stok/stok_tara.php',
         'bekleyen'   => 'siparis/bekleyen_siparis.php',
     ];
     return $harita[$key] ?? '';

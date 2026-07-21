@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-include(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include(__DIR__ . "/../kontrol.php");
 
 header('Content-Type: application/json');
 

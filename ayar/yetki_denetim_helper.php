@@ -17,7 +17,7 @@ if (!function_exists('denetimSayfaListesi')) {
             ['kod' => 'M4', 'label' => 'Müşteri Bakiye', 'path' => '../cari/lg_bakiye.php', 'menu' => true, 'allow_codes' => ['M4', 'M20'], 'kod_label' => 'M4/M20'],
             ['kod' => 'M5', 'label' => 'Tüm Siparişler', 'path' => '../siparis/lg_tumsiparisler.php', 'menu' => true],
             ['kod' => 'M6', 'label' => 'Barkodlar', 'path' => 'husodrn46/barkodlar.php', 'menu' => true],
-            ['kod' => 'M7', 'label' => 'Stok Ara', 'path' => 'stok_tara.php', 'menu' => true],
+            ['kod' => 'M7', 'label' => 'Stok Ara', 'path' => '../stok/stok_tara.php', 'menu' => true],
             ['kod' => 'M7', 'label' => 'Fiyat Listesi', 'path' => 'fiyat_listesi.php', 'menu' => true],
             ['kod' => 'M8', 'label' => 'Bekleyen Ürünler', 'path' => '../siparis/bekleyen_siparis.php', 'menu' => true],
             ['kod' => 'M10', 'label' => 'Geri Dönüşüm', 'path' => '../siparis/lg_geridonusum.php', 'menu' => true],

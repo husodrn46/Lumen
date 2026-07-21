@@ -52,9 +52,9 @@ function jsonOut(array $payload, int $statusCode = 200): void
 
 // Include'ların saçacağı her çıktıyı yut
 ob_start();
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/log_ip.php");
-require_once __DIR__ . '/kontrol.php';
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../log_ip.php");
+require_once __DIR__ . '/../kontrol.php';
 $__noise = ob_get_clean();
 // İstersen logla: if ($__noise !== '') error_log("NOISE urun_arama_ajax.php: ".substr($__noise,0,500));
 

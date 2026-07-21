@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-include_once(__DIR__ . "/ayr.php");
-include(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include(__DIR__ . "/../kontrol.php");
 
 // JSON input
 $input = json_decode(file_get_contents('php://input'), true);

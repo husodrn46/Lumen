@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-include_once __DIR__ . "/ayr.php";
-include    __DIR__ . "/kontrol.php";
-include_once __DIR__ . "/log_ip.php";
+include_once __DIR__ . "/../ayr.php";
+include    __DIR__ . "/../kontrol.php";
+include_once __DIR__ . "/../log_ip.php";
 
 // Stok hareket ID kontrolü
 if (!isset($_GET['stokhareket']) || empty($_GET['stokhareket'])) {

@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-include(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include(__DIR__ . "/../kontrol.php");
 
 // Sayfalama
 $sayfa = isset($_GET['sayfa']) ? max(1, (int)$_GET['sayfa']) : 1;
@@ -75,7 +75,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toplu Koli Olcusu Duzenleme</title>
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -493,7 +493,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <header class="top-header">
         <div class="header-inner">
-            <a href="index.php" class="header-back" title="Ana Sayfa">
+            <a href="../index.php" class="header-back" title="Ana Sayfa">
                 <i class="fa fa-arrow-left"></i>
             </a>
             <div class="header-divider"></div>

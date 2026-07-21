@@ -858,7 +858,7 @@ function paraYaz(float|int|string|null $tutar): string
                                             <td class="td-right"><?php echo $brutTutar > 0 ? paraYaz($brutTutar) . ' TL' : ''; ?></td>
                                             <td>
                                                 <div class="row-actions">
-                                                    <a href="stok_hareket_excel_xlsx.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
+                                                    <a href="stok/stok_hareket_excel_xlsx.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
                                                         class="mini-pill tone-emerald">
                                                         <i class="fa-solid fa-file-excel"></i> XLSX
                                                     </a>

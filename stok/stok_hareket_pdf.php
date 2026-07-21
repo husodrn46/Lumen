@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
+require_once __DIR__ . '/../kontrol.php';
 ob_start();
 
-include_once(__DIR__ . "/ayr.php");      // Veritabanı bağlantısı ve ayarlarınız
-include_once(__DIR__ . "/log_ip.php");    // IP loglama vb.
+include_once(__DIR__ . "/../ayr.php");      // Veritabanı bağlantısı ve ayarlarınız
+include_once(__DIR__ . "/../log_ip.php");    // IP loglama vb.
 
 $stokhareket = filter_input(INPUT_GET, 'stokhareket', FILTER_SANITIZE_NUMBER_INT);
 if (!$stokhareket || $stokhareket <= 0) { // Sıfır veya geçersizse durdur

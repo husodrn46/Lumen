@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../log_ip.php");
 
 $stokhareket = isset($_GET['stokhareket']) ? (int) $_GET['stokhareket'] : 0;
 
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Baska Cariye Aktar</title>
     <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -614,7 +614,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
 
     <header class="top-header">
         <div class="header-inner">
-            <a href="<?php echo $stokhareket > 0 ? 'siparis/lg_fis.php?stokhareket=' . $stokhareket : 'index.php'; ?>" class="header-back" title="Geri">
+            <a href="<?php echo $stokhareket > 0 ? '../siparis/lg_fis.php?stokhareket=' . $stokhareket : 'index.php'; ?>" class="header-back" title="Geri">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <div class="header-divider"></div>
@@ -740,7 +740,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
                     </div>
 
                     <div class="action-row">
-                        <a href="<?php echo $stokhareket > 0 ? 'siparis/lg_fis.php?stokhareket=' . $stokhareket : 'index.php'; ?>" class="btn-flat btn-ghost">
+                        <a href="<?php echo $stokhareket > 0 ? '../siparis/lg_fis.php?stokhareket=' . $stokhareket : 'index.php'; ?>" class="btn-flat btn-ghost">
                             <i class="fa-solid fa-xmark"></i> Vazgec
                         </a>
                         <button type="submit" id="confirm_btn" disabled
@@ -757,7 +757,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
                 <div class="empty-ico"><i class="fa-solid fa-circle-exclamation"></i></div>
                 <h3>Gecerli bir siparis bulunamadi</h3>
                 <p>Aktarim yapilacak siparis bilgisi eksik veya erisilemez durumda.</p>
-                <a href="index.php" class="btn-flat btn-ghost">
+                <a href="../index.php" class="btn-flat btn-ghost">
                     <i class="fa-solid fa-house"></i> Ana Sayfa
                 </a>
             </section>

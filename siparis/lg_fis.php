@@ -719,7 +719,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          </a>
 
          <!-- Search Form -->
-         <form name="form" method="GET" action="../lg_stok_bul.php" class="search-form">
+         <form name="form" method="GET" action="../stok/lg_stok_bul.php" class="search-form">
             <input type="text" name="barkod" id="barkod" class="search-input"
                autocomplete="off" aria-label="Urun veya barkod ara"
                placeholder="🔍 Ürün ara veya barkod okut...">
@@ -825,14 +825,14 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                      <div x-show="open" x-transition
                         class="dropdown-menu dropdown-actions absolute mt-2 w-52"
                         style="z-index:999;max-height:70vh;overflow-y:auto;">
-                        <a href="../stok_hareket_excel.php?stokhareket=<?php echo $stokhareket; ?>">
+                        <a href="../stok/stok_hareket_excel.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-file-excel" style="color:#059669;"></i> Excel'e Aktar
                         </a>
-                        <a href="../stok_hareket_pdf.php?stokhareket=<?php echo $stokhareket; ?>">
+                        <a href="../stok/stok_hareket_pdf.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-file-pdf" style="color:var(--red,#ef4444);"></i> PDF'e Aktar
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a href="../stok_hareket_aktar.php?stokhareket=<?php echo $stokhareket; ?>">
+                        <a href="../stok/stok_hareket_aktar.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-exchange-alt" style="color:#3b82f6;"></i> Başka Cariye Aktar
                         </a>
                         <?php if (m_p_yetki($terminalkullanici, 'M12') == 1): ?>
@@ -840,7 +840,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                            <i class="fa fa-user-plus" style="color:#10b981;"></i> Yeni Cari Aç &amp; Aktar
                         </a>
                         <?php endif; ?>
-                        <a href="../stok_hareket_tarih_degistir.php?stokhareket=<?php echo $stokhareket; ?>">
+                        <a href="../stok/stok_hareket_tarih_degistir.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-calendar" style="color:#8b5cf6;"></i> Tarih Değiştir
                         </a>
                         <div class="dropdown-divider"></div>
@@ -1052,7 +1052,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
           </form>
         </td>
         <td class="name-cell" style="max-width:300px;" title="' . e_tr($liste['LINEEXP']) . '">
-          <a style="text-decoration:none;color:var(--text-1);font-weight:600;display:flex;align-items:center;gap:6px;font-size:13px;" href="../lg_stok_duzenle.php?stokid=' . $stokhid . '&stokhareket=' . $stokhareket . '">
+          <a style="text-decoration:none;color:var(--text-1);font-weight:600;display:flex;align-items:center;gap:6px;font-size:13px;" href="../stok/lg_stok_duzenle.php?stokid=' . $stokhid . '&stokhareket=' . $stokhareket . '">
             <i class="fa fa-edit" style="font-size:11px;color:var(--text-3);"></i>
             <span style="overflow:hidden;text-overflow:ellipsis;">' . e_tr($liste['ADI']) . '</span>
           </a>

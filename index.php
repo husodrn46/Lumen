@@ -142,7 +142,7 @@ $menu_items = [
     ['M4', 'Müşteri Bakiye', 'fa-wallet', 'cari/lg_bakiye.php', 'theme-emerald'],
     ['M5', 'Tüm Siparişler', 'fa-box-archive', 'siparis/lg_tumsiparisler.php', 'theme-red'],
     ['M6', 'Barkodlar', 'fa-barcode', 'barkod/barkodlar.php', 'theme-amber'],
-    ['M7', 'Stok Ara', 'fa-search', 'stok_tara.php', 'theme-amber'],
+    ['M7', 'Stok Ara', 'fa-search', 'stok/stok_tara.php', 'theme-amber'],
     ['M26', 'Fiyat Listesi', 'fa-tags', 'fiyat_listesi.php', 'theme-amber'],
     ['M8', 'Bekleyen Ürünler', 'fa-clock', 'siparis/bekleyen_siparis.php', 'theme-red'],
     ['M10', 'Sil', 'fa-trash', 'siparis/lg_geridonusum.php', 'theme-amber'],

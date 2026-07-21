@@ -29,7 +29,7 @@ if(isset($_POST['yeni_fiyat'])){
   $stmt = $dbh->prepare("UPDATE ".$firma."PRCLIST SET PRICE = :fiyat, PAYPLANREF = :grup_id WHERE LOGICALREF = :fiyat_id AND PTYPE = 2");
   $stmt->execute([':fiyat' => $fiyat, ':grup_id' => $grup_id, ':fiyat_id' => $fiyat_id]);
 
-  echo '<script>window.location="stok_tara.php?link=fiyat_guncelle.php";</script>';
+  echo '<script>window.location="stok/stok_tara.php?link=fiyat_guncelle.php";</script>';
   exit;
 
 }
@@ -176,14 +176,14 @@ GETDATE(),
 )");
 $stmtFiyatEkle->execute([':stokid' => $stokid, ':grup_id' => $grup_id, ':fiyat' => $fiyat, ':birimno' => $birimno, ':saat' => $saat, ':dakika' => $dakika, ':saniye' => $saniye, ':kayitsaat' => $kayitsaat, ':sonfiyatid' => $sonfiyatid]);
 
-//echo '<script>window.location="stok_tara.php?link=fiyat_guncelle.php";</script>';
+//echo '<script>window.location="stok/stok_tara.php?link=fiyat_guncelle.php";</script>';
 
 }
 //***************FİYAT ekleme FORMDAN GELEN********************
 ?>
 <body >
  <div align="center" class="meydan">
-<a class="mavi" href="stok_tara.php?link=fiyat_guncelle.php"> İPTAL ET </a>
+<a class="mavi" href="stok/stok_tara.php?link=fiyat_guncelle.php"> İPTAL ET </a>
 <?PHP
 //********************FİYATLARI FORMA AKTARMA***********************
 if(isset($_GET['fiyatid'])){

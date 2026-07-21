@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../kontrol.php';
 include_once(__DIR__ . "/../ayr.php");
-include_once(__DIR__ . "/../ean.php");
+include_once(__DIR__ . "/../stok/ean.php");
 
 // 1) Stok ID
 if (isset($_GET['stok'])) {

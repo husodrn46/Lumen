@@ -4,9 +4,9 @@ declare(strict_types=1);
 // Output buffering başlat - header sorunlarını önlemek için
 ob_start();
 
-include_once __DIR__ . "/ayr.php";
-include    __DIR__ . "/kontrol.php";
-include_once __DIR__ . "/log_ip.php";
+include_once __DIR__ . "/../ayr.php";
+include    __DIR__ . "/../kontrol.php";
+include_once __DIR__ . "/../log_ip.php";
 
 require __DIR__ . '/vendor/autoload.php';
 

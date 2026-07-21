@@ -2,11 +2,11 @@
 declare(strict_types=1);
 
 // Gerekli yapılandırma ve loglama dosyalarını yükle.
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 // Güvenli oturum ve yetki kontrolünü zorunlu kıl.
-require_once __DIR__ . '/kontrol.php';
+require_once __DIR__ . '/../kontrol.php';
 
 // YETKI KONTROLÜ: M7 (Stok Ara) yetkisi kontrolü
 if (m_p_yetki($terminalkullanici, 'M7') != 1 && (int)$yetkidurum !== 0) {
@@ -50,7 +50,7 @@ $link = getSafeReturnLink($rawLink);
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stok Goruntuleme</title>
-  <?php include_once(__DIR__ . '/pwa-header.php'); ?>
+  <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">

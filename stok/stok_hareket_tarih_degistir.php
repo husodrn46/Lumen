@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/log_ip.php");
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 $stokhareket = isset($_GET['stokhareket']) ? (int) $_GET['stokhareket'] : 0;
 if ($stokhareket <= 0) {
@@ -40,7 +40,7 @@ if (isset($_POST['yeni_tarih'])) {
     <meta name="robots" content="noindex, nofollow">
     <title>Lumen - Tarih Degistir</title>
     <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once(__DIR__ . '/pwa-header.php'); } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -342,6 +342,6 @@ if (isset($_POST['yeni_tarih'])) {
         </div>
     </main>
 
-    <?php include_once(__DIR__ . '/ux_katman.php'); ?>
+    <?php include_once(__DIR__ . '/../ux_katman.php'); ?>
 </body>
 </html>
