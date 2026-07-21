@@ -1800,7 +1800,7 @@ foreach ($resultRows as $r) {
                             <?php if ($hasDoviz): ?>
                                 <span class="status-badge status-doviz"><i class="fa-solid <?php echo $dovizIcon; ?>" style="margin-right:3px;font-size:10px;"></i><?php echo htmlspecialchars($dovizSembol, ENT_QUOTES, 'UTF-8'); ?></span>
                             <?php endif; ?>
-                            <a href="hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>"
+                            <a href="yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>"
                                class="btn-flat btn-red" style="padding:6px 10px;font-size:12px;" title="Hızlı Yazdır">
                                 <i class="fa-solid fa-print"></i>
                             </a>
@@ -1898,7 +1898,7 @@ foreach ($resultRows as $r) {
                         </a>
 
                         <?php if (m_p_yetki($terminalkullanici, 'M18') == 1): ?>
-                            <a href="fis_gecmis.php?fis=<?php echo intcevir($ila['LOGICALREF']); ?>&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>" class="btn-flat btn-light" style="padding:10px 12px;" title="Geçmiş">
+                            <a href="yazdir/fis_gecmis.php?fis=<?php echo intcevir($ila['LOGICALREF']); ?>&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>" class="btn-flat btn-light" style="padding:10px 12px;" title="Geçmiş">
                                 <i class="fa fa-history"></i>
                             </a>
                         <?php endif; ?>
@@ -1910,29 +1910,29 @@ foreach ($resultRows as $r) {
                                 <i class="fa fa-chevron-down" style="font-size:10px;margin-left:2px;"></i>
                             </button>
                             <div class="print-dropdown" style="display:none;">
-                                <a href="hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
                                     <i class="fa-solid fa-bolt"></i> Hızlı Yazdır
                                 </a>
-                                <a href="hizli_yazdir.php?tercih=depo.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="yazdir/hizli_yazdir.php?tercih=depo.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
                                     <i class="fa-solid fa-warehouse"></i> Depo Yazdır
                                 </a>
-                                <a href="fisyazhtml.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
+                                <a href="yazdir/fisyazhtml.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
                                     <i class="fa-solid fa-file-pdf"></i> PDF (Fiyatlı)
                                 </a>
-                                <a href="fisyazhtmlfiyatsiz.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
+                                <a href="yazdir/fisyazhtmlfiyatsiz.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
                                     <i class="fa-solid fa-file"></i> PDF (Fiyatsız)
                                 </a>
                                 <?php if ($hasDoviz): ?>
-                                <a href="hizli_yazdir.php?tercih=dovizli.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="yazdir/hizli_yazdir.php?tercih=dovizli.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
                                     <i class="fa-solid <?php echo $dovizIcon; ?>"></i> <?php echo htmlspecialchars($dovizLabel, ENT_QUOTES, 'UTF-8'); ?>
                                 </a>
                                 <?php endif; ?>
                                 <div class="print-dropdown-sep"></div>
-                                <a href="yeni_dizayn.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&tipdurum=1">
+                                <a href="yazdir/yeni_dizayn.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&tipdurum=1">
                                     <i class="fa-solid fa-print"></i> Normal Yazdır
                                 </a>
                                 <?php if ($hasDoviz): ?>
-                                <a href="fisyazdoviz.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir">
+                                <a href="yazdir/fisyazdoviz.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir">
                                     <i class="fa-solid fa-money-bill-wave"></i> Dövizli Fiyat Listesi
                                 </a>
                                 <?php endif; ?>
@@ -2254,7 +2254,7 @@ foreach ($resultRows as $r) {
             document.getElementById('yazdirmaModal').classList.remove('hidden');
             document.getElementById('modalIcerik').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;padding:32px 0;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#6366f1;"></i><span style="margin-left:12px;color:#6b7280;">Yukleniyor...</span></div>';
 
-            fetch('yazdirma_detay.php?fis=' + fisRef)
+            fetch('yazdir/yazdirma_detay.php?fis=' + fisRef)
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.data.length > 0) {
@@ -2369,7 +2369,7 @@ foreach ($resultRows as $r) {
 
                 var content = card;
                 var detayLinkEl = card.querySelector('a[href*="lg_fis.php"]');
-                var yazdirLinkEl = card.querySelector('a[href*="yeni_dizayn.php"]');
+                var yazdirLinkEl = card.querySelector('a[href*="yazdir/yeni_dizayn.php"]');
                 var detayLink = detayLinkEl ? detayLinkEl.href : null;
                 var yazdirLink = yazdirLinkEl ? yazdirLinkEl.href : null;
 

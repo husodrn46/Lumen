@@ -605,8 +605,8 @@ $testModulHaritasi = [
             ['ad' => 'lg_fis.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Siparis fisi acilirken engellenir'],
             ['ad' => 'lg_siparis.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Siparis detayinda engellenir'],
             ['ad' => 'fisekle.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Fis ekleme/duzenleme engellenir'],
-            ['ad' => 'fisyaz.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Fatura yazdirmada engellenir'],
-            ['ad' => 'barkodluyaz.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Barkodlu yazdirmada engellenir'],
+            ['ad' => 'yazdir/fisyaz.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Fatura yazdirmada engellenir'],
+            ['ad' => 'yazdir/barkodluyaz.php', 'tur' => 'Tek Kayit', 'aciklama' => 'Barkodlu yazdirmada engellenir'],
         ],
     ],
 ];

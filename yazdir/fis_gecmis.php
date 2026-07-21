@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-require_once(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+require_once(__DIR__ . "/../kontrol.php");
 
 // Dönem kontrolü (2025 dönemi için eski tabloları kullan)
 $donemParam = isset($_GET['donem']) ? $_GET['donem'] : '';
@@ -215,7 +215,7 @@ foreach ($tumDegisiklikler as $d) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Degisiklik Gecmisi</title>
-    <?php include_once(__DIR__ . '/pwa-header.php'); ?>
+    <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">

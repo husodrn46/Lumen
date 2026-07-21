@@ -149,9 +149,9 @@ if (!function_exists('printer_draw_roundrect')) {
 ?>
 
 <?php
-require_once __DIR__ . '/kontrol.php';
+require_once __DIR__ . '/../kontrol.php';
 // Güvenlik ve veritabanı bağlantısı, özel fonksiyonlar burada:
-include_once(__DIR__ . "/ayr.php");
+include_once(__DIR__ . "/../ayr.php");
 
 // stokhareket parametresini al, integer'a çevir
 if (!isset($_GET['stokhareket'])) {
@@ -451,5 +451,5 @@ printer_end_doc($handle);
 printer_close($handle);
 
 // İşlem bittiğinde index'e yönlendir
-echo '<script>window.location="index.php";</script>';
+echo '<script>window.location="../index.php";</script>';
 ?>

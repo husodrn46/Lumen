@@ -2,17 +2,17 @@
 declare(strict_types=1);
 
 // Gerekli yapılandırma ve loglama dosyalarını yükle.
-include_once __DIR__ . "/ayr.php";
-include_once __DIR__ . "/log_ip.php";
+include_once __DIR__ . "/../ayr.php";
+include_once __DIR__ . "/../log_ip.php";
 
 // Güvenli oturum ve yetki kontrolünü zorunlu kıl.
-require_once __DIR__ . '/kontrol.php';
+require_once __DIR__ . '/../kontrol.php';
 
 // URL parametrelerini session'a aktar ve temiz URL'ye yönlendir
 migrateUrlToSession(['stokhareket', 'tipdurum', 'donem', 'iskonto2_var']);
 
 // 2025/2026 dönem desteği (migrateUrlToSession'dan SONRA olmalı)
-include_once __DIR__ . "/donem_helper.php";
+include_once __DIR__ . "/../donem_helper.php";
 
 $yazdirmaStokhareket = 0;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -274,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // İşlem bittikten sonra yönlendir
-    header("Location: lg_essiparis.php");
+    header("Location: ../lg_essiparis.php");
     exit;
 }
 
@@ -398,7 +398,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Yazdirma Yoneticisi</title>
-  <?php include_once(__DIR__ . '/pwa-header.php'); ?>
+  <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -694,7 +694,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
 
   <header class="top-header">
     <div class="header-inner">
-      <a href="lg_siparis.php?stokhareket=<?php echo $stokhareket; ?>&sipariskaydet"
+      <a href="../lg_siparis.php?stokhareket=<?php echo $stokhareket; ?>&sipariskaydet"
          class="header-back" title="Siparise Geri Don">
         <i class="fa fa-arrow-left"></i>
       </a>
@@ -870,7 +870,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
           <button type="submit" class="btn-flat btn-red">
             <i class="fa-solid fa-print"></i> Yazdirma Kuyruguna Ekle
           </button>
-          <a href="lg_siparis.php?stokhareket=<?php echo $stokhareket; ?>&sipariskaydet" class="btn-flat btn-light">
+          <a href="../lg_siparis.php?stokhareket=<?php echo $stokhareket; ?>&sipariskaydet" class="btn-flat btn-light">
             <i class="fa-solid fa-xmark"></i> Iptal
           </a>
         </div>

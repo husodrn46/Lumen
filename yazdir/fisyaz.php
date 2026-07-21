@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 $doviz="";
-include_once(__DIR__ . "/ayr.php");
-require_once __DIR__ . '/kontrol.php';
+include_once(__DIR__ . "/../ayr.php");
+require_once __DIR__ . '/../kontrol.php';
 
 // URL parametrelerini session'a aktar ve temiz URL'ye yönlendir
 migrateUrlToSession(['stokhareket']);

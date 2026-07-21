@@ -18,9 +18,9 @@ function fetchAssoc(string $sql, array $params = []): array
   return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 }
 $doviz = "";
-include_once(__DIR__ . "/ayr.php"); ?>
+include_once(__DIR__ . "/../ayr.php"); ?>
 <?php
-require_once __DIR__ . '/kontrol.php';
+require_once __DIR__ . '/../kontrol.php';
 if (!isset($_GET['stokhareket'])) {
   echo '<div class="notification msgerror">Lütfen bir fiş numarası belirtin.</div>';
   exit;

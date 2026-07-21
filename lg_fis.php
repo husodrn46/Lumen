@@ -806,14 +806,14 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                </div>
                <!-- Butonlar -->
                <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
-                  <a href="yeni_dizayn.php?stokhareket=<?php echo $stokhareket; ?>&tipdurum=1"
+                  <a href="yazdir/yeni_dizayn.php?stokhareket=<?php echo $stokhareket; ?>&tipdurum=1"
                      class="btn-flat btn-amber" title="Yazdır" style="padding:8px 14px;">
                      <i class="fa fa-print"></i>
                      <span class="hidden sm:inline">Yazdır</span>
                   </a>
                   <button id="btnFastPrint" type="button"
                      class="btn-flat btn-red" style="padding:8px 14px;"
-                     data-url="hizli_yazdir.php?stokhareket=<?php echo $stokhareket; ?>&tip=1&ajax=1"
+                     data-url="yazdir/hizli_yazdir.php?stokhareket=<?php echo $stokhareket; ?>&tip=1&ajax=1"
                      title="Hızlı Yazdır">
                      <i class="fa fa-bolt"></i><i class="fa fa-print"></i>
                   </button>
@@ -1022,7 +1022,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                   $stokhareketid = intcevir($liste['LOGICALREF']);
                   $stokhid = intcevir($liste['STOCKREF']);
 
-                  // Koli hesaplama (fisyazhtmlfiyatsiz.php ile aynı mantık)
+                  // Koli hesaplama (yazdir/fisyazhtmlfiyatsiz.php ile aynı mantık)
                   $koli_ici = isset($liste['koli_ici']) && $liste['koli_ici'] > 0 ? $liste['koli_ici'] : 1;
                   $koli_say = ceil($liste['AMOUNT'] / $koli_ici);
                   $toplamKoliAdedi += $koli_say;
@@ -1106,7 +1106,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
       $iskvr1 = $iskvarmic1['DISCPER'] ?? null;
       $iskvr2 = $iskvarmic2['DISCPER'] ?? null;
 
-      // Ikinci iskonto varsa yeni_dizayn.php icin session'a kaydet
+      // Ikinci iskonto varsa yazdir/yeni_dizayn.php icin session'a kaydet
       if ($iskvr2 !== null && (float) $iskvr2 > 0) {
          setPageParam('iskonto2_var', 1, 'yeni_dizayn');
       } else {

@@ -184,7 +184,7 @@ $faturaAdet = count(array_filter($islemler, fn($s): bool => $s['TIP'] == 'fatura
                     }
 
                     // Link belirleme (read-only görüntüleme)
-                    $link = 'fis_goruntule.php?fis=' . $islem['FIS_ID'] . '&tip=' . $islem['TIP'];
+                    $link = 'yazdir/fis_goruntule.php?fis=' . $islem['FIS_ID'] . '&tip=' . $islem['TIP'];
                     ?>
                     <div class="<?php echo $bg_class; ?> border rounded-lg p-3 hover:shadow-md transition-shadow">
                         <div class="flex items-start gap-3">

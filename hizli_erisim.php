@@ -862,7 +862,7 @@ function paraYaz(float|int|string|null $tutar): string
                                                         class="mini-pill tone-emerald">
                                                         <i class="fa-solid fa-file-excel"></i> XLSX
                                                     </a>
-                                                    <a href="fisyazexcel.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
+                                                    <a href="yazdir/fisyazexcel.php?stokhareket=<?php echo (int)$sip['STOKHAREKET']; ?>" target="_blank" rel="noopener noreferrer"
                                                         class="mini-pill tone-sky">
                                                         <i class="fa-solid fa-file-export"></i> XLS
                                                     </a>

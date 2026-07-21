@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
-include_once(__DIR__ . "/ayr.php");
-require_once __DIR__ . '/kontrol.php';
+include_once(__DIR__ . "/../ayr.php");
+require_once __DIR__ . '/../kontrol.php';
 
 // 2025/2026 dönem desteği
-include_once(__DIR__ . "/donem_helper.php");
+include_once(__DIR__ . "/../donem_helper.php");
 
 if (!isset($_GET['stokhareket'])) {
 	  echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">Lütfen bir fiş numarası belirtin.</div>';
@@ -91,7 +91,7 @@ function esc(mixed $v): string
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Fiş / Sipariş Yazdırma — <?= esc($listfis['FICHENO']); ?></title>
   <link rel="icon" type="image/png" href="icon.png">
-  <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+  <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">

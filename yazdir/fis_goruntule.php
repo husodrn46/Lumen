@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-require_once(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+require_once(__DIR__ . "/../kontrol.php");
 
 // YETKI KONTROLÜ: M4 (Dashboard yetkisi)
 if (m_p_yetki($terminalkullanici, 'M4') != 1) {
@@ -151,7 +151,7 @@ if ($tip == 'siparis') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fis Goruntule - <?php echo htmlspecialchars((string) $fisInfo['FICHENO']); ?></title>
     <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">

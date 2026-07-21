@@ -886,7 +886,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <i class="fa fa-list-alt"></i> Detay
                                     </a>
                                     <?php if (m_p_yetki($terminalkullanici, 'M18') == 1): ?>
-                                        <a href="fis_gecmis.php?fis=<?php echo intval($ila['LOGICALREF']); ?>"
+                                        <a href="yazdir/fis_gecmis.php?fis=<?php echo intval($ila['LOGICALREF']); ?>"
                                             class="row-btn history" title="Değişiklik Geçmişi">
                                             <i class="fa fa-history"></i> Geçmiş
                                         </a>
@@ -1015,7 +1015,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             modal.classList.add('show');
             icerik.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;padding:32px;color:#6b7280;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#0284c7;"></i><span style="margin-left:12px;">Yükleniyor...</span></div>';
 
-            fetch('yazdirma_detay.php?fis=' + fisRef)
+            fetch('yazdir/yazdirma_detay.php?fis=' + fisRef)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.data.length > 0) {

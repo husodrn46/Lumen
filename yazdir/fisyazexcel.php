@@ -2,9 +2,9 @@
 declare(strict_types=1);
 
 header('Content-type: text/html; charset=ISO-8859-9');
-include_once(__DIR__ . "/ayr.php");
+include_once(__DIR__ . "/../ayr.php");
 
-require_once __DIR__ . '/kontrol.php';
+require_once __DIR__ . '/../kontrol.php';
 
 if (!isset($_GET['stokhareket'])) {
     echo '<div class="notification msgerror">Lütfen bir fiş numarası belirtin.</div>';

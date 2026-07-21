@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Output buffering başlat (tüm çıktıyı yakala)
 ob_start();
 
-include_once(__DIR__ . "/ayr.php");
+include_once(__DIR__ . "/../ayr.php");
 
 // Session kontrolü
 if (session_id() === '') {

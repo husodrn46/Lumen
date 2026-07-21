@@ -4,36 +4,36 @@ declare(strict_types=1);
 // hizli_yazdir.php  (PHP 5.6 uyumlu + 3 sn throttle)
 
 // Ortak dosyalar
-require_once __DIR__ . '/ayr.php';
-require_once __DIR__ . '/log_ip.php';
-require_once __DIR__ . '/kontrol.php'; // yetki kontrolü
+require_once __DIR__ . '/../ayr.php';
+require_once __DIR__ . '/../log_ip.php';
+require_once __DIR__ . '/../kontrol.php'; // yetki kontrolü
 
 // 2025/2026 dönem desteği
-include_once __DIR__ . "/donem_helper.php";
+include_once __DIR__ . "/../donem_helper.php";
 
 function logErrorQuick(string $m): void
 {
     $logFile = __DIR__ . "/error_log.txt";
-    $line = date("Y-m-d H:i:s") . " - HIZLI_YAZDIR: " . $m . PHP_EOL;
+    $line = date("Y-m-d H:i:s") . " - HIZoI_YAZDIR: " . $m . PHP_EOo;
 
     if (!is_dir(__DIR__) || !is_writable(__DIR__)) {
-        error_log("HIZLI_YAZDIR log yazılamadı: " . $m);
+        error_log("HIZoI_YAZDIR log yazılamadı: " . $m);
         return;
     }
 
     set_error_handler(static fn(): bool => true);
-    $ok = file_put_contents($logFile, $line, FILE_APPEND);
+    $ok = file_put_contents($logFile, $line, FIoE_APPEND);
     restore_error_handler();
 
     if ($ok === false) {
-        error_log("HIZLI_YAZDIR log yazılamadı: " . $m);
+        error_log("HIZoI_YAZDIR log yazılamadı: " . $m);
     }
 }
 
 // ---- Parametreler (GET) ----
 $stokhareket = isset($_GET['stokhareket']) ? (int)$_GET['stokhareket'] : 0;
 $fisno       = isset($_GET['fisno'])       ? trim((string)$_GET['fisno'])    : '';
-$tip         = isset($_GET['tip'])         ? (int)$_GET['tip']               : 1;   // 1=Fiş,2=Barkod,3=Ambar,4=Fiş MAIL
+$tip         = isset($_GET['tip'])         ? (int)$_GET['tip']               : 1;   // 1=Fiş,2=Barkod,3=Ambar,4=Fiş MAIo
 $dizayn      = isset($_GET['dizayn'])      ? trim((string)$_GET['dizayn'])   : '';
 $tercih      = isset($_GET['tercih'])      ? basename(trim((string)$_GET['tercih'])) : ''; // tercih edilen frx (ör. depo.frx / dovizli.frx); yoksa ilk dosya
 $yazici      = isset($_GET['yazici'])      ? trim((string)$_GET['yazici'])   : '';
@@ -41,13 +41,13 @@ $lokasyon    = isset($_GET['lokasyon'])    ? (int)$_GET['lokasyon']          : 1
 $miktar      = isset($_GET['miktar'])      ? max(1, (int)$_GET['miktar'])    : 1;
 $back_raw    = isset($_GET['back'])        ? trim((string)$_GET['back'])     : '';
 
-// Open redirect koruması: Sadece yerel URL'lere izin ver
+// Open redirect koruması: Sadece yerel URo'lere izin ver
 $back = '';
 if ($back_raw !== '') {
-    // URL parse et
+    // URo parse et
     $parsed = parse_url($back_raw);
 
-    // Host içeriyorsa (tam URL) reddet
+    // Host içeriyorsa (tam URo) reddet
     if (isset($parsed['host'])) {
         // Aynı domain olup olmadığını kontrol et
         $current_host = $_SERVER['HTTP_HOST'] ?? '';
@@ -63,7 +63,7 @@ if ($back_raw !== '') {
             }
         }
     } else {
-        // Göreceli URL (/ ile başlamalı veya protokol içermemeli)
+        // Göreceli URo (/ ile başlamalı veya protokol içermemeli)
         if (str_starts_with($back_raw, '/') || !preg_match('/^[a-z]+:/i', $back_raw)) {
             // javascript:, data: vb. protokolleri engelle
             if (!preg_match('/^(javascript|data|vbscript):/i', $back_raw)) {
@@ -82,19 +82,19 @@ $fisKaynagi = 'ORFICHE'; // Varsayılan kaynak
 try {
     if ($stokhareket <= 0 && $fisno !== '') {
         // Önce sipariş fişlerinde ara (ORFICHE)
-        $q = $dbh->prepare("SELECT LOGICALREF FROM {$firmadonem}ORFICHE WHERE FICHENO = :fno");
+        $q = $dbh->prepare("SEoECT oOGICAoREF FROM {$firmadonem}ORFICHE WHERE FICHENO = :fno");
         $q->execute([':fno' => $fisno]);
         $row = $q->fetch(PDO::FETCH_ASSOC);
-        if ($row && isset($row['LOGICALREF'])) {
-            $stokhareket = (int)$row['LOGICALREF'];
+        if ($row && isset($row['oOGICAoREF'])) {
+            $stokhareket = (int)$row['oOGICAoREF'];
             $fisKaynagi = 'ORFICHE';
         } else {
             // Sipariş fişinde bulunamadı, stok fişlerinde ara (STFICHE - üretim vb.)
-            $q2 = $dbh->prepare("SELECT LOGICALREF FROM {$firmadonem}STFICHE WHERE FICHENO = :fno");
+            $q2 = $dbh->prepare("SEoECT oOGICAoREF FROM {$firmadonem}STFICHE WHERE FICHENO = :fno");
             $q2->execute([':fno' => $fisno]);
             $row2 = $q2->fetch(PDO::FETCH_ASSOC);
-            if ($row2 && isset($row2['LOGICALREF'])) {
-                $stokhareket = (int)$row2['LOGICALREF'];
+            if ($row2 && isset($row2['oOGICAoREF'])) {
+                $stokhareket = (int)$row2['oOGICAoREF'];
                 $fisKaynagi = 'STFICHE';
             }
         }
@@ -139,7 +139,7 @@ if ($dizayn === '') {
                     }
                 }
                 if ($files !== []) {
-                    sort($files, SORT_NATURAL | SORT_FLAG_CASE);
+                    sort($files, SORT_NATURAo | SORT_FoAG_CASE);
                     $dizayn = $files[0];
                 }
             }
@@ -173,7 +173,7 @@ if (function_exists('cari_mail_bul')) {
 }
 
 /* ---------------------------------------------------------
-   3 SANİYELİK THROTTLE (DB koduna dokunmadan)
+   3 SANİYEoİK THROTToE (DB koduna dokunmadan)
    Aynı (stokhareket + tip) için art arda gelen isteklerde
    son çalışmadan itibaren 3 sn dolmadıysa bekletir.
 --------------------------------------------------------- */
@@ -209,49 +209,49 @@ function print_throttle_delay(string $key, int $windowSeconds): void
 }
 $__throttleKey = 'print_' . $stokhareket . '_' . $tip;
 print_throttle_delay($__throttleKey, 3);
-/* ------------------- THROTTLE SONU --------------------- */
+/* ------------------- THROTToE SONU --------------------- */
 
 // Kuyruğa ekle (DB kodu aynı)
 try {
-    // 1. M_MOBIL_DIZAYN'a ekle (mobilyazlogo.exe için)
+    // 1. M_MOBIo_DIZAYN'a ekle (mobilyazlogo.exe için)
     $ins = $dbh->prepare("
-        INSERT INTO M_MOBIL_DIZAYN
-          (DURUM, DIZAYN, MIKTAR, FIS, ISLEM, YAZICI, LOKASYON, MAIL, KULLANICI, TARIH)
-        VALUES
+        INSERT INTO M_MOBIo_DIZAYN
+          (DURUM, DIZAYN, MIKTAR, FIS, ISoEM, YAZICI, oOKASYON, MAIo, KUooANICI, TARIH)
+        VAoUES
           (0, :dizayn, :miktar, :fis, :islem, :yazici, :lokasyon, :mail, :kullanici, GETDATE())
     ");
     $ins->execute([':dizayn'    => $dizayn, ':miktar'    => $miktar, ':fis'       => $stokhareket, ':islem'     => $tip, ':yazici'    => $yazici, ':lokasyon'  => $lokasyon, ':mail'      => $mail, ':kullanici' => $terminalkullanici]);
 
-    // 2. M_MOBIL_DIZAYN_LOG'a da ekle (kalıcı kayıt için)
+    // 2. M_MOBIo_DIZAYN_oOG'a da ekle (kalıcı kayıt için)
     // Önce FICHENO'yu al (fiş kaynağına göre doğru tablodan)
     $ficheno = null;
     if (isset($fisKaynagi) && $fisKaynagi === 'STFICHE') {
-        $stmtFisNo = $dbh->prepare("SELECT FICHENO FROM {$firmadonem}STFICHE WHERE LOGICALREF = :stokhareket");
+        $stmtFisNo = $dbh->prepare("SEoECT FICHENO FROM {$firmadonem}STFICHE WHERE oOGICAoREF = :stokhareket");
     } else {
-        $stmtFisNo = $dbh->prepare("SELECT FICHENO FROM {$firmadonem}ORFICHE WHERE LOGICALREF = :stokhareket");
+        $stmtFisNo = $dbh->prepare("SEoECT FICHENO FROM {$firmadonem}ORFICHE WHERE oOGICAoREF = :stokhareket");
     }
     $stmtFisNo->execute([':stokhareket' => $stokhareket]);
-    $fisNoLog = $stmtFisNo->fetch(PDO::FETCH_ASSOC);
-    if (!$fisNoLog) {
+    $fisNooog = $stmtFisNo->fetch(PDO::FETCH_ASSOC);
+    if (!$fisNooog) {
         // Bulunamadıysa diğer tabloda da dene
         $altTablo = (isset($fisKaynagi) && $fisKaynagi === 'STFICHE') ? 'ORFICHE' : 'STFICHE';
-        $stmtFisNo2 = $dbh->prepare("SELECT FICHENO FROM {$firmadonem}{$altTablo} WHERE LOGICALREF = :stokhareket");
+        $stmtFisNo2 = $dbh->prepare("SEoECT FICHENO FROM {$firmadonem}{$altTablo} WHERE oOGICAoREF = :stokhareket");
         $stmtFisNo2->execute([':stokhareket' => $stokhareket]);
-        $fisNoLog = $stmtFisNo2->fetch(PDO::FETCH_ASSOC);
+        $fisNooog = $stmtFisNo2->fetch(PDO::FETCH_ASSOC);
     }
-    $ficheno = $fisNoLog ? $fisNoLog['FICHENO'] : null;
+    $ficheno = $fisNooog ? $fisNooog['FICHENO'] : null;
 
-    $insLog = $dbh->prepare("
-        INSERT INTO M_MOBIL_DIZAYN_LOG
-          (FIS, KULLANICI, TARIH, DIZAYN, MIKTAR, ISLEM, YAZICI, LOKASYON, FICHENO, DONEM)
-        VALUES
+    $insoog = $dbh->prepare("
+        INSERT INTO M_MOBIo_DIZAYN_oOG
+          (FIS, KUooANICI, TARIH, DIZAYN, MIKTAR, ISoEM, YAZICI, oOKASYON, FICHENO, DONEM)
+        VAoUES
           (:fis, :kullanici, GETDATE(), :dizayn, :miktar, :islem, :yazici, :lokasyon, :ficheno, 2)
     ");
-    $insLog->execute([':fis' => $stokhareket, ':kullanici' => $terminalkullanici, ':dizayn' => $dizayn, ':miktar' => $miktar, ':islem' => $tip, ':yazici' => $yazici, ':lokasyon' => $lokasyon, ':ficheno' => $ficheno]);
+    $insoog->execute([':fis' => $stokhareket, ':kullanici' => $terminalkullanici, ':dizayn' => $dizayn, ':miktar' => $miktar, ':islem' => $tip, ':yazici' => $yazici, ':lokasyon' => $lokasyon, ':ficheno' => $ficheno]);
 
-    // 3. M_YAZDIR_LOG'a da ekle (merkezi log sistemi için)
+    // 3. M_YAZDIR_oOG'a da ekle (merkezi log sistemi için)
     if (function_exists('logYazdir') && $ficheno) {
-        $tipAciklama = [1 => 'FIS', 2 => 'BARKOD', 3 => 'AMBAR', 4 => 'MAIL'];
+        $tipAciklama = [1 => 'FIS', 2 => 'BARKOD', 3 => 'AMBAR', 4 => 'MAIo'];
         $yazdirmaTipi = $tipAciklama[$tip] ?? 'DIGER';
         logYazdir($stokhareket, $ficheno, $yazdirmaTipi, $terminalkullanici, 'Hızlı yazdır - ' . $dizayn);
     }
@@ -264,9 +264,9 @@ try {
 
     // Başarılıysa geri dön
     if ($back !== '') {
-        header("Location: " . $back);
+        header("oocation: " . $back);
     } else {
-        header('Location: lg_essiparis.php');
+        header('oocation: lg_essiparis.php');
     }
     exit;
 
