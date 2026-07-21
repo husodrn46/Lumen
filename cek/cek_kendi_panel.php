@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 /**
- * cek_ciro_panel.php — Çek Çıkışı / CİRO BETA paneli (izole).  [Faz-2a]
- * Hedef cari (tedarikçi) seç → portföyden çek(ler) seç → ciro et; girilenleri (geri alınabilir) listeler.
- * Erişim: M30 (Çek İşlemleri) yetkisi. Kapalıysa erişilemez.
+ * cek_kendi_panel.php — Kendi Çekimiz BETA paneli (izole).  [Faz-2b: kendi çekimizi cariye ver]
+ * Hedef cari seç → banka seç → çek(ler) gir (tutar/vade/no) → ver; girilenleri (geri alınabilir) listeler.
+ * Erişim: M30 (Çek İşlemleri) yetkisi.
  */
 
-include_once(__DIR__ . '/ayr.php');
-include_once(__DIR__ . '/kontrol.php');
-include_once(__DIR__ . '/donem_helper.php');
-include_once(__DIR__ . '/log_ip.php');
+include_once(__DIR__ . '/../ayr.php');
+include_once(__DIR__ . '/../kontrol.php');
+include_once(__DIR__ . '/../donem_helper.php');
+include_once(__DIR__ . '/../log_ip.php');
 include_once(__DIR__ . '/cek_lib.php');
 
 global $dbh, $firma, $firmadonem, $terminalkullanici, $yetkidurum;
@@ -24,10 +24,11 @@ $erisim = $acik;
 
 $ara = trim((string) ($_GET['ara'] ?? ''));
 $cariRef = (int) ($_GET['cari'] ?? 0);
-$cariler = []; $seciliCari = null; $cariBorc = 0.0; $portfoy = []; $cirolar = [];
+$cariler = []; $seciliCari = null; $cariBorc = 0.0; $bankalar = []; $kendiler = [];
 
 if ($erisim) {
     cek_log_tablo_olustur($dbh);
+    $bankalar = cek_kendi_bankalar($dbh, $firma);
 
     if ($ara !== '' && $cariRef <= 0) {
         try {
@@ -45,35 +46,26 @@ if ($erisim) {
             $cariBorc = (float) $dbh->query("SELECT ISNULL(SUM(CASE WHEN SIGN=0 THEN AMOUNT ELSE -AMOUNT END),0) FROM {$firmadonem}CLFLINE WHERE CLIENTREF={$cariRef} AND CANCELLED=0")->fetchColumn();
         } catch (Throwable $e) { $seciliCari = null; }
     }
-    // Portföydeki uygun çekler (CURRSTAT=1, DOC=1) + çeki veren müşteri
-    if ($seciliCari) {
-        try {
-            $portfoy = $dbh->query("SELECT cc.LOGICALREF, cc.PORTFOYNO, cc.NEWSERINO, cc.BANKNAME, cc.DUEDATE, cc.AMOUNT, cc.OWING,
-                    (SELECT TOP 1 c2.DEFINITION_ FROM {$firmadonem}CSTRANS ct JOIN {$firma}CLCARD c2 ON c2.LOGICALREF=ct.CARDREF WHERE ct.CSREF=cc.LOGICALREF AND ct.TRCODE=1 ORDER BY ct.LOGICALREF) MUSTERI
-                FROM {$firmadonem}CSCARD cc
-                WHERE cc.DOC=1 AND cc.CURRSTAT=1 AND cc.CANCELLED=0
-                ORDER BY cc.DUEDATE")->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Throwable $e) { $portfoy = []; }
-    }
     try {
-        $cirolar = $dbh->query("SELECT TOP 50 l.ID, l.CSROLL_ROLLNO, l.TUTAR, l.DOCCNT, l.OLUSTURMA, l.CLIENTREF, l.DURUM,
+        $kendiler = $dbh->query("SELECT TOP 50 l.ID, l.CSROLL_ROLLNO, l.TUTAR, l.DOCCNT, l.BANKNAME, l.OLUSTURMA, l.CLIENTREF, l.DURUM,
                 c.DEFINITION_ HEDEF, s.CODE GIREN
             FROM M_CEK_LOG l
             LEFT JOIN {$firma}CLCARD c ON c.LOGICALREF=l.CLIENTREF
             LEFT JOIN LG_SLSMAN s ON s.LOGICALREF=l.KULLANICI
-            WHERE l.DURUM IN ('AKTIF','GERIALINDI') AND l.TUR='ciro' ORDER BY l.ID DESC")->fetchAll(PDO::FETCH_ASSOC);
-    } catch (Throwable $e) { $cirolar = []; }
+            WHERE l.DURUM IN ('AKTIF','GERIALINDI') AND l.TUR='kendi_cek' ORDER BY l.ID DESC")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) { $kendiler = []; }
 }
 $csrf = function_exists('csrf_token') ? csrf_token() : '';
+$bugun = date('Y-m-d');
 ?>
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Çek Çıkışı / Ciro</title>
+    <title>Kendi Çekimiz</title>
     <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once(__DIR__ . '/pwa-header.php'); } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -81,12 +73,11 @@ $csrf = function_exists('csrf_token') ? csrf_token() : '';
         * { box-sizing:border-box; margin:0; }
         body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--t1); font-size:14px; }
         .top { position:sticky; top:0; z-index:30; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--border); }
-        .top-in { max-width:860px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; gap:12px; }
+        .top-in { max-width:820px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; gap:12px; }
         .top-in a.geri { width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); text-decoration:none; border:1px solid var(--border); background:#fff; }
         .top-title { font-size:15px; font-weight:600; flex:1; display:flex; align-items:center; gap:8px; }
         .top-title i { color:var(--red); }
-        .rozet { font-size:10.5px; font-weight:700; letter-spacing:.5px; padding:3px 9px; border-radius:7px; background:var(--amber-soft); color:var(--amber); }
-        main { max-width:860px; margin:0 auto; padding:18px 16px 60px; }
+        main { max-width:820px; margin:0 auto; padding:18px 16px 60px; }
         .card { background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden; }
         .card-h { padding:13px 18px; font-size:12.5px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
         .card-h i { color:var(--red); }
@@ -98,7 +89,6 @@ $csrf = function_exists('csrf_token') ? csrf_token() : '';
         input:focus, select:focus { border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft); }
         .btn { border:none; border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; padding:11px 18px; display:inline-flex; align-items:center; justify-content:center; gap:7px; text-decoration:none; min-height:44px; }
         .btn-accent { background:var(--red); color:#fff; }
-        .btn-accent[disabled] { opacity:.45; cursor:not-allowed; }
         .btn-light { background:var(--bg); color:var(--t2); border:1px solid var(--border); }
         .cari-item { display:flex; align-items:center; gap:10px; padding:12px 14px; border:1px solid var(--border); border-radius:11px; text-decoration:none; color:inherit; margin-bottom:7px; }
         .cari-item:hover { border-color:var(--red); background:var(--red-soft); }
@@ -108,37 +98,39 @@ $csrf = function_exists('csrf_token') ? csrf_token() : '';
         .sel-cari b { font-size:15px; }
         .sel-cari .bak { font-size:12px; color:var(--t2); }
         .sel-cari .bak b { color:var(--red); font-size:14px; }
-        .filtre { width:100%; margin-bottom:10px; }
-        .cek-liste { max-height:420px; overflow-y:auto; border:1px solid var(--border); border-radius:11px; }
-        .cek-satir { display:flex; align-items:center; gap:11px; padding:11px 13px; border-bottom:1px solid #f1f3f5; cursor:pointer; }
-        .cek-satir:last-child { border-bottom:none; }
-        .cek-satir:hover { background:#fafafa; }
-        .cek-satir.secili { background:var(--red-soft); }
-        .cek-satir input[type=checkbox] { width:18px; height:18px; accent-color:var(--red); flex-shrink:0; }
-        .cek-bilgi { flex:1; min-width:0; }
-        .cek-ust { font-size:13.5px; font-weight:600; display:flex; gap:8px; align-items:baseline; }
-        .cek-ust .pf { color:var(--red); font-size:11px; font-weight:700; }
-        .cek-alt { font-size:11.5px; color:var(--t2); margin-top:2px; }
-        .cek-tut { font-weight:700; font-size:14px; white-space:nowrap; }
-        .bos { padding:22px; text-align:center; color:var(--t3); font-size:13px; }
-        .ozet-box { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; background:var(--red-soft); border:1px solid var(--border); border-radius:12px; margin-top:14px; }
-        .ozet-box .tp { font-size:20px; font-weight:700; color:var(--red); white-space:nowrap; }
-        .ozet-box .ad b { color:var(--t1); }
+        .frm { display:flex; flex-direction:column; gap:15px; }
         label { font-size:11.5px; font-weight:600; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; display:block; margin-bottom:6px; }
+        .frm input, .frm select { width:100%; }
+        .zorunlu { color:var(--red); }
+        .cek-row { border:1px solid var(--border); border-radius:12px; padding:12px; background:#fcfcfd; }
+        .cek-row-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+        .cek-row-no { font-size:12px; font-weight:700; color:var(--red); }
+        .cek-sil { border:none; background:transparent; color:var(--t3); cursor:pointer; font-size:14px; padding:4px 9px; border-radius:6px; }
+        .cek-sil:hover { color:#b91c1c; background:#fef2f2; }
+        .cek-row-grid { display:grid; grid-template-columns:1.1fr 1fr 1fr; gap:8px; }
+        .cek-row-grid label { font-size:10px; margin-bottom:4px; }
+        .cek-row-grid input { font-size:13px; padding:9px 10px; }
+        .toplam-box { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; background:var(--red-soft); border:1px solid var(--border); border-radius:12px; }
+        .toplam-box .tp-tut { font-size:21px; font-weight:700; color:var(--red); white-space:nowrap; }
+        .toplam-box .tp-adet b { color:var(--t1); }
+        .bak-sonra { font-size:12.5px; color:var(--t2); margin-top:6px; }
+        .bak-sonra b { color:var(--t1); }
         table { width:100%; border-collapse:collapse; }
         thead th { font-size:11px; text-transform:uppercase; color:var(--t3); font-weight:600; text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
         thead th.sag, tbody td.sag { text-align:right; }
         tbody td { padding:10px 12px; border-bottom:1px solid #f1f3f5; font-size:13px; white-space:nowrap; }
         .tut { color:var(--t1); font-weight:700; }
+        .bos { padding:22px; text-align:center; color:var(--t3); font-size:13px; }
         #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--t1); color:#fff; padding:11px 20px; border-radius:12px; font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:.25s; z-index:60; }
         #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+        @media (max-width:560px){ .cek-row-grid { grid-template-columns:1fr 1fr; } }
     </style>
 </head>
 <body>
     <header class="top">
         <div class="top-in">
             <a href="<?php echo $cariRef > 0 ? 'cari_islemleri.php?cari=' . $cariRef : APP_ROOT_URL . '/index.php'; ?>" class="geri" title="<?php echo $cariRef > 0 ? 'Cari işlemlerine dön' : 'Ana sayfa'; ?>"><i class="fa fa-arrow-left"></i></a>
-            <span class="top-title"><i class="fa-solid fa-share-from-square"></i> Çek Çıkışı / Ciro</span>
+            <span class="top-title"><i class="fa-solid fa-money-check"></i> Kendi Çekimiz</span>
         </div>
     </header>
     <main>
@@ -149,23 +141,23 @@ $csrf = function_exists('csrf_token') ? csrf_token() : '';
         </div></div>
     <?php else: ?>
 
-        <!-- Hedef cari (tedarikçi) -->
+        <!-- Hedef cari -->
         <div class="card">
-            <div class="card-h"><i class="fa-solid fa-truck-field"></i> Kime Ciro? (Tedarikçi / Cari)</div>
+            <div class="card-h"><i class="fa-solid fa-truck-field"></i> Kime? (Cari / Tedarikçi)</div>
             <div class="pad">
                 <form method="get" class="row">
-                    <input type="text" name="ara" value="<?php echo $h($ara); ?>" placeholder="Tedarikçi adı veya kodu…" autocomplete="off" style="flex:1;min-width:180px;">
+                    <input type="text" name="ara" value="<?php echo $h($ara); ?>" placeholder="Cari adı veya kodu…" autocomplete="off" style="flex:1;min-width:180px;">
                     <button type="submit" class="btn btn-accent"><i class="fa-solid fa-magnifying-glass"></i> Ara</button>
                 </form>
                 <?php if ($seciliCari): ?>
                     <div class="sel-cari" style="margin-top:12px;">
                         <div><b><?php echo $h($seciliCari['DEFINITION_']); ?></b><br><span class="bak"><?php echo $h($seciliCari['CODE']); ?> · bakiye: <b><?php echo $para(abs($cariBorc)); ?> ₺</b> <?php echo $cariBorc < -0.005 ? 'alacak (ona borçluyuz)' : 'borç'; ?></span></div>
-                        <a href="cek_ciro_panel.php" class="btn btn-light"><i class="fa-solid fa-xmark"></i> Değiştir</a>
+                        <a href="cek_kendi_panel.php" class="btn btn-light"><i class="fa-solid fa-xmark"></i> Değiştir</a>
                     </div>
                 <?php elseif ($cariler): ?>
                     <div style="margin-top:12px;">
                         <?php foreach ($cariler as $c): ?>
-                        <a class="cari-item" href="cek_ciro_panel.php?cari=<?php echo (int) $c['LOGICALREF']; ?>">
+                        <a class="cari-item" href="cek_kendi_panel.php?cari=<?php echo (int) $c['LOGICALREF']; ?>">
                             <span class="kod"><?php echo $h($c['CODE']); ?></span>
                             <span class="ad"><?php echo $h($c['DEFINITION_']); ?></span>
                             <i class="fa-solid fa-chevron-right" style="color:var(--t3)"></i>
@@ -178,59 +170,57 @@ $csrf = function_exists('csrf_token') ? csrf_token() : '';
             </div>
         </div>
 
-        <!-- Portföyden çek seç -->
+        <!-- Kendi çek formu -->
         <?php if ($seciliCari): ?>
         <div class="card">
-            <div class="card-h"><i class="fa-solid fa-money-check-dollar"></i> Portföyden Çek Seç (<?php echo count($portfoy); ?> uygun çek)</div>
+            <div class="card-h"><i class="fa-solid fa-money-check"></i> Kendi Çek Bilgileri</div>
             <div class="pad">
-                <?php if (empty($portfoy)): ?>
-                    <div class="bos">Portföyde ciro edilebilir (durumda) çek yok.</div>
-                <?php else: ?>
-                <form id="ciroForm">
+                <form id="kendiForm" class="frm">
                     <input type="hidden" name="hedef_cari" value="<?php echo (int) $seciliCari['LOGICALREF']; ?>">
-                    <input type="text" class="filtre" id="cekFiltre" placeholder="🔍 Listeyi filtrele (müşteri / çek no / banka)…" autocomplete="off">
-                    <div class="cek-liste" id="cekListe">
-                        <?php foreach ($portfoy as $ck): ?>
-                        <label class="cek-satir" data-ara="<?php echo $h(mb_strtolower(($ck['MUSTERI'] ?? '') . ' ' . ($ck['NEWSERINO'] ?? '') . ' ' . ($ck['BANKNAME'] ?? '') . ' ' . ($ck['OWING'] ?? ''), 'UTF-8')); ?>">
-                            <input type="checkbox" class="k-cek" value="<?php echo (int) $ck['LOGICALREF']; ?>" data-tutar="<?php echo (float) $ck['AMOUNT']; ?>">
-                            <span class="cek-bilgi">
-                                <span class="cek-ust"><span class="pf"><?php echo $h((string) $ck['PORTFOYNO']); ?></span> <?php echo $h($ck['MUSTERI'] ?? ($ck['OWING'] ?? '-')); ?></span>
-                                <span class="cek-alt"><?php echo $h($ck['BANKNAME'] ?: '—'); ?> · No <?php echo $h($ck['NEWSERINO'] ?: '—'); ?> · Vade <?php echo $h(substr((string) $ck['DUEDATE'], 0, 10)); ?></span>
-                            </span>
-                            <span class="cek-tut"><?php echo $para($ck['AMOUNT']); ?> ₺</span>
-                        </label>
-                        <?php endforeach; ?>
+                    <div>
+                        <label>Banka Hesabı <span class="zorunlu">*</span></label>
+                        <select name="banka_ref" id="bankaSel" required>
+                            <option value="">Banka seç…</option>
+                            <?php foreach ($bankalar as $bk): ?>
+                            <option value="<?php echo $bk['ref']; ?>"><?php echo $h($bk['ad']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                    <div class="ozet-box">
-                        <div class="ad"><b id="ciroAdet">0</b> çek seçildi → <b><?php echo $h(mb_substr($seciliCari['DEFINITION_'], 0, 30)); ?></b></div>
-                        <span class="tp" id="ciroToplam">0,00 ₺</span>
+                    <div id="cekRows"></div>
+                    <button type="button" id="cekEkle" class="btn btn-light" style="align-self:flex-start"><i class="fa-solid fa-plus"></i> Çek Ekle</button>
+                    <div class="toplam-box">
+                        <div>
+                            <div class="tp-adet"><b id="cekAdet">1</b> çek</div>
+                            <div class="bak-sonra" id="bakSonra"></div>
+                        </div>
+                        <span class="tp-tut" id="cekToplam">0,00 ₺</span>
                     </div>
-                    <div style="margin-top:14px;">
+                    <div>
                         <label>Açıklama (opsiyonel)</label>
-                        <input type="text" name="aciklama" maxlength="240" placeholder="örn. mal bedeli ciro" autocomplete="off" style="width:100%;">
+                        <input type="text" name="aciklama" maxlength="240" placeholder="örn. mal bedeli" autocomplete="off">
                     </div>
-                    <div style="margin-top:14px;">
-                        <button type="submit" id="ciroSubmit" class="btn btn-accent" style="width:100%;" disabled><i class="fa-solid fa-share-from-square"></i> <span id="ciroLbl">Ciro Et</span></button>
+                    <div>
+                        <button type="submit" id="kendiSubmit" class="btn btn-accent" style="width:100%;"><i class="fa-solid fa-paper-plane"></i> <span id="kendiLbl">Kendi Çekimizi Ver</span></button>
                     </div>
                 </form>
-                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>
 
-        <!-- Ciro kayıtları -->
+        <!-- Kayıtlar -->
         <div class="card">
-            <div class="card-h"><i class="fa-solid fa-clock-rotate-left"></i> Ciro Kayıtları (kim · ne zaman · geri alınabilir)</div>
-            <?php if (empty($cirolar)): ?>
-                <div class="bos">Henüz ciro yapılmamış.</div>
+            <div class="card-h"><i class="fa-solid fa-clock-rotate-left"></i> Kendi Çek Kayıtları (kim · ne zaman · geri alınabilir)</div>
+            <?php if (empty($kendiler)): ?>
+                <div class="bos">Henüz kendi çek verilmemiş.</div>
             <?php else: ?>
             <div style="overflow-x:auto"><table>
-                <thead><tr><th>Bordro</th><th>Hedef Cari</th><th class="sag">Tutar</th><th>Giren</th><th>Tarih</th><th></th></tr></thead>
+                <thead><tr><th>Bordro</th><th>Hedef Cari</th><th>Banka</th><th class="sag">Tutar</th><th>Giren</th><th>Tarih</th><th></th></tr></thead>
                 <tbody>
-                    <?php foreach ($cirolar as $t): $iptal = ((string) $t['DURUM'] === 'GERIALINDI'); $adet = (int) ($t['DOCCNT'] ?? 1); ?>
+                    <?php foreach ($kendiler as $t): $iptal = ((string) $t['DURUM'] === 'GERIALINDI'); $adet = (int) ($t['DOCCNT'] ?? 1); ?>
                     <tr data-id="<?php echo (int) $t['ID']; ?>"<?php echo $iptal ? ' style="opacity:.55"' : ''; ?>>
                         <td><?php echo $h(ltrim((string) $t['CSROLL_ROLLNO'], '0') ?: '0'); ?><?php echo $adet > 1 ? ' <span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-soft);padding:1px 6px;border-radius:6px">' . $adet . ' çek</span>' : ''; ?></td>
                         <td style="white-space:normal"><?php echo $h($t['HEDEF'] ?? '-'); ?></td>
+                        <td style="white-space:normal;font-size:12px"><?php echo $h($t['BANKNAME'] ?? '-'); ?></td>
                         <td class="sag tut"<?php echo $iptal ? ' style="text-decoration:line-through;color:var(--t3)"' : ''; ?>><?php echo $para($t['TUTAR']); ?> ₺</td>
                         <td><?php echo $h($t['GIREN'] ?? '-'); ?></td>
                         <td style="color:var(--t2);font-size:12px;"><?php echo $h(substr((string) $t['OLUSTURMA'], 0, 16)); ?></td>
@@ -258,63 +248,87 @@ $csrf = function_exists('csrf_token') ? csrf_token() : '';
         var toast = document.getElementById('toast'); var tt = null;
         function bildir(msg, hata) { toast.textContent = msg; toast.style.background = hata ? '#b91c1c' : '#047857'; toast.classList.add('show'); clearTimeout(tt); tt = setTimeout(function(){ toast.classList.remove('show'); }, 2600); }
         function trPara(n) { var neg = n < 0; n = Math.abs(n); var p = n.toFixed(2).split('.'); p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return (neg ? '-' : '') + p[0] + ',' + p[1]; }
+        function paraOku(v) { v = (v || '').replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, ''); var f = parseFloat(v); return isFinite(f) ? f : 0; }
 
-        var form = document.getElementById('ciroForm');
+        var form = document.getElementById('kendiForm');
         if (form) {
-            var kutular = form.querySelectorAll('.k-cek');
-            var adetEl = document.getElementById('ciroAdet');
-            var toplamEl = document.getElementById('ciroToplam');
-            var submitBtn = document.getElementById('ciroSubmit');
-            var lbl = document.getElementById('ciroLbl');
-            var filtre = document.getElementById('cekFiltre');
+            var cariBorc = <?php echo json_encode(round((float) $cariBorc, 2)); ?>;
+            var bugun = <?php echo json_encode($bugun); ?>;
+            var cekRows = document.getElementById('cekRows');
+            var cekAdet = document.getElementById('cekAdet');
+            var cekToplam = document.getElementById('cekToplam');
+            var bakSonra = document.getElementById('bakSonra');
+            var lbl = document.getElementById('kendiLbl');
 
+            function satirEkle(odak) {
+                var div = document.createElement('div');
+                div.className = 'cek-row';
+                div.innerHTML =
+                    '<div class="cek-row-top"><span class="cek-row-no">Çek</span>' +
+                    '<button type="button" class="cek-sil" title="Bu çeki kaldır"><i class="fa-solid fa-trash-can"></i></button></div>' +
+                    '<div class="cek-row-grid">' +
+                    '<div><label>Tutar ₺ *</label><input class="k-tutar" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>' +
+                    '<div><label>Vade *</label><input class="k-vade" type="date" min="' + bugun + '"></div>' +
+                    '<div><label>Çek No</label><input class="k-cekno" maxlength="60" autocomplete="off"></div>' +
+                    '</div>';
+                cekRows.appendChild(div);
+                div.querySelector('.cek-sil').addEventListener('click', function () { if (cekRows.children.length > 1) { div.remove(); yenile(); } });
+                div.querySelector('.k-tutar').addEventListener('input', yenile);
+                yenile();
+                if (odak) { div.querySelector('.k-tutar').focus(); }
+            }
+            function kalemleriTopla() {
+                return Array.prototype.map.call(cekRows.children, function (row) {
+                    return { tutar: paraOku(row.querySelector('.k-tutar').value), vade: row.querySelector('.k-vade').value, cekno: row.querySelector('.k-cekno').value.trim() };
+                });
+            }
             function yenile() {
-                var adet = 0, toplam = 0;
-                kutular.forEach(function (k) {
-                    var row = k.closest('.cek-satir');
-                    if (k.checked) { adet++; toplam += parseFloat(k.getAttribute('data-tutar')) || 0; row.classList.add('secili'); }
-                    else { row.classList.remove('secili'); }
-                });
-                adetEl.textContent = adet;
-                toplamEl.textContent = trPara(toplam) + ' ₺';
-                submitBtn.disabled = adet < 1;
-                lbl.textContent = adet > 1 ? (adet + ' Çeki Ciro Et') : 'Ciro Et';
+                Array.prototype.forEach.call(cekRows.children, function (row, i) { row.querySelector('.cek-row-no').textContent = 'Çek ' + (i + 1); });
+                var kl = kalemleriTopla();
+                var adet = kl.length;
+                var toplam = kl.reduce(function (s, k) { return s + (k.tutar > 0 ? k.tutar : 0); }, 0);
+                if (cekAdet) { cekAdet.textContent = adet; }
+                if (cekToplam) { cekToplam.textContent = trPara(toplam) + ' ₺'; }
+                if (lbl) { lbl.textContent = adet > 1 ? (adet + ' Kendi Çekimizi Ver') : 'Kendi Çekimizi Ver'; }
+                if (bakSonra) {
+                    if (toplam <= 0) { bakSonra.innerHTML = ''; }
+                    else {
+                        var yeni = cariBorc - toplam;   // SIGN=0 debit → borcumuz azalır
+                        bakSonra.innerHTML = 'sonrası ≈ <b>' + trPara(Math.abs(yeni)) + ' ₺</b> ' + (yeni > 0.005 ? 'borç' : (yeni < -0.005 ? 'alacak' : 'kapandı'));
+                    }
+                }
             }
-            kutular.forEach(function (k) { k.addEventListener('change', yenile); });
-
-            if (filtre) {
-                filtre.addEventListener('input', function () {
-                    var q = filtre.value.trim().toLowerCase();
-                    form.querySelectorAll('.cek-satir').forEach(function (row) {
-                        row.style.display = (!q || (row.getAttribute('data-ara') || '').indexOf(q) !== -1) ? '' : 'none';
-                    });
-                });
-            }
+            document.getElementById('cekEkle').addEventListener('click', function () { satirEkle(true); });
+            satirEkle(false);
 
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
-                var secili = [];
-                kutular.forEach(function (k) { if (k.checked) { secili.push(parseInt(k.value, 10)); } });
-                if (!secili.length) { bildir('En az bir çek seçin', true); return; }
-                if (!confirm(secili.length + ' çek ciro edilecek. Onaylıyor musunuz?')) { return; }
-                submitBtn.disabled = true;
+                var banka = document.getElementById('bankaSel');
+                if (!banka.value) { bildir('Banka hesabı seçin', true); banka.focus(); return; }
+                var kl = kalemleriTopla();
+                for (var i = 0; i < kl.length; i++) {
+                    if (kl[i].tutar <= 0) { bildir((i + 1) + '. çekin tutarını girin', true); return; }
+                    if (!kl[i].vade) { bildir((i + 1) + '. çek için vade seçin', true); return; }
+                }
+                var btn = document.getElementById('kendiSubmit'); btn.disabled = true;
                 var body = new URLSearchParams();
                 body.append('hedef_cari', form.querySelector('[name=hedef_cari]').value);
+                body.append('banka_ref', banka.value);
                 body.append('aciklama', form.querySelector('[name=aciklama]').value);
-                body.append('cek_refleri', JSON.stringify(secili));
+                body.append('kalemler', JSON.stringify(kl));
                 body.append('csrf_token', csrf);
-                fetch('cek_ciro.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+                fetch('cek_kendi.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
                     .then(function(r){ return r.json(); })
-                    .then(function(j){ bildir(j.mesaj || (j.ok?'Ciro edildi':'Hata'), !j.ok); if (j.ok) { setTimeout(function(){ location.reload(); }, 1300); } else { submitBtn.disabled = false; } })
-                    .catch(function(){ bildir('Bağlantı hatası', true); submitBtn.disabled = false; });
+                    .then(function(j){ bildir(j.mesaj || (j.ok?'Verildi':'Hata'), !j.ok); if (j.ok) { setTimeout(function(){ location.reload(); }, 1300); } else { btn.disabled = false; } })
+                    .catch(function(){ bildir('Bağlantı hatası', true); btn.disabled = false; });
             });
         }
         document.querySelectorAll('.geri-al').forEach(function (b) {
             b.addEventListener('click', function () {
-                if (!confirm('Bu ciro geri alınsın mı? Çekler portföye döner ve cari bakiye eski haline gelir.')) return;
+                if (!confirm('Bu kendi çek verme geri alınsın mı? Çekler silinir ve cari bakiye eski haline döner.')) return;
                 b.disabled = true;
                 var body = new URLSearchParams({ log_id: b.getAttribute('data-id'), csrf_token: csrf });
-                fetch('cek_ciro_geri_al.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+                fetch('cek_kendi_geri_al.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
                     .then(function(r){ return r.json(); })
                     .then(function(j){ bildir(j.mesaj || (j.ok?'Geri alındı':'Hata'), !j.ok); if (j.ok) { setTimeout(function(){ location.reload(); }, 1000); } else { b.disabled = false; } })
                     .catch(function(){ bildir('Bağlantı hatası', true); b.disabled = false; });

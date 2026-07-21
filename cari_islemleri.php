@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * cari_islemleri.php — Cari İşlemleri merkezi (hub).
  * Bir cari için çek işlemlerini tek yerde toplar; her işlem o cariye önceden bağlı açılır.
- *   Çek: Giriş (cek_panel.php) · Çıkış/Ciro (cek_ciro_panel.php) · Kendi Çekimiz (cek_kendi_panel.php)
+ *   Çek: Giriş (cek/cek_panel.php) · Çıkış/Ciro (cek/cek_ciro_panel.php) · Kendi Çekimiz (cek/cek_kendi_panel.php)
  * Erişim: M30 (Çek İşlemleri) yetkisi (fail-closed; yönetici otomatik alır).
  */
 
@@ -145,7 +145,7 @@ if ($erisim && $cariRef > 0) {
         <div class="bolum-h"><i class="fa-solid fa-money-check-dollar"></i> Çek İşlemleri</div>
         <div class="aksiyonlar">
             <?php if ($cekGirisOk): ?>
-            <a class="aksiyon" href="cek_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
+            <a class="aksiyon" href="cek/cek_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
                 <span class="ico giris"><i class="fa-solid fa-arrow-down-long"></i></span>
                 <span class="metin">
                     <span class="baslik">Çek Girişi</span>
@@ -155,7 +155,7 @@ if ($erisim && $cariRef > 0) {
             </a>
             <?php endif; ?>
             <?php if ($cekCikisOk): ?>
-            <a class="aksiyon" href="cek_ciro_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
+            <a class="aksiyon" href="cek/cek_ciro_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
                 <span class="ico cikis"><i class="fa-solid fa-share-from-square"></i></span>
                 <span class="metin">
                     <span class="baslik">Çek Çıkışı / Ciro</span>
@@ -163,7 +163,7 @@ if ($erisim && $cariRef > 0) {
                 </span>
                 <i class="fa-solid fa-chevron-right ok"></i>
             </a>
-            <a class="aksiyon" href="cek_kendi_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
+            <a class="aksiyon" href="cek/cek_kendi_panel.php?cari=<?php echo (int) $cari['LOGICALREF']; ?>">
                 <span class="ico cikis"><i class="fa-solid fa-money-check"></i></span>
                 <span class="metin">
                     <span class="baslik">Kendi Çekimiz</span>

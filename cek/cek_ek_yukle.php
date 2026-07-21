@@ -9,8 +9,8 @@ declare(strict_types=1);
  */
 
 ob_start();
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../kontrol.php");
 ob_end_clean();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -84,7 +84,7 @@ try {
     cek_ek_cik(false, 'Sunucu hatasi.');
 }
 
-$klasor = __DIR__ . '/cek_ekleri';
+$klasor = __DIR__ . '/../cek_ekleri';
 if (!is_dir($klasor) && !mkdir($klasor, 0775, true) && !is_dir($klasor)) {
     error_log('cek ek klasor olusturulamadi: ' . $klasor);
     cek_ek_cik(false, 'Yukleme klasoru hazirlanamadi.');

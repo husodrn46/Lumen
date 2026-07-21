@@ -733,7 +733,7 @@ function paraformat(float|int|string|null $kusurat): string
                                         '" target="_blank" data-fis-link="1" class="tr-fatura">' .
                                         $icon . htmlspecialchars((string) $rowx['TRCODE']) . '</a>';
                                 } elseif ($isCekSenet) {
-                                    $cekSayfa = $eskiDonem ? 'cek_2025.php' : 'cek.php';
+                                    $cekSayfa = $eskiDonem ? 'cek/cek_2025.php' : 'cek/cek.php';
                                     $trno = (int) ($rowx['TRCODE_NO'] ?? 0);
                                     $cekUrl = null;
                                     if (in_array($trno, [63, 64], true) && !empty($rowx['SOURCEFREF'])) {

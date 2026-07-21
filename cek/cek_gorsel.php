@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-require_once(__DIR__ . "/kontrol.php");
-include_once(__DIR__ . "/log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+require_once(__DIR__ . "/../kontrol.php");
+include_once(__DIR__ . "/../log_ip.php");
 
 // Yalnizca yonetici
 if ((int) ($yetkidurum ?? 1) !== 0) {
@@ -75,7 +75,7 @@ $csrfToken = function_exists('csrf_token') ? csrf_token() : '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çek Görselleri</title>
     <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -130,7 +130,7 @@ $csrfToken = function_exists('csrf_token') ? csrf_token() : '';
 <body>
     <header class="top-header">
         <div class="header-inner">
-            <a href="index.php" class="header-back" title="Ana Sayfa"><i class="fa fa-arrow-left"></i></a>
+            <a href="../index.php" class="header-back" title="Ana Sayfa"><i class="fa fa-arrow-left"></i></a>
             <span class="header-title"><i class="fa-solid fa-money-check-dollar"></i> Çek Görselleri</span>
         </div>
     </header>
@@ -231,7 +231,7 @@ $csrfToken = function_exists('csrf_token') ? csrf_token() : '';
                 .catch(() => { if (window.toast) { toast('Bağlantı hatası.', 'error'); } else { alert('Bağlantı hatası.'); } });
         }
     </script>
-    <?php include_once(__DIR__ . '/ux_katman.php'); ?>
+    <?php include_once(__DIR__ . '/../ux_katman.php'); ?>
     <?php include_once(__DIR__ . '/cek_kirpma.php'); ?>
 </body>
 </html>

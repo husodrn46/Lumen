@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/log_ip.php");
-include_once(__DIR__ . "/ayr.php");
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
 
 // Dönem kontrolü (2025 dönemi için eski tabloları kullan)
 $donemParam = isset($_GET['donem']) ? $_GET['donem'] : '';
@@ -194,7 +194,7 @@ if ($mod === 'bordro') {
     <title><?php echo $h($sayfaBasligi); ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="icon.png">
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include_once __DIR__ . '/pwa-header.php'; } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -343,7 +343,7 @@ if ($mod === 'bordro') {
 
     <header class="top-header">
         <div class="header-inner">
-            <a href="lg_hareket.php?cariid=<?php echo (int) $CARIID; ?>" class="header-back" title="Geri">
+            <a href="../lg_hareket.php?cariid=<?php echo (int) $CARIID; ?>" class="header-back" title="Geri">
                 <i class="fa fa-arrow-left"></i>
             </a>
             <span class="header-title"><i class="fa-solid fa-money-check-dollar"></i><?php echo $h($sayfaBasligi); ?></span>
@@ -557,7 +557,7 @@ if ($mod === 'bordro') {
     <?php endif; ?>
     </script>
 
-    <?php include_once(__DIR__ . '/ux_katman.php'); ?>
+    <?php include_once(__DIR__ . '/../ux_katman.php'); ?>
     <?php if (!empty($isYonetici)) { include_once(__DIR__ . '/cek_kirpma.php'); } ?>
 </body>
 </html>

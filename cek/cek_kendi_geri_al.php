@@ -8,10 +8,10 @@ declare(strict_types=1);
  * Erişim: M30 (Çek İşlemleri) yetkisi + CSRF + POST (fail-closed).
  */
 
-include_once(__DIR__ . '/ayr.php');
-include_once(__DIR__ . '/kontrol.php');
-include_once(__DIR__ . '/donem_helper.php');
-include_once(__DIR__ . '/log_ip.php');
+include_once(__DIR__ . '/../ayr.php');
+include_once(__DIR__ . '/../kontrol.php');
+include_once(__DIR__ . '/../donem_helper.php');
+include_once(__DIR__ . '/../log_ip.php');
 include_once(__DIR__ . '/cek_lib.php');
 
 global $dbh, $firmadonem, $terminalkullanici, $yetkidurum;

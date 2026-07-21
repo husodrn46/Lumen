@@ -8,8 +8,8 @@ declare(strict_types=1);
  */
 
 ob_start();
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../kontrol.php");
 ob_end_clean();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -40,7 +40,7 @@ if (!$row) {
 
 // Path traversal korumasi: yalnizca dosya adi, sabit klasor
 $dosyaAd = basename((string) $row['DOSYA_YOLU']);
-$path = __DIR__ . '/cek_ekleri/' . $dosyaAd;
+$path = __DIR__ . '/../cek_ekleri/' . $dosyaAd;
 if (is_file($path)) {
     @unlink($path);
 }

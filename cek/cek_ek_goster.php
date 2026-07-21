@@ -7,8 +7,8 @@ declare(strict_types=1);
  * GET: id (M_CEK_EK.ID). Yalnizca yonetici. Dosyalar cek_ekleri/ disina cikamaz.
  */
 
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../kontrol.php");
 
 if ((int) ($yetkidurum ?? 1) !== 0) {
     http_response_code(403);
@@ -30,7 +30,7 @@ if (!$row) {
 }
 
 $dosyaAd = basename((string) $row['DOSYA_YOLU']);
-$path = __DIR__ . '/cek_ekleri/' . $dosyaAd;
+$path = __DIR__ . '/../cek_ekleri/' . $dosyaAd;
 if (!is_file($path)) {
     http_response_code(404);
     exit('Dosya yok.');

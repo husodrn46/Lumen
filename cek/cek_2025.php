@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/kontrol.php';
-include_once(__DIR__ . "/log_ip.php");
-include_once(__DIR__ . "/ayr.php");
+require_once __DIR__ . '/../kontrol.php';
+include_once(__DIR__ . "/../log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
 
 // 2025 dönemi için eski tabloları kullan
 $firmadonem = $eskifirmadonem;
@@ -174,7 +174,7 @@ function paraformat(float|int|string|null $kusurat): string
             <span class="donem-badge">2025 Dönemi</span>
         </div>
         <div class="topbar-actions">
-            <a href="lg_hareket.php?cariid=<?php echo (int)$CARIID; ?>" class="btn back">← Geri Dön</a>
+            <a href="../lg_hareket.php?cariid=<?php echo (int)$CARIID; ?>" class="btn back">← Geri Dön</a>
             <button class="btn" onclick="window.print()">PDF Olarak Kaydet</button>
         </div>
     </div>

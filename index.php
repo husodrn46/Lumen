@@ -1450,7 +1450,7 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
         <?php if ($uyariVar): ?>
         <div class="uyari-grid">
             <?php if ($cekGorselEksik > 0): ?>
-            <a href="cek_gorsel.php" class="uyari-kart u-amber" title="Çek görsellerini ekle">
+            <a href="cek/cek_gorsel.php" class="uyari-kart u-amber" title="Çek görsellerini ekle">
                 <span class="uk-ikon"><i class="fa-solid fa-camera"></i></span>
                 <span class="uk-metin"><b>Çek Görselleri</b><span><?php echo (int) $cekGorselEksik; ?> çekin görseli eksik</span></span>
                 <span class="uk-sayi"><?php echo (int) $cekGorselEksik; ?></span>
