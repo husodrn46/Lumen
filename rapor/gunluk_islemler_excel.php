@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 include_once(__DIR__ . "/../ayr.php");
-include_once(__DIR__ . "/_baglanti_.inc");
+include_once(__DIR__ . "/../_baglanti_.inc");
 require_once __DIR__ . '/../kontrol.php';
 
 // Yetki kontrolü - M13 günlük işlemler yetkisi

@@ -63,7 +63,7 @@ $lgStokEkleBackUrl = safeLocalReturnUrl(
 );
 
 if ($stokid > 0 && $fisid > 0) {
-  include_once(__DIR__ . "/fiyatgrup.php");
+  include_once(__DIR__ . "/../fiyat/fiyatgrup.php");
 
   $stmt = $dbh->prepare("SELECT LOGICALREF FROM " . $firmadonem . "ORFLINE WHERE STOCKREF = :stokid AND ORDFICHEREF = :fisid");
   $stmt->execute([':stokid' => $stokid, ':fisid' => $fisid]);

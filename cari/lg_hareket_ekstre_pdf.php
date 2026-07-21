@@ -7,7 +7,7 @@ ob_start();
 include_once __DIR__ . '/../ayr.php';
 include_once __DIR__ . '/../log_ip.php';
 
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;

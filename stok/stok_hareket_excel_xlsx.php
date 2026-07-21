@@ -8,7 +8,7 @@ include_once __DIR__ . "/../ayr.php";
 include    __DIR__ . "/../kontrol.php";
 include_once __DIR__ . "/../log_ip.php";
 
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;

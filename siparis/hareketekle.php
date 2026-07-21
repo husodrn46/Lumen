@@ -8,7 +8,7 @@ include_once(__DIR__ . "/iskonto_lib.php"); // yeni urunde mevcut iskontoyu otom
 if (!function_exists('hareketekle_trace_log')) {
   function hareketekle_trace_log(string $event, array $context = []): void
   {
-    $logDir = __DIR__ . '/logs';
+    $logDir = __DIR__ . '/../logs';
     if (!is_dir($logDir)) {
       @mkdir($logDir, 0775, true);
     }

@@ -14,7 +14,7 @@ if (!$stokhareket || $stokhareket <= 0) { // Sıfır veya geçersizse durdur
     die("Hata: Gecersiz veya eksik stok hareket numarasi.");
 }
 
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;

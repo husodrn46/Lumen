@@ -5,7 +5,7 @@ declare(strict_types=1);
  * Kar-Zarar Analizi Excel Export
  */
 
-require_once __DIR__ . '/kontrol.php';
+require_once __DIR__ . '/../../kontrol.php';
 include_once(__DIR__ . "/../../ayr.php");
 include_once(__DIR__ . "/../../_baglanti_.inc");
 include_once(__DIR__ . "/../../_bilgi_.inc");

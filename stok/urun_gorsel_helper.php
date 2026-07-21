@@ -44,7 +44,7 @@ if (!function_exists('akl_stok_gorsel_manifest')) {
             return $products;
         }
 
-        $manifestPath = __DIR__ . '/tm/urun-gorselleri/manifest.json';
+        $manifestPath = __DIR__ . '/../tm/urun-gorselleri/manifest.json';
         if (!is_file($manifestPath)) {
             $products = [];
             return $products;
