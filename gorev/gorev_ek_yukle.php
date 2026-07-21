@@ -9,8 +9,8 @@ declare(strict_types=1);
  */
 
 ob_start();
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../kontrol.php");
 include_once(__DIR__ . "/gorev_lib.php");
 ob_end_clean();
 
@@ -98,7 +98,7 @@ try {
     ek_jcik(false, 'Sunucu hatası.');
 }
 
-$klasor = __DIR__ . '/gorev_ekleri';
+$klasor = __DIR__ . '/../gorev_ekleri';
 if (!is_dir($klasor) && !mkdir($klasor, 0775, true) && !is_dir($klasor)) {
     error_log('gorev ek klasor olusturulamadi: ' . $klasor);
     ek_jcik(false, 'Yükleme klasörü hazırlanamadı.');

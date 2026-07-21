@@ -97,7 +97,7 @@ if (!function_exists('canli_sayfa_adi')) {
             'cariyeni.php' => 'Yeni Cari', 'cari_islemleri.php' => 'Cari Islemleri',
             'lg_hareket.php' => 'Cari Hareket', 'cek_panel.php' => 'Cek Paneli',
             'cek_gorsel.php' => 'Cek Gorselleri', 'loglar.php' => 'Loglar',
-            'gorevler.php' => 'Gorevler', 'yeni_dizayn.php' => 'Fis Dizayni',
+            'gorevler.php' => 'Gorevler', 'gorev/gorevler.php' => 'Gorevler', 'yeni_dizayn.php' => 'Fis Dizayni',
             'lg_fatura_yazdir.php' => 'Fatura Yazdir', 'stok_hareket_excel.php' => 'Stok Excel',
             'stok/uretim_giris.php' => 'Uretim Girisi', 'stok/index.php' => 'Stoklar',
             'ai_siparis_beta.php' => 'AI Siparis', 'index.php' => 'Ana Sayfa',

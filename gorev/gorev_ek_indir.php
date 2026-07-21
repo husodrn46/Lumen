@@ -8,8 +8,8 @@ declare(strict_types=1);
  * Yalnizca ekin ait oldugu goreve erisebilen kullanici indirebilir.
  */
 
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../kontrol.php");
 include_once(__DIR__ . "/gorev_lib.php");
 
 $benimId = (int) $terminalkullanici;
@@ -50,7 +50,7 @@ if (!$g) {
 
 // Path traversal'e karsi yalnizca dosya adi
 $guvenliAd = basename((string) $ek['DOSYA_YOLU']);
-$dosyaYolu = __DIR__ . '/gorev_ekleri/' . $guvenliAd;
+$dosyaYolu = __DIR__ . '/../gorev_ekleri/' . $guvenliAd;
 
 if ($guvenliAd === '' || !is_file($dosyaYolu)) {
     http_response_code(404);

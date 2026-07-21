@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-include_once(__DIR__ . "/log_ip.php");
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../log_ip.php");
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../kontrol.php");
 include_once(__DIR__ . "/gorev_lib.php");
 
 $benimId = (int) $terminalkullanici;
@@ -238,7 +238,7 @@ $kanbanSutunlar = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Görevler</title>
-    <?php include_once(__DIR__ . '/pwa-header.php'); ?>
+    <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -443,7 +443,7 @@ $kanbanSutunlar = [
 <body>
     <header class="top-header">
         <div class="header-inner">
-            <a href="index.php" class="header-back" title="Geri"><i class="fa fa-arrow-left"></i></a>
+            <a href="../index.php" class="header-back" title="Geri"><i class="fa fa-arrow-left"></i></a>
             <div class="header-divider"></div>
             <span class="header-title"><i class="fa-solid fa-clipboard-list"></i>Görevler</span>
             <div class="header-spacer"></div>
@@ -763,6 +763,6 @@ $kanbanSutunlar = [
             ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('acik'); });
         });
     </script>
-    <?php include_once(__DIR__ . '/ux_katman.php'); ?>
+    <?php include_once(__DIR__ . '/../ux_katman.php'); ?>
 </body>
 </html>

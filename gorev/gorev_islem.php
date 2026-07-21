@@ -15,8 +15,8 @@ declare(strict_types=1);
  */
 
 ob_start();
-include_once(__DIR__ . "/ayr.php");
-include_once(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include_once(__DIR__ . "/../kontrol.php");
 include_once(__DIR__ . "/gorev_lib.php");
 ob_end_clean();
 

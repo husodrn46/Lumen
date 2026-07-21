@@ -9,7 +9,7 @@ ob_start();
 include_once(__DIR__ . "/ayr.php");
 include(__DIR__ . "/kontrol.php");
 ob_end_clean();
-include_once(__DIR__ . "/gorev_lib.php");
+include_once(__DIR__ . "/gorev/gorev_lib.php");
 
 
 // Çıkış işlemi: oturumu sonlandır ve giriş sayfasına yönlendir
@@ -147,7 +147,7 @@ $menu_items = [
     ['M8', 'Bekleyen Ürünler', 'fa-clock', 'bekleyen_siparis.php', 'theme-red'],
     ['M10', 'Sil', 'fa-trash', 'lg_geridonusum.php', 'theme-amber'],
     ['M13', 'Günlük İşlemler', 'fa-calendar-day', 'gunluk_islemler.php', 'theme-red'],
-    ['M28', 'Görevler', 'fa-clipboard-list', 'gorevler.php', 'theme-indigo'],
+    ['M28', 'Görevler', 'fa-clipboard-list', 'gorev/gorevler.php', 'theme-indigo'],
     ['M15', 'Stoklar', 'fa-boxes-stacked', 'stok/index.php', 'theme-amber'],
     ['M16', 'Sistem Ayarları', 'fa-cog', 'ayar/', 'theme-indigo'],
     ['M17', 'Raporlar', 'fa-chart-line', 'rapor/dashboard.php', 'theme-emerald'],
