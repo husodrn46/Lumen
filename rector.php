@@ -11,7 +11,6 @@ return RectorConfig::configure()
     ])
     ->withSkip([
         __DIR__ . '/vendor',
-        __DIR__ . '/husodrn46/vendor',
     ])
     ->withPhpSets(php83: true)
     ->withPreparedSets(

@@ -146,6 +146,15 @@ $eksik = 1;                     // Eksik stok kontrolü aktif mi
 $maliyetkontrol = 1;            // Maliyet kontrolü (satış < alış uyarısı)
 
 // ============================================================================
+// RAPOR AYARLARI
+// ============================================================================
+// Müşteri ödeme hızı raporunda hariç tutulacak cari anahtar kelimeleri.
+// Cari KODUNDA veya UNVANINDA bu kelimelerden biri geçerse rapora girmez.
+// Kendi iç hesaplarınızı (mağaza satış, gider, yatırım vb.) elemek için kullanın.
+// Boş bırakılırsa hiçbir cari elenmez. Örnek: ['MAGAZA SATIS', 'GIDER']
+$rapor_haric_cari_kelimeleri = [];
+
+// ============================================================================
 // YETKİ AYARLARI
 // ============================================================================
 $toplusipfaturalama = '1';      // Toplu sipariş faturalama yetkisi (0: Hayır, 1: Evet)

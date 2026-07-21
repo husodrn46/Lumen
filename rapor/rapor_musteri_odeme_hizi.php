@@ -87,16 +87,24 @@ function moh_sql_error(Throwable $e, string $scope): string
 
 function moh_customer_exclude_filter(string $alias, string $paramPrefix): array
 {
+    // Hariç tutulacak kelimeler _bilgi_.inc'ten gelir ($rapor_haric_cari_kelimeleri).
+    // Varsayılan boştur; tanımlı değilse hiçbir cari elenmez.
+    global $rapor_haric_cari_kelimeleri;
+
+    $terms = array_values(array_filter(
+        array_map(
+            static fn($t): string => mb_strtoupper(trim((string) $t), 'UTF-8'),
+            (array) ($rapor_haric_cari_kelimeleri ?? [])
+        ),
+        static fn(string $t): bool => $t !== ''
+    ));
+
+    if ($terms === []) {
+        return ['sql' => '1=1', 'params' => []];
+    }
+
     $normCode = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE({$alias}.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c') COLLATE Turkish_CI_AS";
     $normName = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE({$alias}.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c') COLLATE Turkish_CI_AS";
-    $terms = [
-        'MAGAZA SATIS',
-        'DURNA',
-        'ZEKAT',
-        'YATIRIM',
-        'GIDER',
-        'KROM',
-    ];
 
     $sqlParts = [];
     $params = [];

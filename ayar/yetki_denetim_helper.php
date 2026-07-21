@@ -16,7 +16,7 @@ if (!function_exists('denetimSayfaListesi')) {
             // yapılamaz. M3 yalnız index.php kart görünürlüğünü kontrol eder.
             ['kod' => 'M4', 'label' => 'Müşteri Bakiye', 'path' => '../cari/lg_bakiye.php', 'menu' => true, 'allow_codes' => ['M4', 'M20'], 'kod_label' => 'M4/M20'],
             ['kod' => 'M5', 'label' => 'Tüm Siparişler', 'path' => '../siparis/lg_tumsiparisler.php', 'menu' => true],
-            ['kod' => 'M6', 'label' => 'Barkodlar', 'path' => 'husodrn46/barkodlar.php', 'menu' => true],
+            ['kod' => 'M6', 'label' => 'Barkodlar', 'path' => '../barkod/barkodlar.php', 'menu' => true],
             ['kod' => 'M7', 'label' => 'Stok Ara', 'path' => '../stok/stok_tara.php', 'menu' => true],
             ['kod' => 'M7', 'label' => 'Fiyat Listesi', 'path' => '../fiyat/fiyat_listesi.php', 'menu' => true],
             ['kod' => 'M8', 'label' => 'Bekleyen Ürünler', 'path' => '../siparis/bekleyen_siparis.php', 'menu' => true],

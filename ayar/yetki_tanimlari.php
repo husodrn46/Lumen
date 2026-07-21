@@ -71,7 +71,7 @@ if (!function_exists('yetki_gruplari')) {
                     'CR1' => ['name' => 'Cari Bakiye Görme',           'icon' => 'fa-scale-balanced', 'color' => 'red',     'desc' => 'Listelerde/raporlarda bakiye sütunu görünür',             'aktif' => true],
                     'CR2' => ['name' => 'Cari Yetki 2',                'icon' => 'fa-circle-question','color' => 'gray',    'desc' => 'Kod tabanında kullanılmıyor',                             'aktif' => false],
                     'CR3' => ['name' => 'Cari Yetki 3',                'icon' => 'fa-circle-question','color' => 'gray',    'desc' => 'Kod tabanında kullanılmıyor',                             'aktif' => false],
-                    'CR4' => ['name' => 'Özel Cari Bakiyesi',          'icon' => 'fa-user-lock',      'color' => 'purple',  'desc' => 'Kısıtlı (DURNA) carilerin bakiyesini görme',              'aktif' => true],
+                    'CR4' => ['name' => 'Özel Cari Bakiyesi',          'icon' => 'fa-user-lock',      'color' => 'purple',  'desc' => 'Özel Cari ekranından kısıtlanmış carilerin bakiyesini görme', 'aktif' => true],
                 ],
             ],
             'stok' => [

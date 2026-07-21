@@ -49,7 +49,6 @@ $limit = isset($carilistesayisi) ? max(1, (int) $carilistesayisi) : 100;
 
 // Yetkiler satir bazli degil, sayfa bazli hesaplanir
 $cr1Yetkisi = (m_p_yetki($terminalkullanici, 'CR1') == 1);
-$cr4Yetkisi = (m_p_yetki($terminalkullanici, 'CR4') == 1);
 
 $bakiyeSecim = "CAST(0 AS DECIMAL(18,2)) AS BAKIYE";
 $joinSql = "";
@@ -630,15 +629,13 @@ if (!$hasSearch) {
                 <?php $cardIndex = 0; foreach ($rows as $rowx):
                     $bakiye = (float) $rowx['BAKIYE'];
 
-                    // "durna" kontrolu (Unicode guvenli)
                     $unvan = $rowx['UNVANI'] ?? '';
                     $unvanText = tr($unvan);
                     $sehirText = tr($rowx['SEHIR'] ?? '');
-                    $lower = function_exists('mb_strtolower') ? mb_strtolower((string) $unvan, 'UTF-8') : strtolower((string) $unvan);
-                    $isDurna = (str_contains($lower, 'durna'));
 
-                    // Bakiye gizleme mantigi
-                    $hideBalance = !$cr1Yetkisi || ($isDurna && !$cr4Yetkisi);
+                    // Bakiye gizleme: CR1 yoksa gizli. Kisitli cariler zaten
+                    // m_p_ozel_cari_sql_filtresi() ile listeden elenmis olur.
+                    $hideBalance = !$cr1Yetkisi;
 
                     if ($hideBalance) {
                         $bakiyeClass = 'hidden-box';

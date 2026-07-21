@@ -1212,7 +1212,7 @@ if (!function_exists('m_p_yetki_etiketleri')) {
       'CR1' => 'Cari Bakiye',
       'CR2' => 'Cari Extre',
       'CR3' => 'İletişim Bilgileri',
-      'CR4' => 'Durna Görme',
+      'CR4' => 'Özel Cari Bakiyesi',
       'SP1' => 'Sipariş Fiyat Değiştirme',
       'SP2' => 'Son Alış Fiyatı Görme',
       'SP3' => 'Son Satış Fiyatı Görme',

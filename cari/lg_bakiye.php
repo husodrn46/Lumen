@@ -98,15 +98,6 @@ if ($raw_cari !== '' && $raw_cari !== '0') {
 
     try {
         // Veritabanı nesnesinin 'ayr.php' içinde $dbh olarak tanımlandığından emin olun
-        try {
-	            $info = '['.date('Y-m-d H:i:s').'] DBG VARS: isset($dbh)=' . (isset($dbh) ? '1' : '0') . ', firma=' . ($firma ?? '(undef)') . ', firmadonemx=' . ($firmadonemx ?? '(undef)') . "\n";
-	            if (isset($__durna_dbg) && is_string($__durna_dbg) && $__durna_dbg !== '') {
-	                set_error_handler(static fn(): bool => true);
-	                file_put_contents($__durna_dbg, $info, FILE_APPEND);
-	                restore_error_handler();
-	            }
-	        } catch (Exception) {}
-
         if (isset($dbh)) {
             $stmt = $dbh->prepare($sql);
             $stmt->execute($params);
