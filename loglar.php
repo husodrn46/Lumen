@@ -104,7 +104,7 @@ if (!function_exists('canli_sayfa_adi')) {
             'ai_siparis_beta.php' => 'AI Siparis', 'index.php' => 'Ana Sayfa',
             'siparis/lg_geridonusum.php' => 'Sil (Geri Donusum)', 'bildirimler.php' => 'Musteri Talepleri',
             'bildirim_detay.php' => 'Talep Detayi', 'siparis/bekleyen_siparis.php' => 'Bekleyen Urunler',
-            'fiyat_listesi.php' => 'Fiyat Listesi', 'gunluk_islemler.php' => 'Gunluk Islemler',
+            'fiyat/fiyat_listesi.php' => 'Fiyat Listesi', 'rapor/gunluk_islemler.php' => 'Gunluk Islemler',
         ];
         if (isset($map[$p])) {
             return ['ad' => $map[$p], 'rapor' => $rapor];

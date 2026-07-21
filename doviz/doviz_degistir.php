@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-include_once(__DIR__ . "/ayr.php");
-require_once __DIR__ . '/kontrol.php';
+include_once(__DIR__ . "/../ayr.php");
+require_once __DIR__ . '/../kontrol.php';
 
 $stokhareket = isset($_GET['stokhareket']) ? (int)$_GET['stokhareket'] : (isset($_POST['stokhareket']) ? (int)$_POST['stokhareket'] : 0);
 $mesaj = '';
@@ -102,7 +102,7 @@ $mevcut_trcode = (int)$fis['TRCODE'];
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="tailwind.local.js" onerror="var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);"></script>
-    <?php if (file_exists(__DIR__ . '/pwa-header.php')) { include __DIR__ . '/pwa-header.php'; } ?>
+    <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include __DIR__ . '/../pwa-header.php'; } ?>
     <style>
         :root {
             --bg: #f9fafb;
@@ -475,7 +475,7 @@ $mevcut_trcode = (int)$fis['TRCODE'];
 <body>
     <header class="top-header">
         <div class="top-header-inner">
-            <a href="siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="back-btn" aria-label="Geri">
+            <a href="../siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="back-btn" aria-label="Geri">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <span class="header-icon"><i class="fas fa-money-bill-transfer"></i></span>
@@ -572,7 +572,7 @@ $mevcut_trcode = (int)$fis['TRCODE'];
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-check"></i> Döviz Değiştir
                 </button>
-                <a href="siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="btn btn-secondary">
+                <a href="../siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="btn btn-secondary">
                     <i class="fas fa-xmark"></i> İptal
                 </a>
             </div>

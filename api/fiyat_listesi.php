@@ -8,7 +8,7 @@ declare(strict_types=1);
  *
  * Token zorunlu. Aktif ürünlerin (ITEMS ACTIVE=0) satış fiyat listesi: PRCLIST (CARDREF,
  * ACTIVE=0) fiyatı + ITEMS.VAT KDV oranı + KDV dahil. PRCLIST satış satırı (PTYPE 1) öncelikli.
- * (Web fiyat_listesi.php ile aynı kaynak; çoklu fiyat satırına karşı TOP 1 alt sorgu.)
+ * (Web ../fiyat/fiyat_listesi.php ile aynı kaynak; çoklu fiyat satırına karşı TOP 1 alt sorgu.)
  */
 
 include_once(__DIR__ . '/../ayr.php');

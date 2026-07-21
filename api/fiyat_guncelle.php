@@ -9,7 +9,7 @@ declare(strict_types=1);
  * Token + ST2 (fiyat değiştirme) yetkisi zorunlu. Ürünün VARSAYILAN satış fiyatını
  * (PRCLIST PTYPE=2, PAYPLANREF=0, ACTIVE=0) günceller — yalnızca mevcut satırın PRICE'ı.
  * Yeni fiyat satırı oluşturma (ödeme planına özel) web tarafında kalır (riskli INSERT).
- * (Web fiyat_guncelle.php UPDATE sözleşmesi: PTYPE=2.)
+ * (Web ../fiyat/fiyat_guncelle.php UPDATE sözleşmesi: PTYPE=2.)
  */
 
 include_once(__DIR__ . '/../ayr.php');

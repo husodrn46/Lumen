@@ -11,17 +11,17 @@ if (!function_exists('denetimSayfaListesi')) {
             ['kod' => 'M1', 'label' => 'Yeni Sipariş', 'path' => '../cari/cari.php', 'menu' => true],
             ['kod' => 'M2', 'label' => 'Siparişler', 'path' => '../siparis/lg_essiparis.php', 'menu' => true],
             ['kod' => 'M21', 'label' => 'Döviz İşlemleri', 'path' => 'doviz/index.php', 'menu' => true],
-            // NOT: M3 (Mağaza Satış) öğesi kaldırıldı — probe hedefi fiyat_sec.php
+            // NOT: M3 (Mağaza Satış) öğesi kaldırıldı — probe hedefi ../fiyat/fiyat_sec.php
             // emekliye ayrıldı; ../siparis/fisekle.php GET'i fiş OLUŞTURDUĞU için probe hedefi
             // yapılamaz. M3 yalnız index.php kart görünürlüğünü kontrol eder.
             ['kod' => 'M4', 'label' => 'Müşteri Bakiye', 'path' => '../cari/lg_bakiye.php', 'menu' => true, 'allow_codes' => ['M4', 'M20'], 'kod_label' => 'M4/M20'],
             ['kod' => 'M5', 'label' => 'Tüm Siparişler', 'path' => '../siparis/lg_tumsiparisler.php', 'menu' => true],
             ['kod' => 'M6', 'label' => 'Barkodlar', 'path' => 'husodrn46/barkodlar.php', 'menu' => true],
             ['kod' => 'M7', 'label' => 'Stok Ara', 'path' => '../stok/stok_tara.php', 'menu' => true],
-            ['kod' => 'M7', 'label' => 'Fiyat Listesi', 'path' => 'fiyat_listesi.php', 'menu' => true],
+            ['kod' => 'M7', 'label' => 'Fiyat Listesi', 'path' => '../fiyat/fiyat_listesi.php', 'menu' => true],
             ['kod' => 'M8', 'label' => 'Bekleyen Ürünler', 'path' => '../siparis/bekleyen_siparis.php', 'menu' => true],
             ['kod' => 'M10', 'label' => 'Geri Dönüşüm', 'path' => '../siparis/lg_geridonusum.php', 'menu' => true],
-            ['kod' => 'M13', 'label' => 'Günlük İşlemler', 'path' => 'gunluk_islemler.php', 'menu' => true],
+            ['kod' => 'M13', 'label' => 'Günlük İşlemler', 'path' => '../rapor/gunluk_islemler.php', 'menu' => true],
             ['kod' => 'M15', 'label' => 'Stoklar', 'path' => 'stok/index.php', 'menu' => true],
             ['kod' => 'M16', 'label' => 'Ayarlar', 'path' => 'ayar/', 'menu' => true],
             ['kod' => 'M17', 'label' => 'Raporlar', 'path' => 'rapor/dashboard.php', 'menu' => true],

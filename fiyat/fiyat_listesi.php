@@ -4,8 +4,8 @@ declare(strict_types=1);
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 
-	include_once(__DIR__ . "/ayr.php");
-	include(__DIR__ . "/kontrol.php");
+	include_once(__DIR__ . "/../ayr.php");
+	include(__DIR__ . "/../kontrol.php");
 
 	// YETKI KONTROLÜ: M7 (Fiyat Listesi) yetkisi kontrolü
 	// Not: index.php menüsünde de M7 ile gösteriliyor, ancak direkt URL erişimini de engellemek için burada zorunlu kılınır.
@@ -456,7 +456,7 @@ $toplam = count($urunler);
 </head>
 <body>
     <?php
-    $pwaHeader = __DIR__ . '/pwa-header.php';
+    $pwaHeader = __DIR__ . '/../pwa-header.php';
     if (file_exists($pwaHeader)) {
         include $pwaHeader;
     }
@@ -464,7 +464,7 @@ $toplam = count($urunler);
     <div class="page">
         <div class="top-header">
             <div class="top-header-inner">
-                <a href="index.php" class="back-btn" aria-label="Geri">
+                <a href="../index.php" class="back-btn" aria-label="Geri">
                     <i class="fa-solid fa-arrow-left"></i>
                 </a>
                 <span class="header-icon"><i class="fa-solid fa-tags"></i></span>

@@ -15,14 +15,14 @@ declare(strict_types=1);
  * Tam hali git geçmişinde (8ce232c öncesi).
  */
 
-include_once(__DIR__ . "/ayr.php");
-include(__DIR__ . "/kontrol.php");
+include_once(__DIR__ . "/../ayr.php");
+include(__DIR__ . "/../kontrol.php");
 
 $cariid = isset($_GET['cariid']) ? (int) $_GET['cariid'] : 0;
 $stokhareket = isset($_GET['stokhareket']) ? (int) $_GET['stokhareket'] : 0;
 
 $hedef = $cariid > 0
-    ? 'siparis/fisekle.php?cariid=' . $cariid . '&stokhareket=' . $stokhareket
-    : 'cari/cari.php';
+    ? '../siparis/fisekle.php?cariid=' . $cariid . '&stokhareket=' . $stokhareket
+    : '../cari/cari.php';
 header('Location: ' . $hedef, true, 301);
 exit;
