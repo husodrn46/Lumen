@@ -8,6 +8,7 @@
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg)](https://www.php.net/)
 [![SQL Server](https://img.shields.io/badge/DB-SQL%20Server-CC2927.svg)](https://www.microsoft.com/sql-server)
 [![LOGO Tiger](https://img.shields.io/badge/ERP-LOGO%20Tiger-6F1022.svg)](#gereksinimler)
+[![Üretimde](https://img.shields.io/badge/%C3%BCretimde-AKEL%20Melamin-6F1022.svg)](#üretimde-kullanılıyor)
 
 </div>
 
@@ -19,6 +20,8 @@
 
 Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source under the **MIT** license. First-time setup is a browser wizard (`/kurulum.php`). Ships with a synthetic demo so you can try it without touching production data.
 
+**Used in production** at [AKEL Melamin](https://github.com/akel-melamin) — a Turkish melamine tableware manufacturer — for daily order entry, stock lookup and collections on a live LOGO Tiger installation. This repository is the de-branded, configurable open-source edition of that same codebase.
+
 > ⚠️ Requires an existing **LOGO Tiger** installation on **Microsoft SQL Server** (with the `pdo_sqlsrv` PHP driver).
 
 ---
@@ -26,6 +29,7 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 ## İçindekiler
 
 - [Lumen Nedir?](#lumen-nedir)
+- [Üretimde Kullanılıyor](#üretimde-kullanılıyor)
 - [Özellikler](#özellikler)
 - [Gereksinimler](#gereksinimler)
 - [Kurulum](#kurulum)
@@ -41,6 +45,12 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 Lumen, **LOGO Tiger ERP** kullanan firmalar için tasarlanmış, web tabanlı bir **sipariş ve stok yönetim ön yüzüdür**. Verinin kaynağı LOGO'nun kendi SQL Server veritabanıdır; Lumen bu veritabanı üzerine hızlı, sade ve **mobil uyumlu** bir satış terminali arayüzü koyar.
 
 Amaç: satış temsilcilerinin ve mağaza personelinin sipariş girişi, cari/stok sorgulama ve tahsilat gibi günlük işlemleri telefondan veya tabletten, LOGO'nun masaüstü istemcisine ihtiyaç duymadan yapabilmesi. LOGO bağımlılığı kalıcıdır — Lumen LOGO'nun yerini almaz, onu tamamlar.
+
+## Üretimde Kullanılıyor
+
+Lumen bir demo ya da kavram kanıtı değil: temelini oluşturan sistem **[AKEL Melamin](https://github.com/akel-melamin)** bünyesinde, LOGO Tiger üzerinde canlı bir kurulumda her gün gerçek sipariş, stok ve tahsilat işlemleri için kullanılıyor.
+
+Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabilir** açık kaynak sürümüdür — firmaya özel değerler (ürün kodu ön eki, mağaza carisi, marka, yetkiler) koddan çıkarılıp ayar dosyalarına taşınmıştır. Yani üretimde denenmiş akışları, kendi LOGO veritabanınıza kurup kullanabilirsiniz.
 
 ## Özellikler
 
