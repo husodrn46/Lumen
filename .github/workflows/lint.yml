@@ -1,0 +1,76 @@
+name: Lint
+
+# Lumen'de otomatik test yok; bu iş akışı gerçekten doğrulanabilir olanı
+# doğrular: her PHP dosyasının sözdizimi ve composer.json geçerliliği.
+# Test altyapısı eklendiğinde buraya bir "test" job'u eklenebilir.
+
+on:
+  push:
+    branches: [main, beta]
+  pull_request:
+    branches: [main, beta]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    name: PHP ${{ matrix.php }} sözdizimi
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # composer.json "php": "^8.2" — desteklenen aralığın alt ve üst ucu
+        php: ['8.2', '8.3']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP kurulumu
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer
+
+      - name: Sözdizimi denetimi (php -l)
+        run: |
+          hata=0
+          toplam=0
+          while IFS= read -r -d '' dosya; do
+            toplam=$((toplam + 1))
+            if ! php -l "$dosya" > /dev/null 2>&1; then
+              echo "::error file=${dosya}::PHP sözdizimi hatası"
+              php -l "$dosya" 2>&1 | head -3
+              hata=$((hata + 1))
+            fi
+          done < <(find . -name '*.php' -not -path './vendor/*' -print0)
+          echo "Taranan: $toplam dosya · Hatalı: $hata"
+          exit $hata
+
+      - name: composer.json doğrulama
+        run: composer validate --no-check-publish --no-check-lock
+
+  gizli-dosya-kontrolu:
+    name: Gizli dosya sızıntısı
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sırlar depoya girmiş mi
+        run: |
+          # Bu dosyalar veritabanı parolası içerir; asla depoda olmamalı.
+          hata=0
+          for dosya in .env _baglanti_.inc .user.ini .mcp.json; do
+            if git ls-files --error-unmatch "$dosya" > /dev/null 2>&1; then
+              echo "::error::${dosya} depoya eklenmiş — gizli bilgi içerir, .gitignore'da olmalı"
+              hata=1
+            fi
+          done
+          if [ "$hata" -eq 0 ]; then
+            echo "Gizli dosya sızıntısı yok."
+          fi
+          exit $hata
