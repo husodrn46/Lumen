@@ -52,6 +52,19 @@ Lumen bir demo ya da kavram kanıtı değil: temelini oluşturan sistem **[AKEL 
 
 Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabilir** açık kaynak sürümüdür — firmaya özel değerler (ürün kodu ön eki, mağaza carisi, marka, yetkiler) koddan çıkarılıp ayar dosyalarına taşınmıştır. Yani üretimde denenmiş akışları, kendi LOGO veritabanınıza kurup kullanabilirsiniz.
 
+> ### ⚠️ Bu bir BETA dalıdır
+>
+> Bu dal (`beta`), kararlı sürümde bulunmayan **deneysel özellikleri** içerir.
+> Üretim ortamı için [`main`](https://github.com/husodrn46/Lumen/tree/main)
+> dalını ve [kararlı sürümleri](https://github.com/husodrn46/Lumen/releases)
+> kullanın.
+>
+> **Bu daldaki beta özellik: Faturalama** — siparişi LOGO satış faturasına
+> çevirir. **KDV'siz çalışır** (`TOTALVAT = 0`), muhasebe fişi ve e-fatura
+> oluşturmaz. **KDV mükellefi bir firmada kullanmayın.** Varsayılan olarak
+> kapalıdır (`$faturalama_aktif = '0'`); açmadan önce mutlaka test
+> veritabanında deneyin. Kesilen faturalar panelden geri alınabilir.
+
 ## Özellikler
 
 - 🧾 **Sipariş girişi** — hızlı çoklu satır, kademeli iskonto, KDV, döviz, koli/adet
@@ -59,7 +72,8 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
 - 📦 **Stok** — anlık miktar (LOGO view'larından), fiyat, birim/koli, barkod
 - 💳 **Çek yönetimi** — giriş/çıkış/ciro, portföy takibi, çeke görsel ek
 - 💱 **Döviz işlemleri** — çoklu kur, dövizli sipariş
-- 💰 **Kasa & tahsilat**, **fatura** akışları
+- 💰 **Kasa** ve fatura yazdırma akışları
+- 🧪 **Faturalama (BETA)** — sipariş → satış faturası, geri alınabilir · *yalnız bu dalda, KDV'siz*
 - 📊 **Raporlar** — satış, cari yaşlandırma, kâr-zarar, çek, KDV, pazarlamacı performansı
 - 🏷️ **Barkod / etiket** üretimi
 - ✅ **Görev takibi**

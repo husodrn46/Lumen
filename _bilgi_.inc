@@ -21,7 +21,8 @@ $magaza_cari = (int) (getenv('MAGAZA_CARI') ?: 0);
 // ÇEK İŞLEMLERİ — çek giriş / çıkış / ciro (portföy yönetimi)
 // Erişim "M30 (Çek İşlemleri)" yetki koduyla yönetilir:
 //   Ayarlar → Kullanıcı & Yetki → İzin Matrisi. Yönetici otomatik erişir.
-// (Faturalama ve tahsilat modülleri bu sürümde kapsam dışıdır.)
+// (Tahsilat modülü bu sürümde kapsam dışıdır. Faturalama BETA olarak
+//  aşağıdaki "FATURALAMA (BETA)" bölümünden yönetilir.)
 // ============================================================================
 
 // ============================================================================
@@ -161,6 +162,24 @@ $urun_kodu_oneki = '';
 
 // Yukarıdaki kapsamdan ayrıca hariç tutulacak ön ekler. Örnek: ['URN-HURDA']
 $urun_kodu_haric_onekleri = [];
+
+// ============================================================================
+// FATURALAMA (BETA)
+// ============================================================================
+// ⚠️ BU MODÜL KDV'SİZ ÇALIŞIR. Kestiği faturaya TOTALVAT = 0 yazar; muhasebe
+// fişi (ACCFICHE) ve e-fatura/e-arşiv kaydı OLUŞTURMAZ, satılan malın
+// maliyetini hesaplamaz. KDV mükellefi bir firmada olduğu gibi KULLANMAYIN.
+// Ayrıntı ve teknik sınırlar: fatura/fatura_lib.php dosya başlığı.
+//
+// Açmadan önce mutlaka test veritabanında deneyin. Kesilen faturalar
+// Faturalama panelinden geri alınabilir (LOGO'da elle kesilenler etkilenmez).
+$faturalama_aktif = '0';        // Kill switch (0: Kapalı — varsayılan, 1: Açık)
+
+// Fatura ve irsaliye seri ön ekleri. LOGO'nun KENDİ serilerinden FARKLI
+// olmalıdır; uygulamanın kestiği belgeler böylece ayırt edilir ve geri
+// alınabilir. Boş bırakılamaz (boş ön ek LOGO faturalarıyla çakışır).
+$fatura_prefix = 'LMF';         // INVOICE serisi  (örn. LMF0000001)
+$fatura_irsaliye_prefix = 'LMI'; // STFICHE serisi (örn. LMI000000001)
 
 // ============================================================================
 // YETKİ AYARLARI

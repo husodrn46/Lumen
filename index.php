@@ -203,6 +203,17 @@ foreach ($menu_items as $item) {
 //     ];
 // }
 
+// Faturalama (BETA) — hem kill-switch açık hem M31 yetkisi gerekir.
+// Kapalıysa kutucuk hiç görünmez; ayar: _bilgi_.inc > $faturalama_aktif
+if (!empty($faturalama_aktif) && m_p_yetki($terminalkullanici, 'M31') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Faturalama',
+        'icon' => 'fa-file-invoice-dollar',
+        'href' => 'fatura/fatura_panel.php',
+        'theme' => 't-amber',
+    ];
+}
+
 if (m_p_yetki($terminalkullanici, 'M18') == 1 || $yetkidurum === 0) {
     $visible_menu_items[] = [
         'label' => 'Loglar',
