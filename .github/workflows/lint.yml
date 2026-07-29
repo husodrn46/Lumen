@@ -1,7 +1,7 @@
 name: Lint
 
 # Lumen'de otomatik test yok; bu iş akışı gerçekten doğrulanabilir olanı
-# doğrular: her PHP dosyasının sözdizimi ve composer.json geçerliliği.
+# doğrular: PHP sözdizimi, Composer kilidi/güvenliği ve güvenlik regresyonları.
 # Test altyapısı eklendiğinde buraya bir "test" job'u eklenebilir.
 
 on:
@@ -26,13 +26,14 @@ jobs:
         php: ['8.2', '8.3']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: PHP kurulumu
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ matrix.php }}
           coverage: none
+          extensions: dom, gd, mbstring, simplexml, xmlreader, xmlwriter, zip
           tools: composer
 
       - name: Sözdizimi denetimi (php -l)
@@ -50,27 +51,41 @@ jobs:
           echo "Taranan: $toplam dosya · Hatalı: $hata"
           exit $hata
 
-      - name: composer.json doğrulama
-        run: composer validate --no-check-publish --no-check-lock
+      - name: Composer kilidi doğrulama
+        run: composer validate --strict --no-check-publish
+
+      - name: Üretim bağımlılıklarını kur
+        run: composer install --no-dev --no-interaction --no-progress --no-scripts --prefer-dist
+
+      - name: PDF ve XLSX duman testi
+        run: php scripts/dependency-smoke.php
+
+      - name: Üretim bağımlılıklarını denetle
+        run: composer audit --locked --no-dev
 
   gizli-dosya-kontrolu:
-    name: Gizli dosya sızıntısı
+    name: Güvenlik regresyonları
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Sırlar depoya girmiş mi
         run: |
-          # Bu dosyalar veritabanı parolası içerir; asla depoda olmamalı.
+          # Bu adlara sahip dosyalar herhangi bir klasörde sır içerebilir.
           hata=0
-          for dosya in .env _baglanti_.inc .user.ini .mcp.json; do
-            if git ls-files --error-unmatch "$dosya" > /dev/null 2>&1; then
-              echo "::error::${dosya} depoya eklenmiş — gizli bilgi içerir, .gitignore'da olmalı"
-              hata=1
-            fi
-          done
+          while IFS= read -r -d '' dosya; do
+            case "$(basename "$dosya")" in
+              .env|_baglanti_.inc|.user.ini|.mcp.json)
+                echo "::error file=${dosya}::Gizli bilgi taşıyabilen dosya depoya eklenmiş"
+                hata=1
+                ;;
+            esac
+          done < <(git ls-files -z)
           if [ "$hata" -eq 0 ]; then
             echo "Gizli dosya sızıntısı yok."
           fi
           exit $hata
+
+      - name: Güvenlik regresyon kontrolleri
+        run: bash scripts/security-regression.sh

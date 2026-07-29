@@ -11,24 +11,14 @@ if ((int) m_p_yetki($terminalkullanici, 'M6') !== 1) {
     exit;
 }
 
-// 1) Stok ID
-if (isset($_GET['stok'])) {
-    $stokid = intval($_GET['stok']);
-} else {
+// 1) Stok ID — normal sayfa akışında GET, EAN aktarımında CSRF korumalı POST.
+$stokid = intval($_POST['stok'] ?? $_GET['stok'] ?? 0);
+if ($stokid <= 0) {
     header('Location: barkodlar.php');
     exit;
 }
 
 $mesajlar = [];   // [ [tip, metin], ... ]
-
-// ean13.php'den donen barkod: GET ile gelir, POST gibi islenir.
-// CSRF acisindan guvenli, cunku deger kullanicinin kendi oturumunda uretilir
-// ve asagidaki ekleme blogu ayrica token dogrular.
-if (isset($_GET['ean']) && $stokid) {
-    $_POST['barkod'] = trim((string) $_GET['ean']);
-    $_POST['csrf_token'] = csrf_token();
-    $_SERVER['REQUEST_METHOD'] = 'POST';
-}
 
 // 2) Silme — yalniz POST + CSRF (GET ile silme kaldirildi: onceden link
 //    onizlemesi/crawler ile tetiklenebiliyordu).
