@@ -2,7 +2,18 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../kontrol.php';
+
+// Barkod modulu yetkisi (M6)
+if ((int) m_p_yetki($terminalkullanici, 'M6') !== 1) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 $stokid = isset($_GET['stok']) ? intval($_GET['stok']) : 0;
+if ($stokid <= 0) {
+    header('Location: barkodlar.php');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -90,10 +101,14 @@ $stokid = isset($_GET['stok']) ? intval($_GET['stok']) : 0;
     <div style="text-align:center;">
       <button id="transferBtn" class="btn btn-red" disabled title="Önce barkod üretin"><i class="fa-solid fa-arrow-up-from-bracket"></i> Oluşturulan Barkodu Aktar</button>
     </div>
+    <form id="transferForm" method="post" action="barkod_ekle.php" hidden>
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="stok" value="<?php echo (int) $stokid; ?>">
+      <input type="hidden" id="transferBarcode" name="barkod" value="">
+    </form>
 
   </main>
   <script>
-    const stokId = <?php echo (int) $stokid; ?>;
     let lastCode = '';
 
     function updateCharCount() {
@@ -129,7 +144,8 @@ $stokid = isset($_GET['stok']) ? intval($_GET['stok']) : 0;
 
     document.getElementById('transferBtn').addEventListener('click', () => {
       if (!lastCode) return;
-      window.location.href = `barkod_ekle.php?stok=${stokId}&ean=${lastCode}`;
+      document.getElementById('transferBarcode').value = lastCode;
+      document.getElementById('transferForm').requestSubmit();
     });
 
     function copyText() {

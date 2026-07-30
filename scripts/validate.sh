@@ -4,7 +4,8 @@
 #
 # Sert kapı (hata verirse çıkış kodu 1):
 #   - PHP sözdizimi (php -l) tüm dosyalarda temiz olmalı
-#   - composer.json geçerli olmalı (composer varsa)
+#   - Composer kilidi geçerli ve üretim bağımlılıkları güvenli olmalı (composer varsa)
+#   - Güvenlik regresyon kontrolleri geçmeli
 #
 # Bilgilendirme (yalnız sayı basar, başarısız etmez):
 #   Aşağıdaki ölçümler kod tabanının gidişatını göstermek içindir.
@@ -46,14 +47,38 @@ fi
 echo
 echo "== composer.json =="
 if command -v composer >/dev/null 2>&1; then
-  if composer validate --no-check-publish --no-check-lock --quiet; then
-    echo "TAMAM: composer.json geçerli"
+  if composer validate --strict --no-check-publish --quiet; then
+    echo "TAMAM: composer.json ve composer.lock geçerli"
   else
-    echo "BAŞARISIZ: composer.json doğrulanamadı" >&2
+    echo "BAŞARISIZ: Composer yapılandırması/kilidi doğrulanamadı" >&2
+    hata=1
+  fi
+
+  if composer install --no-dev --dry-run --no-interaction --no-scripts --quiet; then
+    echo "TAMAM: üretim bağımlılıkları mevcut PHP platformuyla uyumlu"
+  else
+    echo "BAŞARISIZ: üretim bağımlılıkları mevcut PHP platformuyla uyumlu değil" >&2
+    hata=1
+  fi
+
+  if composer audit --locked --no-dev --quiet; then
+    echo "TAMAM: üretim bağımlılıklarında bilinen güvenlik açığı yok"
+  else
+    echo "BAŞARISIZ: üretim bağımlılıklarında güvenlik uyarısı var" >&2
     hata=1
   fi
 else
   echo "ATLANDI: composer kurulu değil"
+fi
+
+# --------------------------------------------------- güvenlik regresyonları --
+echo
+echo "== Güvenlik regresyonları =="
+if bash scripts/security-regression.sh; then
+  echo "TAMAM: güvenlik regresyonları"
+else
+  echo "BAŞARISIZ: güvenlik regresyonu bulundu" >&2
+  hata=1
 fi
 
 # ------------------------------------------------------- bilgilendirme ------

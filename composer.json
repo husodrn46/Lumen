@@ -5,15 +5,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "phpoffice/phpspreadsheet": "^2.0",
-        "dompdf/dompdf": "^2.0"
+        "dompdf/dompdf": "^3.1.6",
+        "phpoffice/phpspreadsheet": "^2.4.7",
+        "maennchen/zipstream-php": "~3.1.2"
     },
     "config": {
-        "disable-tls": true,
-        "platform-check": false,
-        "allow-plugins": {
-            "phpoffice/phpspreadsheet": true
-        },
         "optimize-autoloader": true,
         "sort-packages": true
     },
