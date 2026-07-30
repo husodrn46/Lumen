@@ -86,9 +86,15 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
 ## Gereksinimler
 
 - **LOGO Tiger** kurulu bir **Microsoft SQL Server** veritabanı
-- **PHP 8.0+** ve `pdo_sqlsrv` sürücüsü ([Microsoft Drivers for PHP for SQL Server](https://learn.microsoft.com/sql/connect/php/download-drivers-php-sql-server))
+- **PHP 8.2+** ve `pdo_sqlsrv` sürücüsü ([Microsoft Drivers for PHP for SQL Server](https://learn.microsoft.com/sql/connect/php/download-drivers-php-sql-server))
 - Web sunucusu: IIS (FastCGI) veya Apache/nginx
 - [Composer](https://getcomposer.org/) (bağımlılıklar için)
+
+> **PHP 8.2 tabanı neden sabit:** `composer.json`daki
+> `maennchen/zipstream-php: ~3.1.2` kısıtı kasıtlıdır. PhpSpreadsheet’in dolaylı
+> bağımlılığı olan bu paket 3.2’den itibaren `php-64bit ^8.3` istiyor; sabitleme
+> kaldırılırsa kilit dosyası PHP 8.3’e bağlanır ve 8.2 kurulumlarında
+> `composer install` reddeder. Taban 8.3’e çıkarılırsa bu satır da kaldırılmalı.
 
 ## Kurulum
 
