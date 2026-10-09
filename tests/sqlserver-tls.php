@@ -6,6 +6,9 @@ require __DIR__.'/../includes/lumen_connection.php';
 require __DIR__.'/support/tls-diagnostics.php';
 $phase='fixture-gate';
 try{
+ $status=file_get_contents('/proc/self/status');
+ if(!function_exists('posix_geteuid') || posix_geteuid()===0 || (string)posix_geteuid()!==getenv('LUMEN_CI_TLS_RUNNER_UID') || (string)posix_getegid()!==getenv('LUMEN_CI_TLS_RUNNER_GID') || !is_string($status) || !preg_match('/^CapEff:\s+0+$/m',$status) || !preg_match('/^NoNewPrivs:\s+1$/m',$status) || readlink('/proc/self/ns/mnt')===getenv('LUMEN_CI_TLS_HOST_NAMESPACE')){throw new RuntimeException('Unprivileged isolated PHP required.');}
+ echo "TLS_ISOLATION: PHP runner identity verified; effective capabilities zero; no-new-privileges enabled.\n";
  $mode=$argv[1]??'';
  if(!in_array($mode,['trusted','wrong-ca','hostname'],true)){throw new RuntimeException('Invalid TLS mode.');}
  $root=(string)getenv('LUMEN_CI_TLS_DIR');$parent=(string)getenv('RUNNER_TEMP');

@@ -57,10 +57,20 @@ check('SSL_CERT_FILE' not in j['env'] and 'SSL_CERT_DIR' not in j['env'],'No job
 script=(root/'tests/ci/sqlserver-tls.sh').read_text()
 check('update-ca-certificates' not in script and '/usr/local/share/ca-certificates' not in script,'No system CA installation')
 check('SSL_CERT_FILE="$ca" SSL_CERT_DIR=' in script and 'trap cleanup EXIT' in script,'Process-only trust and temp cleanup')
+check('sudo -E unshare --mount --propagation private' in script,'Explicit private mount namespace')
+check('host_trust_before' in script and 'host trust snapshot and mount namespace unchanged' in script,'Host trust and namespace verified even on failure')
+namespace=(root/'tests/ci/tls-namespace.sh').read_text()
+check('mount -o remount,bind,ro /etc/ssl/certs' in namespace and 'touch /etc/ssl/certs/lumen-write-probe' in namespace,'Read-only view verified by write rejection')
+check('setpriv --reuid=' in namespace and 'trap cleanup_namespace EXIT' in namespace and 'umount /etc/ssl/certs' in namespace,'Unprivileged PHP and explicit namespace cleanup')
+check('--bounding-set=-all' in namespace and '--no-new-privs' in namespace,'Child capabilities removed and privilege escalation disabled')
+check('tests/ci/tls-guard.php' in namespace and 'LUMEN_CI_TLS_HOST_NAMESPACE' in namespace,'Nested CI context and separate namespace gate')
+
 # Catch shell syntax errors in each Bash run block without executing commands.
 import subprocess
 for step in j['steps']:
  if 'run' in step: subprocess.run(['bash','-n'],input=step['run'],text=True,check=True)
+for helper in ['sqlserver-tls.sh','tls-namespace.sh']:
+ subprocess.run(['bash','-n',str(root/'tests/ci'/helper)],check=True)
 import os
 result=subprocess.run(['php',str(root/'tests/sqlserver-favorite-transfer.php')],env={'PATH':os.environ['PATH']},capture_output=True,text=True)
 check(result.returncode==2 and result.stdout=='' and 'check 0;' in result.stderr,'Local invocation rejected before PDO/schema writes')

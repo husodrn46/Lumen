@@ -91,7 +91,7 @@ fi
 # ------------------------------------------ offline favorite transfer model --
 echo
 echo "== Salt okunur favori ön kontrolü ve sentetik aktarım modeli =="
-if ! PYTHONDONTWRITEBYTECODE=1 python3 tests/favorites-dry-run-test.py || ! PYTHONDONTWRITEBYTECODE=1 python3 tests/favorites-transfer-simulation-test.py || ! PYTHONDONTWRITEBYTECODE=1 python3 tests/tls-fixture-regression.py; then
+if ! PYTHONDONTWRITEBYTECODE=1 python3 tests/favorites-dry-run-test.py || ! PYTHONDONTWRITEBYTECODE=1 python3 tests/favorites-transfer-simulation-test.py || ! PYTHONDONTWRITEBYTECODE=1 python3 tests/tls-fixture-regression.py || ! PYTHONDONTWRITEBYTECODE=1 python3 tests/tls-trust-snapshot-regression.py; then
   hata=1
 fi
 

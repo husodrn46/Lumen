@@ -13,7 +13,7 @@ Durum: yalnız yerel CI/test hazırlığı. Gerçek ODBC/PDO/SQL kabulü henüz 
 - `$RUNNER_TEMP/lumen-tls.XXXXXXXX` dizini private0700; rastgele RSA2048 CA/server anahtarları ve2günlük SHA256 sertifikalar. CAprivate anahtarları imzadan hemen sonra silinir. Server key sadece fixture ömründe kalır.
 - IP SAN127.0.0.1 pozitif adı; localhost sertifikada yok ve hostname negatifidir. Geçici server config TLS1.2 + forceencryption1 kullanır; üretim dosyası/DSN değişmez.
 - Kopyalanan server cert/key yalnız job SQL container'ında mssql kullanıcısına400; mssql.conf10001:0/600. Bu sadece sentetik server fixture ayarıdır.
-- CAfile ve boş CAdir yalnız tek PHP child komutunun ortamında belirtilir. Runner/yerel OS truststore, GITHUB_ENV ve job genel güven ayarı değiştirilmez. `/etc/hosts` veya DNS kaydı eklenmez.
+- CAfile ve hash bağlantılı CAdir yalnız tek PHP child komutunun ortamında belirtilir. Kullanıcının ayrıca onayladığı `sudo unshare --mount --propagation private` denemesinde, `/etc/ssl/certs` yalnız özel namespace içinde bu sentetik CA dizinine salt okunur bağlanır; PHP normal runner UID/GID ile çalışır. Yazma reddi, ayrı mount namespace, açık unmount ve host trust snapshot eşitliği zorunludur. Runner/yerel OS truststore, GITHUB_ENV ve job genel güven ayarı değiştirilmez. `/etc/hosts` veya DNS kaydı eklenmez.
 - EXIT cleanup host private dosyaları ve container key dizinini siler. Job yaşam döngüsü container'ı kapatıp kaldırır. Ani runner kaybında trap garantisi yok; kalıcı volume/artifact/cache olmaması ikinci sınırdır.
 - Genel runtime, credential, migration, yeniDB/grant, üretim pilot veya transfer komutu oluşturulmaz. Mevcut geçici transfer hesabı kullanılır.
 
@@ -40,3 +40,7 @@ Başarılı geçici kabul bile gerçek hedef ortamın sertifika zinciri/hostname
 ## İlk koşu ve yerel teşhis hazırlığı
 
 37932080901 koşusunda server logu geçici sertifikanın yüklendiğini doğruladı; pozitif bağlantı kapısı başarısız oldu, iki negatif hiç çalışmadı. Genel factory hata metni kesin native nedeni ayırmaya yetmedi. Yeni yerel hazırlık, aynı strict DSN ile native probe ardından değiştirilmemiş factory çağrısını zorunlu tutar ve yalnız sabit hata kategorisi/phase yazdırır; credential, DSN, key, driver metni veya exception trace basmaz. Factory phase'i hem yeni bağlantıyı hem metadata sorgusunu içerir. Cleanup ayrıca host/container key dizininin yokluğunu kontrol eden güvenli marker üretmeye hazırlanmıştır. Bunlar henüz yeni CI'da doğrulanmadı; system trust kurulumu veya doğrulamayı gevşeten fallback eklenmedi.
+
+## Onaylı namespace denemesi (9 Ekim 2026)
+
+Önceki süreç CA dosyası/hash dizini denemeleri pozitif native TLS kabulünü sağlayamadı. Yeni özel mount görünümü henüz CI sonucu alınmadan çözüm sayılmaz. Doğrulama gevşetilmez; host sertifika dosyalarına yazılmaz. Temizlik ve host snapshot doğrulaması hata halinde de çalışır. `sudo unshare` ve readonly bind mount yalnız kullanıcının açıkça onayladığı geçici Linux CI kapsamında kullanılabilir.

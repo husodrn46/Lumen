@@ -5,6 +5,9 @@ php tests/ci/tls-guard.php
 expected_image='mcr.microsoft.com/mssql/server:2022-latest@sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090'
 test "$(docker inspect --format '{{.Config.Image}}' "$LUMEN_CI_SQL_CONTAINER")" = "$expected_image"
 test "$(docker port "$LUMEN_CI_SQL_CONTAINER" 1433/tcp)" = '127.0.0.1:1433'
+host_trust_before=$(python3 tests/ci/tls-trust-snapshot.py /etc/ssl/certs)
+host_namespace=$(readlink /proc/self/ns/mnt)
+export LUMEN_CI_TLS_HOST_NAMESPACE="$host_namespace"
 LUMEN_CI_TLS_DIR=$(mktemp -d "$RUNNER_TEMP/lumen-tls.XXXXXXXX")
 export LUMEN_CI_TLS_DIR
 cleanup() {
@@ -17,6 +20,9 @@ cleanup() {
   rm -rf -- "$LUMEN_CI_TLS_DIR"
   test ! -e "$LUMEN_CI_TLS_DIR"
   echo 'TLS_CLEANUP: host fixture removed and absence checked.'
+  test "$(python3 tests/ci/tls-trust-snapshot.py /etc/ssl/certs)" = "$host_trust_before"
+  test "$(readlink /proc/self/ns/mnt)" = "$host_namespace"
+  echo 'TLS_ISOLATION: host trust snapshot and mount namespace unchanged.'
 }
 trap cleanup EXIT
 python3 tests/ci/tls-fixture.py "$LUMEN_CI_TLS_DIR"
@@ -37,5 +43,9 @@ for mode in trusted wrong-ca hostname; do
     trusted|hostname) ca="$LUMEN_CI_TLS_DIR/ca.pem"; ca_dir="$LUMEN_CI_TLS_DIR/ca-dir" ;;
     wrong-ca) ca="$LUMEN_CI_TLS_DIR/wrong-ca.pem"; ca_dir="$LUMEN_CI_TLS_DIR/wrong-ca-dir" ;;
   esac
-  SSL_CERT_FILE="$ca" SSL_CERT_DIR="$ca_dir" php tests/sqlserver-tls.php "$mode"
+  # Defaults used by native OpenSSL consumers now point into the same private CA view.
+  cp "$ca" "$ca_dir/ca-certificates.crt"
+  chmod 600 "$ca_dir/ca-certificates.crt"
+  SSL_CERT_FILE="$ca" SSL_CERT_DIR="$ca_dir" sudo -E unshare --mount --propagation private \
+    bash tests/ci/tls-namespace.sh "$ca_dir" "$(command -v php)" "$(id -u)" "$(id -g)" "$mode"
 done
