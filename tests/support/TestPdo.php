@@ -5,9 +5,15 @@ declare(strict_types=1);
 final class TestPdo extends PDO
 {
     public array $events = [];
+    public int $errorMode = PDO::ERRMODE_EXCEPTION;
     public bool $transaction = false;
     public array $transactions = [];
     public function __construct(public Closure $handler, private ?Closure $txHook = null) {}
+    public function getAttribute(int $attribute): mixed
+    {
+        if($attribute===PDO::ATTR_ERRMODE){return $this->errorMode;}
+        throw new LogicException('Unsupported synthetic PDO attribute');
+    }
     public function prepare(string $query, array $options = []): PDOStatement|false
     {
         return new TestStatement($this, $query);

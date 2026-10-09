@@ -117,4 +117,9 @@ jobs:
           LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=127.0.0.1,1433;Database=LumenTest_Fav_CI;Encrypt=yes;TrustServerCertificate=yes'
         run: php tests/sqlserver-favorites.php
 
+      - name: Real SQL favorite transfer locks, rollback and idempotency
+        env:
+          LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=127.0.0.1,1433;Database=LumenTest_Fav_CI;Encrypt=yes;TrustServerCertificate=yes'
+        run: php tests/sqlserver-favorite-transfer.php
+
       # No upload/cache of DBs, sessions, credentials or logs. Service dies with job.

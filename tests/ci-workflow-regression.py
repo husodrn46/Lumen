@@ -35,7 +35,7 @@ check(j['steps'][0]['with']['persist-credentials']=='false','Checkout credential
 setup=next(s for s in j['steps'] if s.get('uses','').startswith('shivammathur/setup-php'))
 check(setup['with']['php-version']=='8.3' and 'pdo_sqlsrv-5.13.3' in setup['with']['extensions'],'Supported fixed PHP/SQL driver')
 run='\n'.join(s.get('run','') for s in j['steps'])
-for command in ['composer audit --locked','composer check-platform-reqs','php scripts/dependency-smoke.php','php tests/ci/sqlserver-prepare.php','php tests/sqlserver-regression.php','php tests/sqlserver-idempotency.php','php tests/sqlserver-favorites.php']:
+for command in ['composer audit --locked','composer check-platform-reqs','php scripts/dependency-smoke.php','php tests/ci/sqlserver-prepare.php','php tests/sqlserver-regression.php','php tests/sqlserver-idempotency.php','php tests/sqlserver-favorites.php','php tests/sqlserver-favorite-transfer.php']:
  check(command in run,'Required acceptance step: '+command)
 check('--no-scripts --no-plugins' in run,'Install avoids package scripts/plugins')
 check('upload-artifact' not in raw and 'actions/cache' not in raw,'No retained credential/data artifacts or cache')
@@ -47,8 +47,14 @@ lint=yaml.load((root/'.github/workflows/lint.yml').read_text(),Loader=yaml.BaseL
 caller=lint['jobs']['sql-acceptance']
 check(caller['uses']=='./.github/workflows/sqlserver-acceptance.yml' and 'secrets' not in caller,'Same-ref reusable call without secret inheritance')
 check(lint['on']['workflow_dispatch']['inputs']['confirm_synthetic_only']['default']=='false' and "github.event_name == 'workflow_dispatch'" in caller['if'],'Existing Lint manual call opt-in; PR/push cannot start SQL')
+transfer_step=next(s for s in j['steps'] if s.get('run')=='php tests/sqlserver-favorite-transfer.php')
+check(run.index('php tests/sqlserver-favorites.php')<run.index('php tests/sqlserver-favorite-transfer.php'),'Preference fixture precedes transfer acceptance')
+check(transfer_step['env']['LUMEN_TEST_SQL_DSN']=='sqlsrv:Server=127.0.0.1,1433;Database=LumenTest_Fav_CI;Encrypt=yes;TrustServerCertificate=yes','Transfer acceptance reuses fixed synthetic DB only')
 # Catch shell syntax errors in each Bash run block without executing commands.
 import subprocess
 for step in j['steps']:
  if 'run' in step: subprocess.run(['bash','-n'],input=step['run'],text=True,check=True)
+import os
+result=subprocess.run(['php',str(root/'tests/sqlserver-favorite-transfer.php')],env={'PATH':os.environ['PATH']},capture_output=True,text=True)
+check(result.returncode==2 and result.stdout=='' and 'check 0;' in result.stderr,'Local invocation rejected before PDO/schema writes')
 print(f'TAMAM: {n} workflow assertion + bash syntax (static; remote CI/SQL not executed).')

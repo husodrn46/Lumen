@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "connection": "synthetic-logo",
+  "firma": 2,
+  "code_match_policy": "exact-reviewed",
+  "persons": [{"connection":"synthetic-logo","firma":2,"personel":7,"code":"SYNTHETIC-7"}],
+  "actor_links": [{"connection":"synthetic-logo","firma":2,"personel":7,"actor_id":"11111111-1111-4111-8111-111111111111"}],
+  "preferences": [{"connection":"synthetic-logo","firma":2,"user_code":"SYNTHETIC-7","favorites":"STOK/LIST.PHP,stok/list.php"}]
+}

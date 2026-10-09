@@ -59,3 +59,9 @@ Keyed sipariş oluşturma için [IDEMPOTENCY.md](IDEMPOTENCY.md). Eski header's�
 ## Local separate favorite store pilot
 
 See [LUMEN-FAVORITES-PILOT.md](LUMEN-FAVORITES-PILOT.md). New feature tests run locally; real new schema acceptance is pending.
+
+## Yerel favori aktarımı güvenlik modeli
+
+`tools/favorites_dry_run.md` yerel JSON ön kontrolü ve test-only SQLite `:memory:` transaction/idempotency modelinin kullanımını ve sınırlarını açıklar. `python3 tests/favorites-dry-run-test.py` ve `python3 tests/favorites-transfer-simulation-test.py` standart yerel validate kapısına eklendi. Yeni model bir üretim aktarım uygulaması değildir; gerçek SQL Server veya TLS kabulünün yerini almaz.
+
+Gerçek SQL aktarım adaptörü hazırlığı ve bekleyen CI planı: [LUMEN-FAVORITE-TRANSFER-ACCEPTANCE.md](LUMEN-FAVORITE-TRANSFER-ACCEPTANCE.md). `php tests/favorite-transfer-regression.php` yerel PDO double; `php tests/sqlserver-favorite-transfer.php` yalnız sabit geçici GitHub CI fixture kapısından yürür. Yeni adaptör gerçek kullanıcı akışına bağlanmadı.

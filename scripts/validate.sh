@@ -84,7 +84,14 @@ fi
 # --------------------------------------------------- davranış regresyonları --
 echo
 echo "== Yardımcı ve API davranış regresyonları =="
-if ! php tests/run.php || ! php tests/permission-regression.php || ! php tests/api-regression.php || ! php tests/idempotency-regression.php || ! php tests/web-intent-regression.php || ! php tests/ci-prepare-regression.php || ! php tests/favorites-regression.php; then
+if ! php tests/run.php || ! php tests/permission-regression.php || ! php tests/api-regression.php || ! php tests/idempotency-regression.php || ! php tests/web-intent-regression.php || ! php tests/ci-prepare-regression.php || ! php tests/favorites-regression.php || ! php tests/favorite-transfer-regression.php; then
+  hata=1
+fi
+
+# ------------------------------------------ offline favorite transfer model --
+echo
+echo "== Salt okunur favori ön kontrolü ve sentetik aktarım modeli =="
+if ! PYTHONDONTWRITEBYTECODE=1 python3 tests/favorites-dry-run-test.py || ! PYTHONDONTWRITEBYTECODE=1 python3 tests/favorites-transfer-simulation-test.py; then
   hata=1
 fi
 
