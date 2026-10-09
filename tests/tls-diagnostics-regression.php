@@ -5,6 +5,10 @@ require __DIR__.'/support/tls-diagnostics.php';
 $n=0;
 foreach([
  ['secret-password certificate verify failed','08001','certificate-chain-or-validity'],
+ ['secret-password certificate unable to get local issuer certificate','08001','certificate-untrusted-issuer'],
+ ['secret-password certificate expired','08001','certificate-expired'],
+ ['secret-password certificate not yet valid','08001','certificate-not-yet-valid'],
+ ['secret-password certificate unsupported certificate purpose','08001','certificate-purpose'],
  ['secret-password certificate hostname mismatch','08001','certificate-name'],
  ['secret-password login failed','28000','authentication'],
  ['secret-password TCP error','08001','connection-or-startup'],
