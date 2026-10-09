@@ -35,12 +35,12 @@ check(j['steps'][0]['with']['persist-credentials']=='false','Checkout credential
 setup=next(s for s in j['steps'] if s.get('uses','').startswith('shivammathur/setup-php'))
 check(setup['with']['php-version']=='8.3' and 'pdo_sqlsrv-5.13.3' in setup['with']['extensions'],'Supported fixed PHP/SQL driver')
 run='\n'.join(s.get('run','') for s in j['steps'])
-for command in ['composer audit --locked','composer check-platform-reqs','php scripts/dependency-smoke.php','php tests/ci/sqlserver-prepare.php','php tests/sqlserver-regression.php','php tests/sqlserver-idempotency.php']:
+for command in ['composer audit --locked','composer check-platform-reqs','php scripts/dependency-smoke.php','php tests/ci/sqlserver-prepare.php','php tests/sqlserver-regression.php','php tests/sqlserver-idempotency.php','php tests/sqlserver-favorites.php']:
  check(command in run,'Required acceptance step: '+command)
 check('--no-scripts --no-plugins' in run,'Install avoids package scripts/plugins')
 check('upload-artifact' not in raw and 'actions/cache' not in raw,'No retained credential/data artifacts or cache')
 check(run.index('composer audit')<run.index('sqlserver-prepare.php'),'Audit before DB write')
-check('LumenTest_Start_CI' in raw and 'LumenTest_Idem_CI' in raw,'Separate fresh DBs')
+check('LumenTest_Start_CI' in raw and 'LumenTest_Idem_CI' in raw and 'LumenTest_Fav_CI' in raw,'Separate fresh DBs')
 check(all(s.get('env',{}).get('LUMEN_TEST_SQL_DSN','').startswith('sqlsrv:Server=127.0.0.1,1433;') for s in j['steps'] if 'LUMEN_TEST_SQL_DSN' in s.get('env',{})),'Test DSNs match IPv4 loopback binding')
 check('continue-on-error' not in raw,'No skipped SQL failure gate')
 lint=yaml.load((root/'.github/workflows/lint.yml').read_text(),Loader=yaml.BaseLoader)

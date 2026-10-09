@@ -55,3 +55,7 @@ Keyed sipariş oluşturma için [IDEMPOTENCY.md](IDEMPOTENCY.md). Eski header's�
 ## Geçici GitHub SQL kabulü
 
 [GITHUB-SQL-ACCEPTANCE.md](GITHUB-SQL-ACCEPTANCE.md), manuel ve secrets-free `sqlserver-acceptance.yml` paketini, CI-only boş DB hazırlığını ve henüz çalıştırılmayan gerçek SQL kabulünü açıklar. `php tests/ci-prepare-regression.php` PDO double; `python3 tests/ci-workflow-regression.py` (PyYAML) yalnız statik YAML/Bash kontrolüdür. GitHub SQL workflow'u yerel dalda hazırlandı; push veya remote run yapılmadı.
+
+## Local separate favorite store pilot
+
+See [LUMEN-FAVORITES-PILOT.md](LUMEN-FAVORITES-PILOT.md). New feature tests run locally; real new schema acceptance is pending.

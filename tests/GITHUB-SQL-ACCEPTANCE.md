@@ -28,9 +28,9 @@ Hesabın güncel billing/usage API'si mevcut izinle 404/scope engeli verdi. Toke
 
 Container bootstrap hesabı için GitHub run ID/attempt'ten üretilen **herkese açık, yalnız o geçici instance'a ait** parola kullanılır. Production secret değildir; bilindiği için SQL portu yalnız loopback'tedir. Mevcut bir SQL hesabı/parolası veya repo Secret kopyalanmaz.
 
-`tests/ci/sqlserver-prepare.php`, yalnız gerçek GitHub-hosted Linux/X64, bu repo, workflow_dispatch ve açık hazırlık flag'iyle çalışır. Localhost master üzerinde yalnız iki fixed DB'nin **henüz bulunmadığını** doğrular; varsa durur. SQL 2022 Developer sürümünü de doğrular. Geçici sınırlı test login'i için `random_bytes` ile ayrı parola üretir, log mask uygular, yalnız sonraki step'lere runner'ın `GITHUB_ENV` dosyasıyla taşır. Credential/API trace yazdırılmaz.
+`tests/ci/sqlserver-prepare.php`, yalnız gerçek GitHub-hosted Linux/X64, bu repo, workflow_dispatch ve açık hazırlık flag'iyle çalışır. Localhost master üzerinde yalnız üç fixed DB'nin **henüz bulunmadığını** doğrular; varsa durur. SQL 2022 Developer sürümünü de doğrular. Geçici sınırlı test login'i için `random_bytes` ile ayrı parola üretir, log mask uygular, yalnız sonraki step'lere runner'ın `GITHUB_ENV` dosyasıyla taşır. Credential/API trace yazdırılmaz.
 
-Sadece `LumenTest_Start_CI` ve `LumenTest_Idem_CI` oluşturulur. Fixture hesabı yalnız bu DB'lerde DDL/data read-write/VIEW DEFINITION alır; sysadmin/dbcreator/CREATE DATABASE yetkisi almaz. Fixture account'unun DDL yetkisi bu boş sentetik DB'leri hazırlamak içindir; production runtime least-privilege kabulünün yerine geçmez. Hesap ve DB'ler job container'ıyla biter; harici volume, cache, credential/data artifact veya otomatik DROP yoktur.
+Sadece `LumenTest_Start_CI` ve `LumenTest_Idem_CI` ve `LumenTest_Fav_CI` oluşturulur. Fixture hesabı yalnız bu DB'lerde DDL/data read-write/VIEW DEFINITION alır; sysadmin/dbcreator/CREATE DATABASE yetkisi almaz. Fixture account'unun DDL yetkisi bu boş sentetik DB'leri hazırlamak içindir; production runtime least-privilege kabulünün yerine geçmez. Hesap ve DB'ler job container'ıyla biter; harici volume, cache, credential/data artifact veya otomatik DROP yoktur.
 
 Mevcut test runner'ların **localhost + LumenTest_*** DSN guard'ı korunur. CI'da self-signed container için `Encrypt=yes;TrustServerCertificate=yes` açıkça seçilmiştir; bu sadece geçici loopback testinde kullanılır ve production TLS önerisi değildir. Bootstrap master bağlantısı yalnız ayrı CI hazırlayıcıda bulunur; genel test helper master'ı kabul etmez.
 
@@ -71,3 +71,5 @@ gh workflow run lint.yml --ref codex/lumen-startup-safety -f confirm_synthetic_o
 Repo/account scheduling veya setup sorunu varsa ilk job gerçek engeli gösterecek. Remote SQL sonucu iş loglarıyla doğrulanmalıdır; statik/local sonuçlar yerine kullanılamaz.
 
 Bu aşamada commit/push/PR/merge veya remote run tetikleme yapılmadı. Üretim kurulumu/secret/veri, Forge global paket veya Docker başlatma, başka AKEL görevi ve tarayıcı/Apple session'ı kullanılmadı.
+
+Favorite CI uses a separate runtime login with object grants only. The third fixed DB tests scoped favorites, transaction/constraint rollback, mapping and runtime permission denial, and negative strict TLS certificate validation. Positive verified-certificate TLS remains a separate acceptance. No production schema/identity import runs.

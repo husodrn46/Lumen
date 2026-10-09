@@ -33,7 +33,7 @@ jobs:
         shell: bash
     env:
       # Public, run-specific bootstrap credential for this disposable SQL instance only.
-      # Runtime test account is separately generated, masked and limited to two fresh DBs.
+      # Runtime test account is separately generated, masked and limited to fresh fixture DBs; favorite runtime has only object grants.
       LUMEN_CI_SQL_SA_PASSWORD: LumenCI-${{ github.run_id }}-${{ github.run_attempt }}-aA1!
       LUMEN_CI_SQL_PREPARE: synthetic-ci-approved
       LUMEN_TEST_SQL_WRITE: sentetik-test-onayli
@@ -92,7 +92,9 @@ jobs:
           bash scripts/validate.sh
           python3 tests/http-regression.py
           python3 tests/web-regression.py
+          python3 tests/favorites-http-regression.py
           node tests/web-intent-js.test.cjs
+          node tests/favorites-js.test.cjs
 
       - name: Create fresh CI test databases and limited account
         run: php tests/ci/sqlserver-prepare.php
@@ -109,5 +111,10 @@ jobs:
         env:
           LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=127.0.0.1,1433;Database=LumenTest_Idem_CI;Encrypt=yes;TrustServerCertificate=yes'
         run: php tests/sqlserver-idempotency.php
+
+      - name: Real SQL scoped favorites and runtime permissions
+        env:
+          LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=127.0.0.1,1433;Database=LumenTest_Fav_CI;Encrypt=yes;TrustServerCertificate=yes'
+        run: php tests/sqlserver-favorites.php
 
       # No upload/cache of DBs, sessions, credentials or logs. Service dies with job.

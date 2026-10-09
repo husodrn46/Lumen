@@ -70,14 +70,18 @@ jobs:
           php tests/idempotency-regression.php
           php tests/web-intent-regression.php
           php tests/ci-prepare-regression.php
+          php tests/favorites-regression.php
 
       - name: İzole localhost HTTP regresyonları
         run: |
           python3 tests/http-regression.py
           python3 tests/web-regression.py
+          python3 tests/favorites-http-regression.py
 
       - name: Web çift gönderim guard
-        run: node tests/web-intent-js.test.cjs
+        run: |
+          node tests/web-intent-js.test.cjs
+          node tests/favorites-js.test.cjs
 
       - name: Composer kilidi doğrulama
         run: composer validate --strict --no-check-publish

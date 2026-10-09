@@ -26,18 +26,19 @@ function lumen_ci_sql_context(array $env): array
     }
     return ['dsn'=>'sqlsrv:Server=127.0.0.1,1433;Database=master;Encrypt=yes;TrustServerCertificate=yes;LoginTimeout=5',
         'password'=>$expected, 'user'=>'lumen_ci_' . $env['GITHUB_RUN_ID'] . '_' . $env['GITHUB_RUN_ATTEMPT'],
-        'databases'=>['LumenTest_Start_CI','LumenTest_Idem_CI'], 'export'=>$export];
+        'databases'=>['LumenTest_Start_CI','LumenTest_Idem_CI','LumenTest_Fav_CI'], 'export'=>$export];
 }
 
 /** Names are fixed/validated before reaching this function; no existing DB is reused. */
-function lumen_ci_sql_prepare(PDO $pdo, array $context, string $password): void
+function lumen_ci_sql_prepare(PDO $pdo, array $context, string $password, string $runtimePassword): void
 {
-    $stmt=$pdo->query("SELECT COUNT(*) FROM sys.databases WHERE name IN ('LumenTest_Start_CI','LumenTest_Idem_CI')");
+    $stmt=$pdo->query("SELECT COUNT(*) FROM sys.databases WHERE name IN ('LumenTest_Start_CI','LumenTest_Idem_CI','LumenTest_Fav_CI')");
     $exists=(int)$stmt->fetchColumn();$stmt->closeCursor();
     if ($exists !== 0) { throw new RuntimeException('CI database already exists; nothing is dropped or reused.'); }
     if (!preg_match('/\Alumen_ci_[1-9][0-9]{0,19}_[1-9][0-9]{0,19}\z/',$context['user'])
         || !preg_match('/\AaA1![a-f0-9]{64}\z/',$password)
-        || $context['databases'] !== ['LumenTest_Start_CI','LumenTest_Idem_CI']) {
+        || !preg_match('/\AaA1![a-f0-9]{64}\z/',$runtimePassword)
+        || $context['databases'] !== ['LumenTest_Start_CI','LumenTest_Idem_CI','LumenTest_Fav_CI']) {
         throw new RuntimeException('CI account/name gate rejected.');
     }
     $user=$context['user'];
@@ -51,4 +52,7 @@ function lumen_ci_sql_prepare(PDO $pdo, array $context, string $password): void
             ALTER ROLE db_datawriter ADD MEMBER [{$user}];
             GRANT VIEW DEFINITION TO [{$user}]");
     }
+    $runtimeUser=$user.'_fav';
+    $pdo->exec("CREATE LOGIN [{$runtimeUser}] WITH PASSWORD='{$runtimePassword}', CHECK_POLICY=ON");
+    $pdo->exec("USE [LumenTest_Fav_CI]; CREATE USER [{$runtimeUser}] FOR LOGIN [{$runtimeUser}]");
 }

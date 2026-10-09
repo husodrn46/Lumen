@@ -55,6 +55,7 @@ function loadEnv(?string $path = null): bool
 // .env dosyasını yükle
 loadEnv();
 require_once __DIR__ . '/includes/app_observability.php';
+require_once __DIR__ . '/includes/lumen_preferences.php';
 
 if (function_exists('app_register_global_error_handlers')) {
   app_register_global_error_handlers();
@@ -257,6 +258,18 @@ function kisisel_ayarlar(): array
 /** Tek bir kişisel ayarı döndürür (yoksa $def). */
 function kisisel_ayar(string $key, string $def = ''): string
 {
+    if ($key === 'gor_kart_favori') {
+        try {
+            if (lumen_favorites_enabled()) {
+                // Separate scoped store; never inherit ERP/session favorites or fall back.
+                $scope = lumen_favorites_current_scope();
+                return lumen_favorites_repository()->read($scope);
+            }
+        } catch (Throwable $e) {
+            error_log('Lumen favorite read unavailable.');
+            return $def;
+        }
+    }
     $a = kisisel_ayarlar();
     return array_key_exists($key, $a) ? $a[$key] : $def;
 }

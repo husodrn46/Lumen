@@ -1532,10 +1532,12 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
 
             // Ana sayfa favori (yıldız pin) — favoriler CSS order ile anında üste çıkar
             var KART_FAV_CSRF = <?php echo json_encode(function_exists('csrf_token') ? csrf_token() : ''); ?>;
+            var kartFavPending = false;
             document.querySelectorAll('.card-grid .mc-star').forEach(function (s) {
                 s.addEventListener('click', function (e) {
                     e.preventDefault(); e.stopPropagation();
-                    var mc = s.closest('.mc'); if (!mc) { return; }
+                    var mc = s.closest('.mc'); if (!mc || kartFavPending) { return; }
+                    kartFavPending = true;
                     var fav = !mc.classList.contains('mc-fav');
                     mc.classList.toggle('mc-fav', fav);
                     s.classList.toggle('on', fav);
@@ -1548,8 +1550,16 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: new URLSearchParams({ csrf_token: KART_FAV_CSRF, favoriler: keys.join(',') })
                     }).then(function (r) { return r.json(); })
-                      .then(function (j) { showToast(fav ? 'Favorilere eklendi' : 'Favoriden çıkarıldı', (j && j.ok) ? 'success' : 'error'); })
-                      .catch(function () { showToast('Kaydedilemedi', 'error'); });
+                      .then(function (j) {
+                          if (!j || !j.ok) { throw new Error('Kaydedilemedi'); }
+                          showToast(fav ? 'Favorilere eklendi' : 'Favoriden çıkarıldı', 'success');
+                      })
+                      .catch(function () {
+                          mc.classList.toggle('mc-fav', !fav);
+                          s.classList.toggle('on', !fav);
+                          showToast('Kaydedilemedi', 'error');
+                      })
+                      .finally(function () { kartFavPending = false; });
                 });
             });
 

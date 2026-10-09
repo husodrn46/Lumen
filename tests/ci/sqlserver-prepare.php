@@ -37,13 +37,15 @@ try {
     echo 'CI SQL version: '.$server['VERSION'].', edition: '.$server['EDITION']."\n";
     $password='aA1!'.bin2hex(random_bytes(32));
     echo '::add-mask::'.$password."\n";
+    $runtimePassword='aA1!'.bin2hex(random_bytes(32));
+    echo '::add-mask::'.$runtimePassword."\n";
     $phase='fresh-database';
-    lumen_ci_sql_prepare($pdo,$context,$password);
+    lumen_ci_sql_prepare($pdo,$context,$password,$runtimePassword);
     $phase='credential-export';
-    $values="LUMEN_TEST_SQL_USER={$context['user']}\nLUMEN_TEST_SQL_PASS={$password}\n";
+    $values="LUMEN_TEST_SQL_USER={$context['user']}\nLUMEN_TEST_SQL_PASS={$password}\nLUMEN_TEST_FAVORITE_USER={$context['user']}_fav\nLUMEN_TEST_FAVORITE_PASS={$runtimePassword}\n";
     $written=file_put_contents($export,$values,FILE_APPEND|LOCK_EX);
     if ($written!==strlen($values)) { throw new RuntimeException('CI test account export failed.'); }
-    echo "TAMAM: two fresh synthetic CI DBs and database-limited account prepared.\n";
+    echo "TAMAM: three fresh synthetic CI DBs and database-limited account prepared.\n";
 } catch(Throwable $e) {
     // No driver exception, SQL text, DSN credential or account password in output.
     fwrite(STDERR,"ENGEL: CI preparation phase={$phase}, SQLSTATE={$sqlState}; no credential or driver message printed; no test pass claimed.\n");

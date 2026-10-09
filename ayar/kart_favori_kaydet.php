@@ -7,7 +7,7 @@ declare(strict_types=1);
  * generic ucundan ayrı; format-doğrulamalı kendi ucu. Güvenlik: render tarafı zaten
  * yalnız yetkili tile'ları gösterir (favori yalnız SIRAYI etkiler), bu uç format + adet
  * sınırı uygular. USER_CODE = tema_kullanici_kodu() (LG_SLSMAN.CODE) — diğer kişisel
- * ayarlarla aynı anahtar üretimi.
+ * ayarlarla aynı anahtar üretimi (pilot kapalıyken). Pilot yalnız ayrı Lumen deposuna yazar.
  */
 
 include_once(__DIR__ . '/../ayr.php');
@@ -16,24 +16,38 @@ include(__DIR__ . '/../kontrol.php');
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
     echo json_encode(['ok' => false, 'mesaj' => 'Geçersiz yöntem.']);
     exit;
 }
-if (!csrf_verify($_POST['csrf_token'] ?? null)) {
+if (!is_string($_POST['csrf_token'] ?? null) || !csrf_verify($_POST['csrf_token'])) {
+    http_response_code(403);
     echo json_encode(['ok' => false, 'mesaj' => 'Güvenlik doğrulaması başarısız.']);
     exit;
 }
 
-// Gelen favori anahtar listesini normalize + doğrula (yalnız güvenli path formatı, azami 40).
-$raw = (string) ($_POST['favoriler'] ?? '');
-$keys = [];
-foreach (explode(',', $raw) as $k) {
-    $k = strtolower(trim($k));
-    if ($k === '' || !preg_match('~^[a-z0-9_./-]{1,80}$~', $k)) { continue; }
-    if (!in_array($k, $keys, true)) { $keys[] = $k; }
-    if (count($keys) >= 40) { break; }
+if (!is_string($_POST['favoriler'] ?? '')) {
+    http_response_code(400);
+    echo json_encode(['ok'=>false, 'mesaj'=>'Geçersiz favori listesi.']);
+    exit;
 }
-$deger = implode(',', $keys);
+$deger = lumen_favorites_normalize($_POST['favoriler'] ?? '');
+
+try {
+    if (lumen_favorites_enabled()) {
+        $scope = lumen_favorites_current_scope();
+        lumen_favorites_repository()->save($scope, $deger);
+        // ERP cache is intentionally untouched; pilot reads use their own scoped store.
+        echo json_encode(['ok'=>true]);
+        exit;
+    }
+} catch (Throwable $e) {
+    error_log('Lumen favorite save unavailable.');
+    http_response_code(503);
+    echo json_encode(['ok'=>false, 'mesaj'=>'Favori hizmeti şu anda kullanılamıyor.']);
+    exit;
+}
 
 $kod = tema_kullanici_kodu();
 if ($kod === '') {
