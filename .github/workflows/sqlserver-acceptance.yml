@@ -122,4 +122,9 @@ jobs:
           LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=127.0.0.1,1433;Database=LumenTest_Fav_CI;Encrypt=yes;TrustServerCertificate=yes'
         run: php tests/sqlserver-favorite-transfer.php
 
+      - name: Process-only test CA and strict positive TLS acceptance
+        env:
+          LUMEN_CI_SQL_CONTAINER: ${{ job.services.sqlserver.id }}
+        run: bash tests/ci/sqlserver-tls.sh
+
       # No upload/cache of DBs, sessions, credentials or logs. Service dies with job.

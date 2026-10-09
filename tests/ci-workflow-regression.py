@@ -50,6 +50,13 @@ check(lint['on']['workflow_dispatch']['inputs']['confirm_synthetic_only']['defau
 transfer_step=next(s for s in j['steps'] if s.get('run')=='php tests/sqlserver-favorite-transfer.php')
 check(run.index('php tests/sqlserver-favorites.php')<run.index('php tests/sqlserver-favorite-transfer.php'),'Preference fixture precedes transfer acceptance')
 check(transfer_step['env']['LUMEN_TEST_SQL_DSN']=='sqlsrv:Server=127.0.0.1,1433;Database=LumenTest_Fav_CI;Encrypt=yes;TrustServerCertificate=yes','Transfer acceptance reuses fixed synthetic DB only')
+tls=next(s for s in j['steps'] if s.get('run')=='bash tests/ci/sqlserver-tls.sh')
+check(tls['env']=={'LUMEN_CI_SQL_CONTAINER':'${{ job.services.sqlserver.id }}'},'TLS targets only existing job service')
+check(run.index('sqlserver-favorite-transfer.php')<run.index('sqlserver-tls.sh'),'TLS replaces server cert only after completed SQL acceptances')
+check('SSL_CERT_FILE' not in j['env'] and 'SSL_CERT_DIR' not in j['env'],'No job-wide custom trust variables')
+script=(root/'tests/ci/sqlserver-tls.sh').read_text()
+check('update-ca-certificates' not in script and '/usr/local/share/ca-certificates' not in script,'No system CA installation')
+check('SSL_CERT_FILE="$ca" SSL_CERT_DIR=' in script and 'trap cleanup EXIT' in script,'Process-only trust and temp cleanup')
 # Catch shell syntax errors in each Bash run block without executing commands.
 import subprocess
 for step in j['steps']:

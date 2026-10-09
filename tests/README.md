@@ -65,3 +65,5 @@ See [LUMEN-FAVORITES-PILOT.md](LUMEN-FAVORITES-PILOT.md). New feature tests run 
 `tools/favorites_dry_run.md` yerel JSON ön kontrolü ve test-only SQLite `:memory:` transaction/idempotency modelinin kullanımını ve sınırlarını açıklar. `python3 tests/favorites-dry-run-test.py` ve `python3 tests/favorites-transfer-simulation-test.py` standart yerel validate kapısına eklendi. Yeni model bir üretim aktarım uygulaması değildir; gerçek SQL Server veya TLS kabulünün yerini almaz.
 
 Gerçek SQL aktarım adaptörü hazırlığı ve bekleyen CI planı: [LUMEN-FAVORITE-TRANSFER-ACCEPTANCE.md](LUMEN-FAVORITE-TRANSFER-ACCEPTANCE.md). `php tests/favorite-transfer-regression.php` yerel PDO double; `php tests/sqlserver-favorite-transfer.php` yalnız sabit geçici GitHub CI fixture kapısından yürür. Yeni adaptör gerçek kullanıcı akışına bağlanmadı.
+
+Pozitif TLS için process-only test CA hazırlığı: [LUMEN-POSITIVE-TLS-ACCEPTANCE.md](LUMEN-POSITIVE-TLS-ACCEPTANCE.md). Yerel OpenSSL kontrolleri gerçek SQL/ODBC TLS geçişi değildir; sistem truststore kurulumu yoktur.
