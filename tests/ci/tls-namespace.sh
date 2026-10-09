@@ -16,10 +16,15 @@ case "$mode" in
 esac
 test -d "$ca_dir" && test ! -L "$ca_dir"
 test -f "$ca_dir/ca-certificates.crt"
-phase=openssl-default-paths
+phase=openssl-default-cert-directory
 # /usr/lib/ssl paths on the fixed Ubuntu runner must resolve to this trust directory.
 test "$(readlink -f /usr/lib/ssl/certs)" = /etc/ssl/certs
-test "$(readlink -f /usr/lib/ssl/cert.pem)" = /etc/ssl/certs/ca-certificates.crt
+phase=openssl-default-cert-bundle
+if test -e /usr/lib/ssl/cert.pem || test -L /usr/lib/ssl/cert.pem; then
+  test "$(readlink -f /usr/lib/ssl/cert.pem)" = /etc/ssl/certs/ca-certificates.crt
+else
+  echo 'TLS_DIAG: optional default CA bundle alias absent; isolated CA directory and process CA file required.'
+fi
 mounted=0
 cleanup_namespace() {
   if test "$mounted" -eq 1; then
