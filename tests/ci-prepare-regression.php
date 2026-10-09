@@ -13,7 +13,7 @@ $env=['GITHUB_ACTIONS'=>'true','RUNNER_OS'=>'Linux','RUNNER_ARCH'=>'X64','RUNNER
     'GITHUB_ENV'=>'/home/runner/work/_temp/_runner_file_commands/set_env_test'];
 $context=lumen_ci_sql_context($env);
 ci_check($context['databases']===['LumenTest_Start_CI','LumenTest_Idem_CI'],'Fixed DB allowlist');
-ci_check(str_starts_with($context['dsn'],'sqlsrv:Server=localhost,1433;Database=master;'),'Admin localhost only');
+ci_check(str_starts_with($context['dsn'],'sqlsrv:Server=127.0.0.1,1433;Database=master;'),'Admin localhost only');
 foreach(['GITHUB_ACTIONS','RUNNER_OS','RUNNER_ARCH','RUNNER_ENVIRONMENT','GITHUB_REPOSITORY','GITHUB_EVENT_NAME','LUMEN_CI_SQL_PREPARE','GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT','LUMEN_CI_SQL_SA_PASSWORD','GITHUB_ENV','RUNNER_TEMP'] as $key){
     $bad=$env;unset($bad[$key]);ci_reject(fn()=>lumen_ci_sql_context($bad));
 }

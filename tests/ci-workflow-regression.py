@@ -41,6 +41,7 @@ check('--no-scripts --no-plugins' in run,'Install avoids package scripts/plugins
 check('upload-artifact' not in raw and 'actions/cache' not in raw,'No retained credential/data artifacts or cache')
 check(run.index('composer audit')<run.index('sqlserver-prepare.php'),'Audit before DB write')
 check('LumenTest_Start_CI' in raw and 'LumenTest_Idem_CI' in raw,'Separate fresh DBs')
+check(all(s.get('env',{}).get('LUMEN_TEST_SQL_DSN','').startswith('sqlsrv:Server=127.0.0.1,1433;') for s in j['steps'] if 'LUMEN_TEST_SQL_DSN' in s.get('env',{})),'Test DSNs match IPv4 loopback binding')
 check('continue-on-error' not in raw,'No skipped SQL failure gate')
 lint=yaml.load((root/'.github/workflows/lint.yml').read_text(),Loader=yaml.BaseLoader)
 caller=lint['jobs']['sql-acceptance']

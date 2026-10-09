@@ -99,7 +99,7 @@ jobs:
 
       - name: Real SQL identity, rollback and token acceptance
         env:
-          LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=localhost,1433;Database=LumenTest_Start_CI;Encrypt=yes;TrustServerCertificate=yes'
+          LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=127.0.0.1,1433;Database=LumenTest_Start_CI;Encrypt=yes;TrustServerCertificate=yes'
         run: |
           php tests/sqlserver-preflight.php
           php tests/sqlserver-regression.php
@@ -107,7 +107,7 @@ jobs:
 
       - name: Real SQL same-key concurrency and lost response acceptance
         env:
-          LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=localhost,1433;Database=LumenTest_Idem_CI;Encrypt=yes;TrustServerCertificate=yes'
+          LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=127.0.0.1,1433;Database=LumenTest_Idem_CI;Encrypt=yes;TrustServerCertificate=yes'
         run: php tests/sqlserver-idempotency.php
 
       # No upload/cache of DBs, sessions, credentials or logs. Service dies with job.

@@ -24,7 +24,7 @@ function lumen_ci_sql_context(array $env): array
         || !str_starts_with($export, '/home/runner/work/_temp/_runner_file_commands/')) {
         throw new RuntimeException('CI output file gate rejected.');
     }
-    return ['dsn'=>'sqlsrv:Server=localhost,1433;Database=master;Encrypt=yes;TrustServerCertificate=yes;LoginTimeout=5',
+    return ['dsn'=>'sqlsrv:Server=127.0.0.1,1433;Database=master;Encrypt=yes;TrustServerCertificate=yes;LoginTimeout=5',
         'password'=>$expected, 'user'=>'lumen_ci_' . $env['GITHUB_RUN_ID'] . '_' . $env['GITHUB_RUN_ATTEMPT'],
         'databases'=>['LumenTest_Start_CI','LumenTest_Idem_CI'], 'export'=>$export];
 }
