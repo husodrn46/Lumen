@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+phase=namespace-context
+trap 'echo "TLS_DIAG: namespace setup phase=$phase." >&2' ERR
 # Only invoked by the guarded ephemeral CI runner. No host certificate writes.
 test "$#" -eq 5
 ca_dir=$1; php_bin=$2; runner_uid=$3; runner_gid=$4; mode=$5
@@ -14,6 +16,7 @@ case "$mode" in
 esac
 test -d "$ca_dir" && test ! -L "$ca_dir"
 test -f "$ca_dir/ca-certificates.crt"
+phase=openssl-default-paths
 # /usr/lib/ssl paths on the fixed Ubuntu runner must resolve to this trust directory.
 test "$(readlink -f /usr/lib/ssl/certs)" = /etc/ssl/certs
 test "$(readlink -f /usr/lib/ssl/cert.pem)" = /etc/ssl/certs/ca-certificates.crt
@@ -25,6 +28,7 @@ cleanup_namespace() {
   fi
 }
 trap cleanup_namespace EXIT
+phase=readonly-bind-mount
 mount --bind "$ca_dir" /etc/ssl/certs
 mounted=1
 mount -o remount,bind,ro /etc/ssl/certs
@@ -35,6 +39,7 @@ if touch /etc/ssl/certs/lumen-write-probe 2>/dev/null; then
   exit 2
 fi
 echo 'TLS_ISOLATION: separate private mount namespace; CA view read-only; write probe rejected.'
+phase=unprivileged-strict-php
 # PHP verifies the original unprivileged runner identity and empty effective capabilities.
 export LUMEN_CI_TLS_RUNNER_UID="$runner_uid" LUMEN_CI_TLS_RUNNER_GID="$runner_gid"
 setpriv --reuid="$runner_uid" --regid="$runner_gid" --init-groups \
