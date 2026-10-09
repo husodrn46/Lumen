@@ -31,35 +31,47 @@ if (!api_yetki_var($personel, 'M1')) {
 }
 
 $body    = api_body();
-$satirId = (int) ($body['satir_id'] ?? 0);
+$satirId = siparis_kimlik($body['satir_id'] ?? 0);
+if ($satirId <= 0) {
+    api_json(['ok' => false, 'mesaj' => 'Geçerli bir kayıt kimliği gerekli.'], 400);
+}
 $miktar  = siparis_sayi($body['miktar'] ?? 0);
 
-if ($miktar <= 0 || $miktar > 1000000) {
+if (!is_finite($miktar) || $miktar <= 0 || $miktar > 1000000) {
     api_json(['ok' => false, 'mesaj' => 'Miktar 0 veya negatif olamaz.'], 422);
 }
 
-$satir = siparis_satir_getir($dbh, $firma, $firmadonem, $satirId);
-if ($satir === null) {
-    api_json(['ok' => false, 'mesaj' => 'Satır bulunamadı.'], 404);
-}
-if ($satir['linetype'] !== 0) {
-    api_json(['ok' => false, 'mesaj' => 'Yalnızca ürün satırı düzenlenebilir.'], 422);
-}
+try {
+    $satir = siparis_satir_getir($dbh, $firma, $firmadonem, $satirId);
+    if ($satir === null) {
+        api_json(['ok' => false, 'mesaj' => 'Satır bulunamadı.'], 404);
+    }
+    if ($satir['linetype'] !== 0) {
+        api_json(['ok' => false, 'mesaj' => 'Yalnızca ürün satırı düzenlenebilir.'], 422);
+    }
 
-$fisId = $satir['fis_id'];
-$fis   = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId);
-if ($fis === null) {
-    api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya iptal edilmiş.'], 404);
+    $fisId = $satir['fis_id'];
+    $fis   = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId, $firma, $personel);
+    if ($fis === null) {
+        api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya iptal edilmiş.'], 404);
+    }
+} catch (Throwable $e) {
+    error_log('API sipariş önkontrol: ' . $e->getMessage());
+    api_json(['ok' => false, 'mesaj' => 'Sipariş bilgileri okunamadı.'], 500);
 }
 
 // fiyat/kdv verilmezse mevcut değeri koru.
 $fiyatRaw = $body['fiyat'] ?? null;
-$fiyat = ($fiyatRaw !== null && $fiyatRaw !== '') ? max(0.0, siparis_sayi($fiyatRaw)) : (float) $satir['fiyat'];
-if ($fiyat <= 0 || $fiyat > 100000000) {
+$fiyat = ($fiyatRaw !== null && $fiyatRaw !== '') ? siparis_sayi($fiyatRaw) : (float) $satir['fiyat'];
+if (!is_finite($fiyat) || $fiyat <= 0 || $fiyat > 100000000) {
     api_json(['ok' => false, 'mesaj' => 'Geçerli bir fiyat giriniz.'], 422);
 }
 $kdvRaw = $body['kdv'] ?? null;
-$kdv = ($kdvRaw !== null && $kdvRaw !== '') ? max(0.0, min(100.0, siparis_sayi($kdvRaw))) : (float) $satir['kdv'];
+$kdv = ($kdvRaw !== null && $kdvRaw !== '') ? siparis_sayi($kdvRaw) : (float) $satir['kdv'];
+
+if (!is_finite($kdv) || $kdv < 0 || $kdv > 100) {
+    api_json(['ok' => false, 'mesaj' => 'Geçerli bir KDV oranı giriniz.'], 422);
+}
 
 $toplam   = round($miktar * $fiyat, 2);
 $kdvTutar = round(($toplam / 100) * $kdv, 2);

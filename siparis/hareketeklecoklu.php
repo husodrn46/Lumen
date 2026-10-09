@@ -20,6 +20,11 @@ if (isset($_POST['cstok_miktari'])) {
   $listcari = $stmtCari->fetch(PDO::FETCH_ASSOC);
   $cariid = $listcari ? intcevir($listcari['CLIENTREF']) : 0;
 
+  if ($cariid <= 0 || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+    http_response_code(404);
+    exit('Sipariş bulunamadı.');
+  }
+
   $stmtSipvar = $dbh->prepare("SELECT TOP 1 O.LOGICALREF, S.NAME
     FROM " . $firmadonem . "ORFLINE O
     LEFT JOIN " . $firma . "ITEMS S ON O.STOCKREF = S.LOGICALREF

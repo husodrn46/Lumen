@@ -9,14 +9,15 @@ declare(strict_types=1);
  * LOGO'ya YAZAR (tek transaction): ORFICHE başlık + ORFLINE satırlar + ORFICHE toplam.
  * Yazma sözleşmesi mevcut akıştan birebir alınmıştır (ai_beta_order_header,
  * ../siparis/hareketeklecoklu.php, ../siparis/lg_fis.php toplam güncelleme). Mevcut akışla aynı şekilde
- * satırlar KDV=0, iskontosuz açılır. Herhangi bir adım hata verirse tüm işlem geri alınır.
+ * KDV ve iskonto mevcut hesaplama sözleşmesini izler. Yazma adımı hata verirse tüm işlem geri alınır.
  */
 
 include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 include_once(__DIR__ . '/_siparis.inc');
+include_once(__DIR__ . '/_idempotency.inc');
 
-global $dbh, $firma, $firmadonem, $firmadonemx, $sipno, $depo, $kayitsaat, $saat, $dakika, $saniye, $reserve, $terminalkullanici;
+global $dbh, $firmano, $firma, $firmadonem, $firmadonemx, $sipno, $depo, $kayitsaat, $saat, $dakika, $saniye, $reserve, $terminalkullanici;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     api_json(['ok' => false, 'mesaj' => 'Yalnızca POST desteklenir.'], 405);
@@ -30,37 +31,39 @@ if (!api_yetki_var($personel, 'M1')) {
 }
 
 $body     = api_body();
-$cariId   = (int) ($body['cari_id'] ?? 0);
+try {
+    $idempotencyKey = siparis_idempotency_anahtari();
+    $bodyhash = $idempotencyKey === null ? null : siparis_idempotency_parmakizi($body);
+} catch (InvalidArgumentException | JsonException $e) {
+    api_json(['ok' => false, 'mesaj' => 'Geçerli bir Idempotency-Key ve JSON gövdesi gerekli.'], 400);
+}
+$cariId   = siparis_kimlik($body['cari_id'] ?? 0);
 $kalemler = is_array($body['kalemler'] ?? null) ? $body['kalemler'] : [];
+if (!is_finite(siparis_sayi($body['iskonto1'] ?? 0)) || !is_finite(siparis_sayi($body['iskonto2'] ?? 0))) {
+    api_json(['ok' => false, 'mesaj' => 'Geçerli bir iskonto oranı giriniz.'], 422);
+}
 $iskonto1 = max(0.0, min(100.0, siparis_sayi($body['iskonto1'] ?? 0)));
 $iskonto2 = max(0.0, min(100.0, siparis_sayi($body['iskonto2'] ?? 0)));
 if ($cariId <= 0) {
     api_json(['ok' => false, 'mesaj' => 'Cari seçimi gerekiyor.'], 400);
 }
 
-// Özel Cari kısıtı: kısıtlı cariye sipariş açılamaz
-// (web ../siparis/fisekle.php ile aynı kural).
-if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $personel, $cariId)) {
-    api_json(['ok' => false, 'mesaj' => 'Cari bulunamadi.'], 404);
-}
+try {
+    // Özel Cari kısıtı: kısıtlı cariye sipariş açılamaz
+    // (web ../siparis/fisekle.php ile aynı kural).
+    if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $personel, $cariId)) {
+        api_json(['ok' => false, 'mesaj' => 'Cari bulunamadi.'], 404);
+    }
 
-if (!$kalemler) {
-    api_json(['ok' => false, 'mesaj' => 'En az bir kalem gerekiyor.'], 400);
-}
-if (count($kalemler) > 200) {
-    api_json(['ok' => false, 'mesaj' => 'Tek seferde en fazla 200 kalem gönderilebilir.'], 400);
-}
-
-$cari = siparis_cari_getir($dbh, $firma, $cariId);
-if ($cari === null) {
-    api_json(['ok' => false, 'mesaj' => 'Cari bulunamadı.'], 404);
-}
-
-// Fiş AÇMADAN önce tüm kalemleri doğrula (F3 kuralı) — fiyatsız kalem orphan fiş bırakmaz.
-$h     = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, $kalemler);
-$ready = $h['ready'];
-if (!$ready) {
-    api_json(['ok' => false, 'mesaj' => 'Geçerli kalem bulunamadı, sipariş açılmadı.', 'atlanan' => $h['skipped']], 422);
+    if (!$kalemler) {
+        api_json(['ok' => false, 'mesaj' => 'En az bir kalem gerekiyor.'], 400);
+    }
+    if (count($kalemler) > 200) {
+        api_json(['ok' => false, 'mesaj' => 'Tek seferde en fazla 200 kalem gönderilebilir.'], 400);
+    }
+} catch (Throwable $e) {
+    error_log('API sipariş önkontrol: ' . $e->getMessage());
+    api_json(['ok' => false, 'mesaj' => 'Sipariş bilgileri okunamadı.'], 500);
 }
 
 $kayitsaatI = (int) $kayitsaat;
@@ -77,19 +80,33 @@ $fisno = '';
 
 try {
     $dbh->beginTransaction();
+    if ($idempotencyKey !== null) {
+        $previous = siparis_idempotency_baslat($dbh, $idempotencyKey, (int) $firmano, $firmadonem, $personel, $bodyhash);
+        if ($previous !== null) {
+            if (!$dbh->commit()) { throw new RuntimeException('Commit sonucu doğrulanamadı.'); }
+            api_json($previous);
+        }
+    }
+    $cari = siparis_cari_getir($dbh, $firma, $cariId);
+    if ($cari === null) {
+        $dbh->rollBack();
+        api_json(['ok' => false, 'mesaj' => 'Cari bulunamadı.'], 404);
+    }
 
-    // ---- ORFICHE başlık (ai_beta_order_header sözleşmesi) ----
-    $stmtMax = $dbh->prepare("SELECT MAX(LOGICALREF) AS SONID FROM {$firmadonem}ORFICHE");
-    $stmtMax->execute();
-    $maxRow = $stmtMax->fetch(PDO::FETCH_ASSOC);
-    $yeniId = intcevir($maxRow['SONID'] ?? 0) + 1;
-    // INSERT için tahmini fiş no. LOGICALREF IDENTITY olduğundan gerçek id
-    // INSERT sonrası alınır ve FICHENO toplam UPDATE'inde gerçek id'ye göre
-    // kesinleştirilir (silme/boşluk veya eşzamanlı kayıtta tutarsızlığı önler).
-    $fisno  = (string) $sipno . str_pad((string) $yeniId, 6, '0', STR_PAD_LEFT);
+    // Fiş AÇMADAN önce tüm kalemleri doğrula (F3 kuralı) — fiyatsız kalem orphan fiş bırakmaz.
+    $h     = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, $kalemler);
+
+    $ready = $h['ready'];
+    if (!$ready) {
+        $dbh->rollBack();
+        api_json(['ok' => false, 'mesaj' => 'Geçerli kalem bulunamadı, sipariş açılmadı.', 'atlanan' => $h['skipped']], 422);
+    }
+
+    // Numara kilitli aralıktan, kimlik yalnız bu INSERT'in OUTPUT'undan alınır.
+    $fisno = siparis_baslik_numarasi_ayir($dbh, $firmadonem, (string) $sipno);
     $ficheGuid = guid();
 
-    $stmtFiche = $dbh->prepare("INSERT INTO {$firmadonem}ORFICHE (
+    $stmtFiche = siparis_baslik_insert_hazirla($dbh, "INSERT INTO {$firmadonem}ORFICHE (
 TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,CENTERREF,SOURCEINDEX,SOURCECOSTGRP,UPDCURR,ADDDISCOUNTS,TOTALDISCOUNTS,TOTALDISCOUNTED,ADDEXPENSES,TOTALEXPENSES,TOTALPROMOTIONS,TOTALVAT,GROSSTOTAL,NETTOTAL,REPORTRATE,REPORTNET,GENEXP1,GENEXP2,GENEXP3,GENEXP4,EXTENREF,PAYDEFREF,PRINTCNT,BRANCH,DEPARTMENT,STATUS,CAPIBLOCK_CREATEDBY,CAPIBLOCK_CREADEDDATE,CAPIBLOCK_CREATEDHOUR,CAPIBLOCK_CREATEDMIN,CAPIBLOCK_CREATEDSEC,CAPIBLOCK_MODIFIEDBY,CAPIBLOCK_MODIFIEDDATE,CAPIBLOCK_MODIFIEDHOUR,CAPIBLOCK_MODIFIEDMIN,CAPIBLOCK_MODIFIEDSEC,SALESMANREF,SHPTYPCOD,SHPAGNCOD,GENEXCTYP,LINEEXCTYP,TRADINGGRP,TEXTINC,SITEID,RECSTATUS,ORGLOGICREF,FACTORYNR,WFSTATUS,SHIPINFOREF,CUSTORDNO,SENDCNT,DLVCLIENT,DOCTRACKINGNR,CANCELLED,ORGLOGOID,OFFERREF,OFFALTREF,TYP,ALTNR,ADVANCEPAYM,TRCURR,TRRATE,TRNET,PAYMENTTYPE,ONLYONEPAYLINE,OPSTAT,WITHPAYTRANS,PROJECTREF,WFLOWCRDREF,UPDTRCURR,AFFECTCOLLATRL,POFFERBEGDT,POFFERENDDT,REVISNR,LASTREVISION,CHECKAMOUNT,SLSOPPRREF,SLSACTREF,SLSCUSTREF,AFFECTRISK,TOTALADDTAX,TOTALEXADDTAX,APPROVE,APPROVEDATE,CHECKPRICE,GUID,EINVOICE
 ) VALUES (
 :siparisdurum,:fisno,DATEADD(day,0,datediff(day,0,GETDATE())),:kayitsaat,'MASA-API','','',:cariid,0,0,0,:depo,0,0,0,0,0,0,0,0,0,0,0,1,0,'Masaustu siparis','','','',0,0,0,0,0,:status,1,DATEADD(day,0,datediff(day,0,GETDATE())),:saat,:dakika,:saniye,0,NULL,0,0,0,:terminalkullanici,'','',2,0,'',0,0,1,0,0,0,0,'',0,0,'',0,'',0,0,0,0,0,:doviz,:dovizkuru,0,0,0,0,0,0,0,0,0,NULL,NULL,'',0,0,0,0,0,1,0,0,0,NULL,0,:guid,0
@@ -110,15 +127,8 @@ TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,
         ':guid'              => (string) $ficheGuid,
     ]);
 
-    // Yeni fişin gerçek LOGICALREF'i
-    $stmtMax->execute();
-    $maxRow2 = $stmtMax->fetch(PDO::FETCH_ASSOC);
-    $fisId = intcevir($maxRow2['SONID'] ?? 0);
-    if ($fisId <= 0) {
-        throw new RuntimeException('Fiş kimliği alınamadı.');
-    }
-    // FICHENO'yu gerçek LOGICALREF'e göre kesinleştir (aşağıdaki toplam UPDATE'inde yazılır).
-    $fisno = (string) $sipno . str_pad((string) $fisId, 6, '0', STR_PAD_LEFT);
+    $fisId = siparis_baslik_eklenen_id($stmtFiche);
+    $fisno = siparis_fis_numarasi((string) $sipno, $fisId);
 
     // ---- ORFLINE satırlar (../siparis/hareketeklecoklu.php sözleşmesi) ----
     $stmtLine = $dbh->prepare("INSERT INTO {$firmadonem}ORFLINE (
@@ -209,13 +219,49 @@ STOCKREF,ORDFICHEREF,CLIENTREF,LINETYPE,PREVLINEREF,PREVLINENO,DETLINE,LINENO_,T
         ':fisno' => $fisno, ':ref' => $fisId,
     ]);
 
-    $dbh->commit();
+    // Result receipt and order form one atomic commit; lost response is replayable.
+    $yanit = [
+        'ok'  => true,
+        'fis' => ['id' => $fisId, 'fisno' => $fisno],
+        'cari' => $cari,
+        'satir_sayisi'         => count($ready),
+        'ara_toplam'           => $brut,
+        'ara_toplam_metin'     => api_money($brut),
+        'iskonto_toplam'       => $isk,
+        'iskonto_toplam_metin' => api_money($isk),
+        'kdv_toplam'           => $kdvT,
+        'kdv_toplam_metin'     => api_money($kdvT),
+        'genel_toplam'         => $netKdv,
+        'genel_toplam_metin'   => api_money($netKdv),
+        'atlanan'              => $h['skipped'],
+        'mesaj'                => $fisno . ' numaralı sipariş oluşturuldu.',
+    ];
+
+    if ($idempotencyKey !== null) {
+        siparis_idempotency_tamamla($dbh, $idempotencyKey, (int) $firmano, $firmadonem, $personel, $bodyhash, $yanit);
+    }
+    if (!$dbh->commit()) { throw new RuntimeException('Commit sonucu doğrulanamadı.'); }
 } catch (Throwable $e) {
-    if ($dbh->inTransaction()) {
-        $dbh->rollBack();
+    try {
+        if ($dbh->inTransaction()) { $dbh->rollBack(); }
+    } catch (Throwable $rollbackError) {
+        error_log('API sipariş rollback sonucu doğrulanamadı.');
+    }
+    if ($e instanceof SiparisIdempotencyCakisma) {
+        api_json(['ok' => false, 'mesaj' => 'İşlem anahtarı bu istek için kullanılamaz.'], 409);
+    }
+    if ($e instanceof SiparisIdempotencyHazirDegil) {
+        error_log('API idempotency şeması hazır değil.');
+        api_json(['ok' => false, 'mesaj' => 'Tekrar gönderim koruması hazır değil; isteği anahtarsız göndermeyin.'], 503);
+    }
+    if ($e instanceof SiparisIdempotencyBekle) {
+        header('Retry-After: 1');
+        api_json(['ok' => false, 'mesaj' => 'İşlem sonucu henüz alınamadı; aynı anahtarla tekrar deneyin.'], 503);
     }
     error_log('api/siparis_olustur: ' . $e->getMessage());
-    api_json(['ok' => false, 'mesaj' => 'Sipariş kaydedilirken hata oluştu, hiçbir kayıt yapılmadı.'], 500);
+    api_json(['ok' => false, 'mesaj' => $idempotencyKey === null
+        ? 'Sipariş sonucu doğrulanamadı; yeniden göndermeden önce kontrol edin.'
+        : 'Sipariş sonucu doğrulanamadı; aynı anahtar ve içerikle tekrar deneyin.'], 500);
 }
 
 // Denetim izi (mevcut web akışıyla aynı) — log hatası siparişi etkilemez.
@@ -232,19 +278,4 @@ if (function_exists('logFisOlusturma')) {
     }
 }
 
-api_json([
-    'ok'  => true,
-    'fis' => ['id' => $fisId, 'fisno' => $fisno],
-    'cari' => $cari,
-    'satir_sayisi'         => count($ready),
-    'ara_toplam'           => $brut,
-    'ara_toplam_metin'     => api_money($brut),
-    'iskonto_toplam'       => $isk,
-    'iskonto_toplam_metin' => api_money($isk),
-    'kdv_toplam'           => $kdvT,
-    'kdv_toplam_metin'     => api_money($kdvT),
-    'genel_toplam'         => $netKdv,
-    'genel_toplam_metin'   => api_money($netKdv),
-    'atlanan'              => $h['skipped'],
-    'mesaj'                => $fisno . ' numaralı sipariş oluşturuldu.',
-]);
+api_json($yanit);

@@ -41,20 +41,7 @@ $hata   = '';
 $notlar = [];
 $gd_dsn = static fn(string $srv, string $db): string => "sqlsrv:server={$srv};database={$db};TrustServerCertificate=1;LoginTimeout=8";
 
-/** LOGO tablo önekleri (firma+dönem no'dan). */
-function kurulum_onekler(int $firma, int $donem): array
-{
-    $f = str_pad((string) $firma, 3, '0', STR_PAD_LEFT);
-    $d = str_pad((string) $donem, 2, '0', STR_PAD_LEFT);
-    $de = str_pad((string) max(1, $donem - 1), 2, '0', STR_PAD_LEFT);
-    return [
-        'FIRMA_PREFIX'          => "LG_{$f}_",
-        'FIRMA_DONEM'           => "LG_{$f}_{$d}_",
-        'FIRMA_DONEM_VIEW'      => "LV_{$f}_{$d}_",
-        'FIRMA_ESKI_DONEM'      => "LG_{$f}_{$de}_",
-        'FIRMA_ESKI_DONEM_VIEW' => "LV_{$f}_{$de}_",
-    ];
-}
+require_once __DIR__ . '/includes/kurulum_lib.php';
 
 /** .env dosyasını güvenli yaz. */
 function kurulum_env_yaz(string $yol, array $kv): bool
@@ -67,54 +54,20 @@ function kurulum_env_yaz(string $yol, array $kv): bool
     return @file_put_contents($yol, implode("\n", $satirlar) . "\n") !== false;
 }
 
-/**
- * sql/ klasöründeki tüm şema betiklerini sırayla uygular (Lumen'e özel M_* tabloları).
- * Betikler idempotenttir (IF NOT EXISTS), tekrar çalıştırmak güvenlidir.
- * SQL Server "GO" toplu iş ayırıcısı PDO tarafından anlaşılmadığından batch'lere bölünür.
- *
- * @return array{basarili:int, toplam:int, hatalar:array<string,string>}
- */
-function kurulum_sema_uygula(PDO $pdo, string $dir): array
-{
-    $dosyalar = glob(rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . '*.sql') ?: [];
-    sort($dosyalar, SORT_NATURAL | SORT_FLAG_CASE);
-
-    $basarili = 0;
-    $hatalar  = [];
-    foreach ($dosyalar as $yol) {
-        $ad = basename($yol);
-        try {
-            $icerik = (string) file_get_contents($yol);
-            $batchler = preg_split('/^\s*GO\s*;?\s*$/mi', $icerik) ?: [];
-            foreach ($batchler as $batch) {
-                $batch = trim($batch);
-                if ($batch === '') {
-                    continue;
-                }
-                $pdo->exec($batch);
-            }
-            $basarili++;
-        } catch (Throwable $e) {
-            $hatalar[$ad] = $e->getMessage();
-        }
-    }
-
-    return ['basarili' => $basarili, 'toplam' => count($dosyalar), 'hatalar' => $hatalar];
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($csrf, (string) ($_POST['csrf'] ?? ''))) {
         $hata = 'Güvenlik doğrulaması başarısız. Sayfayı yenileyip tekrar deneyin.';
     } elseif (!extension_loaded('pdo_sqlsrv')) {
         $hata = 'PHP pdo_sqlsrv eklentisi yüklü değil. SQL Server sürücüsünü kurun.';
     } elseif (($_POST['adim'] ?? '') === '1') {
+        unset($_SESSION['kurulum_db']);
         // ---- ADIM 1: DB + firma ----
         $srv   = trim((string) ($_POST['db_server'] ?? ''));
         $db    = trim((string) ($_POST['db_name'] ?? ''));
         $usr   = trim((string) ($_POST['db_user'] ?? ''));
         $pss   = (string) ($_POST['db_pass'] ?? '');
-        $fno   = max(1, (int) ($_POST['firma_no'] ?? 1));
-        $dno   = max(1, (int) ($_POST['donem_no'] ?? 2));
+        $fno   = (int) ($_POST['firma_no'] ?? 1);
+        $dno   = (int) ($_POST['donem_no'] ?? 2);
         $bas   = trim((string) ($_POST['firma_baslik'] ?? '')) ?: 'Lumen';
         $mcari = max(0, (int) ($_POST['magaza_cari'] ?? 0));
 
@@ -123,10 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 $test = new PDO($gd_dsn($srv, $db), $usr, $pss, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-                // LOGO tablosu var mı? (kritik doğrulama)
                 $onek = kurulum_onekler($fno, $dno);
-                $clcard = $onek['FIRMA_PREFIX'] . 'CLCARD';
-                $test->query("SELECT TOP 1 LOGICALREF FROM {$clcard}");
+                // Lumen'e özel tabloları (M_*) burada kur — kullanıcı elle SQL çalıştırmasın.
+                $sema = kurulum_sema_uygula($test, $KOK . '/sql', $onek);
+                if ($sema['hatalar'] !== []) {
+                    throw new RuntimeException('Şema doğrulanamadı: ' . implode(', ', array_keys($sema['hatalar'])));
+                }
 
                 $env = [
                     'AKL_DB_SERVER' => $srv,
@@ -145,25 +100,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!kurulum_env_yaz($ENV, $env)) {
                     $hata = '.env dosyası yazılamadı — klasör yazma izinlerini kontrol edin.';
                 } else {
-                    if (!is_file($HEDEF_BAG) && is_file($ORNEK_BAG)) {
-                        @copy($ORNEK_BAG, $HEDEF_BAG);
+                    if (!is_file($HEDEF_BAG) && !copy($ORNEK_BAG, $HEDEF_BAG)) {
+                        throw new RuntimeException('Bağlantı dosyası oluşturulamadı.');
                     }
-                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'onek' => $onek];
+                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'onek' => $onek, 'firma' => $fno];
                     $adim = 2;
-                    $notlar[] = 'Bağlantı başarılı, yapılandırma kaydedildi.';
-
-                    // Lumen'e özel tabloları (M_*) burada kur — kullanıcı elle SQL çalıştırmasın.
-                    $sema = kurulum_sema_uygula($test, $KOK . '/sql');
-                    if ($sema['hatalar'] === []) {
-                        $notlar[] = 'Veritabanı tabloları hazırlandı (' . $sema['basarili'] . '/' . $sema['toplam'] . ' betik).';
-                    } else {
-                        $notlar[] = 'Tablolar kısmen hazırlandı (' . $sema['basarili'] . '/' . $sema['toplam']
-                            . '). Atlanan: ' . implode(', ', array_keys($sema['hatalar']))
-                            . ' — bu betikleri sql/ klasöründen elle çalıştırabilirsiniz.';
-                    }
+                    $notlar[] = 'Bağlantı ve şema doğrulandı; yapılandırma kaydedildi.';
                 }
             } catch (Throwable $e) {
-                $hata = 'Bağlantı/doğrulama başarısız: ' . $e->getMessage();
+                unset($_SESSION['kurulum_db']);
+                error_log('Kurulum bağlantı/şema hatası: ' . $e->getMessage());
+                $hata = 'Bağlantı veya şema doğrulanamadı. Kurulum tamamlanmadı; sunucu kaydını inceleyin.';
             }
         }
     } elseif (($_POST['adim'] ?? '') === '2' && !empty($_SESSION['kurulum_db'])) {
@@ -183,17 +130,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 $pdo = new PDO($gd_dsn($cfg['srv'], $cfg['db']), $cfg['usr'], $cfg['pss'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                kurulum_sema_kontrol($pdo, $cfg['onek']);
                 // Satış temsilcisi var mı?
-                $q = $pdo->prepare("SELECT LOGICALREF FROM LG_SLSMAN WHERE CODE = :k AND ACTIVE = 0");
-                $q->execute([':k' => $kod]);
+                $q = $pdo->prepare("SELECT LOGICALREF FROM LG_SLSMAN WHERE CODE = :k AND ACTIVE = 0 AND FIRMNR = :firma");
+                $q->bindValue(':k', $kod);
+                $q->bindValue(':firma', (int) $cfg['firma'], PDO::PARAM_INT);
+                $q->execute();
                 $ref = $q->fetchColumn();
                 if ($ref === false) {
                     $hata = "'{$kod}' kodlu aktif satış temsilcisi bulunamadı. Önce LOGO'da tanımlayın.";
                 } else {
                     $ref = (int) $ref;
-                    // M_P_YETKI tablosu (yoksa oluştur)
-                    $pdo->exec("IF OBJECT_ID('dbo.M_P_YETKI','U') IS NULL
-                        CREATE TABLE M_P_YETKI (PERSONEL INT NOT NULL PRIMARY KEY, SIFRE NVARCHAR(255) NULL, YETKI INT NULL)");
                     $hash = password_hash($p1, PASSWORD_DEFAULT);
                     $var = (int) $pdo->query("SELECT COUNT(*) FROM M_P_YETKI WHERE PERSONEL = {$ref}")->fetchColumn();
                     if ($var > 0) {
@@ -214,12 +161,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $i = $pdo->prepare($sql);
                         $i->execute([':p' => $ref, ':s' => $hash]);
                     }
-                    @file_put_contents($LOCK, "kurulum tamamlandi\n");
+                    if (file_put_contents($LOCK, "kurulum tamamlandi\n") === false) {
+                        throw new RuntimeException('Kurulum kilidi yazılamadı.');
+                    }
                     unset($_SESSION['kurulum_db']);
                     $adim = 3;
                 }
             } catch (Throwable $e) {
-                $hata = 'Yönetici oluşturulamadı: ' . $e->getMessage();
+                error_log('Kurulum yönetici hatası: ' . $e->getMessage());
+                $hata = 'Yönetici veya kurulum kilidi oluşturulamadı; sunucu kaydını inceleyin.';
             }
         }
     }
@@ -306,8 +256,8 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
                         <div class="alan"><label>Parola</label><input type="password" name="db_pass" value=""></div>
                     </div>
                     <div class="grid2">
-                        <div class="alan"><label>Firma No</label><input type="number" name="firma_no" value="<?php echo $val('firma_no', '1'); ?>" min="1" required><div class="ip">LG_<b>001</b>_...</div></div>
-                        <div class="alan"><label>Dönem No</label><input type="number" name="donem_no" value="<?php echo $val('donem_no', '2'); ?>" min="1" required><div class="ip">LG_001_<b>02</b>_...</div></div>
+                        <div class="alan"><label>Firma No</label><input type="number" name="firma_no" value="<?php echo $val('firma_no', '1'); ?>" min="1" max="999" required><div class="ip">LG_<b>001</b>_...</div></div>
+                        <div class="alan"><label>Dönem No</label><input type="number" name="donem_no" value="<?php echo $val('donem_no', '2'); ?>" min="1" max="99" required><div class="ip">LG_001_<b>02</b>_...</div></div>
                     </div>
                     <div class="grid2">
                         <div class="alan"><label>Firma başlığı</label><input name="firma_baslik" value="<?php echo $val('firma_baslik'); ?>" placeholder="Firma adınız"></div>

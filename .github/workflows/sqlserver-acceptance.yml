@@ -1,0 +1,113 @@
+name: Isolated SQL Server acceptance
+
+# Manual, synthetic acceptance only. No production bootstrap, secrets or deployment.
+'on':
+  workflow_call:
+    inputs:
+      confirm_synthetic_only:
+        required: true
+        default: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      confirm_synthetic_only:
+        description: 'Geçici SQL Developer/EULA ve yalnız sentetik LumenTest DB kabulünü onaylıyorum'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lumen-sql-acceptance
+  cancel-in-progress: false
+
+jobs:
+  sqlserver:
+    if: ${{ inputs.confirm_synthetic_only && github.repository == 'husodrn46/Lumen' && github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      # Public, run-specific bootstrap credential for this disposable SQL instance only.
+      # Runtime test account is separately generated, masked and limited to two fresh DBs.
+      LUMEN_CI_SQL_SA_PASSWORD: LumenCI-${{ github.run_id }}-${{ github.run_attempt }}-aA1!
+      LUMEN_CI_SQL_PREPARE: synthetic-ci-approved
+      LUMEN_TEST_SQL_WRITE: sentetik-test-onayli
+    services:
+      sqlserver:
+        # Official MCR manifest resolved 2026-10-09: Linux amd64, built 2026-08-26.
+        image: mcr.microsoft.com/mssql/server:2022-latest@sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090
+        env:
+          ACCEPT_EULA: 'Y'
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: LumenCI-${{ github.run_id }}-${{ github.run_attempt }}-aA1!
+        ports:
+          - '127.0.0.1:1433:1433'
+        options: >-
+          --memory 4g --cpus 2
+          --health-cmd "bash -c 'echo > /dev/tcp/127.0.0.1/1433'"
+          --health-interval 10s --health-timeout 5s --health-retries 18
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Microsoft ODBC18 prerequisites (disposable runner only)
+        run: |
+          test "$(uname -m)" = x86_64
+          curl --fail --silent --show-error --location https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb --output "$RUNNER_TEMP/lumen-microsoft-prod.deb"
+          sudo dpkg -i "$RUNNER_TEMP/lumen-microsoft-prod.deb"
+          sudo apt-get update -qq
+          sudo env ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 unixodbc-dev
+
+      - name: PHP 8.3 and isolated SQL driver
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          coverage: none
+          extensions: dom, gd, mbstring, simplexml, xmlreader, xmlwriter, zip, pdo_sqlsrv-5.13.3
+          tools: composer:v2
+        env:
+          fail-fast: true
+
+      - name: Validate lock, audit and actual runtime
+        run: |
+          composer validate --strict --no-check-publish
+          composer audit --locked --format=plain
+          composer install --no-dev --no-interaction --no-progress --no-scripts --no-plugins --prefer-dist
+          composer check-platform-reqs --no-dev
+          php scripts/dependency-smoke.php
+          odbcinst -q -d -n "ODBC Driver 18 for SQL Server"
+          php -r 'if (PHP_VERSION_ID < 80300 || phpversion("pdo_sqlsrv") !== "5.13.3") { exit(1); } echo "PHP/pdo_sqlsrv ready\n";'
+
+      - name: Existing local regression gates
+        env:
+          SKIP_RECTOR: '1'
+        run: |
+          bash scripts/validate.sh
+          python3 tests/http-regression.py
+          python3 tests/web-regression.py
+          node tests/web-intent-js.test.cjs
+
+      - name: Create fresh CI test databases and limited account
+        run: php tests/ci/sqlserver-prepare.php
+
+      - name: Real SQL identity, rollback and token acceptance
+        env:
+          LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=localhost,1433;Database=LumenTest_Start_CI;Encrypt=yes;TrustServerCertificate=yes'
+        run: |
+          php tests/sqlserver-preflight.php
+          php tests/sqlserver-regression.php
+          php tests/sqlserver-preflight.php
+
+      - name: Real SQL same-key concurrency and lost response acceptance
+        env:
+          LUMEN_TEST_SQL_DSN: 'sqlsrv:Server=localhost,1433;Database=LumenTest_Idem_CI;Encrypt=yes;TrustServerCertificate=yes'
+        run: php tests/sqlserver-idempotency.php
+
+      # No upload/cache of DBs, sessions, credentials or logs. Service dies with job.

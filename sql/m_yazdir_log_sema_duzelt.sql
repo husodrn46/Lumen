@@ -1,27 +1,6 @@
--- ============================================================================
--- M_YAZDIR_LOG şema düzeltmesi (2026-07-07)
--- ============================================================================
--- SORUN: DB'deki tablo ESKİ şemadaydı (ID, STOKHAREKET, FICHENO, TIP, KULLANICI,
--- ACIKLAMA, TARIH) ama kod (ayr.php logYazdir) YENİ şemayı bekliyordu
--- (FIS_REF, FICHENO, YAZDIRMA_TIPI, YAZDIRMA_SAYISI, KULLANICI_ID, IP_ADRESI,
--- TARIH, ACIKLAMA). Sonuç: her fiş yazdırmada
---   "logYazdir hatası: Invalid column name 'FIS_REF'"
--- ve tabloda 0 kayıt (yazdırma logu HİÇ çalışmamış).
---
--- ÇÖZÜM: Tablo 0 kayıt olduğu için güvenle DROP + kodun beklediği şemayla CREATE.
--- (Tek yazan: ayr.php logYazdir; hizli_yazdir.php de onun üzerinden çağırır.)
--- GÜVENLİK: Kayıt varsa dokunmaz (yanlışlıkla dolu tabloyu silmesin).
--- ============================================================================
-
-IF OBJECT_ID('dbo.M_YAZDIR_LOG', 'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM dbo.M_YAZDIR_LOG)
-        DROP TABLE dbo.M_YAZDIR_LOG;
-    ELSE
-        RAISERROR('M_YAZDIR_LOG dolu - elle inceleyin, otomatik migrate iptal.', 16, 1);
-END
-GO
-
+-- Veri koruyan yazdırma-logu kurulum kontrolü.
+-- Doğru şema dolu olsa da tekrar çalıştırılabilir. Legacy şema sessizce silinmez;
+-- veri dönüşümü ayrıca incelenmelidir. Bu betik kayıt silmez veya DROP uygulamaz.
 IF OBJECT_ID('dbo.M_YAZDIR_LOG', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.M_YAZDIR_LOG (
@@ -37,4 +16,15 @@ BEGIN
     );
     CREATE INDEX IX_M_YAZDIR_LOG_FIS ON dbo.M_YAZDIR_LOG (FIS_REF);
 END
+GO
+
+IF COL_LENGTH('dbo.M_YAZDIR_LOG', 'FIS_REF') IS NULL
+ OR COL_LENGTH('dbo.M_YAZDIR_LOG', 'FICHENO') IS NULL
+ OR COL_LENGTH('dbo.M_YAZDIR_LOG', 'YAZDIRMA_TIPI') IS NULL
+ OR COL_LENGTH('dbo.M_YAZDIR_LOG', 'YAZDIRMA_SAYISI') IS NULL
+ OR COL_LENGTH('dbo.M_YAZDIR_LOG', 'KULLANICI_ID') IS NULL
+ OR COL_LENGTH('dbo.M_YAZDIR_LOG', 'IP_ADRESI') IS NULL
+ OR COL_LENGTH('dbo.M_YAZDIR_LOG', 'TARIH') IS NULL
+ OR COL_LENGTH('dbo.M_YAZDIR_LOG', 'ACIKLAMA') IS NULL
+    THROW 51000, 'M_YAZDIR_LOG eski/eksik sema: veri koruyan donusum gerekli, kurulum durduruldu.', 1;
 GO

@@ -17,7 +17,8 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma, $firmadonem;
-api_oturum_gerekli($dbh);
+$oturum = api_oturum_gerekli($dbh);
+api_yetki_gerekli((int) $oturum['personel'], 'M17');
 
 try {
     $sql = "

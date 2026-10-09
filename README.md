@@ -172,3 +172,7 @@ Yeni PHP dosyalarında `declare(strict_types=1);` kullanın, mevcut kod stiline 
 [MIT](LICENSE) © husodrn46
 
 > "LOGO" ve "Tiger", LOGO Yazılım'ın tescilli markalarıdır. Lumen bağımsız, üçüncü taraf bir açık kaynak projesidir ve LOGO Yazılım ile herhangi bir bağı yoktur.
+
+### API sipariş tekrar gönderim güvenliği
+
+Yerel geliştirmedeki isteğe bağlı `Idempotency-Key` protokolü: [tests/IDEMPOTENCY.md](tests/IDEMPOTENCY.md). Başlıksız eski istemciler için tekrar gönderim garantisi yoktur. Ledger migration ve gerçek SQL/istemci kabulü tamamlanmadan yayımlandığı varsayılmamalı.

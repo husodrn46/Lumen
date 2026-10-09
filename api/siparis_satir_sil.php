@@ -29,21 +29,30 @@ if (!api_yetki_var($personel, 'M1')) {
 }
 
 $body    = api_body();
-$satirId = (int) ($body['satir_id'] ?? 0);
-
-$satir = siparis_satir_getir($dbh, $firma, $firmadonem, $satirId);
-if ($satir === null) {
-    api_json(['ok' => false, 'mesaj' => 'Satır bulunamadı.'], 404);
-}
-if ($satir['linetype'] !== 0) {
-    api_json(['ok' => false, 'mesaj' => 'Yalnızca ürün satırı silinebilir.'], 422);
+$satirId = siparis_kimlik($body['satir_id'] ?? 0);
+if ($satirId <= 0) {
+    api_json(['ok' => false, 'mesaj' => 'Geçerli bir kayıt kimliği gerekli.'], 400);
 }
 
-$fisId = $satir['fis_id'];
-$fis   = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId);
-if ($fis === null) {
-    api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya iptal edilmiş.'], 404);
+try {
+    $satir = siparis_satir_getir($dbh, $firma, $firmadonem, $satirId);
+    if ($satir === null) {
+        api_json(['ok' => false, 'mesaj' => 'Satır bulunamadı.'], 404);
+    }
+    if ($satir['linetype'] !== 0) {
+        api_json(['ok' => false, 'mesaj' => 'Yalnızca ürün satırı silinebilir.'], 422);
+    }
+
+    $fisId = $satir['fis_id'];
+    $fis   = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId, $firma, $personel);
+    if ($fis === null) {
+        api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya iptal edilmiş.'], 404);
+    }
+} catch (Throwable $e) {
+    error_log('API sipariş önkontrol: ' . $e->getMessage());
+    api_json(['ok' => false, 'mesaj' => 'Sipariş bilgileri okunamadı.'], 500);
 }
+
 
 try {
     $dbh->beginTransaction();

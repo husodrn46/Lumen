@@ -29,26 +29,35 @@ if (!api_yetki_var($personel, 'M1')) {
 }
 
 $body   = api_body();
-$fisId  = (int) ($body['fis_id'] ?? 0);
-$stokId = (int) ($body['stok_id'] ?? 0);
+$fisId  = siparis_kimlik($body['fis_id'] ?? 0);
+if ($fisId <= 0) {
+    api_json(['ok' => false, 'mesaj' => 'Geçerli bir kayıt kimliği gerekli.'], 400);
+}
+$stokId = siparis_kimlik($body['stok_id'] ?? 0);
 
-$fis = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId);
-if ($fis === null) {
-    api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya iptal edilmiş.'], 404);
+try {
+    $fis = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId, $firma, $personel);
+    if ($fis === null) {
+        api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya iptal edilmiş.'], 404);
+    }
+
+    // Kalemi siparis_olustur ile aynı kurallarla hazırla (F3: fiyatsız kalem reddedilir).
+    $h = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, [[
+        'stok_id'      => $stokId,
+        'miktar'       => $body['miktar'] ?? 0,
+        'birim_carpan' => $body['birim_carpan'] ?? 1,
+        'fiyat'        => $body['fiyat'] ?? null,
+        'kdv'          => $body['kdv'] ?? null,
+    ]]);
+    if (!$h['ready']) {
+        $sebep = $h['skipped'][0]['sebep'] ?? 'kalem geçersiz';
+        api_json(['ok' => false, 'mesaj' => 'Satır eklenemedi: ' . $sebep], 422);
+    }
+} catch (Throwable $e) {
+    error_log('API sipariş önkontrol: ' . $e->getMessage());
+    api_json(['ok' => false, 'mesaj' => 'Sipariş bilgileri okunamadı.'], 500);
 }
 
-// Kalemi siparis_olustur ile aynı kurallarla hazırla (F3: fiyatsız kalem reddedilir).
-$h = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, [[
-    'stok_id'      => $stokId,
-    'miktar'       => $body['miktar'] ?? 0,
-    'birim_carpan' => $body['birim_carpan'] ?? 1,
-    'fiyat'        => $body['fiyat'] ?? null,
-    'kdv'          => $body['kdv'] ?? null,
-]]);
-if (!$h['ready']) {
-    $sebep = $h['skipped'][0]['sebep'] ?? 'kalem geçersiz';
-    api_json(['ok' => false, 'mesaj' => 'Satır eklenemedi: ' . $sebep], 422);
-}
 $r = $h['ready'][0];
 
 $kayitsaatI = (int) $kayitsaat;

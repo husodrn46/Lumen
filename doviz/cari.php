@@ -858,15 +858,8 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
                     if (window.toast) { toast('Geçerli bir kur giriniz.', 'error'); } else { alert('Geçerli bir kur giriniz.'); }
                     return;
                 }
-                // POST ile gonder: kur modal'da onaylandi, fisekle direkt fis acar (form tekrar sormaz)
-                var f = document.createElement('form');
-                f.method = 'POST';
-                f.action = 'fisekle.php?cariid=' + encodeURIComponent(kmCariid) + '&doviz=' + encodeURIComponent(kmDoviz) + '&kur=' + encodeURIComponent(kur);
-                var inp = document.createElement('input');
-                inp.type = 'hidden'; inp.name = 'kur'; inp.value = String(kur);
-                f.appendChild(inp);
-                document.body.appendChild(f);
-                f.submit();
+                // GET only opens a CSRF/keyed confirmation form; it never writes an order.
+                window.location.href = 'fisekle.php?cariid=' + encodeURIComponent(kmCariid) + '&doviz=' + encodeURIComponent(kmDoviz) + '&kur=' + encodeURIComponent(kur);
             };
             document.querySelectorAll('.js-secim').forEach(function (a) {
                 a.addEventListener('click', function (e) {

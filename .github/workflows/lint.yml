@@ -1,8 +1,7 @@
 name: Lint
 
-# Lumen'de otomatik test yok; bu iş akışı gerçekten doğrulanabilir olanı
-# doğrular: PHP sözdizimi, Composer kilidi/güvenliği ve güvenlik regresyonları.
-# Test altyapısı eklendiğinde buraya bir "test" job'u eklenebilir.
+# PHP yardımcı ve API gövde regresyonları sentetik PDO ile çalışır.
+# Gerçek SQL Server/LOGO testi ayrı, opt-in kabul kapısıdır.
 
 on:
   push:
@@ -10,11 +9,23 @@ on:
   pull_request:
     branches: [main, beta]
   workflow_dispatch:
+    inputs:
+      confirm_synthetic_only:
+        description: 'Geçici SQL Developer/EULA ve sentetik SQL kabulünü de çalıştır'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
+  sql-acceptance:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_synthetic_only && github.repository == 'husodrn46/Lumen' }}
+    uses: ./.github/workflows/sqlserver-acceptance.yml
+    with:
+      confirm_synthetic_only: ${{ inputs.confirm_synthetic_only }}
+
   php-lint:
     name: PHP ${{ matrix.php }} sözdizimi
     runs-on: ubuntu-latest
@@ -50,6 +61,23 @@ jobs:
           done < <(find . -name '*.php' -not -path './vendor/*' -print0)
           echo "Taranan: $toplam dosya · Hatalı: $hata"
           exit $hata
+
+      - name: Yardımcı ve API davranış regresyonları
+        run: |
+          php tests/run.php
+          php tests/permission-regression.php
+          php tests/api-regression.php
+          php tests/idempotency-regression.php
+          php tests/web-intent-regression.php
+          php tests/ci-prepare-regression.php
+
+      - name: İzole localhost HTTP regresyonları
+        run: |
+          python3 tests/http-regression.py
+          python3 tests/web-regression.py
+
+      - name: Web çift gönderim guard
+        run: node tests/web-intent-js.test.cjs
 
       - name: Composer kilidi doğrulama
         run: composer validate --strict --no-check-publish

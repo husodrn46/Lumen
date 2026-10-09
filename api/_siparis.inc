@@ -15,6 +15,8 @@ declare(strict_types=1);
  * ============================================================================
  */
 
+require_once __DIR__ . '/../siparis/kayit_lib.php';
+
 /** Tek ürünün sipariş için gereken bilgileri (fiyat/vat/birim/uomref/stok). null = bulunamadı. */
 function siparis_stok_getir(PDO $dbh, string $firma, string $firmadonemx, int $stokId): ?array
 {
@@ -45,7 +47,8 @@ function siparis_stok_getir(PDO $dbh, string $firma, string $firmadonemx, int $s
         ) PL
         OUTER APPLY (
             SELECT TOP 1 A.UNITLINEREF FROM {$firma}ITMUNITA A WITH(NOLOCK)
-            WHERE A.ITEMREF = S.LOGICALREF
+            INNER JOIN {$firma}UNITSETL B WITH(NOLOCK) ON B.LOGICALREF = A.UNITLINEREF
+            WHERE A.ITEMREF = S.LOGICALREF AND B.MAINUNIT = 1 AND B.UNITSETREF = S.UNITSETREF
             ORDER BY A.LOGICALREF ASC
         ) UA
         WHERE S.LOGICALREF = :id AND S.ACTIVE = 0 AND S.CARDTYPE <> 22
@@ -68,14 +71,17 @@ function siparis_stok_getir(PDO $dbh, string $firma, string $firmadonemx, int $s
     ];
 }
 
-/** Ürünün birimleri: [{kod, carpan}] (ana birim çarpan 1, koli/paket > 1). */
+/** Ürünün birimleri: [{kod, carpan}] (ana birim çarpan 1; alternatif birimde gerçek dönüşüm oranı). */
 function siparis_stok_birimleri(PDO $dbh, string $firma, int $stokId): array
 {
     $stmt = $dbh->prepare("
-        SELECT U.CODE AS kod, ISNULL(IA.CONVFACT2, 1) AS carpan
+        SELECT U.CODE AS kod,
+               CASE WHEN U.MAINUNIT = 1 THEN 1.0
+                    WHEN ISNULL(IA.CONVFACT1, 0) > 0
+                    THEN CAST(IA.CONVFACT2 AS FLOAT) / IA.CONVFACT1 ELSE NULL END AS carpan
         FROM {$firma}ITEMS S WITH(NOLOCK)
         INNER JOIN {$firma}ITMUNITA IA WITH(NOLOCK) ON IA.ITEMREF = S.LOGICALREF
-        LEFT JOIN {$firma}UNITSETL U WITH(NOLOCK) ON U.LOGICALREF = IA.UNITLINEREF
+        LEFT JOIN {$firma}UNITSETL U WITH(NOLOCK) ON U.LOGICALREF = IA.UNITLINEREF AND U.UNITSETREF = S.UNITSETREF
         WHERE S.LOGICALREF = :id
         ORDER BY IA.LINENR ASC, IA.LOGICALREF ASC
     ");
@@ -89,15 +95,55 @@ function siparis_stok_birimleri(PDO $dbh, string $firma, int $stokId): array
             continue;
         }
         $gorulen[$kod] = true;
-        $out[] = ['kod' => $kod, 'carpan' => max(1.0, (float) $r['carpan'])];
+        $carpan = (float) ($r['carpan'] ?? 0);
+        if (is_finite($carpan) && $carpan > 0 && $carpan <= 100000) {
+            $out[] = ['kod' => $kod, 'carpan' => $carpan];
+        }
     }
     return $out;
 }
 
-/** Virgüllü/noktalı sayıyı güvenle float'a çevir. */
-function siparis_sayi(string|int|float|null $v): float
+/** JSON kimliği: int veya ondalıksız sayı metni; array/bool/fraction cast edilmez. */
+function siparis_kimlik(mixed $value): int
 {
-    return (float) str_replace(',', '.', (string) $v);
+    if (is_int($value)) {
+        return $value > 0 && $value <= 2147483647 ? $value : 0;
+    }
+    if (!is_string($value) || !preg_match('/\A[0-9]{1,10}\z/', $value)) {
+        return 0;
+    }
+    $id = (int) $value;
+    return $id > 0 && $id <= 2147483647 ? $id : 0;
+}
+
+/** Virgüllü/noktalı sayıyı güvenle float'a çevir. */
+function siparis_sayi(mixed $v): float
+{
+    if (!is_string($v) && !is_int($v) && !is_float($v)) {
+        return NAN;
+    }
+    $sayi = str_replace(',', '.', trim((string) $v));
+    if (!is_numeric($sayi)) {
+        return NAN;
+    }
+    $sonuc = (float) $sayi;
+    return is_finite($sonuc) ? $sonuc : NAN;
+}
+
+/** İstemci çarpanı yalnız ürünün sunucudaki gerçek birimlerinden seçebilir. */
+function siparis_birim_carpani_dogrula(array $birimler, float $carpan): ?float
+{
+    if (!is_finite($carpan) || $carpan <= 0 || $carpan > 100000) {
+        return null;
+    }
+    foreach ($birimler as $birim) {
+        $kayitli = (float) ($birim['carpan'] ?? 0);
+        if (is_finite($kayitli) && $kayitli > 0 && $kayitli <= 100000
+            && abs($kayitli - $carpan) <= max(1.0, abs($kayitli)) * 1e-9) {
+            return $kayitli;
+        }
+    }
+    return null;
 }
 
 /**
@@ -116,12 +162,12 @@ function siparis_kalemleri_hazirla(PDO $dbh, string $firma, string $firmadonemx,
         if (!is_array($k)) {
             continue;
         }
-        $stokId = (int) ($k['stok_id'] ?? 0);
+        $stokId = siparis_kimlik($k['stok_id'] ?? 0);
         $miktar = siparis_sayi($k['miktar'] ?? 0);
-        $carpan = max(1.0, min(100000.0, siparis_sayi($k['birim_carpan'] ?? 1)));
-        $label  = trim((string) ($k['label'] ?? ''));
+        $carpan = siparis_sayi($k['birim_carpan'] ?? 1);
+        $label  = is_string($k['label'] ?? '') ? trim($k['label'] ?? '') : '';
 
-        if ($stokId <= 0 || $miktar <= 0 || $miktar > 1000000) {
+        if ($stokId <= 0 || !is_finite($miktar) || $miktar <= 0 || $miktar > 1000000) {
             $skipped[] = ['etiket' => $label !== '' ? $label : ('#' . $stokId), 'sebep' => 'miktar veya ürün geçersiz'];
             continue;
         }
@@ -130,11 +176,16 @@ function siparis_kalemleri_hazirla(PDO $dbh, string $firma, string $firmadonemx,
             $skipped[] = ['etiket' => $label !== '' ? $label : ('#' . $stokId), 'sebep' => 'ürün bulunamadı'];
             continue;
         }
+        $carpan = siparis_birim_carpani_dogrula(siparis_stok_birimleri($dbh, $firma, $stokId), $carpan);
+        if ($carpan === null || $s['uomref'] <= 0 || $s['unitsetref'] <= 0) {
+            $skipped[] = ['etiket' => $s['code'] . ' ' . $s['name'], 'sebep' => 'ürünün birimi veya çarpanı geçersiz'];
+            continue;
+        }
         $fiyatRaw = $k['fiyat'] ?? null;
         $fiyat = ($fiyatRaw !== null && $fiyatRaw !== '')
             ? siparis_sayi($fiyatRaw)
             : (float) $s['price'];
-        if ($fiyat <= 0 || $fiyat > 100000000) {
+        if (!is_finite($fiyat) || $fiyat <= 0 || $fiyat > 100000000) {
             $skipped[] = ['etiket' => $s['code'] . ' ' . $s['name'], 'sebep' => 'fiyat tanımlı değil veya geçersiz'];
             continue;
         }
@@ -142,8 +193,13 @@ function siparis_kalemleri_hazirla(PDO $dbh, string $firma, string $firmadonemx,
         // KDV: istemci açıkça gönderdiyse onu, yoksa ürünün VAT'ı.
         $kdvRaw = $k['kdv'] ?? null;
         $kdv = ($kdvRaw !== null && $kdvRaw !== '')
-            ? max(0.0, min(100.0, siparis_sayi($kdvRaw)))
+            ? siparis_sayi($kdvRaw)
             : (float) $s['vat'];
+
+        if (!is_finite($kdv) || $kdv < 0 || $kdv > 100) {
+            $skipped[] = ['etiket' => $s['code'] . ' ' . $s['name'], 'sebep' => 'KDV geçersiz'];
+            continue;
+        }
 
         $anaMiktar = $miktar * $carpan;          // AMOUNT (ana birim)
         $toplam    = round($anaMiktar * $fiyat, 2); // brüt (KDV/iskonto hariç)
@@ -487,17 +543,25 @@ function siparis_cari_getir(PDO $dbh, string $firma, int $cariId): ?array
  * (Cariler birbirinin siparişini düzenleyebilir — kullanıcı bazlı kısıt YOK, kasıtlı.)
  * Döner: ['id', 'fisno', 'cari_id'] veya null.
  */
-function siparis_fis_duzenlenebilir(PDO $dbh, string $firmadonem, int $fisId): ?array
+function siparis_fis_duzenlenebilir(PDO $dbh, string $firmadonem, int $fisId, string $firma, int $personel): ?array
 {
-    if ($fisId <= 0) {
+    if ($fisId <= 0 || $personel <= 0) {
         return null;
     }
+    siparis_baslik_tablosu($firmadonem);
+    if ($firma !== substr($firmadonem, 0, 7)) {
+        throw new InvalidArgumentException('Firma ve dönem kapsamı uyuşmuyor.');
+    }
     $st = $dbh->prepare("SELECT TOP 1 LOGICALREF, FICHENO, CLIENTREF
-                         FROM {$firmadonem}ORFICHE WITH(NOLOCK)
-                         WHERE LOGICALREF = :f AND (CANCELLED = 0 OR CANCELLED IS NULL)");
+                         FROM {$firmadonem}ORFICHE
+                         WHERE LOGICALREF = :f AND TRCODE = 1 AND (CANCELLED = 0 OR CANCELLED IS NULL)");
     $st->execute([':f' => $fisId]);
     $r = $st->fetch(PDO::FETCH_ASSOC);
-    if (!$r) {
+    $st->closeCursor();
+    if (!$r || (int) $r['CLIENTREF'] <= 0) {
+        return null;
+    }
+    if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $personel, (int) $r['CLIENTREF'])) {
         return null;
     }
     return [
@@ -519,6 +583,7 @@ function siparis_satir_getir(PDO $dbh, string $firma, string $firmadonem, int $s
         WHERE L.LOGICALREF = :id");
     $st->execute([':id' => $satirId]);
     $r = $st->fetch(PDO::FETCH_ASSOC);
+    $st->closeCursor();
     if (!$r) {
         return null;
     }

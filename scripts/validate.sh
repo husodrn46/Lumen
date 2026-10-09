@@ -81,6 +81,13 @@ else
   hata=1
 fi
 
+# --------------------------------------------------- davranış regresyonları --
+echo
+echo "== Yardımcı ve API davranış regresyonları =="
+if ! php tests/run.php || ! php tests/permission-regression.php || ! php tests/api-regression.php || ! php tests/idempotency-regression.php || ! php tests/web-intent-regression.php || ! php tests/ci-prepare-regression.php; then
+  hata=1
+fi
+
 # ------------------------------------------------------- bilgilendirme ------
 echo
 echo "== Ölçümler (bilgi amaçlı — başarısız etmez) =="

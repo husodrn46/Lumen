@@ -12,8 +12,8 @@ if (!function_exists('denetimSayfaListesi')) {
             ['kod' => 'M2', 'label' => 'Siparişler', 'path' => '../siparis/lg_essiparis.php', 'menu' => true],
             ['kod' => 'M21', 'label' => 'Döviz İşlemleri', 'path' => 'doviz/index.php', 'menu' => true],
             // NOT: M3 (Mağaza Satış) öğesi kaldırıldı — probe hedefi ../fiyat/fiyat_sec.php
-            // emekliye ayrıldı; ../siparis/fisekle.php GET'i fiş OLUŞTURDUĞU için probe hedefi
-            // yapılamaz. M3 yalnız index.php kart görünürlüğünü kontrol eder.
+            // emekliye ayrıldı. Yeni sipariş kapısı artık GET'te yalnız onay formu açar;
+            // bu listenin M3 görünürlük kapsamı değiştirilmedi. M3 yalnız index.php kart görünürlüğünü kontrol eder.
             ['kod' => 'M4', 'label' => 'Müşteri Bakiye', 'path' => '../cari/lg_bakiye.php', 'menu' => true, 'allow_codes' => ['M4', 'M20'], 'kod_label' => 'M4/M20'],
             ['kod' => 'M5', 'label' => 'Tüm Siparişler', 'path' => '../siparis/lg_tumsiparisler.php', 'menu' => true],
             ['kod' => 'M6', 'label' => 'Barkodlar', 'path' => '../barkod/barkodlar.php', 'menu' => true],

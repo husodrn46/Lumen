@@ -12,8 +12,9 @@ declare(strict_types=1);
 
 include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
+include_once(__DIR__ . '/_siparis.inc');
 
-global $dbh, $firmadonem;
+global $dbh, $firmadonem, $firma;
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     api_json(['ok' => false, 'mesaj' => 'Yalnızca POST desteklenir.'], 405);
 }
@@ -24,17 +25,27 @@ if (!api_yetki_var($personel, 'M10')) {
 }
 
 $body    = api_body();
-$orderId = (int) ($body['order_id'] ?? 0);
-$fisno   = trim((string) ($body['fisno'] ?? ''));
-if ($orderId <= 0 && $fisno !== '') {
-    $st = $dbh->prepare("SELECT TOP 1 LOGICALREF FROM {$firmadonem}ORFICHE WITH(NOLOCK)
-                         WHERE UPPER(FICHENO) = :f AND TRCODE = 1 AND ISNULL(CANCELLED, 0) = 0");
-    $st->execute([':f' => mb_strtoupper($fisno, 'UTF-8')]);
-    $orderId = (int) ($st->fetchColumn() ?: 0);
+$orderId = siparis_kimlik($body['order_id'] ?? 0);
+$fisno   = (is_string($body['fisno'] ?? '') ? trim($body['fisno'] ?? '') : '');
+try {
+    if ($orderId <= 0 && $fisno !== '') {
+        $st = $dbh->prepare("SELECT TOP 1 LOGICALREF FROM {$firmadonem}ORFICHE WITH(NOLOCK)
+                             WHERE UPPER(FICHENO) = :f AND TRCODE = 1 AND ISNULL(CANCELLED, 0) = 0");
+        $st->execute([':f' => mb_strtoupper($fisno, 'UTF-8')]);
+        $orderId = (int) ($st->fetchColumn() ?: 0);
+    }
+    if ($orderId <= 0) {
+        api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya zaten iptal edilmiş.'], 404);
+    }
+
+    if (siparis_fis_duzenlenebilir($dbh, $firmadonem, $orderId, $firma, $personel) === null) {
+        api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya zaten iptal edilmiş.'], 404);
+    }
+} catch (Throwable $e) {
+    error_log('API sipariş önkontrol: ' . $e->getMessage());
+    api_json(['ok' => false, 'mesaj' => 'Sipariş bilgileri okunamadı.'], 500);
 }
-if ($orderId <= 0) {
-    api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya zaten iptal edilmiş.'], 404);
-}
+
 
 try {
     // Sevkiyat başlamışsa iptal edilemez.

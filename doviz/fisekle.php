@@ -10,17 +10,31 @@ include_once(__DIR__ . "/../ayr.php");
 include(__DIR__ . "/../kontrol.php");
 include_once(__DIR__ . "/../log_ip.php");
 require_once __DIR__ . '/doviz_guard.php';
+require_once __DIR__ . '/../siparis/kayit_lib.php';
+require_once __DIR__ . '/../siparis/web_intent.php';
+header('Cache-Control: no-store');
+web_siparis_kapsam_dogrula($firmano, $firma, $firmadonem);
+if (function_exists('m_p_yetki_cache_temizle')) { m_p_yetki_cache_temizle((int)$terminalkullanici); }
 
 doviz_require_m21($terminalkullanici);
 
 // Parametreleri al
-$cariid = isset($_GET['cariid']) ? (int)$_GET['cariid'] : 0;
-$dovizTipi = isset($_GET['doviz']) ? (int)$_GET['doviz'] : 1; // Varsayılan USD (LOGO: 1=USD, 20=EUR)
-$dovizKuru = isset($_GET['kur']) ? (float)str_replace(',', '.', $_GET['kur']) : 0;
+$cariid = isset($_GET['cariid']) ? web_siparis_tamsayi($_GET['cariid']) : 0;
+$dovizTipi = isset($_GET['doviz']) ? web_siparis_tamsayi($_GET['doviz']) : 1; // Varsayılan USD (LOGO: 1=USD, 20=EUR)
+$dovizKuru = isset($_GET['kur']) ? web_siparis_kur($_GET['kur']) : 0;
 
 // Validasyon
 if ($cariid <= 0) {
     die('<script>if (window.toast) { toast("Hata: Müşteri seçilmedi!", "error"); } else { alert("Hata: Müşteri seçilmedi!"); } window.location="cari.php";</script>');
+}
+
+if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $cariid)) {
+    http_response_code(404);
+    exit('Müşteri bulunamadı.');
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!is_string($_POST['csrf_token'] ?? null) || !csrf_verify())) {
+    http_response_code(403);
+    exit('Geçersiz güvenlik doğrulaması.');
 }
 
 // Döviz bilgileri (LOGO kodları: 1=USD, 20=EUR)
@@ -29,7 +43,8 @@ $dovizBilgileri = [
     20 => ['kod' => 'EUR', 'sembol' => '€', 'ad' => 'Euro'],
 ];
 
-$seciliDoviz = $dovizBilgileri[$dovizTipi] ?? $dovizBilgileri[1];
+if (!isset($dovizBilgileri[$dovizTipi])) { http_response_code(400); exit('Geçersiz döviz tipi.'); }
+$seciliDoviz = $dovizBilgileri[$dovizTipi];
 
 // Kur yoksa veritabanından çek
 if ($dovizKuru <= 0) {
@@ -48,27 +63,38 @@ if ($dovizKuru <= 0) {
     }
 }
 
-// Manuel kur girişi
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kur'])) {
-    $dovizKuru = (float)str_replace(',', '.', $_POST['kur']);
-    if ($dovizKuru <= 0) {
-        $hata = "Geçerli bir kur değeri giriniz.";
-    }
+// POST must carry its original rate; never substitute a newly fetched market rate.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $dovizKuru = web_siparis_kur($_POST['kur'] ?? null);
+    if (isset($_POST['genexp1']) && !is_string($_POST['genexp1'])) { http_response_code(400); exit('Geçersiz sipariş notu.'); }
 }
 
+$scope = 'web_doviz_baslik:v1';
+$context = ['personel'=>(int)$terminalkullanici, 'firma'=>(int)$firmano, 'donem'=>$firmadonem, 'cari'=>$cariid, 'doviz'=>$dovizTipi, 'depo'=>(int)$depo];
+try {
+    $key = web_siparis_anahtari($_SESSION, $scope, $context,
+        $_SERVER['REQUEST_METHOD'] === 'POST' ? web_siparis_post_anahtari($_POST) : null);
+} catch (Throwable $e) { http_response_code(409); exit('Sipariş formu doğrulanamadı. Siparişleri kontrol edin.'); }
+$genexp1 = isset($_POST['genexp1']) && is_string($_POST['genexp1']) ? mb_substr(trim($_POST['genexp1']), 0, 250) : '';
+$pending = $_SESSION['web_siparis_intents'][$key]['payload'] ?? null;
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pending !== null) {
+    $dovizKuru = $pending['fields']['kur']; $genexp1 = $pending['fields']['not'];
+}
+if (!is_finite($dovizKuru) || $dovizKuru <= 0) { $hata = 'Geçerli bir kur değeri giriniz.'; }
 // Sipariş oluştur
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $dovizKuru > 0 && !isset($hata)) {
 
     try {
-        // Sonraki sipariş ID'sini al
-        $stmtSonId = $dbh->prepare("SELECT MAX(LOGICALREF) AS SONID FROM {$firmadonem}ORFICHE");
-        $stmtSonId->execute();
-        $sip = $stmtSonId->fetch(PDO::FETCH_ASSOC);
-        $sonsiparisid = (int)($sip['SONID'] ?? 0) + 1;
-
-        // Fiş no oluştur (DV prefix ile)
-        $fisnox = str_pad((string)$sonsiparisid, 6, '0', STR_PAD_LEFT);
-        $fisno = 'DV' . $seciliDoviz['kod'] . $fisnox;
+        $hash = web_siparis_dondur($_SESSION, $key, ['context'=>$context, 'fields'=>['kur'=>$dovizKuru, 'not'=>$genexp1]]);
+        $dbh->beginTransaction();
+        $replay = siparis_idempotency_baslat($dbh, $key, (int)$firmano, $firmadonem, (int)$terminalkullanici, $hash, $scope);
+        if ($replay !== null) {
+            if (!$dbh->commit()) { throw new RuntimeException('Commit doğrulanamadı.'); }
+            web_siparis_tamam($_SESSION, $key);
+            header('Location: fis.php?id=' . (int)$replay['fis']['id'], true, 303); exit;
+        }
+        $fisOneki = 'DV' . $seciliDoviz['kod'];
+        $fisno = siparis_baslik_numarasi_ayir($dbh, $firmadonem, $fisOneki);
 
         // Zaman bilgileri
         $saat = (int)date('H');
@@ -81,10 +107,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $dovizKuru > 0 && !isset($hata)) {
         $status = 4; // SEVKEDİLEBİLİR
 
         // GENEXP1 not alanı
-        $genexp1 = isset($_POST['genexp1']) ? mb_substr(trim((string)$_POST['genexp1']), 0, 250) : '';
+
 
         // Sipariş oluştur - ../siparis/fisekle.php ile AYNI yapı
-        $stmtEkle = $dbh->prepare("INSERT INTO {$firmadonem}ORFICHE (
+        $stmtEkle = siparis_baslik_insert_hazirla($dbh, "INSERT INTO {$firmadonem}ORFICHE (
 TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,CENTERREF,SOURCEINDEX,SOURCECOSTGRP,UPDCURR,ADDDISCOUNTS,TOTALDISCOUNTS,TOTALDISCOUNTED,ADDEXPENSES,TOTALEXPENSES,TOTALPROMOTIONS,TOTALVAT,GROSSTOTAL,NETTOTAL,REPORTRATE,REPORTNET,GENEXP1,GENEXP2,GENEXP3,GENEXP4,EXTENREF,PAYDEFREF,PRINTCNT,BRANCH,DEPARTMENT,STATUS,CAPIBLOCK_CREATEDBY,CAPIBLOCK_CREADEDDATE,CAPIBLOCK_CREATEDHOUR,CAPIBLOCK_CREATEDMIN,CAPIBLOCK_CREATEDSEC,CAPIBLOCK_MODIFIEDBY,CAPIBLOCK_MODIFIEDDATE,CAPIBLOCK_MODIFIEDHOUR,CAPIBLOCK_MODIFIEDMIN,CAPIBLOCK_MODIFIEDSEC,SALESMANREF,SHPTYPCOD,SHPAGNCOD,GENEXCTYP,LINEEXCTYP,TRADINGGRP,TEXTINC,SITEID,RECSTATUS,ORGLOGICREF,FACTORYNR,WFSTATUS,SHIPINFOREF,CUSTORDNO,SENDCNT,DLVCLIENT,DOCTRACKINGNR,CANCELLED,ORGLOGOID,OFFERREF,OFFALTREF,TYP,ALTNR,ADVANCEPAYM,TRCURR,TRRATE,TRNET,PAYMENTTYPE,ONLYONEPAYLINE,OPSTAT,WITHPAYTRANS,PROJECTREF,WFLOWCRDREF,UPDTRCURR,AFFECTCOLLATRL,POFFERBEGDT,POFFERENDDT,REVISNR,LASTREVISION,CHECKAMOUNT,SLSOPPRREF,SLSACTREF,SLSCUSTREF,AFFECTRISK,TOTALADDTAX,TOTALEXADDTAX,APPROVE,APPROVEDATE,CHECKPRICE,GUID,EINVOICE
 ) VALUES (
 :siparisdurum,:fisno,DATEADD(day,0,datediff(day,0,GETDATE())),:kayitsaat,'','','',:cariid,0,0,0,:depo,0,0,0,0,0,0,0,0,0,0,0,1,0,:genexp1,'','','',0,0,0,0,0,:status,1,DATEADD(day,0,datediff(day,0,GETDATE())),:saat,:dakika,:saniye,0,NULL,0,0,0,:terminalkullanici,'','',2,0,'',0,0,1,0,0,0,0,'',0,0,'',0,'',0,0,0,0,0,:doviz,:dovizkuru,0,0,0,0,0,0,0,0,0,NULL,NULL,'',0,0,0,0,0,1,0,0,0,NULL,0,:guid,0
@@ -108,14 +134,16 @@ TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,
         ]);
 
         if ($ekle) {
-            // Oluşturulan siparişin ID'sini al
-            $stmtSonId->execute();
-            $sip = $stmtSonId->fetch(PDO::FETCH_ASSOC);
-            $yeniSiparisId = (int)$sip['SONID'];
+            $yeniSiparisId = siparis_baslik_eklenen_id($stmtEkle);
+            $fisno = siparis_baslik_numarasini_kesinlestir($dbh, $firmadonem, $yeniSiparisId, $fisOneki);
+            siparis_idempotency_tamamla($dbh, $key, (int)$firmano, $firmadonem, (int)$terminalkullanici, $hash,
+                ['ok'=>true, 'fis'=>['id'=>$yeniSiparisId]], $scope);
+            if (!$dbh->commit()) { throw new RuntimeException('Commit doğrulanamadı.'); }
+            web_siparis_tamam($_SESSION, $key);
 
             // Loglama
             if (function_exists('logFisOlusturma')) {
-                logFisOlusturma(
+                try { logFisOlusturma(
                     $yeniSiparisId,
                     $fisno,
                     $cariid,
@@ -127,22 +155,26 @@ TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,
                         'durum' => 4,
                         'aciklama' => "Dövizli sipariş oluşturuldu (Fiş No: {$fisno})"
                     ]
-                );
+                ); } catch (Throwable $ignored) { error_log('Sipariş audit kaydı yazılamadı.'); }
             }
 
             // Başarılı - fis.php'ye yönlendir
-            header('Location: fis.php?id=' . $yeniSiparisId);
+            header('Location: fis.php?id=' . $yeniSiparisId, true, 303);
             exit;
         } else {
-            $hata = "Fiş açma işlemi başarısız. Hata: " . implode(", ", $dbh->errorInfo());
+            throw new RuntimeException('Sipariş başlığı yazılamadı.');
         }
 
-    } catch (PDOException $e) {
-        $hata = "Sipariş oluşturma hatası: " . $e->getMessage();
+    } catch (Throwable $e) {
+        try { if ($dbh->inTransaction()) { $dbh->rollBack(); } } catch (Throwable $ignored) {}
+        $hata = web_siparis_hata($e);
         error_log("Döviz sipariş oluşturma hatası: " . $e->getMessage());
     }
 }
 
+// Preserve exact attempted rate and note, including a refresh after an uncertain response.
+$pending = $_SESSION['web_siparis_intents'][$key]['payload'] ?? null;
+if ($pending !== null) { $dovizKuru = $pending['fields']['kur']; $genexp1 = $pending['fields']['not']; }
 // Müşteri bilgisini çek
 $stmt = $dbh->prepare("SELECT CODE, DEFINITION_, CITY FROM {$firma}CLCARD WHERE LOGICALREF = :id");
 $stmt->execute([':id' => $cariid]);
@@ -153,6 +185,7 @@ if (!$musteri) {
 }
 
 $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
+$kurInput = ($pending !== null || $_SERVER['REQUEST_METHOD'] === 'POST') ? (string)$dovizKuru : str_replace('.', '', $kurFormatli);
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -746,12 +779,14 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
         <!-- FORM CARD -->
         <div class="glass-card">
             <form method="POST" action="">
+                <?= csrf_field() ?>
+                <?= web_siparis_hidden($key, []) ?>
 
                 <div class="field">
                     <label for="kur" class="field-label">Doviz Kuru (1 <?= htmlspecialchars($seciliDoviz['kod'], ENT_QUOTES, 'UTF-8') ?> = ? TL) <span class="required">*</span></label>
                     <div class="input-wrap">
-                        <input type="text" id="kur" name="kur" required
-                               value="<?= htmlspecialchars($kurFormatli, ENT_QUOTES, 'UTF-8') ?>"
+                        <input type="text" id="kur" name="kur" required <?= $pending !== null ? 'readonly' : '' ?>
+                               value="<?= htmlspecialchars($kurInput, ENT_QUOTES, 'UTF-8') ?>"
                                class="field-control" placeholder="Orn: 32,5000"
                                inputmode="decimal"
                                autocomplete="off">
@@ -774,8 +809,8 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
                 <div class="field">
                     <label for="genexp1" class="field-label">Siparis Notu</label>
                     <div class="input-wrap">
-                        <textarea id="genexp1" name="genexp1" maxlength="250"
-                                  class="field-control" placeholder="Siparise ozel not (istege bagli, maks. 250 karakter)"></textarea>
+                        <textarea id="genexp1" name="genexp1" maxlength="250" <?= $pending !== null ? 'readonly' : '' ?>
+                                  class="field-control" placeholder="Siparise ozel not (istege bagli, maks. 250 karakter)"><?= htmlspecialchars($genexp1, ENT_QUOTES, 'UTF-8') ?></textarea>
                         <i class="fa-solid fa-pen-to-square input-icon" style="top:16px;"></i>
                     </div>
                 </div>
@@ -796,6 +831,7 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
 
     </div>
 
+    <script src="../siparis/web_intent.js"></script>
     <script>
         // RAF reflow fix: kart animasyonu GPU katmaninda tetiklensin
         requestAnimationFrame(function () {

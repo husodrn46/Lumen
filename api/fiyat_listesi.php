@@ -15,7 +15,8 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma;
-api_oturum_gerekli($dbh);
+$oturum = api_oturum_gerekli($dbh);
+api_yetki_gerekli((int) $oturum['personel'], 'M7');
 
 $body  = api_body();
 $query = trim((string) ($body['query'] ?? ($_GET['q'] ?? '')));

@@ -4,6 +4,12 @@ declare(strict_types=1);
 include_once(__DIR__ . "/../ayr.php");
 include(__DIR__ . "/../kontrol.php");
 include_once(__DIR__ . "/../log_ip.php");
+require_once __DIR__ . "/kayit_lib.php";
+require_once __DIR__ . "/web_intent.php";
+header('Cache-Control: no-store');
+web_siparis_kapsam_dogrula($firmano, $firma, $firmadonem);
+if (function_exists('m_p_yetki_cache_temizle')) { m_p_yetki_cache_temizle((int)$terminalkullanici); }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!is_string($_POST['csrf_token'] ?? null) || !csrf_verify())) { http_response_code(403); exit('Geçersiz güvenlik doğrulaması.'); }
 
 // YETKI: fisekle hem Yeni Sipariş (M1) hem Mağaza Satış (M3) akışının ortak
 // yazma kapısı — menüde buton gizlemek yetki değildir; endpoint'te doğrula.
@@ -36,7 +42,7 @@ $dovizkuru = 0;  // Kur yok
 $status = 4;     // 1 öneri 2SEVKEDİLEMEZ 4 SEVKEDİLEBİLİR
 
 // Validasyon: cariid zorunlu (session bazlı)
-$cariid = getPageParamInt('cariid');
+$cariid = $_SERVER['REQUEST_METHOD'] === 'POST' ? web_siparis_tamsayi($_POST['web_cariid'] ?? null) : getPageParamInt('cariid');
 if ($cariid <= 0) {
 	die('<script>if (window.toast) { toast("Hata: Müşteri seçilmedi!", "error"); } else { alert("Hata: Müşteri seçilmedi!"); } window.location="../index.php";</script>');
 }
@@ -47,13 +53,13 @@ if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $cariid)) {
 
 // Session'ı temizle (TL modu)
 $_SESSION['doviz'] = 0;
-$fiyatParam = getPageParamInt('fiyat');
-if ($fiyatgruplu == 1 && $fiyatParam > 0) {
+$fiyatParam = $_SERVER['REQUEST_METHOD'] === 'POST' ? web_siparis_tamsayi($_POST['web_fiyat'] ?? null) : getPageParamInt('fiyat');
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $fiyatgruplu == 1 && $fiyatParam > 0) {
 	$_SESSION['fiyatgrup'] = $fiyatParam;
 }
 
 // Mevcut fiş güncelleme - sadece yönlendirme yap
-$stokhareket = getPageParamInt('stokhareket');
+$stokhareket = $_SERVER['REQUEST_METHOD'] === 'POST' ? 0 : getPageParamInt('stokhareket');
 if ($stokhareket > 0) {
     if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
         header('Location: ' . APP_ROOT_URL . '/403.html');
@@ -85,52 +91,73 @@ if (
     exit;
 }
 
-// NOT: Bos fis YENIDEN KULLANIMI (reuse) KALDIRILDI (kullanici tercihi, 2026-06).
-// Onceden, acik kalmis bos bir taslak fis varsa yeni fis acmak yerine o eski slot
-// yeniden kullaniliyordu; bu, fisin ESKI numarayi (LOGICALREF/FICHENO) almasina ve
-// LOGO listesinde geride gorunmesine yol aciyordu. Artik her yeni fis asagidaki
-// MAX(LOGICALREF)+1 ile GUNCEL/SIRALI numara alir. Acilip vazgecilen bos fisler
-// sistemde kalabilir; gerekirse ayri bir temizlik islemiyle silinebilir.
+$scope = 'web_tl_baslik:v1';
+$context = ['personel'=>(int)$terminalkullanici, 'firma'=>(int)$firmano, 'donem'=>$firmadonem, 'cari'=>$cariid, 'depo'=>(int)$depo];
+try {
+    $key = web_siparis_anahtari($_SESSION, $scope, $context,
+        $_SERVER['REQUEST_METHOD'] === 'POST' ? web_siparis_post_anahtari($_POST) : null);
+} catch (Throwable $e) { http_response_code(409); exit('Sipariş formu doğrulanamadı. Siparişleri kontrol edin.'); }
+$fields = ['web_cariid'=>$cariid, 'web_fiyat'=>$fiyatParam];
+$pending = $_SESSION['web_siparis_intents'][$key]['payload'] ?? null;
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $pending !== null) { $fields = $pending['fields']; }
 
-//SAKLI SİPARİŞ İD AL
-	$stmtSonId = $dbh->prepare("SELECT MAX(LOGICALREF) AS SONID FROM " . $firmadonem . "ORFICHE");
-	$stmtSonId->execute();
-	$sip = $stmtSonId->fetch(PDO::FETCH_ASSOC);
-	// 1 EKLE id oluşssun
-	$sonsiparisid = intcevir($sip['SONID']) + 1;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { web_siparis_form($key, $fields); exit; }
+// Boş fiş yeniden kullanılmaz. Başlık ve kesin numara tek transaction'dır.
+try {
+    $hash = web_siparis_dondur($_SESSION, $key, ['context'=>$context, 'fields'=>$fields]);
+    if ($fiyatgruplu == 1 && $fiyatParam > 0) { $_SESSION['fiyatgrup'] = $fiyatParam; }
+    $dbh->beginTransaction();
+    $replay = siparis_idempotency_baslat($dbh, $key, (int)$firmano, $firmadonem, (int)$terminalkullanici, $hash, $scope);
+    if ($replay !== null) {
+        if (!$dbh->commit()) { throw new RuntimeException('Commit doğrulanamadı.'); }
+        web_siparis_tamam($_SESSION, $key);
+        header('Location: lg_fis.php?stokhareket=' . (int)$replay['fis']['id'], true, 303);
+        exit;
+    }
+    $fisno = siparis_baslik_numarasi_ayir($dbh, $firmadonem, (string) $sipno);
 	$siparisdurum = 1;//satış
 // $kullanici=2;
 	$kdvtoplam = 0;
 	$toplam = 0;
 	$gtoplam = 0;
 	$fisaciklama = '';
-	$fisnox = str_pad((string)$sonsiparisid, 6, '0', STR_PAD_LEFT);//rakamı 6 ahaneli ve kalanı sıfır y
-	$fisno = $sipno . $fisnox;
 	$guid = guid();
 
-	$stmtEkle = $dbh->prepare("INSERT INTO " . $firmadonem . "ORFICHE  ( 
-TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,CENTERREF,SOURCEINDEX,SOURCECOSTGRP,UPDCURR,ADDDISCOUNTS,TOTALDISCOUNTS,TOTALDISCOUNTED,ADDEXPENSES,TOTALEXPENSES,TOTALPROMOTIONS,TOTALVAT,GROSSTOTAL,NETTOTAL,REPORTRATE,REPORTNET,GENEXP1,GENEXP2,GENEXP3,GENEXP4,EXTENREF,PAYDEFREF,PRINTCNT,BRANCH,DEPARTMENT,STATUS,CAPIBLOCK_CREATEDBY,CAPIBLOCK_CREADEDDATE,CAPIBLOCK_CREATEDHOUR,CAPIBLOCK_CREATEDMIN,CAPIBLOCK_CREATEDSEC,CAPIBLOCK_MODIFIEDBY,CAPIBLOCK_MODIFIEDDATE,CAPIBLOCK_MODIFIEDHOUR,CAPIBLOCK_MODIFIEDMIN,CAPIBLOCK_MODIFIEDSEC,SALESMANREF,SHPTYPCOD,SHPAGNCOD,GENEXCTYP,LINEEXCTYP,TRADINGGRP,TEXTINC,SITEID,RECSTATUS,ORGLOGICREF,FACTORYNR,WFSTATUS,SHIPINFOREF,CUSTORDNO,SENDCNT,DLVCLIENT,DOCTRACKINGNR,CANCELLED,ORGLOGOID,OFFERREF,OFFALTREF,TYP,ALTNR,ADVANCEPAYM,TRCURR,TRRATE,TRNET,PAYMENTTYPE,ONLYONEPAYLINE,OPSTAT,WITHPAYTRANS,PROJECTREF,WFLOWCRDREF,UPDTRCURR,AFFECTCOLLATRL,POFFERBEGDT,POFFERENDDT,REVISNR,LASTREVISION,CHECKAMOUNT,SLSOPPRREF,SLSACTREF,SLSCUSTREF,AFFECTRISK,TOTALADDTAX,TOTALEXADDTAX,APPROVE,APPROVEDATE,CHECKPRICE,GUID,EINVOICE 
+	$stmtEkle = siparis_baslik_insert_hazirla($dbh, "INSERT INTO " . $firmadonem . "ORFICHE  (
+TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,CENTERREF,SOURCEINDEX,SOURCECOSTGRP,UPDCURR,ADDDISCOUNTS,TOTALDISCOUNTS,TOTALDISCOUNTED,ADDEXPENSES,TOTALEXPENSES,TOTALPROMOTIONS,TOTALVAT,GROSSTOTAL,NETTOTAL,REPORTRATE,REPORTNET,GENEXP1,GENEXP2,GENEXP3,GENEXP4,EXTENREF,PAYDEFREF,PRINTCNT,BRANCH,DEPARTMENT,STATUS,CAPIBLOCK_CREATEDBY,CAPIBLOCK_CREADEDDATE,CAPIBLOCK_CREATEDHOUR,CAPIBLOCK_CREATEDMIN,CAPIBLOCK_CREATEDSEC,CAPIBLOCK_MODIFIEDBY,CAPIBLOCK_MODIFIEDDATE,CAPIBLOCK_MODIFIEDHOUR,CAPIBLOCK_MODIFIEDMIN,CAPIBLOCK_MODIFIEDSEC,SALESMANREF,SHPTYPCOD,SHPAGNCOD,GENEXCTYP,LINEEXCTYP,TRADINGGRP,TEXTINC,SITEID,RECSTATUS,ORGLOGICREF,FACTORYNR,WFSTATUS,SHIPINFOREF,CUSTORDNO,SENDCNT,DLVCLIENT,DOCTRACKINGNR,CANCELLED,ORGLOGOID,OFFERREF,OFFALTREF,TYP,ALTNR,ADVANCEPAYM,TRCURR,TRRATE,TRNET,PAYMENTTYPE,ONLYONEPAYLINE,OPSTAT,WITHPAYTRANS,PROJECTREF,WFLOWCRDREF,UPDTRCURR,AFFECTCOLLATRL,POFFERBEGDT,POFFERENDDT,REVISNR,LASTREVISION,CHECKAMOUNT,SLSOPPRREF,SLSACTREF,SLSCUSTREF,AFFECTRISK,TOTALADDTAX,TOTALEXADDTAX,APPROVE,APPROVEDATE,CHECKPRICE,GUID,EINVOICE
 )VALUES (
 :siparisdurum,:fisno,DATEADD(day,0,datediff(day,0,GETDATE())),:kayitsaat,'','','',:cariid,0,0,0,:depo,0,0,0,0,0,0,0,0,0,0,0,1,0,'','','','',0,0,0,0,0,:status,1,DATEADD(day,0,datediff(day,0,GETDATE())),:saat,:dakika,:saniye,0,NULL,0,0,0,:terminalkullanici,'','',2,0,'',0,0,1,0,0,0,0,'',0,0,'',0,'',0,0,0,0,0,:doviz,:dovizkuru,0,0,0,0,0,0,0,0,0,NULL,NULL,'',0,0,0,0,0,1,0,0,0,NULL,0,:guid,0
 )");
 	$ekle = $stmtEkle->execute([':siparisdurum' => $siparisdurum, ':fisno' => $fisno, ':kayitsaat' => (int) $kayitsaat, ':cariid' => $cariid, ':depo' => (int) $depo, ':status' => $status, ':saat' => (int) $saat, ':dakika' => (int) $dakika, ':saniye' => (int) $saniye, ':terminalkullanici' => (int) $terminalkullanici, ':doviz' => (int) $doviz, ':dovizkuru' => (float) $dovizkuru, ':guid' => (string) $guid]);
-	if ($ekle) {//echo "fiş açma işlem başarılı";
-		$stmtSonId->execute();
-		$sip = $stmtSonId->fetch(PDO::FETCH_ASSOC);
-		$sonsiparisid = intcevir($sip['SONID']);
+    if (!$ekle) {
+        throw new RuntimeException('Sipariş başlığı yazılamadı.');
+    }
+    $sonsiparisid = siparis_baslik_eklenen_id($stmtEkle);
+    $fisno = siparis_baslik_numarasini_kesinlestir($dbh, $firmadonem, $sonsiparisid, (string) $sipno);
+    siparis_idempotency_tamamla($dbh, $key, (int)$firmano, $firmadonem, (int)$terminalkullanici, $hash,
+        ['ok'=>true, 'fis'=>['id'=>$sonsiparisid]], $scope);
+    if (!$dbh->commit()) { throw new RuntimeException('Commit doğrulanamadı.'); }
+    web_siparis_tamam($_SESSION, $key);
+} catch (Throwable $e) {
+    try { if ($dbh->inTransaction()) { $dbh->rollBack(); } } catch (Throwable $ignored) {}
+    error_log('Fiş açma hatası: ' . $e->getMessage());
+    $fields = $_SESSION['web_siparis_intents'][$key]['payload']['fields'] ?? $fields;
+    web_siparis_form($key, $fields, web_siparis_hata($e));
+    exit;
+}
 
 		// ========================================
 		// Fiş oluşturma işlemini logla
 		// ========================================
 		$logOptions = ['doviz' => ($doviz === '0' || $doviz === '') ? 'TL' : $doviz, 'dovizKuru' => $dovizkuru, 'depo' => $depo, 'durum' => $status, 'aciklama' => "Yeni fiş oluşturuldu (Fiş No: {$fisno})"];
 
-		$logBasarili = logFisOlusturma(
+		try { $logBasarili = logFisOlusturma(
 			$sonsiparisid,    // FIS_REF
 			$fisno,           // FICHENO
 			$cariid,          // CARI_REF
 			$terminalkullanici,  // KULLANICI_ID
 			$logOptions       // OPTIONS
-		);
+		); } catch (Throwable $ignored) { $logBasarili = false; }
 
 		// Log başarısız olduysa uyarı ver (geliştirme ortamı için)
 		if (!$logBasarili) {
@@ -138,10 +165,5 @@ TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,
 		}
 		// ========================================
 
-		echo '<script>window.location="lg_fis.php?stokhareket=' . $sonsiparisid . '";</script>';
-
-} else {
-	error_log("Fiş açma hatası (sipariş no: $fisno): " . implode(", ", $dbh->errorInfo()));
-	echo "Fiş açma işlemi başarısız. Lütfen tekrar deneyin veya sistem yöneticisine başvurun.";
-	exit;
-}
+header('Location: lg_fis.php?stokhareket=' . (int)$sonsiparisid, true, 303);
+exit;

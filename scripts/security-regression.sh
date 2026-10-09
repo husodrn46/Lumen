@@ -51,7 +51,7 @@ zorunlu "m_p_yetki(\$terminalkullanici, 'M6')" barkod/ean13.php \
 # Temiz kurulumda brute-force kontrollerinin ihtiyaç duyduğu şema bulunmalı.
 zorunlu "CREATE TABLE dbo.M_GIRIS_LOG" sql/m_giris_log.sql \
   "M_GIRIS_LOG kurulum şeması eksik."
-zorunlu "kurulum_sema_uygula(\$test, \$KOK . '/sql')" kurulum.php \
+zorunlu "kurulum_sema_uygula(\$test, \$KOK . '/sql', \$onek)" kurulum.php \
   "Kurulum sihirbazı sql/ şemalarını otomatik uygulamıyor."
 for kolon in KULLANICI_ID KULLANICI_ADI ISLEM_TIPI BASARILI IP_ADRESI TARAYICI TARIH ACIKLAMA; do
   zorunlu "$kolon" sql/m_giris_log.sql \

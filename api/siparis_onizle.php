@@ -25,8 +25,11 @@ if (!api_yetki_var($personel, 'M1')) {
 }
 
 $body     = api_body();
-$cariId   = (int) ($body['cari_id'] ?? 0);
+$cariId   = siparis_kimlik($body['cari_id'] ?? 0);
 $kalemler = is_array($body['kalemler'] ?? null) ? $body['kalemler'] : [];
+if (!is_finite(siparis_sayi($body['iskonto1'] ?? 0)) || !is_finite(siparis_sayi($body['iskonto2'] ?? 0))) {
+    api_json(['ok' => false, 'mesaj' => 'Geçerli bir iskonto oranı giriniz.'], 422);
+}
 $iskonto1 = max(0.0, min(100.0, siparis_sayi($body['iskonto1'] ?? 0)));
 $iskonto2 = max(0.0, min(100.0, siparis_sayi($body['iskonto2'] ?? 0)));
 
@@ -40,10 +43,20 @@ if (count($kalemler) > 200) {
     api_json(['ok' => false, 'mesaj' => 'Tek seferde en fazla 200 kalem gönderilebilir.'], 400);
 }
 
-$cari = siparis_cari_getir($dbh, $firma, $cariId);
-if ($cari === null) {
-    api_json(['ok' => false, 'mesaj' => 'Cari bulunamadı.'], 404);
+try {
+    if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $personel, $cariId)) {
+        api_json(['ok' => false, 'mesaj' => 'Cari bulunamadı.'], 404);
+    }
+
+    $cari = siparis_cari_getir($dbh, $firma, $cariId);
+    if ($cari === null) {
+        api_json(['ok' => false, 'mesaj' => 'Cari bulunamadı.'], 404);
+    }
+} catch (Throwable $e) {
+    error_log('API sipariş önkontrol: ' . $e->getMessage());
+    api_json(['ok' => false, 'mesaj' => 'Sipariş bilgileri okunamadı.'], 500);
 }
+
 
 try {
     $h = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, $kalemler);

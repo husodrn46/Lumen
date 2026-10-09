@@ -63,6 +63,7 @@ try {
     $stmt->bindValue(':kullanici', $kullanici);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
 } catch (Throwable $e) {
     error_log('api/login sorgu hatasi: ' . $e->getMessage());
     api_json(['ok' => false, 'mesaj' => 'Sunucu hatasi. Lutfen tekrar deneyin.'], 500);
@@ -78,11 +79,25 @@ if (!$row || !isset($row['SIFRE']) || !sifre_dogrula($parola, (string) $row['SIF
 }
 
 $personel = (int) $row['LOGICALREF'];
+if (isset($_SESSION) && is_array($_SESSION)) { m_p_yetki_cache_temizle($personel); }
 $yetkiKodu = m_p_yetki($personel, 'YETKI');
 $yetkidurum = is_numeric($yetkiKodu) ? (int) $yetkiKodu : -1;
 
 if (!in_array($yetkidurum, [0, 1], true)) {
     api_json(['ok' => false, 'mesaj' => 'Bu hesabin masaustu uygulamasina giris yetkisi yok.'], 403);
+}
+
+
+try {
+    // Web girişinin mevcut legacy-parola yükseltmesini API de uygular.
+    if (sifre_yenilenmeli((string) $row['SIFRE'])) {
+        $rehash = $dbh->prepare('UPDATE M_P_YETKI SET SIFRE = :s WHERE PERSONEL = :p AND SIFRE = :eski');
+        $rehash->execute([':s' => sifre_hashle($parola), ':p' => $personel, ':eski' => (string) $row['SIFRE']]);
+    }
+    $token = api_token_olustur($dbh, $personel, $kullanici);
+} catch (Throwable $e) {
+    error_log('API giriş token/parola: ' . $e->getMessage());
+    api_json(['ok' => false, 'mesaj' => 'Oturum oluşturulamadı.'], 503);
 }
 
 // Basarili girisi logla: hesap kilidi sorgusu "son basarili giristen sonraki
@@ -91,7 +106,6 @@ if (function_exists('logGiris')) {
     logGiris($personel, $kullanici, true, 'Basarili giris (API)');
 }
 
-$token = api_token_olustur($dbh, $personel, $kullanici);
 
 api_json([
     'ok' => true,

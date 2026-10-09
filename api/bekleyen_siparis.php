@@ -16,7 +16,8 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma, $firmadonem, $firmadonemx;
-api_oturum_gerekli($dbh);
+$oturum = api_oturum_gerekli($dbh);
+api_yetki_gerekli((int) $oturum['personel'], 'M8');
 
 $body  = api_body();
 $limit = max(1, min(2000, (int) ($body['limit'] ?? 1000)));

@@ -17,7 +17,8 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firmadonem, $eskifirmadonem;
-api_oturum_gerekli($dbh);
+$oturum = api_oturum_gerekli($dbh);
+api_yetki_gerekli((int) $oturum['personel'], 'M17');
 
 $body = api_body();
 $yil  = (int) ($body['yil'] ?? ($_GET['yil'] ?? (int) date('Y')));
