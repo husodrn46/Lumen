@@ -36,3 +36,7 @@ Her mod ayrı process: önceki bağlantı havuzu/CAcache sonucu diğer modu yanl
 Yeni kesin yerel commit'i aynı inceleme dalına göndermek ve mevcut manuel Lint/izole SQL workflow'unu bir kez çalıştırmak ayrı izin gerektirir. Bu koşu yalnız job SQL container'ında geçici sertifika/config değişikliği+restart, childprocess CA yolları ve sonunda cleanup içerir. Üretim/kalıcı güven kurulumu, main/beta/PR/merge/deploy ve gelecekteki yayın bu iznin kapsamı değildir.
 
 Başarılı geçici kabul bile gerçek hedef ortamın sertifika zinciri/hostname/yenileme kabulü değildir. Üretim kullanımından önce o hedef ayrıca doğrulanır.
+
+## İlk koşu ve yerel teşhis hazırlığı
+
+37932080901 koşusunda server logu geçici sertifikanın yüklendiğini doğruladı; pozitif bağlantı kapısı başarısız oldu, iki negatif hiç çalışmadı. Genel factory hata metni kesin native nedeni ayırmaya yetmedi. Yeni yerel hazırlık, aynı strict DSN ile native probe ardından değiştirilmemiş factory çağrısını zorunlu tutar ve yalnız sabit hata kategorisi/phase yazdırır; credential, DSN, key, driver metni veya exception trace basmaz. Factory phase'i hem yeni bağlantıyı hem metadata sorgusunu içerir. Cleanup ayrıca host/container key dizininin yokluğunu kontrol eden güvenli marker üretmeye hazırlanmıştır. Bunlar henüz yeni CI'da doğrulanmadı; system trust kurulumu veya doğrulamayı gevşeten fallback eklenmedi.

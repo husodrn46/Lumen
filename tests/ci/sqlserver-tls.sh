@@ -9,8 +9,14 @@ LUMEN_CI_TLS_DIR=$(mktemp -d "$RUNNER_TEMP/lumen-tls.XXXXXXXX")
 export LUMEN_CI_TLS_DIR
 cleanup() {
   # Host key removal always; container removed by job service lifecycle even if cleanup fails.
-  docker exec --user 0 "$LUMEN_CI_SQL_CONTAINER" rm -rf /var/opt/mssql/lumen-ci-tls >/dev/null 2>&1 || true
+  if docker exec --user 0 "$LUMEN_CI_SQL_CONTAINER" sh -c 'rm -rf /var/opt/mssql/lumen-ci-tls && test ! -e /var/opt/mssql/lumen-ci-tls' >/dev/null 2>&1; then
+    echo 'TLS_CLEANUP: container key directory removed and absence checked.'
+  else
+    echo 'TLS_CLEANUP: container key removal unconfirmed; job service lifecycle required.' >&2
+  fi
   rm -rf -- "$LUMEN_CI_TLS_DIR"
+  test ! -e "$LUMEN_CI_TLS_DIR"
+  echo 'TLS_CLEANUP: host fixture removed and absence checked.'
 }
 trap cleanup EXIT
 python3 tests/ci/tls-fixture.py "$LUMEN_CI_TLS_DIR"
