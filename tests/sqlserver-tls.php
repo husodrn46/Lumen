@@ -11,7 +11,7 @@ try{
  $root=(string)getenv('LUMEN_CI_TLS_DIR');$parent=(string)getenv('RUNNER_TEMP');
  if(realpath(dirname($root))!==realpath($parent) || !preg_match('/\Alumen-tls\.[a-zA-Z0-9]{8}\z/',basename($root)) || is_link($root)){throw new RuntimeException('Ephemeral TLS path required.');}
  $expectedCa=$root.'/'.($mode==='wrong-ca'?'wrong-ca.pem':'ca.pem');
- if(getenv('SSL_CERT_FILE')!==$expectedCa || getenv('SSL_CERT_DIR')!==$root.'/empty-ca-dir' || !is_file($expectedCa)){throw new RuntimeException('Process-only trust paths required.');}
+ if(getenv('SSL_CERT_FILE')!==$expectedCa || getenv('SSL_CERT_DIR')!==$root.'/'.($mode==='wrong-ca'?'wrong-ca-dir':'ca-dir') || !is_file($expectedCa)){throw new RuntimeException('Process-only trust paths required.');}
  $run=(string)getenv('GITHUB_RUN_ID');$attempt=(string)getenv('GITHUB_RUN_ATTEMPT');$operator='lumen_ci_'.$run.'_'.$attempt.'_transfer';
  $password=(string)getenv('LUMEN_TEST_FAVORITE_PASS');
  if(!preg_match('/\AaA1![a-f0-9]{64}\z/',$password)){throw new RuntimeException('Synthetic runtime unavailable.');}

@@ -46,7 +46,11 @@ authorityKeyIdentifier=keyid,issuer
         run('req','-x509','-newkey','rsa:2048','-nodes','-sha256','-days','2','-subj','/CN=Lumen wrong CI CA','-keyout','wrong-ca.key','-out','wrong-ca.pem')
         for name in ('ca.key','wrong-ca.key','server.csr','ca.cnf','server.cnf'):
             (root/name).unlink()
-        (root/'empty-ca-dir').mkdir(mode=0o700)
+        for name, certificate in [('ca-dir','ca.pem'),('wrong-ca-dir','wrong-ca.pem')]:
+            store=root/name;store.mkdir(mode=0o700)
+            (store/'root.pem').write_bytes((root/certificate).read_bytes())
+            (store/'root.pem').chmod(0o600)
+            run('rehash',name)
         (root/'mssql.conf').write_text('''[network]
 tlscert = /var/opt/mssql/lumen-ci-tls/server.pem
 tlskey = /var/opt/mssql/lumen-ci-tls/server.key

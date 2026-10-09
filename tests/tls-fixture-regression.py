@@ -26,6 +26,12 @@ class CertificateTests(unittest.TestCase):
         self.assertNotEqual(self.verify('wrong-ca.pem','-verify_ip','127.0.0.1').returncode,0)
     def test_wrong_hostname_rejected(self):
         self.assertNotEqual(self.verify('ca.pem','-verify_hostname','localhost').returncode,0)
+    def test_private_hash_directory_chain(self):
+        for directory, expected in [('ca-dir',0),('wrong-ca-dir',1)]:
+            result=subprocess.run(['openssl','verify','-no-CAfile','-no-CAstore','-CApath',str(self.root/directory),'-purpose','sslserver','-verify_ip','127.0.0.1',str(self.root/'server.pem')],capture_output=True)
+            if expected==0:self.assertEqual(result.returncode,0)
+            else:self.assertNotEqual(result.returncode,0)
+            self.assertTrue(any(p.is_symlink() for p in (self.root/directory).iterdir()))
     def test_leaf_not_ca(self):
         text=subprocess.check_output(['openssl','x509','-in',str(self.root/'server.pem'),'-noout','-text'],text=True)
         self.assertIn('CA:FALSE',text);self.assertIn('TLS Web Server Authentication',text);self.assertIn('IP Address:127.0.0.1',text)

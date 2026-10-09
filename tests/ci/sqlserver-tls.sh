@@ -34,8 +34,8 @@ docker restart "$LUMEN_CI_SQL_CONTAINER" >/dev/null
 # Trust paths exist only in each child process, never GITHUB_ENV or system certificate dirs.
 for mode in trusted wrong-ca hostname; do
   case "$mode" in
-    trusted|hostname) ca="$LUMEN_CI_TLS_DIR/ca.pem" ;;
-    wrong-ca) ca="$LUMEN_CI_TLS_DIR/wrong-ca.pem" ;;
+    trusted|hostname) ca="$LUMEN_CI_TLS_DIR/ca.pem"; ca_dir="$LUMEN_CI_TLS_DIR/ca-dir" ;;
+    wrong-ca) ca="$LUMEN_CI_TLS_DIR/wrong-ca.pem"; ca_dir="$LUMEN_CI_TLS_DIR/wrong-ca-dir" ;;
   esac
-  SSL_CERT_FILE="$ca" SSL_CERT_DIR="$LUMEN_CI_TLS_DIR/empty-ca-dir" php tests/sqlserver-tls.php "$mode"
+  SSL_CERT_FILE="$ca" SSL_CERT_DIR="$ca_dir" php tests/sqlserver-tls.php "$mode"
 done
