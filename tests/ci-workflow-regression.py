@@ -63,6 +63,9 @@ namespace=(root/'tests/ci/tls-namespace.sh').read_text()
 check('mount -o remount,bind,ro /etc/ssl/certs' in namespace and 'touch /etc/ssl/certs/lumen-write-probe' in namespace,'Read-only view verified by write rejection')
 check('setpriv --reuid=' in namespace and 'trap cleanup_namespace EXIT' in namespace and 'umount /etc/ssl/certs' in namespace,'Unprivileged PHP and explicit namespace cleanup')
 check('--bounding-set=-all' in namespace and '--no-new-privs' in namespace,'Child capabilities removed and privilege escalation disabled')
+check('host_openssl_before' in script and 'test -L /usr/lib/ssl/private' in script,'Default bundle view fingerprinted; private key directory not traversed')
+check('mount -o remount,bind,ro /usr/lib/ssl' in namespace and 'umount /usr/lib/ssl' in namespace,'Default bundle view read-only and explicitly cleaned')
+check('env -u SSL_CERT_FILE -u SSL_CERT_DIR openssl verify -purpose sslserver' in namespace,'Actual default trust view verification without environment overrides')
 check('tests/ci/tls-guard.php' in namespace and 'LUMEN_CI_TLS_HOST_NAMESPACE' in namespace,'Nested CI context and separate namespace gate')
 
 # Catch shell syntax errors in each Bash run block without executing commands.

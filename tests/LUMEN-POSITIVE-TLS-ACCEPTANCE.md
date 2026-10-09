@@ -44,3 +44,5 @@ Başarılı geçici kabul bile gerçek hedef ortamın sertifika zinciri/hostname
 ## Onaylı namespace denemesi (9 Ekim 2026)
 
 Önceki süreç CA dosyası/hash dizini denemeleri pozitif native TLS kabulünü sağlayamadı. Yeni özel mount görünümü henüz CI sonucu alınmadan çözüm sayılmaz. Doğrulama gevşetilmez; host sertifika dosyalarına yazılmaz. Temizlik ve host snapshot doğrulaması hata halinde de çalışır. `sudo unshare` ve readonly bind mount yalnız kullanıcının açıkça onayladığı geçici Linux CI kapsamında kullanılabilir.
+
+Varsayılan CA bundle alias runner’da yoksa, aynı private namespace içinde `/usr/lib/ssl` paket görünümünün geçici kopyası da salt okunur bağlanır; yalnız eksik `cert.pem` aliası sentetik CA bundle’a yönlendirilir. OpenSSL config ve diğer paket girdileri korunur. `/usr/lib/ssl/private` symlink olmak zorundadır ve anahtar dizini takip edilmez. İkinci görünüm için de RO kontrolü, yazma reddi, açık unmount ve host fingerprint eşitliği gerekir.

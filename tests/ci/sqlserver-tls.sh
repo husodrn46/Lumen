@@ -8,6 +8,7 @@ expected_image='mcr.microsoft.com/mssql/server:2022-latest@sha256:4402d880dd4c34
 test "$(docker inspect --format '{{.Config.Image}}' "$LUMEN_CI_SQL_CONTAINER")" = "$expected_image"
 test "$(docker port "$LUMEN_CI_SQL_CONTAINER" 1433/tcp)" = '127.0.0.1:1433'
 host_trust_before=$(python3 tests/ci/tls-trust-snapshot.py /etc/ssl/certs)
+host_openssl_before=$(python3 tests/ci/tls-trust-snapshot.py /usr/lib/ssl)
 host_namespace=$(readlink /proc/self/ns/mnt)
 export LUMEN_CI_TLS_HOST_NAMESPACE="$host_namespace"
 LUMEN_CI_TLS_DIR=$(mktemp -d "$RUNNER_TEMP/lumen-tls.XXXXXXXX")
@@ -23,6 +24,7 @@ cleanup() {
   test ! -e "$LUMEN_CI_TLS_DIR"
   echo 'TLS_CLEANUP: host fixture removed and absence checked.'
   test "$(python3 tests/ci/tls-trust-snapshot.py /etc/ssl/certs)" = "$host_trust_before"
+  test "$(python3 tests/ci/tls-trust-snapshot.py /usr/lib/ssl)" = "$host_openssl_before"
   test "$(readlink /proc/self/ns/mnt)" = "$host_namespace"
   echo 'TLS_ISOLATION: host trust snapshot and mount namespace unchanged.'
 }
@@ -51,6 +53,16 @@ for mode in trusted wrong-ca hostname; do
   # Defaults used by native OpenSSL consumers now point into the same private CA view.
   cp "$ca" "$ca_dir/ca-certificates.crt"
   chmod 600 "$ca_dir/ca-certificates.crt"
+  # Copy only package files and symlinks; never traverse the system private key directory.
+  test -L /usr/lib/ssl/private
+  test "$(readlink -f /usr/lib/ssl/private)" = /etc/ssl/private
+  ssl_view="$LUMEN_CI_TLS_DIR/openssl-view-$mode"
+  mkdir -m 700 "$ssl_view"
+  cp -a --no-preserve=ownership /usr/lib/ssl/. "$ssl_view/"
+  chmod 700 "$ssl_view"
+  if test ! -e "$ssl_view/cert.pem" && test ! -L "$ssl_view/cert.pem"; then
+    ln -s /etc/ssl/certs/ca-certificates.crt "$ssl_view/cert.pem"
+  fi
   SSL_CERT_FILE="$ca" SSL_CERT_DIR="$ca_dir" sudo -E unshare --mount --propagation private \
     bash tests/ci/tls-namespace.sh "$ca_dir" "$(command -v php)" "$(id -u)" "$(id -g)" "$mode"
 done

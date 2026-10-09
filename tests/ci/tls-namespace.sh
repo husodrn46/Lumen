@@ -25,8 +25,16 @@ if test -e /usr/lib/ssl/cert.pem || test -L /usr/lib/ssl/cert.pem; then
 else
   echo 'TLS_DIAG: optional default CA bundle alias absent; isolated CA directory and process CA file required.'
 fi
+ssl_view="$LUMEN_CI_TLS_DIR/openssl-view-$mode"
+test -d "$ssl_view" && test ! -L "$ssl_view"
+test "$(readlink -f "$ssl_view/cert.pem")" = /etc/ssl/certs/ca-certificates.crt
 mounted=0
+ssl_mounted=0
 cleanup_namespace() {
+  if test "$ssl_mounted" -eq 1; then
+    umount /usr/lib/ssl
+    echo 'TLS_CLEANUP: private OpenSSL bundle view explicitly unmounted.'
+  fi
   if test "$mounted" -eq 1; then
     umount /etc/ssl/certs
     echo 'TLS_CLEANUP: private CA mount explicitly unmounted.'
@@ -38,12 +46,33 @@ mount --bind "$ca_dir" /etc/ssl/certs
 mounted=1
 mount -o remount,bind,ro /etc/ssl/certs
 case ",$(findmnt -n -o OPTIONS --mountpoint /etc/ssl/certs)," in *,ro,*) ;; *) exit 2 ;; esac
+mount --bind "$ssl_view" /usr/lib/ssl
+ssl_mounted=1
+mount -o remount,bind,ro /usr/lib/ssl
+case ",$(findmnt -n -o OPTIONS --mountpoint /usr/lib/ssl)," in *,ro,*) ;; *) exit 2 ;; esac
+if touch /usr/lib/ssl/lumen-write-probe 2>/dev/null; then
+  rm -f /usr/lib/ssl/lumen-write-probe
+  exit 2
+fi
+test "$(readlink -f /usr/lib/ssl/cert.pem)" = /etc/ssl/certs/ca-certificates.crt
+echo 'TLS_ISOLATION: private OpenSSL default bundle alias present; second read-only view verified.'
 # Verify write denial inside the mounted view; no host path can be reached here.
 if touch /etc/ssl/certs/lumen-write-probe 2>/dev/null; then
   rm -f /etc/ssl/certs/lumen-write-probe
   exit 2
 fi
 echo 'TLS_ISOLATION: separate private mount namespace; CA view read-only; write probe rejected.'
+phase=openssl-default-trust-verification
+# Verify native default paths inside the view without custom CA environment variables.
+case "$mode" in
+  trusted)
+    env -u SSL_CERT_FILE -u SSL_CERT_DIR openssl verify -purpose sslserver -verify_ip 127.0.0.1 "$LUMEN_CI_TLS_DIR/server.pem" >/dev/null 2>&1
+    echo 'TLS_ISOLATION: OpenSSL default trust paths verify the server certificate and IP.' ;;
+  wrong-ca)
+    if env -u SSL_CERT_FILE -u SSL_CERT_DIR openssl verify -purpose sslserver -verify_ip 127.0.0.1 "$LUMEN_CI_TLS_DIR/server.pem" >/dev/null 2>&1; then exit 2; fi ;;
+  hostname)
+    if env -u SSL_CERT_FILE -u SSL_CERT_DIR openssl verify -purpose sslserver -verify_hostname localhost "$LUMEN_CI_TLS_DIR/server.pem" >/dev/null 2>&1; then exit 2; fi ;;
+esac
 phase=unprivileged-strict-php
 # PHP verifies the original unprivileged runner identity and empty effective capabilities.
 export LUMEN_CI_TLS_RUNNER_UID="$runner_uid" LUMEN_CI_TLS_RUNNER_GID="$runner_gid"
