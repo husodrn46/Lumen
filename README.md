@@ -5,7 +5,7 @@
 ### LOGO Tiger için modern, mobil uyumlu sipariş & stok yönetim ön yüzü
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6F1022.svg)](LICENSE)
-[![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg)](https://www.php.net/)
+[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg)](https://www.php.net/)
 [![SQL Server](https://img.shields.io/badge/DB-SQL%20Server-CC2927.svg)](https://www.microsoft.com/sql-server)
 [![LOGO Tiger](https://img.shields.io/badge/ERP-LOGO%20Tiger-6F1022.svg)](#gereksinimler)
 [![Üretimde](https://img.shields.io/badge/%C3%BCretimde-AKEL%20Melamin-6F1022.svg)](#üretimde-kullanılıyor)
@@ -25,6 +25,14 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 > ⚠️ Requires an existing **LOGO Tiger** installation on **Microsoft SQL Server** (with the `pdo_sqlsrv` PHP driver).
 
 ---
+
+## Denemek için
+
+Lumen, LOGO Tiger için bir yardımcı arayüzdür. **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
+
+**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kaynak kodu indir](https://github.com/husodrn46/Lumen/archive/refs/heads/main.zip)
+
+Demo için `sql/` altındaki şema betiklerinden ayrı bir test veritabanı hazırlayın; canlı şirket veritabanını deneme ortamı olarak kullanmayın. Bu, tek tıkla açılan bir çevrim içi demo değildir.
 
 ## İçindekiler
 
