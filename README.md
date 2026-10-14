@@ -30,7 +30,9 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 
 Lumen, LOGO Tiger için bir yardımcı arayüzdür. **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
 
-**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kaynak kodu indir](https://github.com/husodrn46/Lumen/archive/refs/heads/main.zip)
+**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.0.0](https://github.com/husodrn46/Lumen/releases/tag/v1.0.0) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.0.0.zip)
+
+`v1.1.0-beta.1` deneysel bir ön sürümdür; sınırları için [beta sürüm notlarını](https://github.com/husodrn46/Lumen/releases/tag/v1.1.0-beta.1) okuyun.
 
 Demo için `sql/` altındaki şema betiklerinden ayrı bir test veritabanı hazırlayın; canlı şirket veritabanını deneme ortamı olarak kullanmayın. Bu, tek tıkla açılan bir çevrim içi demo değildir.
 
