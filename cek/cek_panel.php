@@ -272,7 +272,7 @@ $bugun = date('Y-m-d');
         if (form) {
             var cariBorc = <?php echo json_encode(round((float) $cariBorc, 2)); ?>;
             var bugun = <?php echo json_encode($bugun); ?>;
-            var cariAd = <?php echo json_encode($seciliCari['DEFINITION_']); ?>;
+            var cariAd = <?php echo json_encode($seciliCari['DEFINITION_'] ?? ''); ?>;
             var pfNext = { '0': <?php echo (int) ($nextGayri !== '' ? ltrim($nextGayri, '0') : '0'); ?>, '1': <?php echo (int) ($nextResmi !== '' ? ltrim(substr($nextResmi, 1), '0') : '0'); ?> };
             var resmiInp = document.getElementById('resmiInp');
             var cekRows = document.getElementById('cekRows');
