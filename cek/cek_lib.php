@@ -27,6 +27,36 @@ declare(strict_types=1);
  * Çağıran dosya ayr.php yüklemiş olmalı (guid(), $kayitsaat, $saat, $dakika, $saniye global).
  */
 
+if (!function_exists('cek_tutar_coz')) {
+    /**
+     * İstekten gelen tutarı float'a çevirir.
+     *
+     * Panel tutarı JSON'da SAYI olarak gönderir (1234.56). Eskiden değer önce metne
+     * çevrilip tüm noktalar binlik ayırıcı sayılarak silindiği için kuruşlu her tutar
+     * 100 katına çıkıyordu (1.234,56 TL → 123.456 TL). Metin girdide TR (1.234,56)
+     * ve EN (1234.56) biçimleri desteklenir; "1.234" gibi yalnız binlik gruplu değer
+     * TR binlik olarak okunur.
+     */
+    function cek_tutar_coz(mixed $deger): float
+    {
+        if (is_int($deger) || is_float($deger)) {
+            return (float) $deger;
+        }
+        if (!is_string($deger)) {
+            return 0.0;
+        }
+        $s = str_replace([' ', "\u{00A0}"], '', trim($deger));
+        if (str_contains($s, ',')) {
+            // TR: nokta binlik, virgül ondalık
+            $s = str_replace(['.', ','], ['', '.'], $s);
+        } elseif (preg_match('/^-?\d{1,3}(\.\d{3})+$/', $s)) {
+            // Yalnız binlik gruplu TR tamsayı: 1.234 / 12.345.678
+            $s = str_replace('.', '', $s);
+        }
+        return is_numeric($s) ? (float) $s : 0.0;
+    }
+}
+
 if (!function_exists('cek_log_tablo_olustur')) {
     function cek_log_tablo_olustur(PDO $dbh): void
     {
