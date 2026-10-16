@@ -319,6 +319,30 @@ function sifre_hashle(string $password): string
  * @param string $hash Hash'lenmiş şifre
  * @return bool Şifre doğru mu
  */
+if (!function_exists('normalize_login_username')) {
+  /**
+   * Giriş kullanıcı adını normalleştirir (Türkçe harf → ASCII, büyük harf).
+   * Eskiden yalnız giris.php'de tanımlıydı; API girişi bunu bulamayıp ham adı
+   * kullanıyor, hesap kilidi sayacı web ve API'de farklı anahtarla tutuluyordu.
+   */
+  function normalize_login_username(string $username): string
+  {
+      $username = trim($username);
+      $username = strtr($username, [
+          'ç' => 'c', 'Ç' => 'C',
+          'ğ' => 'g', 'Ğ' => 'G',
+          'ı' => 'i', 'I' => 'I',
+          'İ' => 'i', 'i' => 'i',
+          'ö' => 'o', 'Ö' => 'O',
+          'ş' => 's', 'Ş' => 'S',
+          'ü' => 'u', 'Ü' => 'U',
+      ]);
+      $username = preg_replace('/[^A-Za-z0-9_.-]/', '', $username) ?? '';
+
+      return strtoupper($username);
+  }
+}
+
 function sifre_dogrula(string $password, string $hash): bool
 {
     // Bos veya sentinel ('0') parola/hash kabul edilmez (auth bypass koruma)
@@ -336,7 +360,13 @@ function sifre_dogrula(string $password, string $hash): bool
         return hash_equals((string)$hash, (string)$password);
     }
 
-    return password_verify($password, $hash);
+    if (password_verify($password, $hash)) {
+        return true;
+    }
+    // Parola belirleme ekranları (sifre_degistir, kullanıcı yönetimi, API) parolayı
+    // trim'leyip hash'liyor, giriş ise trim'lemiyordu: baş/son boşluklu parola hiç
+    // eşleşmiyordu. Kırpılmış biçim de denenir.
+    return $passwordNormalized !== $password && password_verify($passwordNormalized, $hash);
 }
 
 /**
@@ -1989,7 +2019,12 @@ if (!function_exists('m_p_siparis_goruntulebilir_mi')) {
   function m_p_siparis_goruntulebilir_mi(PDO $dbh, string $firmadonem, string $firma, int|string $personelId, int $siparisRef, ?string $yetkiKodu = null): bool
   {
     $cariRef = m_p_siparis_cari_ref_getir($dbh, $firmadonem, $siparisRef);
-    if ($cariRef === null || $cariRef <= 0) {
+    if ($cariRef === null) {
+      // Fiş yok: eskiden true dönüyordu ve satır ekleme uçları var olmayan fişe
+      // (CLIENTREF=0) yetim ORFLINE satırları yazabiliyordu.
+      return false;
+    }
+    if ($cariRef <= 0) {
       return true;
     }
 

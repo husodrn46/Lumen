@@ -34,6 +34,12 @@ try {
     }
 
     $cariid = $caridata['CLIENTREF'];
+    // Özel cari kısıtı: kısıtlı carinin son sipariş/favori ürünleri listelenmez.
+    if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisid)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Yetkiniz yok']);
+        exit;
+    }
 
     // Bu müşterinin son faturasını bul (INVOICE tablosundan - TRCODE 7,8)
     $stmt_son_fatura = $dbh->prepare("SELECT TOP 1 LOGICALREF FROM " . $firmadonem . "INVOICE
@@ -84,7 +90,7 @@ try {
 
     // Miktarları tam sayıya yuvarla
     foreach ($urunler as &$urun) {
-        $urun['miktar'] = ceil($urun['miktar']);
+        $urun['miktar'] = ceil((float) $urun['miktar']); // pdo_sqlsrv metin döndürür (strict_types)
     }
 
     if (empty($urunler)) {

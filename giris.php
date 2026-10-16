@@ -27,22 +27,7 @@ if (function_exists('saldiri_modu_erisim_engelli_mi') && saldiri_modu_erisim_eng
 // Hata mesajlarını tutar
 $error_message = '';
 
-function normalize_login_username(string $username): string
-{
-    $username = trim($username);
-    $username = strtr($username, [
-        'ç' => 'c', 'Ç' => 'C',
-        'ğ' => 'g', 'Ğ' => 'G',
-        'ı' => 'i', 'I' => 'I',
-        'İ' => 'i', 'i' => 'i',
-        'ö' => 'o', 'Ö' => 'O',
-        'ş' => 's', 'Ş' => 'S',
-        'ü' => 'u', 'Ü' => 'U',
-    ]);
-    $username = preg_replace('/[^A-Za-z0-9_.-]/', '', $username) ?? '';
-
-    return strtoupper($username);
-}
+// normalize_login_username() ayr.php'dedir (web ve API girişinde aynı kural).
 
 // Oturum zorunluluğu veya yetki hatası ile yönlendirme durumunda mesaj göster
 if (isset($_GET['hata'])) {
