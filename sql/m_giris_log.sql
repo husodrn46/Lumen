@@ -2,7 +2,7 @@
    M_GIRIS_LOG — giris/cikis denetimi ve brute-force korumasi
    ----------------------------------------------------------------------------
    Giris akislari bu tabloyu IP ve hesap bazli hiz sinirlamasi icin kullanir.
-   Idempotenttir; kurulum.php tarafindan sql/*.sql ile otomatik uygulanir.
+   Idempotenttir; kurulum.php tarafindan sql/ klasöründeki betiklerle otomatik uygulanir.
    ============================================================================ */
 
 IF OBJECT_ID('dbo.M_GIRIS_LOG', 'U') IS NULL

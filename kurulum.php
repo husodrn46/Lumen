@@ -25,8 +25,14 @@ $ENV       = $KOK . '/.env';
 $ORNEK_BAG = $KOK . '/_baglanti_.inc.example';
 $HEDEF_BAG = $KOK . '/_baglanti_.inc';
 
-// Zaten kuruluysa sihirbazı kapat.
-if (is_file($LOCK)) {
+// Zaten kuruluysa sihirbazı kapat. `.installed` tek başına yeterli değildir: elle
+// kurulan (.env / _baglanti_.inc'i kopyalanan) veya ortam değişkeniyle yapılandırılan
+// sistemlerde bu dosya hiç oluşmaz. O durumda kimliği doğrulanmamış bir ziyaretçinin
+// sihirbazla .env'i kendi sunucusuna yöneltmesini veya yönetici parolası atamasını
+// engellemek için mevcut yapılandırma da kilit sayılır. Adım 1'i bu oturumda
+// tamamlayan kurulumcu (kurulum_db) adım 2'ye devam edebilir.
+$yapilandirilmis = is_file($ENV) || is_file($HEDEF_BAG) || (string) getenv('AKL_DB_SERVER') !== '';
+if (is_file($LOCK) || ($yapilandirilmis && empty($_SESSION['kurulum_db']))) {
     header('Location: giris.php');
     exit;
 }
@@ -67,40 +73,7 @@ function kurulum_env_yaz(string $yol, array $kv): bool
     return @file_put_contents($yol, implode("\n", $satirlar) . "\n") !== false;
 }
 
-/**
- * sql/ klasöründeki tüm şema betiklerini sırayla uygular (Lumen'e özel M_* tabloları).
- * Betikler idempotenttir (IF NOT EXISTS), tekrar çalıştırmak güvenlidir.
- * SQL Server "GO" toplu iş ayırıcısı PDO tarafından anlaşılmadığından batch'lere bölünür.
- *
- * @return array{basarili:int, toplam:int, hatalar:array<string,string>}
- */
-function kurulum_sema_uygula(PDO $pdo, string $dir): array
-{
-    $dosyalar = glob(rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . '*.sql') ?: [];
-    sort($dosyalar, SORT_NATURAL | SORT_FLAG_CASE);
-
-    $basarili = 0;
-    $hatalar  = [];
-    foreach ($dosyalar as $yol) {
-        $ad = basename($yol);
-        try {
-            $icerik = (string) file_get_contents($yol);
-            $batchler = preg_split('/^\s*GO\s*;?\s*$/mi', $icerik) ?: [];
-            foreach ($batchler as $batch) {
-                $batch = trim($batch);
-                if ($batch === '') {
-                    continue;
-                }
-                $pdo->exec($batch);
-            }
-            $basarili++;
-        } catch (Throwable $e) {
-            $hatalar[$ad] = $e->getMessage();
-        }
-    }
-
-    return ['basarili' => $basarili, 'toplam' => count($dosyalar), 'hatalar' => $hatalar];
-}
+require_once __DIR__ . '/includes/kurulum_sema.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($csrf, (string) ($_POST['csrf'] ?? ''))) {
@@ -214,8 +187,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $i = $pdo->prepare($sql);
                         $i->execute([':p' => $ref, ':s' => $hash]);
                     }
-                    @file_put_contents($LOCK, "kurulum tamamlandi\n");
                     unset($_SESSION['kurulum_db']);
+                    if (file_put_contents($LOCK, "kurulum tamamlandi\n") === false) {
+                        // Kilit yazılamazsa da sihirbaz .env var olduğu için kapanır;
+                        // yine de yöneticiyi uyar.
+                        $notlar[] = '.installed kilit dosyası yazılamadı — klasör izinlerini kontrol edin.';
+                    }
                     $adim = 3;
                 }
             } catch (Throwable $e) {
