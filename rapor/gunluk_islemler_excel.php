@@ -227,12 +227,12 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
 
     <!-- Özet Bilgiler -->
     <div class="summary-box">
-        <strong>TOPLAM SATIŞ:</strong> <?php echo number_format($sales_summary['TOPLAM_SATIS'], 2, ',', '.'); ?> TL<br>
+        <strong>TOPLAM SATIŞ:</strong> <?php echo number_format((float) $sales_summary['TOPLAM_SATIS'], 2, ',', '.'); ?> TL<br>
         <strong>İŞLEM SAYISI:</strong> <?php echo $sales_summary['ISLEM_SAYISI']; ?> adet<br>
         <strong>MÜŞTERİ SAYISI:</strong> <?php echo $sales_summary['MUSTERI_SAYISI']; ?> adet<br>
-        <strong>KASA GİRİŞ:</strong> <?php echo number_format($cash_summary['GIRIS'], 2, ',', '.'); ?> TL<br>
-        <strong>KASA ÇIKIŞ:</strong> <?php echo number_format($cash_summary['CIKIS'], 2, ',', '.'); ?> TL<br>
-        <strong>NET KASA:</strong> <?php echo number_format($cash_summary['NET'], 2, ',', '.'); ?> TL<br>
+        <strong>KASA GİRİŞ:</strong> <?php echo number_format((float) $cash_summary['GIRIS'], 2, ',', '.'); ?> TL<br>
+        <strong>KASA ÇIKIŞ:</strong> <?php echo number_format((float) $cash_summary['CIKIS'], 2, ',', '.'); ?> TL<br>
+        <strong>NET KASA:</strong> <?php echo number_format((float) $cash_summary['NET'], 2, ',', '.'); ?> TL<br>
     </div>
 
     <!-- Satış İşlemleri -->
@@ -258,13 +258,13 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
                 <td><?php echo date('d.m.Y', strtotime((string) $sale['TARIH'])); ?></td>
                 <td><?php echo $sale['CARI_KODU']; ?></td>
                 <td><?php echo $sale['CARI_ADI']; ?></td>
-                <td class="text-right"><?php echo number_format($sale['TUTAR'], 2, ',', '.'); ?></td>
-                <td class="text-right"><?php echo number_format($sale['KUR'], 4, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $sale['TUTAR'], 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $sale['KUR'], 4, ',', '.'); ?></td>
             </tr>
             <?php endforeach; ?>
             <tr class="total-row">
                 <td colspan="3" class="text-right">TOPLAM:</td>
-                <td class="text-right"><?php echo number_format($total_sales, 2, ',', '.'); ?> TL</td>
+                <td class="text-right"><?php echo number_format((float) $total_sales, 2, ',', '.'); ?> TL</td>
                 <td></td>
             </tr>
         </tbody>
@@ -300,14 +300,14 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
                 <td><?php echo $cash['KASA_KODU']; ?></td>
                 <td><?php echo $cash['KASA_ADI']; ?></td>
                 <td><?php echo $cash['ACIKLAMA']; ?></td>
-                <td class="text-right"><?php echo $cash['GIRIS'] > 0 ? number_format($cash['GIRIS'], 2, ',', '.') : '-'; ?></td>
-                <td class="text-right"><?php echo $cash['CIKIS'] > 0 ? number_format($cash['CIKIS'], 2, ',', '.') : '-'; ?></td>
+                <td class="text-right"><?php echo $cash['GIRIS'] > 0 ? number_format((float) $cash['GIRIS'], 2, ',', '.') : '-'; ?></td>
+                <td class="text-right"><?php echo $cash['CIKIS'] > 0 ? number_format((float) $cash['CIKIS'], 2, ',', '.') : '-'; ?></td>
             </tr>
             <?php endforeach; ?>
             <tr class="total-row">
                 <td colspan="4" class="text-right">TOPLAM:</td>
-                <td class="text-right"><?php echo number_format($total_giris, 2, ',', '.'); ?> TL</td>
-                <td class="text-right"><?php echo number_format($total_cikis, 2, ',', '.'); ?> TL</td>
+                <td class="text-right"><?php echo number_format((float) $total_giris, 2, ',', '.'); ?> TL</td>
+                <td class="text-right"><?php echo number_format((float) $total_cikis, 2, ',', '.'); ?> TL</td>
             </tr>
         </tbody>
     </table>
@@ -341,12 +341,12 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
                 <td><?php echo $check['BORCLU']; ?></td>
                 <td><?php echo date('d.m.Y', strtotime((string) $check['TANZIM_TARIHI'])); ?></td>
                 <td><?php echo date('d.m.Y', strtotime((string) $check['VADE_TARIHI'])); ?></td>
-                <td class="text-right"><?php echo number_format($check['TUTAR'], 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $check['TUTAR'], 2, ',', '.'); ?></td>
             </tr>
             <?php endforeach; ?>
             <tr class="total-row">
                 <td colspan="5" class="text-right">TOPLAM:</td>
-                <td class="text-right"><?php echo number_format($total_checks_received, 2, ',', '.'); ?> TL</td>
+                <td class="text-right"><?php echo number_format((float) $total_checks_received, 2, ',', '.'); ?> TL</td>
             </tr>
         </tbody>
     </table>
@@ -380,12 +380,12 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
                 <td><?php echo $check['ALACAKLI']; ?></td>
                 <td><?php echo date('d.m.Y', strtotime((string) $check['TANZIM_TARIHI'])); ?></td>
                 <td><?php echo date('d.m.Y', strtotime((string) $check['VADE_TARIHI'])); ?></td>
-                <td class="text-right"><?php echo number_format($check['TUTAR'], 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $check['TUTAR'], 2, ',', '.'); ?></td>
             </tr>
             <?php endforeach; ?>
             <tr class="total-row">
                 <td colspan="5" class="text-right">TOPLAM:</td>
-                <td class="text-right"><?php echo number_format($total_checks_given, 2, ',', '.'); ?> TL</td>
+                <td class="text-right"><?php echo number_format((float) $total_checks_given, 2, ',', '.'); ?> TL</td>
             </tr>
         </tbody>
     </table>

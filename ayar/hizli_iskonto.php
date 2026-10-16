@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kaydet'])) {
     // Array literalini kur (tek satır, güvenli — ad temizlendi, oran sayı)
     $parcalar = [];
     foreach ($yeni as $r) {
-        $oranYaz = rtrim(rtrim(number_format($r['oran'], 2, '.', ''), '0'), '.');
+        $oranYaz = rtrim(rtrim(number_format((float) $r['oran'], 2, '.', ''), '0'), '.');
         $parcalar[] = "['ad' => '" . $r['ad'] . "', 'oran' => " . $oranYaz . "]";
     }
     $literal = '$hizli_iskontolar = [' . implode(', ', $parcalar) . '];';

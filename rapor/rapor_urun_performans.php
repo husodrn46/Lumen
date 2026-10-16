@@ -91,9 +91,9 @@ $para = static fn($x): string => number_format((float) $x, 2, ',', '.');
 $adetF = static fn($x): string => number_format((float) $x, 0, ',', '.');
 $kisa = static function ($v): string {
     $v = (float) $v;
-    if (abs($v) >= 1_000_000) { return number_format($v / 1_000_000, 2, ',', '.') . ' M'; }
-    if (abs($v) >= 1_000)     { return number_format($v / 1_000, 0, ',', '.') . ' B'; }
-    return number_format($v, 0, ',', '.');
+    if (abs($v) >= 1_000_000) { return number_format((float) $v / 1_000_000, 2, ',', '.') . ' M'; }
+    if (abs($v) >= 1_000)     { return number_format((float) $v / 1_000, 0, ',', '.') . ' B'; }
+    return number_format((float) $v, 0, ',', '.');
 };
 ?>
 <!DOCTYPE html>
@@ -301,7 +301,7 @@ $kisa = static function ($v): string {
                 <div style="min-width:0;">
                     <div class="vurgu-l">Lider Ürün</div>
                     <div class="vurgu-v"><?php echo $top3 !== [] ? $h($top3[0]['URUN_KODU']) : '—'; ?></div>
-                    <div class="vurgu-s"><?php echo $top3 !== [] ? 'pay %' . number_format($top3[0]['PAY'], 1, ',', '.') : 'veri yok'; ?></div>
+                    <div class="vurgu-s"><?php echo $top3 !== [] ? 'pay %' . number_format((float) $top3[0]['PAY'], 1, ',', '.') : 'veri yok'; ?></div>
                 </div>
             </div>
         </div>
@@ -324,7 +324,7 @@ $kisa = static function ($v): string {
                 <div class="pod-tutar"><?php echo $para($p['SATILAN_TUTAR']); ?> ₺</div>
                 <div class="pod-alt">
                     <span><b><?php echo $adetF($p['SATILAN_ADET']); ?></b> adet</span>
-                    <span>pay <b>%<?php echo number_format($p['PAY'], 1, ',', '.'); ?></b></span>
+                    <span>pay <b>%<?php echo number_format((float) $p['PAY'], 1, ',', '.'); ?></b></span>
                     <span>ort <b><?php echo $para($p['ORT_FIYAT']); ?> ₺</b></span>
                 </div>
             </div>
@@ -366,12 +366,12 @@ $kisa = static function ($v): string {
                             $wA = 100 * $r['SATILAN_ADET'] / $maxAdet;
                             $wO = 100 * $r['ORT_FIYAT'] / $maxOrt;
                             $paretoBurada = ($i + 1 === $pareto80 && $pareto80 < $totalProducts); ?>
-                        <tr data-tutar="<?php echo number_format($r['SATILAN_TUTAR'], 4, '.', ''); ?>"
-                            data-adet="<?php echo number_format($r['SATILAN_ADET'], 4, '.', ''); ?>"
-                            data-ort="<?php echo number_format($r['ORT_FIYAT'], 4, '.', ''); ?>"
-                            data-wt="<?php echo number_format($wT, 2, '.', ''); ?>"
-                            data-wa="<?php echo number_format($wA, 2, '.', ''); ?>"
-                            data-wo="<?php echo number_format($wO, 2, '.', ''); ?>"
+                        <tr data-tutar="<?php echo number_format((float) $r['SATILAN_TUTAR'], 4, '.', ''); ?>"
+                            data-adet="<?php echo number_format((float) $r['SATILAN_ADET'], 4, '.', ''); ?>"
+                            data-ort="<?php echo number_format((float) $r['ORT_FIYAT'], 4, '.', ''); ?>"
+                            data-wt="<?php echo number_format((float) $wT, 2, '.', ''); ?>"
+                            data-wa="<?php echo number_format((float) $wA, 2, '.', ''); ?>"
+                            data-wo="<?php echo number_format((float) $wO, 2, '.', ''); ?>"
                             data-ara="<?php echo $h(mb_strtolower($r['URUN_KODU'] . ' ' . $r['URUN_ADI'], 'UTF-8')); ?>">
                             <td><span class="sira"><?php echo $i + 1; ?></span></td>
                             <td>
@@ -384,8 +384,8 @@ $kisa = static function ($v): string {
                                     <span class="ana-deger"><?php echo $para($r['SATILAN_TUTAR']); ?> ₺</span>
                                 </span>
                             </td>
-                            <td class="pay-t">%<?php echo number_format($r['PAY'], 2, ',', '.'); ?></td>
-                            <td class="kum-t">%<?php echo number_format($r['KUM'], 1, ',', '.'); ?><?php if ($paretoBurada): ?><span class="p80"><i class="fa-solid fa-flag"></i>%80</span><?php endif; ?></td>
+                            <td class="pay-t">%<?php echo number_format((float) $r['PAY'], 2, ',', '.'); ?></td>
+                            <td class="kum-t">%<?php echo number_format((float) $r['KUM'], 1, ',', '.'); ?><?php if ($paretoBurada): ?><span class="p80"><i class="fa-solid fa-flag"></i>%80</span><?php endif; ?></td>
                             <td><?php echo $adetF($r['SATILAN_ADET']); ?></td>
                             <td><?php echo $para($r['ORT_FIYAT']); ?> ₺</td>
                         </tr>
