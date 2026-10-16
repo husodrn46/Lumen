@@ -15,6 +15,17 @@ if (isset($_POST['cstok_miktari'])) {
   $stokhareket = isset($stokhareket) ? (int) $stokhareket : (isset($_POST['stokhareket']) ? (int) $_POST['stokhareket'] : 0);
   $cstok_miktari = isset($_POST['cstok_miktari']) ? (array) $_POST['cstok_miktari'] : [];
 
+  // YETKI + GORUNURLUK: dogrudan POST edildiginde stokhareket POST'tan gelir ve lg_fis.php'nin
+  // GET/session gorunurluk kontrolunden gecmez. Satir eklemek yazma islemidir (admin / M1 / M3).
+  if (
+    $stokhareket <= 0
+    || !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+    || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)
+  ) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+  }
+
   $stmtCari = $dbh->prepare("SELECT CLIENTREF FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :stokhareket");
   $stmtCari->execute([':stokhareket' => $stokhareket]);
   $listcari = $stmtCari->fetch(PDO::FETCH_ASSOC);
@@ -236,8 +247,12 @@ if (isset($_POST['cstok_miktari'])) {
 
   $toplamsatismiktari = count($cstok_miktari);
   for ($i = 0; $i < $toplamsatismiktari; $i++) {
-    $cstok_mik = str_replace(',', '.', $_POST['cstok_miktari'][$i] ?? '0');
-    $cstok_fiy = str_replace(',', '.', $_POST['cstok_fiyati'][$i] ?? '0');
+    $cstok_mik = str_replace(',', '.', (string) ($_POST['cstok_miktari'][$i] ?? '0'));
+    $cstok_fiy = str_replace(',', '.', (string) ($_POST['cstok_fiyati'][$i] ?? '0'));
+    // Sayisal olmayan miktar/fiyat ("x" > 0 PHP 8'de true) sonradan TypeError verip
+    // yarim kayit birakiyordu: sayisal degilse 0 kabul et (satir atlanir).
+    $cstok_mik = is_numeric($cstok_mik) ? (float) $cstok_mik : 0.0;
+    $cstok_fiy = is_numeric($cstok_fiy) ? (float) $cstok_fiy : 0.0;
     $cstok_id = $_POST['cstok_id'][$i] ?? '';
     $cstok_birim = $_POST['cstok_birim'][$i] ?? '';
     $kayit = true;

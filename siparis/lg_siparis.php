@@ -20,6 +20,12 @@ if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici
 
 // FORM GÖNDERİLDİYSE (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF koruması (açıklama güncellemesi yazma işlemidir)
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Geçersiz güvenlik doğrulaması.');
+    }
+
     $action      = $_POST['action'] ?? 'save';
     $aciklama1   = $_POST['aciklama1'] ?? '';
     $aciklama2   = $_POST['aciklama2'] ?? '';
@@ -404,6 +410,7 @@ $printActions = [
 
   <main style="max-width:720px;margin:0 auto;padding:24px 20px 60px;">
     <form method="POST" action="">
+      <?php echo csrf_field(); ?>
       <input type="hidden" name="stokhareket" value="<?php echo $stokhareket; ?>">
 
       <!-- Aciklamalar -->

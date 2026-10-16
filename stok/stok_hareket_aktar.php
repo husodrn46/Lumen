@@ -7,6 +7,16 @@ include_once(__DIR__ . "/../log_ip.php");
 
 $stokhareket = isset($_GET['stokhareket']) ? (int) $_GET['stokhareket'] : 0;
 
+// YETKI: siparisi baska cariye aktarmak yazma islemidir — admin veya M1 (Yeni Siparis);
+// kaynak siparisin carisi de kullaniciya gorunur olmalidir.
+if (
+    ((int) ($yetkidurum ?? 1) !== 0 && m_p_yetki($terminalkullanici, 'M1') != 1)
+    || ($stokhareket > 0 && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket))
+) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 // Mevcut fiş bilgilerini al
 $mevcutFis = null;
 if ($stokhareket > 0) {
@@ -36,6 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
             $hata = 'Lütfen geçerli bir cari seçin.';
         } elseif ($yeni_cari === (int)$mevcutFis['CLIENTREF']) {
             $hata = 'Seçilen cari mevcut cari ile aynı.';
+        } elseif (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $yeni_cari)) {
+            // Hedef cari de kullaniciya gorunur olmali
+            $hata = 'Seçilen cariye aktarma yetkiniz yok.';
         } else {
             // Eski cari bilgileri
             $eski_cari_kodu = $mevcutFis['CARI_KODU'];
@@ -57,15 +70,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
                 $yeni_cari_kodu = $yeniCari['CARI_KODU'];
                 $yeni_cari_adi = $yeniCari['CARI_ADI'];
 
-                // Aktarım işlemi
-                $stmtGuncelle = $dbh->prepare("
-                    UPDATE {$firmadonem}ORFICHE
-                    SET CLIENTREF = :yeni_cari
-                    WHERE LOGICALREF = :stokhareket
-                ");
-                $gncl = $stmtGuncelle->execute([':yeni_cari' => $yeni_cari, ':stokhareket' => $stokhareket]);
+                // Aktarım işlemi: fiş başlığı ve satırlar (ORFLINE.CLIENTREF) tek transaction'da.
+                // Sevk edilmiş (SHIPPEDAMOUNT > 0) satırı olan sipariş aktarılamaz.
+                $gncl = false;
+                $sevkliVar = false;
+                try {
+                    $dbh->beginTransaction();
 
-                if ($gncl) {
+                    $stmtSevk = $dbh->prepare("
+                        SELECT COUNT(*) FROM {$firmadonem}ORFLINE WITH (UPDLOCK, HOLDLOCK)
+                        WHERE ORDFICHEREF = :stokhareket AND SHIPPEDAMOUNT > 0
+                    ");
+                    $stmtSevk->execute([':stokhareket' => $stokhareket]);
+                    $sevkliVar = (int) $stmtSevk->fetchColumn() > 0;
+
+                    if ($sevkliVar) {
+                        $dbh->rollBack();
+                    } else {
+                        $stmtGuncelle = $dbh->prepare("
+                            UPDATE {$firmadonem}ORFICHE
+                            SET CLIENTREF = :yeni_cari
+                            WHERE LOGICALREF = :stokhareket
+                        ");
+                        $stmtGuncelle->execute([':yeni_cari' => $yeni_cari, ':stokhareket' => $stokhareket]);
+
+                        $stmtSatirGuncelle = $dbh->prepare("
+                            UPDATE {$firmadonem}ORFLINE
+                            SET CLIENTREF = :yeni_cari
+                            WHERE ORDFICHEREF = :stokhareket
+                        ");
+                        $stmtSatirGuncelle->execute([':yeni_cari' => $yeni_cari, ':stokhareket' => $stokhareket]);
+
+                        $dbh->commit();
+                        $gncl = true;
+                    }
+                } catch (Throwable $e) {
+                    if ($dbh->inTransaction()) {
+                        $dbh->rollBack();
+                    }
+                    error_log('stok_hareket_aktar.php aktarim hatasi: ' . $e->getMessage());
+                }
+
+                if ($sevkliVar) {
+                    $hata = 'Sevk edilmiş satırı olan sipariş başka cariye aktarılamaz.';
+                } elseif ($gncl) {
                     $aciklama = "Cari değiştirildi: [{$eski_cari_kodu}] {$eski_cari_adi} → [{$yeni_cari_kodu}] {$yeni_cari_adi}";
                     if (function_exists('logFisGuncelleme')) {
                         logFisGuncelleme($stokhareket, $ficheno, $terminalkullanici, $aciklama, []);

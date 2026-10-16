@@ -42,8 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hareketsil'])) {
 		die("Geçersiz fiş ID");
 	}
 
-	if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
-		header('Location: 403.html');
+	// YETKI: satir silmek yazma islemidir (fisekle.php kapisi: admin / M1 / M3) + cari gorunurlugu.
+	if (
+		!m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+		|| !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)
+	) {
+		header('Location: ' . APP_ROOT_URL . '/403.html');
 		exit;
 	}
 

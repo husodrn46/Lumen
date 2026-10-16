@@ -24,6 +24,18 @@ if (!isset($_GET['stokhareket']) || empty($_GET['stokhareket'])) {
 }
 $stokhareket = $_GET['stokhareket'];
 
+// YETKI: siparisin carisi kullaniciya gorunur olmali. Bu cikti fiyat/tutar gosterir;
+// fiyatlari maskelemek yerine (en basit tutarli kural) ST2 (Satis Fiyati Gorme) yetkisi
+// olmayan, yonetici olmayan kullanicinin erisimi reddedilir.
+if (
+    !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)
+    || ((int) ($yetkidurum ?? 1) !== 0 && m_p_yetki($terminalkullanici, 'ST2') != 1)
+) {
+    ob_end_clean();
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 // Veritabanı sorguları
 try {
     // Firma bilgisi
@@ -111,6 +123,9 @@ try {
 }
 
 // Excel oluştur (PhpSpreadsheet)
+// Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
+require_once __DIR__ . '/../includes/xlsx_guvenli.php';
+lumen_xlsx_guvenli_baglayici();
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator($firmaAdi)

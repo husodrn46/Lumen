@@ -113,12 +113,16 @@ if (isset($_POST['stkid'])) {
     exit('Gecersiz fis bilgisi.');
   }
 
-  if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+  // YETKI: satir eklemek yazma islemidir (fisekle.php kapisi: admin / M1 / M3) + cari gorunurlugu.
+  if (
+    !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+    || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)
+  ) {
     hareketekle_trace_log('AUTH_REJECTED', [
       'stokhareket' => $stokhareket,
       'terminalkullanici' => $terminalkullanici ?? null,
     ]);
-    header('Location: 403.html');
+    header('Location: ' . APP_ROOT_URL . '/403.html');
     exit;
   }
 

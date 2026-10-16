@@ -106,9 +106,26 @@ if (isset($_POST['kdviptal'])) {
 
    $isKdvAjax = isset($_POST['ajax']) && $_POST['ajax'] === '1';
    $stokhareket = isset($_POST['stokhareket']) ? (int)$_POST['stokhareket'] : 0;
+
+   // YETKI + GORUNURLUK: POST'taki stokhareket yukaridaki GET/session kontrolunu atlar;
+   // KDV degisikligi bir yazma islemidir (fisekle.php kapisi: admin / M1 / M3).
+   if (
+      !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+      || ($stokhareket > 0 && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket))
+   ) {
+      if ($isKdvAjax) {
+         http_response_code(403);
+         header('Content-Type: application/json; charset=utf-8');
+         echo json_encode(['ok' => false, 'msg' => 'Bu islem icin yetkiniz yok']);
+         exit;
+      }
+      header('Location: ' . APP_ROOT_URL . '/403.html');
+      exit;
+   }
+
    $yenikdv = $resmiKdvZorunlu
       ? $resmiKdvOrani
-      : (isset($_POST['kdviptal']) ? (float)virgul($_POST['kdviptal']) : 0.0);
+      : (isset($_POST['kdviptal']) ? max(0.0, min(100.0, (float)virgul($_POST['kdviptal']))) : 0.0);
 
    if ($stokhareket > 0) {
       try {
@@ -146,7 +163,7 @@ if (isset($_POST['kdviptal'])) {
 
    // Session'a kaydet ve temiz URL'ye yönlendir
    setPageParam('stokhareket', $stokhareket);
-   echo '<script>window.location="lg_fis-beta.php";</script>';
+   echo '<script>window.location="lg_fis.php?stokhareket=' . $stokhareket . '";</script>';
 }
 
 function paraformat_lg_fis(float|int|string|null $kusurat): string

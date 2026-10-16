@@ -52,9 +52,20 @@ if(isset($_POST['stkduzenle'])){
 	}
 
 	$stokhareket = (int)$eskiSatir['ORDFICHEREF'];
-	if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
-		header('Location: 403.html');
+	// YETKI: satir duzenlemek yazma islemidir (fisekle.php kapisi: admin / M1 / M3) + cari gorunurlugu.
+	if (
+		!m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+		|| !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)
+	) {
+		header('Location: ' . APP_ROOT_URL . '/403.html');
 		exit;
+	}
+
+	// FIYAT: fiyat alani yalniz SP1 (Siparis Fiyati Degistirme) veya admin icin yazilabilir
+	// (lg_stok_duzenle/lg_stok_bul ekranlariyla ayni kural). Yetkisizse POST'taki fiyat yok
+	// sayilir, satirin mevcut fiyati korunur.
+	if ((int) ($yetkidurum ?? 1) !== 0 && m_p_yetki($terminalkullanici, 'SP1') != 1) {
+		$stokfiyat = (float) $eskiSatir['PRICE'];
 	}
 
 	 $yenirakamx=round($stokadet*$stokfiyat, 2);

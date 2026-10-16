@@ -1995,6 +1995,23 @@ if (!function_exists('m_p_siparis_goruntulebilir_mi')) {
   }
 }
 
+if (!function_exists('m_p_siparis_duzenleyebilir_mi')) {
+  /**
+   * Kullanıcı sipariş fişini değiştirebilir mi (satır ekle/düzenle/sil, iskonto, KDV)?
+   * siparis/fisekle.php yazma kapısıyla birebir aynı: admin (yetkidurum=0) veya
+   * M1 (Yeni Sipariş) veya M3 (Mağaza Satış). Yalnız M2/M5 (sipariş listeleri)
+   * sahipleri fişi GÖRÜNTÜLEYEBİLİR ama değiştiremez.
+   * Cari görünürlüğü ayrıca m_p_siparis_goruntulebilir_mi ile kontrol edilmelidir.
+   */
+  function m_p_siparis_duzenleyebilir_mi(int|string $personelId, ?int $yetkidurum): bool
+  {
+    if ($yetkidurum === 0) {
+      return true;
+    }
+
+    return m_p_yetki_kodlarindan_birine_sahip_mi($personelId, ['M1', 'M3']);
+  }
+}
 
 if (!function_exists('m_p_yetki_izin_sutunu_mu')) {
   /**
