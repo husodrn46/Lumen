@@ -15,13 +15,7 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
     die('Yetkiniz yok!');
 }
 
-try {
-    $dbh = new PDO("sqlsrv:server=$anamakina;database=$veritabani;", $kullanici, $sifre);
-    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    error_log('kar_zarar_excel hata: ' . $e->getMessage());
-    die("Veritabani baglanti hatasi");
-}
+// Bağlantı ayr.php'de kurulur ($dbh).
 
 // Filtre parametreleri
 $baslangic_tarih = $_GET['baslangic'] ?? date('Y-m-01');

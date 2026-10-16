@@ -11,14 +11,7 @@ if (m_p_yetki($terminalkullanici, 'M13') != 1) {
     exit;
 }
 
-// Veritabanı bağlantısı
-try {
-    $dbh = new PDO("sqlsrv:server=" . $anamakina . ";database=" . $veritabani . ";", $kullanici, $sifre);
-    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Veritabanı bağlantı hatası: " . $e->getMessage());
-}
-
+// Bağlantı ayr.php'de kurulur ($dbh).
 // Tarih filtresi
 $selected_date = $_GET['tarih'] ?? date('Y-m-d');
 $display_date = date('d.m.Y', strtotime((string) $selected_date));

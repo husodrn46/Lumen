@@ -512,9 +512,32 @@ include_once(__DIR__ . "/_bilgi_.inc");
 // ================================================================
 // GÜVENLIK: Veritabanı Bağlantısı (İyileştirilmiş Error Handling)
 // ================================================================
+if (!function_exists('lumen_db_dsn')) {
+  /**
+   * SQL Server DSN'i. Microsoft ODBC Driver 18 varsayılan olarak şifreli bağlantı ve
+   * GEÇERLİ bir sunucu sertifikası ister; LOGO kurulumlarının çoğu kendinden imzalı
+   * sertifika kullandığından bu durumda bağlantı reddedilir. Kurulum sihirbazı
+   * bağlantıyı TrustServerCertificate=1 ile test ettiğinden sihirbaz başarılı olup
+   * uygulama bağlanamıyordu. Davranış .env ile yönetilir:
+   *   AKL_DB_ENCRYPT=0|1        → Encrypt (boş: sürücü varsayılanı)
+   *   AKL_DB_TRUST_CERT=0|1     → TrustServerCertificate (varsayılan 1: sihirbazla aynı)
+   */
+  function lumen_db_dsn(string $sunucu, string $veritabani): string
+  {
+    $dsn = "sqlsrv:server={$sunucu};database={$veritabani}";
+    $encrypt = (string) getenv('AKL_DB_ENCRYPT');
+    if ($encrypt === '0' || $encrypt === '1') {
+      $dsn .= ";Encrypt={$encrypt}";
+    }
+    $trust = (string) getenv('AKL_DB_TRUST_CERT');
+    $dsn .= ';TrustServerCertificate=' . ($trust === '0' ? '0' : '1');
+    return $dsn;
+  }
+}
+
 try {
   $SET = 'UTF-8';
-  $dbh = new PDO("sqlsrv:server=$anamakina;database=$veritabani;", $kullanici, $sifre);
+  $dbh = new PDO(lumen_db_dsn((string) $anamakina, (string) $veritabani), $kullanici, $sifre);
 
   // Güvenlik: PDO ayarları
   $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
