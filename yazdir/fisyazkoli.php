@@ -157,6 +157,12 @@ if (!isset($_GET['stokhareket'])) {
     exit;
 }
 $stokhareket = intval($_GET['stokhareket']);
+// Özel cari kısıtı (fisyaz.php / yeni_dizayn.php ile aynı): kısıtlı carinin
+// siparişi numara değiştirilerek yazdırılamaz.
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 
 // 1) Fiş bilgilerini çek
 $stmtFis = $dbh->prepare("

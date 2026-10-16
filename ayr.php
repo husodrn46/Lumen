@@ -2008,6 +2008,15 @@ if (!function_exists('m_p_siparis_cari_ref_getir')) {
     $stmt->execute();
     $clientRef = $stmt->fetchColumn();
 
+    if ($clientRef === false) {
+      // Yazdırma ekranları (yeni_dizayn, hizli_yazdir) stok fişlerini (STFICHE) de
+      // aynı kimlikle açar; fiş orada ise onun carisiyle değerlendirilir.
+      $stmtSt = $dbh->prepare("SELECT TOP 1 CLIENTREF FROM {$firmadonem}STFICHE WITH(NOLOCK) WHERE LOGICALREF = :ref");
+      $stmtSt->bindValue(':ref', $siparisRef, PDO::PARAM_INT);
+      $stmtSt->execute();
+      $clientRef = $stmtSt->fetchColumn();
+    }
+
     return $clientRef === false ? null : (int) $clientRef;
   }
 }

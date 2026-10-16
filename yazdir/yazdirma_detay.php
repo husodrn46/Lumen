@@ -8,20 +8,11 @@ ob_start();
 
 include_once(__DIR__ . "/../ayr.php");
 
-// Session kontrolü
-if (session_id() === '') {
-    lumen_oturum_baslat();
-}
-
-if (!isset($_SESSION['plasiyer_id']) || empty($_SESSION['plasiyer_id'])) {
-    ob_clean(); // Önceki tüm çıktıları temizle
-    http_response_code(401);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => false, 'message' => 'Oturum gerekli']);
-    exit;
-}
-
-$terminalkullanici = $_SESSION['plasiyer_id'];
+// Oturum + zorla çıkış + saldırı modu kontrolü kontrol.php'den geçer (eskiden yalnız
+// $_SESSION'a bakılıyordu; yönetici tarafından kapatılan oturum okumaya devam
+// ediyordu). Bu uç yalnız JSON döndürdüğünden kontrol.php'nin JSON yanıt yolu seçilir.
+$_SERVER['HTTP_ACCEPT'] = 'application/json';
+require_once __DIR__ . '/../kontrol.php';
 
 // Önceki tüm çıktıları temizle (ayr.php, kontrol.php vs.'den gelen HTML)
 ob_clean();
@@ -30,6 +21,11 @@ ob_clean();
 header('Content-Type: application/json; charset=utf-8');
 
 $fisRef = isset($_GET['fis']) ? intval($_GET['fis']) : 0;
+if ($fisRef > 0 && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisRef)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Yetkiniz yok']);
+    exit;
+}
 
 if ($fisRef <= 0) {
     echo json_encode(['success' => false, 'message' => 'Geçersiz fiş referansı']);

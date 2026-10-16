@@ -12,6 +12,12 @@ if (!isset($_GET['stokhareket'])) {
 	}
 
 	$stokhareket = (int)$_GET['stokhareket'];
+// Özel cari kısıtı (fisyaz.php / yeni_dizayn.php ile aynı): kısıtlı carinin
+// siparişi numara değiştirilerek yazdırılamaz.
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 	$fisyazBackUrl = safeLocalReturnUrl(
 	  isset($_GET['return_to']) ? (string) $_GET['return_to'] : '',
 	  '../siparis/lg_essiparis.php'
@@ -63,6 +69,8 @@ $totalDisc  = isset($listfis['TOTALDISCOUNTS']) ? (float)$listfis['TOTALDISCOUNT
 $totalVat   = isset($listfis['TOTALVAT']) ? (float)$listfis['TOTALVAT'] : 0.0;
 $netTotal   = isset($listfis['NETTOTAL']) ? (float)$listfis['NETTOTAL'] : 0.0;
 $bakiye     = isset($sqlbakiye['BAKIYE']) ? (float)$sqlbakiye['BAKIYE'] : 0.0;
+// Cari bakiyesi yalnız CR1 (bakiye görme) yetkisiyle gösterilir (lg_fis.php ile aynı).
+$bakiyeGorunur = (int) ($yetkidurum ?? 1) === 0 || (int) m_p_yetki($terminalkullanici, 'CR1') === 1;
 
 
 $iskontoOrani = $grossTotal > 0 ? ($totalDisc / $grossTotal) * 100 : 0;
@@ -632,6 +640,7 @@ function esc(mixed $v): string
           <div class="label"><i class="fa-solid fa-id-badge"></i>Cari Kodu</div>
           <div class="val code"><?= esc($sqlbakiye['KODU'] ?? '-'); ?></div>
         </div>
+        <?php if ($bakiyeGorunur): ?>
         <div class="info-item">
           <div class="label"><i class="fa-solid fa-wallet"></i>Mevcut Bakiye</div>
           <div class="val amount <?= $bakiye >= 0 ? 'positive' : 'negative'; ?>"><?= tl($bakiye); ?></div>
@@ -640,6 +649,7 @@ function esc(mixed $v): string
           <div class="label"><i class="fa-solid fa-scale-balanced"></i>Son Bakiye</div>
           <div class="val amount"><?= tl($bakiye + $netTotal); ?></div>
         </div>
+        <?php endif; ?>
         <div class="info-item full">
           <div class="label"><i class="fa-solid fa-building"></i>Firma / Ünvan</div>
           <div class="val"><?= esc(trcevir($sqlbakiye['UNVANI'] ?? '-')); ?></div>
@@ -774,6 +784,7 @@ function esc(mixed $v): string
             <span class="s-lbl">Net Toplam</span>
             <span class="s-val"><?= tl($netTotal); ?></span>
           </div>
+          <?php if ($bakiyeGorunur): ?>
           <div class="summary-row balance">
             <span class="s-lbl">Mevcut Bakiye</span>
             <span class="s-val"><?= tl($bakiye); ?></span>
@@ -782,6 +793,7 @@ function esc(mixed $v): string
             <span class="s-lbl">Son Bakiye (Bakiye + Net)</span>
             <span class="s-val"><?= tl($bakiye + $netTotal); ?></span>
           </div>
+          <?php endif; ?>
         </div>
       </div>
     </section>

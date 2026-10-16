@@ -1800,7 +1800,7 @@ foreach ($resultRows as $r) {
                             <?php if ($hasDoviz): ?>
                                 <span class="status-badge status-doviz"><i class="fa-solid <?php echo $dovizIcon; ?>" style="margin-right:3px;font-size:10px;"></i><?php echo htmlspecialchars($dovizSembol, ENT_QUOTES, 'UTF-8'); ?></span>
                             <?php endif; ?>
-                            <a href="../yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>"
+                            <a href="../yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>&t=<?php echo urlencode(csrf_token()); ?>"
                                class="btn-flat btn-red" style="padding:6px 10px;font-size:12px;" title="Hızlı Yazdır">
                                 <i class="fa-solid fa-print"></i>
                             </a>
@@ -1910,10 +1910,10 @@ foreach ($resultRows as $r) {
                                 <i class="fa fa-chevron-down" style="font-size:10px;margin-left:2px;"></i>
                             </button>
                             <div class="print-dropdown" style="display:none;">
-                                <a href="../yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="../yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>&t=<?php echo urlencode(csrf_token()); ?>">
                                     <i class="fa-solid fa-bolt"></i> Hızlı Yazdır
                                 </a>
-                                <a href="../yazdir/hizli_yazdir.php?tercih=depo.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="../yazdir/hizli_yazdir.php?tercih=depo.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>&t=<?php echo urlencode(csrf_token()); ?>">
                                     <i class="fa-solid fa-warehouse"></i> Depo Yazdır
                                 </a>
                                 <a href="../yazdir/fisyazhtml.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
@@ -1923,7 +1923,7 @@ foreach ($resultRows as $r) {
                                     <i class="fa-solid fa-file"></i> PDF (Fiyatsız)
                                 </a>
                                 <?php if ($hasDoviz): ?>
-                                <a href="../yazdir/hizli_yazdir.php?tercih=dovizli.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="../yazdir/hizli_yazdir.php?tercih=dovizli.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>&t=<?php echo urlencode(csrf_token()); ?>">
                                     <i class="fa-solid <?php echo $dovizIcon; ?>"></i> <?php echo htmlspecialchars($dovizLabel, ENT_QUOTES, 'UTF-8'); ?>
                                 </a>
                                 <?php endif; ?>

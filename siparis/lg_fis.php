@@ -830,7 +830,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                   </a>
                   <button id="btnFastPrint" type="button"
                      class="btn-flat btn-red" style="padding:8px 14px;"
-                     data-url="../yazdir/hizli_yazdir.php?stokhareket=<?php echo $stokhareket; ?>&tip=1&ajax=1"
+                     data-url="../yazdir/hizli_yazdir.php?stokhareket=<?php echo (int) $stokhareket; ?>&tip=1&ajax=1&t=<?php echo urlencode(csrf_token()); ?>"
                      title="Hızlı Yazdır">
                      <i class="fa fa-bolt"></i><i class="fa fa-print"></i>
                   </button>

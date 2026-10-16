@@ -48,6 +48,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ? mb_substr((string)$aciklama, 0, 33, 'UTF-8')
         : substr((string)$aciklama, 0, 33);
 
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Geçersiz güvenlik doğrulaması. Sayfayı yenileyip tekrar deneyin.');
+    }
+    // POST'taki fiş için görünürlük (üstteki kontrol GET/oturum değerine bakar)
+    if ($stokhareket > 0 && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+        header('Location: ' . APP_ROOT_URL . '/403.html');
+        exit;
+    }
+    // Açıklamalar yalnız sipariş düzenleme yetkisiyle yazılır; yazdırma herkese açık
+    // (lg_siparis.php ile aynı kural).
+    $aciklamaYazilabilir = m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null);
+
     if ($stokhareket > 0) {
         $islem_basarili = false;
         $hata_mesaji = '';
@@ -61,15 +74,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        DOCODE = :docode
                  WHERE LOGICALREF = :stokhareket
             ");
-            $stmt_update->execute([
-                ':aciklama'    => $aciklama,
-                ':aciklama2'   => $aciklama2,
-                ':docode'      => $docode,
-                ':stokhareket' => $stokhareket,
-            ]);
+            if ($aciklamaYazilabilir) {
+                $stmt_update->execute([
+                    ':aciklama'    => $aciklama,
+                    ':aciklama2'   => $aciklama2,
+                    ':docode'      => $docode,
+                    ':stokhareket' => $stokhareket,
+                ]);
+            }
 
             // ORFICHE'de kayıt yoksa STFICHE'yi güncelle
-            if ($stmt_update->rowCount() == 0) {
+            if ($aciklamaYazilabilir && $stmt_update->rowCount() == 0) {
                 $stmt_update2 = $dbh->prepare("
                     UPDATE {$firmadonem}STFICHE
                        SET GENEXP1 = :aciklama,
@@ -707,6 +722,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
 
   <main style="max-width:720px;margin:0 auto;padding:24px 20px 60px;">
     <form id="form" method="POST" action="">
+      <?php echo csrf_field(); ?>
       <input type="hidden" name="stokhareket" value="<?php echo $stokhareket; ?>">
 
       <?php

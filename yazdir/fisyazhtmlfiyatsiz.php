@@ -12,6 +12,12 @@ if (!isset($_GET['stokhareket'])) {
 	}
 
 	$stokhareket = (int)$_GET['stokhareket'];
+// Özel cari kısıtı (fisyaz.php / yeni_dizayn.php ile aynı): kısıtlı carinin
+// siparişi numara değiştirilerek yazdırılamaz.
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 	$yazdir = isset($_GET['yazdir']) ? (string)$_GET['yazdir'] : '';
 	$fisyazFiyatsizBackUrl = safeLocalReturnUrl(
 	    isset($_GET['return_to']) ? (string) $_GET['return_to'] : '',

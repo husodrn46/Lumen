@@ -14,6 +14,12 @@ $stokhareket = $_GET['stokhareket'];
 
 // Yazdırma işlemini logla
 $stokhareket = (int) $stokhareket;
+// Özel cari kısıtı (fisyaz.php / yeni_dizayn.php ile aynı): kısıtlı carinin
+// siparişi numara değiştirilerek yazdırılamaz.
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 $stmtFisNoLog = $dbh->prepare("SELECT FICHENO FROM {$firmadonem}ORFICHE WHERE LOGICALREF = :stokhareket");
 $stmtFisNoLog->execute([':stokhareket' => $stokhareket]);
 $fisNoLog = $stmtFisNoLog->fetch(PDO::FETCH_ASSOC);
