@@ -9,7 +9,7 @@ header('Content-Type: application/json; charset=utf-8');
  *  Parametre ve joker (%) hazırlığı
  * ----------------------------------------------------- */
 $raw = isset($_GET['term']) ? trim((string) $_GET['term']) : '';
-$like = '%' . str_replace(['%', '_'], ['\%','\_'], $raw) . '%';
+$like = '%' . str_replace(['[', '%', '_'], ['[[]', '[%]', '[_]'], $raw) . '%';
 
 /* -------------------------------------------------------
  *  Sorgu – aktif cariler + arama filtresi
@@ -27,13 +27,13 @@ $sql = "
          COUNTRY
   FROM   {$firma}CLCARD
   WHERE  ACTIVE = 0
-    AND ( CODE          LIKE :q
-       OR DEFINITION_   LIKE :q
-       OR DEFINITION2   LIKE :q )
+    AND ( CODE          LIKE :q1
+       OR DEFINITION_   LIKE :q2
+       OR DEFINITION2   LIKE :q3 )
   ORDER BY CODE";
 
 $stmt = $dbh->prepare($sql);
-$stmt->execute([':q' => $like]);
+$stmt->execute([':q1' => $like, ':q2' => $like, ':q3' => $like]);
 
 /* -------------------------------------------------------
  *  JSON çıktısı

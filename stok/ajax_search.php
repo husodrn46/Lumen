@@ -19,20 +19,22 @@ try {
     // Müşteri arama
     $stmt = $dbh->prepare("SELECT TOP 5 LOGICALREF, CODE, DEFINITION_
                           FROM {$firma}CLCARD
-                          WHERE DEFINITION_ LIKE :query OR CODE LIKE :query
+                          WHERE DEFINITION_ LIKE :query1 OR CODE LIKE :query2
                           ORDER BY DEFINITION_");
-    $escaped = str_replace(['[', ']', '%', '_'], ['[[]', '[]]', '[%]', '[_]'], $query);
+    $escaped = str_replace(['[', '%', '_'], ['[[]', '[%]', '[_]'], $query);
     $searchTerm = '%' . $escaped . '%';
-    $stmt->bindParam(':query', $searchTerm, PDO::PARAM_STR);
+    $stmt->bindParam(':query1', $searchTerm, PDO::PARAM_STR);
+    $stmt->bindParam(':query2', $searchTerm, PDO::PARAM_STR);
     $stmt->execute();
     $results['customers'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Ürün arama
     $stmt = $dbh->prepare("SELECT TOP 5 LOGICALREF, CODE, NAME
                           FROM {$firma}ITEMS
-                          WHERE NAME LIKE :query OR CODE LIKE :query
+                          WHERE NAME LIKE :query1 OR CODE LIKE :query2
                           ORDER BY NAME");
-    $stmt->bindParam(':query', $searchTerm, PDO::PARAM_STR);
+    $stmt->bindParam(':query1', $searchTerm, PDO::PARAM_STR);
+    $stmt->bindParam(':query2', $searchTerm, PDO::PARAM_STR);
     $stmt->execute();
     $results['products'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
