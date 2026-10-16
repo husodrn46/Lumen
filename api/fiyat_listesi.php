@@ -7,7 +7,8 @@ declare(strict_types=1);
  * Yanıt: { ok, urunler:[{ kod, ad, fiyat, fiyat_metin, kdv, kdv_dahil, kdv_dahil_metin }], sayi }
  *
  * Token zorunlu. Aktif ürünlerin (ITEMS ACTIVE=0) satış fiyat listesi: PRCLIST (CARDREF,
- * ACTIVE=0) fiyatı + ITEMS.VAT KDV oranı + KDV dahil. PRCLIST satış satırı (PTYPE 1) öncelikli.
+ * ACTIVE=0) fiyatı + ITEMS.VAT KDV oranı + KDV dahil. Yalnız satış fiyatı (PTYPE 2;
+ * PTYPE 1 alış fiyatıdır — eskiden önce o seçiliyor, maliyet satış fiyatı gibi dönüyordu).
  * (Web ../fiyat/fiyat_listesi.php ile aynı kaynak; çoklu fiyat satırına karşı TOP 1 alt sorgu.)
  */
 
@@ -36,8 +37,8 @@ try {
         SELECT TOP {$limit}
             I.CODE AS kod, I.NAME AS ad, ISNULL(I.VAT, 0) AS kdv,
             ISNULL((SELECT TOP 1 P.PRICE FROM {$firma}PRCLIST P WITH(NOLOCK)
-                    WHERE P.CARDREF = I.LOGICALREF AND P.ACTIVE = 0
-                    ORDER BY P.PTYPE ASC, P.LOGICALREF ASC), 0) AS fiyat
+                    WHERE P.CARDREF = I.LOGICALREF AND P.PTYPE = 2 AND P.ACTIVE = 0
+                    ORDER BY P.LOGICALREF DESC), 0) AS fiyat
         FROM {$firma}ITEMS I WITH(NOLOCK)
         WHERE {$whereSql}
         ORDER BY I.CODE";
