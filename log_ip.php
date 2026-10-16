@@ -8,9 +8,8 @@ if (function_exists('app_php_error_log_file')) {
     @ini_set('error_log', app_php_error_log_file());
 }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
+require_once __DIR__ . '/includes/oturum.php';
+lumen_oturum_baslat();
 
 // Kullanıcı bilgisi: öncelikle kullanıcı adı, yoksa kullanıcı ID, yoksa guest
 if (isset($_SESSION['kullanici_adi'])) {

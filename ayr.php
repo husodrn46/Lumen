@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/includes/oturum.php';
+
 //header("Content-Type: text/html; charset=utf-8");
 # Set timezone
 date_default_timezone_set('Europe/Istanbul');
@@ -119,7 +121,7 @@ function safe(mixed $value, mixed $default = ''): string
 function csrf_token(): string
 {
     if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+        lumen_oturum_baslat();
     }
 
     if (empty($_SESSION['csrf_token'])) {
@@ -146,7 +148,7 @@ function csrf_field(): string
 function csrf_verify(?string $token = null): bool
 {
     if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+        lumen_oturum_baslat();
     }
 
     if ($token === null) {
@@ -166,7 +168,7 @@ function csrf_verify(?string $token = null): bool
 function csrf_regenerate(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+        lumen_oturum_baslat();
     }
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }

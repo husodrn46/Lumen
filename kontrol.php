@@ -66,26 +66,8 @@ if (!function_exists('lumen_kontrol_yonlendir_veya_json')) {
 
 // 1. Güvenli Oturum Ayarları
 // session_start() öncesinde cookie parametreleri ayarlanır.
-if (session_status() === PHP_SESSION_NONE) {
-    if (function_exists('session_set_cookie_params')) {
-        // HTTPS kontrolü - secure flag'i otomatik ayarla
-        $is_https = (
-            (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
-            (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) ||
-            (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
-        );
-
-        session_set_cookie_params([
-            'lifetime' => 0,    // tarayıcı kapanana kadar
-            'path' => '/',
-            'domain' => '',
-            'secure' => $is_https,  // HTTPS varsa secure flag aktif
-            'httponly' => true,
-            'samesite' => 'Strict'
-        ]);
-    }
-    session_start();
-}
+require_once __DIR__ . '/includes/oturum.php';
+lumen_oturum_baslat();
 
 // 2. Session Fixation Koruması
 // Oturum ID'sini yenile (sadece ilk kontrolde)

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../includes/oturum.php';
+
 // Output buffering başlat (tüm çıktıyı yakala)
 ob_start();
 
@@ -8,7 +10,7 @@ include_once(__DIR__ . "/../ayr.php");
 
 // Session kontrolü
 if (session_id() === '') {
-    session_start();
+    lumen_oturum_baslat();
 }
 
 if (!isset($_SESSION['plasiyer_id']) || empty($_SESSION['plasiyer_id'])) {

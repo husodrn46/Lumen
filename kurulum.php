@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/includes/oturum.php';
+
 /**
  * kurulum.php — Lumen kurulum sihirbazı.
  *
@@ -18,7 +20,7 @@ declare(strict_types=1);
  * henüz yoktur. Kendi PDO test bağlantısını kurar.
  */
 
-session_start();
+lumen_oturum_baslat();
 $KOK       = __DIR__;
 $LOCK      = $KOK . '/.installed';
 $ENV       = $KOK . '/.env';

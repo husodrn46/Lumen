@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/includes/oturum.php';
+
 /**
  * js_hata_log.php — Tarayici (frontend) JS hatalarini app-error loguna yazar.
  * pwa-header.php icindeki window.onerror / unhandledrejection yakalayicilari
@@ -34,7 +36,7 @@ if ($mesaj === '') {
 
 // Personel kimligi (varsa) — hafif, DB yok
 if (session_status() === PHP_SESSION_NONE) {
-    @session_start();
+    lumen_oturum_baslat();
 }
 $personel = isset($_SESSION['plasiyer_id']) ? (int) $_SESSION['plasiyer_id'] : null;
 

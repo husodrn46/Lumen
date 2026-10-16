@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../includes/oturum.php';
+
 if (!function_exists('denetimSayfaListesi')) {
     /**
      * Yetki denetiminde test edilecek temel sayfalar.
@@ -159,7 +161,7 @@ if (!function_exists('denetimProbeSessionOlustur')) {
     function denetimProbeSessionOlustur(int $userId): array
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
+            lumen_oturum_baslat();
         }
 
         $sessionName = session_name();
@@ -171,14 +173,14 @@ if (!function_exists('denetimProbeSessionOlustur')) {
         session_write_close();
 
         session_id($probeSessionId);
-        session_start();
+        lumen_oturum_baslat();
         $_SESSION = [];
         $_SESSION['plasiyer_id'] = $userId;
         $_SESSION['session_regenerated'] = true;
         session_write_close();
 
         session_id($adminSessionId);
-        session_start();
+        lumen_oturum_baslat();
 
         return [
             'session_name' => $sessionName,
@@ -198,7 +200,7 @@ if (!function_exists('denetimProbeSessionTemizle')) {
         }
 
         if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
+            lumen_oturum_baslat();
         }
 
         $adminSessionId = session_id();
@@ -206,13 +208,13 @@ if (!function_exists('denetimProbeSessionTemizle')) {
         session_write_close();
 
         session_id($probeSessionId);
-        session_start();
+        lumen_oturum_baslat();
         $_SESSION = [];
         session_destroy();
         session_write_close();
 
         session_id($adminSessionId);
-        session_start();
+        lumen_oturum_baslat();
     }
 }
 
