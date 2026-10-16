@@ -108,16 +108,28 @@ if (
 	$fisno = $sipno . $fisnox;
 	$guid = guid();
 
-	$stmtEkle = $dbh->prepare("INSERT INTO " . $firmadonem . "ORFICHE  ( 
+	$sqlFisEkle = "INSERT INTO " . $firmadonem . "ORFICHE  ( 
 TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,CENTERREF,SOURCEINDEX,SOURCECOSTGRP,UPDCURR,ADDDISCOUNTS,TOTALDISCOUNTS,TOTALDISCOUNTED,ADDEXPENSES,TOTALEXPENSES,TOTALPROMOTIONS,TOTALVAT,GROSSTOTAL,NETTOTAL,REPORTRATE,REPORTNET,GENEXP1,GENEXP2,GENEXP3,GENEXP4,EXTENREF,PAYDEFREF,PRINTCNT,BRANCH,DEPARTMENT,STATUS,CAPIBLOCK_CREATEDBY,CAPIBLOCK_CREADEDDATE,CAPIBLOCK_CREATEDHOUR,CAPIBLOCK_CREATEDMIN,CAPIBLOCK_CREATEDSEC,CAPIBLOCK_MODIFIEDBY,CAPIBLOCK_MODIFIEDDATE,CAPIBLOCK_MODIFIEDHOUR,CAPIBLOCK_MODIFIEDMIN,CAPIBLOCK_MODIFIEDSEC,SALESMANREF,SHPTYPCOD,SHPAGNCOD,GENEXCTYP,LINEEXCTYP,TRADINGGRP,TEXTINC,SITEID,RECSTATUS,ORGLOGICREF,FACTORYNR,WFSTATUS,SHIPINFOREF,CUSTORDNO,SENDCNT,DLVCLIENT,DOCTRACKINGNR,CANCELLED,ORGLOGOID,OFFERREF,OFFALTREF,TYP,ALTNR,ADVANCEPAYM,TRCURR,TRRATE,TRNET,PAYMENTTYPE,ONLYONEPAYLINE,OPSTAT,WITHPAYTRANS,PROJECTREF,WFLOWCRDREF,UPDTRCURR,AFFECTCOLLATRL,POFFERBEGDT,POFFERENDDT,REVISNR,LASTREVISION,CHECKAMOUNT,SLSOPPRREF,SLSACTREF,SLSCUSTREF,AFFECTRISK,TOTALADDTAX,TOTALEXADDTAX,APPROVE,APPROVEDATE,CHECKPRICE,GUID,EINVOICE 
 )VALUES (
 :siparisdurum,:fisno,DATEADD(day,0,datediff(day,0,GETDATE())),:kayitsaat,'','','',:cariid,0,0,0,:depo,0,0,0,0,0,0,0,0,0,0,0,1,0,'','','','',0,0,0,0,0,:status,1,DATEADD(day,0,datediff(day,0,GETDATE())),:saat,:dakika,:saniye,0,NULL,0,0,0,:terminalkullanici,'','',2,0,'',0,0,1,0,0,0,0,'',0,0,'',0,'',0,0,0,0,0,:doviz,:dovizkuru,0,0,0,0,0,0,0,0,0,NULL,NULL,'',0,0,0,0,0,1,0,0,0,NULL,0,:guid,0
-)");
-	$ekle = $stmtEkle->execute([':siparisdurum' => $siparisdurum, ':fisno' => $fisno, ':kayitsaat' => (int) $kayitsaat, ':cariid' => $cariid, ':depo' => (int) $depo, ':status' => $status, ':saat' => (int) $saat, ':dakika' => (int) $dakika, ':saniye' => (int) $saniye, ':terminalkullanici' => (int) $terminalkullanici, ':doviz' => (int) $doviz, ':dovizkuru' => (float) $dovizkuru, ':guid' => (string) $guid]);
+)";
+	// Gerçek kimlik OUTPUT INSERTED ile alınır (MAX(LOGICALREF) eşzamanlı kayıtta
+	// başka kullanıcının fişini döndürebiliyordu). Tahmini fiş no gerçek kimlikten
+	// farklıysa düzeltilir; böylece iki fiş aynı FICHENO'yu almaz.
+	$ekle = false;
+	try {
+		$sonsiparisid = lumen_insert_kimlik($dbh, $sqlFisEkle, [':siparisdurum' => $siparisdurum, ':fisno' => $fisno, ':kayitsaat' => (int) $kayitsaat, ':cariid' => $cariid, ':depo' => (int) $depo, ':status' => $status, ':saat' => (int) $saat, ':dakika' => (int) $dakika, ':saniye' => (int) $saniye, ':terminalkullanici' => (int) $terminalkullanici, ':doviz' => (int) $doviz, ':dovizkuru' => (float) $dovizkuru, ':guid' => (string) $guid]);
+		$ekle = true;
+	} catch (Throwable $e) {
+		error_log('fisekle INSERT: ' . $e->getMessage());
+	}
 	if ($ekle) {//echo "fiş açma işlem başarılı";
-		$stmtSonId->execute();
-		$sip = $stmtSonId->fetch(PDO::FETCH_ASSOC);
-		$sonsiparisid = intcevir($sip['SONID']);
+		$gercekFisno = $sipno . str_pad((string) $sonsiparisid, 6, '0', STR_PAD_LEFT);
+		if ($gercekFisno !== $fisno) {
+			$fisno = $gercekFisno;
+			$dbh->prepare("UPDATE " . $firmadonem . "ORFICHE SET FICHENO = :f WHERE LOGICALREF = :id")
+				->execute([':f' => $fisno, ':id' => $sonsiparisid]);
+		}
 
 		// ========================================
 		// Fiş oluşturma işlemini logla

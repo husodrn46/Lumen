@@ -70,11 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $dovizKuru > 0 && !isset($hata)) {
         $fisnox = str_pad((string)$sonsiparisid, 6, '0', STR_PAD_LEFT);
         $fisno = 'DV' . $seciliDoviz['kod'] . $fisnox;
 
-        // Zaman bilgileri
+        // Zaman bilgileri — LOGO TIME_ kodlaması ayr.php'deki $kayitsaat ile aynı
+        // (saat*2^24 + dakika*2^16 + saniye*2^8); eski h*65536+m*256+s formülü
+        // siparişlerin LOGO'da yanlış saatle görünmesine yol açıyordu.
         $saat = (int)date('H');
         $dakika = (int)date('i');
         $saniye = (int)date('s');
-        $kayitsaat = $saat * 65536 + $dakika * 256 + $saniye;
+        $kayitsaat = $saat * 16777216 + $dakika * 65536 + $saniye * 256;
         $guid = function_exists('guid') ? guid() : uniqid('', true);
 
         $siparisdurum = 1; // satış
@@ -84,13 +86,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $dovizKuru > 0 && !isset($hata)) {
         $genexp1 = isset($_POST['genexp1']) ? mb_substr(trim((string)$_POST['genexp1']), 0, 250) : '';
 
         // Sipariş oluştur - ../siparis/fisekle.php ile AYNI yapı
-        $stmtEkle = $dbh->prepare("INSERT INTO {$firmadonem}ORFICHE (
+        $sqlFisEkle = ("INSERT INTO {$firmadonem}ORFICHE (
 TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,CENTERREF,SOURCEINDEX,SOURCECOSTGRP,UPDCURR,ADDDISCOUNTS,TOTALDISCOUNTS,TOTALDISCOUNTED,ADDEXPENSES,TOTALEXPENSES,TOTALPROMOTIONS,TOTALVAT,GROSSTOTAL,NETTOTAL,REPORTRATE,REPORTNET,GENEXP1,GENEXP2,GENEXP3,GENEXP4,EXTENREF,PAYDEFREF,PRINTCNT,BRANCH,DEPARTMENT,STATUS,CAPIBLOCK_CREATEDBY,CAPIBLOCK_CREADEDDATE,CAPIBLOCK_CREATEDHOUR,CAPIBLOCK_CREATEDMIN,CAPIBLOCK_CREATEDSEC,CAPIBLOCK_MODIFIEDBY,CAPIBLOCK_MODIFIEDDATE,CAPIBLOCK_MODIFIEDHOUR,CAPIBLOCK_MODIFIEDMIN,CAPIBLOCK_MODIFIEDSEC,SALESMANREF,SHPTYPCOD,SHPAGNCOD,GENEXCTYP,LINEEXCTYP,TRADINGGRP,TEXTINC,SITEID,RECSTATUS,ORGLOGICREF,FACTORYNR,WFSTATUS,SHIPINFOREF,CUSTORDNO,SENDCNT,DLVCLIENT,DOCTRACKINGNR,CANCELLED,ORGLOGOID,OFFERREF,OFFALTREF,TYP,ALTNR,ADVANCEPAYM,TRCURR,TRRATE,TRNET,PAYMENTTYPE,ONLYONEPAYLINE,OPSTAT,WITHPAYTRANS,PROJECTREF,WFLOWCRDREF,UPDTRCURR,AFFECTCOLLATRL,POFFERBEGDT,POFFERENDDT,REVISNR,LASTREVISION,CHECKAMOUNT,SLSOPPRREF,SLSACTREF,SLSCUSTREF,AFFECTRISK,TOTALADDTAX,TOTALEXADDTAX,APPROVE,APPROVEDATE,CHECKPRICE,GUID,EINVOICE
 ) VALUES (
 :siparisdurum,:fisno,DATEADD(day,0,datediff(day,0,GETDATE())),:kayitsaat,'','','',:cariid,0,0,0,:depo,0,0,0,0,0,0,0,0,0,0,0,1,0,:genexp1,'','','',0,0,0,0,0,:status,1,DATEADD(day,0,datediff(day,0,GETDATE())),:saat,:dakika,:saniye,0,NULL,0,0,0,:terminalkullanici,'','',2,0,'',0,0,1,0,0,0,0,'',0,0,'',0,'',0,0,0,0,0,:doviz,:dovizkuru,0,0,0,0,0,0,0,0,0,NULL,NULL,'',0,0,0,0,0,1,0,0,0,NULL,0,:guid,0
 )");
 
-        $ekle = $stmtEkle->execute([
+        // Gerçek kimlik OUTPUT INSERTED ile (MAX(LOGICALREF) eşzamanlı kayıtta yanlış fişi döndürür)
+        $yeniSiparisId = lumen_insert_kimlik($dbh, $sqlFisEkle, [
             ':siparisdurum' => $siparisdurum,
             ':fisno' => $fisno,
             ':kayitsaat' => (int)$kayitsaat,
@@ -106,12 +109,15 @@ TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,
             ':dovizkuru' => (float)$dovizKuru,
             ':guid' => (string)$guid,
         ]);
+        $ekle = true;
 
         if ($ekle) {
-            // Oluşturulan siparişin ID'sini al
-            $stmtSonId->execute();
-            $sip = $stmtSonId->fetch(PDO::FETCH_ASSOC);
-            $yeniSiparisId = (int)$sip['SONID'];
+            $gercekFisno = 'DV' . $seciliDoviz['kod'] . str_pad((string) $yeniSiparisId, 6, '0', STR_PAD_LEFT);
+            if ($gercekFisno !== $fisno) {
+                $fisno = $gercekFisno;
+                $dbh->prepare("UPDATE {$firmadonem}ORFICHE SET FICHENO = :f WHERE LOGICALREF = :id")
+                    ->execute([':f' => $fisno, ':id' => $yeniSiparisId]);
+            }
 
             // Loglama
             if (function_exists('logFisOlusturma')) {
@@ -138,7 +144,7 @@ TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,
         }
 
     } catch (PDOException $e) {
-        $hata = "Sipariş oluşturma hatası: " . $e->getMessage();
+        $hata = "Sipariş oluşturulamadı. Lütfen tekrar deneyin.";
         error_log("Döviz sipariş oluşturma hatası: " . $e->getMessage());
     }
 }

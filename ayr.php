@@ -794,6 +794,31 @@ function dovizsembol_bul(int|string $doviz): string
   return $semboller[(int)$doviz] ?? '₺';
 }
 
+if (!function_exists('lumen_insert_kimlik')) {
+  /**
+   * Tek satırlık "INSERT INTO T (...) VALUES (...)" çalıştırır ve eklenen satırın
+   * LOGICALREF'ini döndürür. Kimlik OUTPUT INSERTED ... INTO tablo değişkeni ile
+   * alınır: LOGO tablolarındaki trigger'larla uyumludur (OUTPUT'u doğrudan kullanmak
+   * trigger'lı tabloda hata verir) ve eşzamanlı kayıtlarda yanlış satırı döndüren
+   * "SELECT MAX(LOGICALREF)" yönteminin yerine geçer.
+   */
+  function lumen_insert_kimlik(PDO $dbh, string $insertSql, array $parametreler): int
+  {
+    $sql = preg_replace('/\)\s*VALUES\s*\(/i', ') OUTPUT INSERTED.LOGICALREF INTO @lumen_yeni VALUES (', $insertSql, 1, $adet);
+    if ($sql === null || $adet !== 1) {
+      throw new InvalidArgumentException('lumen_insert_kimlik: INSERT ... VALUES (...) bekleniyor');
+    }
+    $stmt = $dbh->prepare("SET NOCOUNT ON; DECLARE @lumen_yeni TABLE (ID INT);\n{$sql};\nSELECT ID FROM @lumen_yeni;");
+    $stmt->execute($parametreler);
+    $id = (int) $stmt->fetchColumn();
+    $stmt->closeCursor();
+    if ($id <= 0) {
+      throw new RuntimeException('lumen_insert_kimlik: yeni kayıt kimliği alınamadı');
+    }
+    return $id;
+  }
+}
+
 // guid - birden fazla dosyada kullanılıyor
 function guid(): string
 {
