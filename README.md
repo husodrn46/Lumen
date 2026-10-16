@@ -157,8 +157,9 @@ nginx kullanıyorsanız `server { … }` bloğunuza şunu ekleyin:
 
 ```nginx
 location ~ /\.            { deny all; }          # .env, .git, .user.ini …
-location ~* \.(inc|ini|sql|log|bak|example)$ { deny all; }
-location ~ ^/(logs|tmp|sql|vendor|scripts)/   { deny all; }
+location ~* \.(inc|ini|sql|log|bak|example|db)$ { deny all; }
+location ~* ^/composer\.(json|lock)$ { deny all; }
+location ~ ^/(logs|tmp|sql|vendor|scripts|database|demo|tests)/   { deny all; }
 ```
 
 Kurulumdan sonra `https://siteniz/.env` adresini tarayıcıda deneyin —

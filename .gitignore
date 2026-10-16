@@ -51,3 +51,6 @@ Desktop.ini
 # Arşiv / geçici Office kilit dosyaları
 *.zip
 ~$*
+
+# Uygulama yerel veritabanları (enflasyon SQLite; TCMB API anahtarı içerir)
+/database/

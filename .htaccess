@@ -25,7 +25,12 @@ Options -Indexes
 #  .sql  : şema betikleri (tablo yapısını ifşa eder)
 #  .log  : uygulama logları
 #  .bak / .old / .orig / .example : yedek ve örnek dosyalar
-<FilesMatch "\.(inc|ini|sql|log|bak|old|orig|example)$">
+<FilesMatch "\.(inc|ini|sql|log|bak|old|orig|example|db)$">
+    Require all denied
+</FilesMatch>
+
+# --- Bağımlılık listesi (sürüm bilgisi saldırgana hedef verir) ----------------
+<FilesMatch "^composer\.(json|lock)$">
     Require all denied
 </FilesMatch>
 
@@ -36,6 +41,9 @@ RedirectMatch 404 (?i)/\.claude(/|$)
 RedirectMatch 404 (?i)/logs?(/|$)
 RedirectMatch 404 (?i)/tmp(/|$)
 RedirectMatch 404 (?i)/sql(/|$)
+RedirectMatch 404 (?i)/database(/|$)
+RedirectMatch 404 (?i)/demo(/|$)
+RedirectMatch 404 (?i)/tests(/|$)
 RedirectMatch 404 (?i)/vendor(/|$)
 RedirectMatch 404 (?i)/scripts(/|$)
 
