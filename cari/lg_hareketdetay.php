@@ -16,6 +16,12 @@ if(isset($_GET['cari_id']))
  $CARIID = (int) $_GET['cari_id'];
  $trcode = (int) $_GET['trcode'];
 $REF = (int) $_GET['REF'];
+// Özel cari kısıtı (lg_hareket.php ile aynı): kısıtlı carinin hareket detayı açılamaz.
+if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4')) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 } else {exit;}
 echo '<a href="lg_fatura_yazdir.php?cari_id='.$CARIID.'&trcode='.$trcode.'&REF='.$REF.'" target="_blank"><img src="tm/s/yaz2.png"></a>';
 ?> 
@@ -59,11 +65,11 @@ $stmt->execute([':cariid' => $CARIID, ':trcode' => $trcode, ':ref' => $REF]);
 
 echo  '<tr style="border-top: 1px solid #000;">
 <td>'.tarihcevir($rowx['DATE_']).'</td>
-<td>'.$rowx['CODE'].'</td>
-<td>'.$rowx['NAME'].'</td>
+<td>'.e($rowx['CODE']).'</td>
+<td>'.e($rowx['NAME']).'</td>
 <td style="text-align:right">'.kusuratadet($rowx['AMOUNT']).'</td>
 <td style="text-align:right">'.kusuratpara($rowx['PRICE']).'</td>
-<td style="text-align:right">'.kusuratpara(($rowx['TOTAL']-$rowx['DISTDISC'])/$rowx['AMOUNT']).'</td>
+<td style="text-align:right">'.((float) $rowx['AMOUNT'] != 0.0 ? kusuratpara(((float) $rowx['TOTAL'] - (float) $rowx['DISTDISC']) / (float) $rowx['AMOUNT']) : '-').'</td>
 <td style="text-align:right">'.kusuratpara($rowx['TOTAL']).'</td>
 
 </tr>' ;

@@ -6,25 +6,27 @@ require_once __DIR__ . '/../kontrol.php';
 include_once(__DIR__ . "/../log_ip.php");
 
 // DEBUG çıktısı
-echo "<!-- DEBUG START -->";
-echo "<!-- ayr.php loaded, dbh exists: " . (isset($dbh) ? 'YES' : 'NO') . " -->";
 
 // en başta cari_id ve REF'i alıyoruz
 if (isset($_GET['cari_id'], $_GET['REF'])) {
     $CARIID = (int)$_GET['cari_id'];
     $REF    = (int)$_GET['REF'];
-    echo "<!-- CARIID: $CARIID, REF: $REF -->";
 } else {
-    echo "<!-- HATA: cari_id veya REF eksik! -->";
     exit;
 }
+if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4')) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 
 // Dönem parametresini al
 $donemParam = isset($_GET['donem']) ? $_GET['donem'] : '';
 
-// Dönem prefix'leri - doğrudan tanımla
-$donem2026 = 'LG_001_02_';
-$donem2025 = 'LG_001_01_';
+// Dönem önekleri yapılandırmadan (.env); sabit 'LG_001_02_' başka firma/dönemde
+// yanlış tabloya bakıyordu.
+$donem2026 = $firmadonem;
+$donem2025 = $eskifirmadonem;
 
 // Önce faturanın türünü CLFLINE'dan çek - her iki dönemde de ara
 $clSatir = null;
@@ -80,8 +82,6 @@ if ($donemParam === '2025') {
     }
 }
 
-echo "<!-- donemBulundu: $donemBulundu -->";
-echo "<!-- clSatir: " . ($clSatir ? 'BULUNDU' : 'YOK') . " -->";
 
 // başlığı belirle (TRCODE: 28,34=Alınan, 29,39=Verilen Hizmet Faturası)
 $trcode = $clSatir ? (int)$clSatir['TRCODE'] : 0;

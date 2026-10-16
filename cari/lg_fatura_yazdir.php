@@ -30,7 +30,7 @@ function paraformat(float|int|string|null $kusurat): string
 <?php
 // Fatura bilgilerini al
 $stmtFatura = $dbh->prepare("
-    SELECT C.DEFINITION_, C.CITY, C.TELNRS1,
+    SELECT C.DEFINITION_, C.CITY, C.TELNRS1, F.CLIENTREF,
            F.FICHENO, F.DATE_, F.NETTOTAL,
            F.GROSSTOTAL, F.TOTALDISCOUNTS, F.TOTALVAT
     FROM {$firmadonem}INVOICE AS F
@@ -40,6 +40,13 @@ $stmtFatura = $dbh->prepare("
 ");
 $stmtFatura->execute([':ref' => $REF]);
 $sqf = $stmtFatura->fetch(PDO::FETCH_ASSOC);
+// Fatura REF ile bulunur; URL'deki cari_id değil faturanın GERÇEK carisi denetlenir
+// (aksi halde kısıtlı carinin faturası başka bir cari_id ile açılabiliyordu).
+if (!$sqf || (int) $sqf['CLIENTREF'] !== $CARIID
+    || !m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, (int) $sqf['CLIENTREF'], 'M4')) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 
 // Cari bakiye
 $stmtBakiye = $dbh->prepare("

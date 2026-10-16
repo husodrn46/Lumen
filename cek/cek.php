@@ -36,6 +36,11 @@ if ($mod === 'tekcek' && $CSREF > 0) {
         // hata olursa URL'deki cari_id ile devam
     }
 }
+// Özel cari kısıtı: kısıtlı carinin çek/bordro detayı açılamaz.
+if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4')) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 
 if (!function_exists('paraformat')) {
     function paraformat(float|int|string|null $kusurat): string
