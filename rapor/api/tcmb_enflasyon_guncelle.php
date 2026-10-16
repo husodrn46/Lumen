@@ -19,13 +19,9 @@ if ((int) m_p_yetki($terminalkullanici, 'M17') !== 1) {
     exit;
 }
 
-// SQLite bağlantısı
-$db_path = __DIR__ . '/../../database/enflasyon.db';
-try {
-    $db = new PDO('sqlite:' . $db_path);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    error_log('tcmb_enflasyon_guncelle hata: ' . $e->getMessage());
+// SQLite bağlantısı (klasör/tablolar yoksa oluşturulur — ayr.php)
+$db = enflasyon_db_baglan();
+if (!$db instanceof PDO) {
     die(json_encode(['success' => false, 'error' => 'Veritabani baglanti hatasi']));
 }
 

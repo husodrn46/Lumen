@@ -943,10 +943,22 @@ function turkcearama(string|int|float|null $text): string
  */
 function enflasyon_db_baglan(): ?PDO
 {
-  $db_path = __DIR__ . '/database/enflasyon.db';
+  // database/ web sunucusu kurallarıyla (.htaccess / web.config / nginx) dışarıya
+  // kapalıdır: dosya TCMB API anahtarını içerir. Klasör ve tablolar ilk
+  // kullanımda oluşturulur (eskiden hiçbir yerde oluşturulmuyordu).
+  $dizin = __DIR__ . '/database';
+  $db_path = $dizin . '/enflasyon.db';
   try {
+    if (!is_dir($dizin) && !mkdir($dizin, 0750, true) && !is_dir($dizin)) {
+      throw new PDOException('database klasörü oluşturulamadı');
+    }
     $db = new PDO('sqlite:' . $db_path);
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db->exec("CREATE TABLE IF NOT EXISTS enflasyon_aylik (
+        yil INTEGER NOT NULL, ay INTEGER NOT NULL, oran REAL NOT NULL DEFAULT 0, tufe REAL NULL,
+        kaynak TEXT NULL, guncellenme_tarihi TEXT NULL, PRIMARY KEY (yil, ay))");
+    $db->exec("CREATE TABLE IF NOT EXISTS enflasyon_api_ayarlar (
+        id INTEGER PRIMARY KEY, api_key TEXT NULL, aktif INTEGER NOT NULL DEFAULT 0, son_guncelleme TEXT NULL)");
     return $db;
   } catch (PDOException $e) {
     error_log("Enflasyon DB Hata: " . $e->getMessage());
@@ -1982,6 +1994,7 @@ if (!function_exists('m_p_siparis_goruntulebilir_mi')) {
     return m_p_cariid_goruntulebilir_mi($dbh, $firma, $personelId, $cariRef, $yetkiKodu);
   }
 }
+
 
 if (!function_exists('m_p_yetki_izin_sutunu_mu')) {
   /**
