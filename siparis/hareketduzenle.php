@@ -121,6 +121,19 @@ if(isset($_POST['stkduzenle'])){
 		throw $e; // Diğer hataları yeniden fırlat
 	}
 
+	// Satır tutarı değişti: fişteki iskonto (1./2.) yeniden dağıtılır. Eskiden
+	// LINENET/VATMATRAH/VATAMNT brüte sıfırlanıp eski DISTDISC bırakılıyordu;
+	// iskontolu fişte satır neti ve KDV fazla, iskonto satırlarının TOTAL'ı
+	// eskimiş kalıyordu (hareketekle.php ile aynı hesap).
+	if ($ekled) {
+		try {
+			require_once __DIR__ . '/iskonto_lib.php';
+			fis_iskonto_oranlari_uygula($dbh, $firmadonem, (int) $stokhareket);
+		} catch (Throwable $e) {
+			error_log('hareketduzenle.php iskonto yeniden dagitim: ' . $e->getMessage());
+		}
+	}
+
 	// Loglama yap
 	if ($ekled && $eskiSatir) {
 		// LEFT JOIN sonucu NULL gelebilir; string parametreleri guvene al
