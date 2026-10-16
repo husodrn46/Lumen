@@ -16,7 +16,11 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma;
-api_oturum_gerekli($dbh);
+$oturum = api_oturum_gerekli($dbh);
+// Web karşılığıyla aynı yetki (M7); önceden her personel belirteci okuyabiliyordu.
+if (!api_yetki_var((int) $oturum['personel'], 'M7')) {
+    api_json(['ok' => false, 'mesaj' => 'Fiyat listesi yetkiniz yok.'], 403);
+}
 
 $body  = api_body();
 $query = trim((string) ($body['query'] ?? ($_GET['q'] ?? '')));

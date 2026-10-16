@@ -32,7 +32,7 @@ if ($orderId <= 0 && $fisno !== '') {
     $st->execute([':f' => mb_strtoupper($fisno, 'UTF-8')]);
     $orderId = (int) ($st->fetchColumn() ?: 0);
 }
-if ($orderId <= 0) {
+if ($orderId <= 0 || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $personel, $orderId)) {
     api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya zaten iptal edilmiş.'], 404);
 }
 

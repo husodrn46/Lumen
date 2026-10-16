@@ -32,7 +32,7 @@ $body   = api_body();
 $fisId  = (int) ($body['fis_id'] ?? 0);
 $stokId = (int) ($body['stok_id'] ?? 0);
 
-$fis = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId);
+$fis = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId, $personel);
 if ($fis === null) {
     api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya iptal edilmiş.'], 404);
 }
@@ -44,7 +44,7 @@ $h = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, [[
     'birim_carpan' => $body['birim_carpan'] ?? 1,
     'fiyat'        => $body['fiyat'] ?? null,
     'kdv'          => $body['kdv'] ?? null,
-]]);
+]], api_yetki_var($personel, 'SP1'));
 if (!$h['ready']) {
     $sebep = $h['skipped'][0]['sebep'] ?? 'kalem geçersiz';
     api_json(['ok' => false, 'mesaj' => 'Satır eklenemedi: ' . $sebep], 422);

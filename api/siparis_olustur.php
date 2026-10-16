@@ -57,7 +57,7 @@ if ($cari === null) {
 }
 
 // Fiş AÇMADAN önce tüm kalemleri doğrula (F3 kuralı) — fiyatsız kalem orphan fiş bırakmaz.
-$h     = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, $kalemler);
+$h     = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, $kalemler, api_yetki_var($personel, 'SP1'));
 $ready = $h['ready'];
 if (!$ready) {
     api_json(['ok' => false, 'mesaj' => 'Geçerli kalem bulunamadı, sipariş açılmadı.', 'atlanan' => $h['skipped']], 422);

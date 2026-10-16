@@ -14,7 +14,11 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma, $firmadonem;
-api_oturum_gerekli($dbh);
+$oturum = api_oturum_gerekli($dbh);
+// Web karşılığıyla aynı yetki (M17); önceden her personel belirteci okuyabiliyordu.
+if (!api_yetki_var((int) $oturum['personel'], 'M17')) {
+    api_json(['ok' => false, 'mesaj' => 'Rapor görme yetkiniz yok.'], 403);
+}
 
 $body = api_body();
 $year = (int) ($body['year'] ?? ($_GET['year'] ?? 0));

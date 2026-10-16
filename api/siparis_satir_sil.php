@@ -40,16 +40,21 @@ if ($satir['linetype'] !== 0) {
 }
 
 $fisId = $satir['fis_id'];
-$fis   = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId);
+$fis   = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId, $personel);
 if ($fis === null) {
     api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya iptal edilmiş.'], 404);
+}
+
+// Sevk edilmiş satır silinemez: irsaliye (STLINE) olmayan bir sipariş satırına bağlı kalır.
+if ($satir['sevk'] > 0) {
+    api_json(['ok' => false, 'mesaj' => 'Sevk edilmiş satır silinemez.'], 409);
 }
 
 try {
     $dbh->beginTransaction();
 
-    // Eşzamanlı silmeye karşı: satır hâlâ duruyorsa sil.
-    $del = $dbh->prepare("DELETE FROM {$firmadonem}ORFLINE WHERE LOGICALREF = :id AND LINETYPE = 0");
+    // Eşzamanlı silmeye karşı: satır hâlâ duruyorsa ve bu arada sevk edilmediyse sil.
+    $del = $dbh->prepare("DELETE FROM {$firmadonem}ORFLINE WHERE LOGICALREF = :id AND LINETYPE = 0 AND ISNULL(SHIPPEDAMOUNT, 0) = 0");
     $del->execute([':id' => $satirId]);
     if ($del->rowCount() === 0) {
         $dbh->rollBack();

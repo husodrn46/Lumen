@@ -58,6 +58,13 @@ foreach ($donemler as $i => $tbl) {
         $params[$cp] = '%' . $norm . '%';
         $params[$kp] = '%' . $norm . '%';
     }
+    // Özel cari kısıtı (cari_detay / cari_hareket ile aynı): kısıtlı carinin
+    // faturaları listelenmez.
+    $oz = m_p_ozel_cari_sql_filtresi($personel, 'I.CLIENTREF', 'api_fatura_' . $i);
+    if (($oz['sql'] ?? '') !== '') {
+        $w[] = $oz['sql'];
+        $params = array_merge($params, $oz['params']);
+    }
     $whereSql = implode(' AND ', $w);
     $parcalar[] = "
         SELECT I.LOGICALREF AS id, I.FICHENO AS fisno, I.DATE_ AS tarih, I.TRCODE AS trcode,

@@ -108,7 +108,7 @@ function siparis_sayi(string|int|float|null $v): float
  *   ready öğesi: stok_id, kod, ad, miktar(girilen), birim_carpan, ana_miktar(AMOUNT),
  *                fiyat, kdv, kdv_tutar, toplam(brüt), unitsetref, uomref, onhand
  */
-function siparis_kalemleri_hazirla(PDO $dbh, string $firma, string $firmadonemx, array $kalemler): array
+function siparis_kalemleri_hazirla(PDO $dbh, string $firma, string $firmadonemx, array $kalemler, bool $fiyatDegistirebilir = false): array
 {
     $ready = [];
     $skipped = [];
@@ -130,7 +130,9 @@ function siparis_kalemleri_hazirla(PDO $dbh, string $firma, string $firmadonemx,
             $skipped[] = ['etiket' => $label !== '' ? $label : ('#' . $stokId), 'sebep' => 'ürün bulunamadı'];
             continue;
         }
-        $fiyatRaw = $k['fiyat'] ?? null;
+        // Fiyat/KDV override yalnız "Sipariş Fiyatı Değiştirme" (SP1) yetkisiyle;
+        // aksi halde istemci 0,01 TL / %0 KDV ile sipariş açabiliyordu.
+        $fiyatRaw = $fiyatDegistirebilir ? ($k['fiyat'] ?? null) : null;
         $fiyat = ($fiyatRaw !== null && $fiyatRaw !== '')
             ? siparis_sayi($fiyatRaw)
             : (float) $s['price'];
@@ -140,7 +142,7 @@ function siparis_kalemleri_hazirla(PDO $dbh, string $firma, string $firmadonemx,
         }
 
         // KDV: istemci açıkça gönderdiyse onu, yoksa ürünün VAT'ı.
-        $kdvRaw = $k['kdv'] ?? null;
+        $kdvRaw = $fiyatDegistirebilir ? ($k['kdv'] ?? null) : null;
         $kdv = ($kdvRaw !== null && $kdvRaw !== '')
             ? max(0.0, min(100.0, siparis_sayi($kdvRaw)))
             : (float) $s['vat'];
@@ -487,14 +489,22 @@ function siparis_cari_getir(PDO $dbh, string $firma, int $cariId): ?array
  * (Cariler birbirinin siparişini düzenleyebilir — kullanıcı bazlı kısıt YOK, kasıtlı.)
  * Döner: ['id', 'fisno', 'cari_id'] veya null.
  */
-function siparis_fis_duzenlenebilir(PDO $dbh, string $firmadonem, int $fisId): ?array
+function siparis_fis_duzenlenebilir(PDO $dbh, string $firmadonem, int $fisId, int $personel = 0): ?array
 {
+    global $firma;
     if ($fisId <= 0) {
+        return null;
+    }
+    // Yalnız satış siparişleri (TRCODE=1) ve kullanıcının görebildiği (özel cari
+    // kısıtı) siparişler düzenlenebilir; eskiden alış siparişleri ve kısıtlı
+    // carilerin siparişleri de API'den değiştirilebiliyordu.
+    if ($personel > 0 && function_exists('m_p_siparis_goruntulebilir_mi')
+        && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, (string) $firma, $personel, $fisId)) {
         return null;
     }
     $st = $dbh->prepare("SELECT TOP 1 LOGICALREF, FICHENO, CLIENTREF
                          FROM {$firmadonem}ORFICHE WITH(NOLOCK)
-                         WHERE LOGICALREF = :f AND (CANCELLED = 0 OR CANCELLED IS NULL)");
+                         WHERE LOGICALREF = :f AND TRCODE = 1 AND (CANCELLED = 0 OR CANCELLED IS NULL)");
     $st->execute([':f' => $fisId]);
     $r = $st->fetch(PDO::FETCH_ASSOC);
     if (!$r) {

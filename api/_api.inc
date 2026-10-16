@@ -86,12 +86,14 @@ function api_token_olustur(PDO $dbh, int $personel, string $kullaniciAdi): strin
 {
     api_ensure_token_table($dbh);
     $token = bin2hex(random_bytes(32));
+    // Veritabanında belirtecin kendisi değil SHA-256 özeti saklanır: tablo okunursa
+    // (yedek, log, SQL erişimi) belirteçler doğrudan kullanılamaz.
     // OLUSTURMA/AKTIF acikca yazilir: tablo eski bir surumden gelip DEFAULT
     // tanimi tasimiyorsa da (NOT NULL) insert basarisiz olmasin.
     $stmt = $dbh->prepare("INSERT INTO M_API_TOKEN (TOKEN, PERSONEL, KULLANICI_ADI, IP, OLUSTURMA, AKTIF)
                            VALUES (:t, :p, :k, :ip, GETDATE(), 1)");
     $stmt->execute([
-        ':t' => $token,
+        ':t' => hash('sha256', $token),
         ':p' => $personel,
         ':k' => $kullaniciAdi,
         ':ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
@@ -102,6 +104,12 @@ function api_token_olustur(PDO $dbh, int $personel, string $kullaniciAdi): strin
 /**
  * İstekteki token'ı doğrula. Geçerliyse ['personel'=>int,'kullanici'=>string]
  * döner; değilse null. SON_KULLANIM güncellenir.
+ *
+ * Belirteç her istekte kullanıcının GÜNCEL durumuna göre doğrulanır: pasif
+ * yapılan, müşteri yetkisine düşürülen veya oturumları yönetici tarafından
+ * kapatılan kullanıcının belirteci artık 30 gün boyunca çalışmaya devam etmez.
+ * Özetli saklamadan önce oluşturulmuş düz metin belirteçler süreleri dolana dek
+ * kabul edilir.
  */
 function api_token_dogrula(PDO $dbh): ?array
 {
@@ -112,17 +120,29 @@ function api_token_dogrula(PDO $dbh): ?array
     api_ensure_token_table($dbh);
     // Token 30 günlük mutlak ömre sahip; süresi geçmişse geçersiz sayılır.
     // (DATEADD'in 2. argümanı sabit INT — sqlsrv nvarchar tuzağına düşmez.)
-    $stmt = $dbh->prepare("SELECT TOP 1 PERSONEL, KULLANICI_ADI
-                           FROM M_API_TOKEN
-                           WHERE TOKEN = :t AND AKTIF = 1
-                             AND OLUSTURMA > DATEADD(DAY, -30, GETDATE())");
-    $stmt->execute([':t' => $token]);
+    $stmt = $dbh->prepare("SELECT TOP 1 T.ID, T.PERSONEL, T.KULLANICI_ADI, T.OLUSTURMA
+                           FROM M_API_TOKEN T
+                           INNER JOIN LG_SLSMAN S ON S.LOGICALREF = T.PERSONEL AND S.ACTIVE = 0
+                           INNER JOIN M_P_YETKI Y ON Y.PERSONEL = T.PERSONEL AND Y.YETKI IN (0, 1)
+                           WHERE T.TOKEN IN (:ozet, :duz) AND T.AKTIF = 1
+                             AND T.OLUSTURMA > DATEADD(DAY, -30, GETDATE())");
+    $stmt->execute([':ozet' => hash('sha256', $token), ':duz' => $token]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
         return null;
     }
-    $upd = $dbh->prepare("UPDATE M_API_TOKEN SET SON_KULLANIM = GETDATE() WHERE TOKEN = :t");
-    $upd->execute([':t' => $token]);
+    try {
+        $kapat = $dbh->prepare("SELECT 1 FROM M_OTURUM_KAPAT
+                                WHERE KULLANICI_ID = :p AND KAPATMA_TS > (SELECT OLUSTURMA FROM M_API_TOKEN WHERE ID = :id)");
+        $kapat->execute([':p' => (int) $row['PERSONEL'], ':id' => (int) $row['ID']]);
+        if ($kapat->fetchColumn()) {
+            return null;
+        }
+    } catch (Throwable $e) {
+        // M_OTURUM_KAPAT yoksa zorla çıkış hiç uygulanmamış demektir.
+    }
+    $upd = $dbh->prepare("UPDATE M_API_TOKEN SET SON_KULLANIM = GETDATE() WHERE ID = :id");
+    $upd->execute([':id' => (int) $row['ID']]);
     return ['personel' => (int) $row['PERSONEL'], 'kullanici' => (string) ($row['KULLANICI_ADI'] ?? '')];
 }
 
@@ -185,4 +205,10 @@ function api_yetki_var(int $personel, string $kod): bool
         return false;
     }
     return (string) m_p_yetki($personel, $kod) === '1';
+}
+
+// Saldırı modu: web arayüzü yerel ağ dışına kapatılırken API açık kalıyordu
+// (mevcut belirteçlerle yazma dahil). Tüm API uçları için aynı kural.
+if (function_exists('saldiri_modu_erisim_engelli_mi') && saldiri_modu_erisim_engelli_mi()) {
+    api_json(['ok' => false, 'mesaj' => 'Sistem şu anda yalnız yerel ağdan erişilebilir.'], 403);
 }

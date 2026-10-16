@@ -20,7 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 $oturum   = api_oturum_gerekli($dbh);
 $personel = (int) $oturum['personel'];
-if (!api_yetki_var($personel, 'ST2')) {
+// Ürün kartı (kod/ad/KDV) ana veridir: yalnız fiyat görme yetkisi (ST2) yetmez;
+// web'deki ürün kartı düzenlemesiyle (stok/koli_olcu_kaydet.php) aynı M15 de aranır.
+if (!api_yetki_var($personel, 'ST2') || !api_yetki_var($personel, 'M15')) {
     api_json(['ok' => false, 'mesaj' => 'Stok düzenleme yetkiniz yok.'], 403);
 }
 
