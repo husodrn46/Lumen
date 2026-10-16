@@ -151,15 +151,15 @@ echo "\xEF\xBB\xBF"; // UTF-8 BOM
         </tr>
         <tr class="bg-success">
             <td>Toplam Nakit Giriş</td>
-            <td class="text-right"><?php echo number_format($toplam_giris, 2, ',', '.'); ?></td>
+            <td class="text-right"><?php echo number_format((float) $toplam_giris, 2, ',', '.'); ?></td>
         </tr>
         <tr class="bg-danger">
             <td>Toplam Nakit Çıkış</td>
-            <td class="text-right"><?php echo number_format($toplam_cikis, 2, ',', '.'); ?></td>
+            <td class="text-right"><?php echo number_format((float) $toplam_cikis, 2, ',', '.'); ?></td>
         </tr>
         <tr class="<?php echo $net_akis >= 0 ? 'bg-primary' : 'bg-warning'; ?>">
             <td>Net Nakit Akışı</td>
-            <td class="text-right"><?php echo number_format($net_akis, 2, ',', '.'); ?></td>
+            <td class="text-right"><?php echo number_format((float) $net_akis, 2, ',', '.'); ?></td>
         </tr>
     </table>
 
@@ -179,18 +179,18 @@ echo "\xEF\xBB\xBF"; // UTF-8 BOM
             <?php for ($i = 1; $i <= 12; $i++): ?>
                 <tr>
                     <td><?php echo $aylar[$i-1]; ?></td>
-                    <td class="text-right"><?php echo number_format($aylar_giris[$i], 2, ',', '.'); ?></td>
-                    <td class="text-right"><?php echo number_format($aylar_cikis[$i], 2, ',', '.'); ?></td>
-                    <td class="text-right"><?php echo number_format($aylar_net[$i], 2, ',', '.'); ?></td>
+                    <td class="text-right"><?php echo number_format((float) $aylar_giris[$i], 2, ',', '.'); ?></td>
+                    <td class="text-right"><?php echo number_format((float) $aylar_cikis[$i], 2, ',', '.'); ?></td>
+                    <td class="text-right"><?php echo number_format((float) $aylar_net[$i], 2, ',', '.'); ?></td>
                 </tr>
             <?php endfor; ?>
         </tbody>
         <tfoot>
             <tr class="total-row">
                 <td>TOPLAM</td>
-                <td class="text-right"><?php echo number_format($toplam_giris, 2, ',', '.'); ?></td>
-                <td class="text-right"><?php echo number_format($toplam_cikis, 2, ',', '.'); ?></td>
-                <td class="text-right"><?php echo number_format($net_akis, 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $toplam_giris, 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $toplam_cikis, 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $net_akis, 2, ',', '.'); ?></td>
             </tr>
         </tfoot>
     </table>
@@ -253,15 +253,15 @@ if (count($vade_data) > 0):
             ?>
                 <tr>
                     <td><?php echo htmlspecialchars((string) $row['VADE_ARALIGI']); ?></td>
-                    <td class="text-right"><?php echo number_format($row['TUTAR'], 2, ',', '.'); ?></td>
-                    <td class="text-right"><?php echo number_format($row['ISLEM_SAYISI'], 0); ?></td>
+                    <td class="text-right"><?php echo number_format((float) $row['TUTAR'], 2, ',', '.'); ?></td>
+                    <td class="text-right"><?php echo number_format((float) $row['ISLEM_SAYISI'], 0); ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
         <tfoot>
             <tr class="total-row">
                 <td>TOPLAM</td>
-                <td class="text-right"><?php echo number_format($toplam_vade, 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $toplam_vade, 2, ',', '.'); ?></td>
                 <td class="text-right">-</td>
             </tr>
         </tfoot>
@@ -333,16 +333,16 @@ if (count($cek_vade_data) > 0):
             ?>
                 <tr>
                     <td><?php echo htmlspecialchars((string) $row['VADE_DURUMU']); ?></td>
-                    <td class="text-right"><?php echo number_format($row['TUTAR'], 2, ',', '.'); ?></td>
-                    <td class="text-right"><?php echo number_format($row['CEK_SAYISI'], 0); ?></td>
+                    <td class="text-right"><?php echo number_format((float) $row['TUTAR'], 2, ',', '.'); ?></td>
+                    <td class="text-right"><?php echo number_format((float) $row['CEK_SAYISI'], 0); ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
         <tfoot>
             <tr class="total-row">
                 <td>TOPLAM</td>
-                <td class="text-right"><?php echo number_format($toplam_cek, 2, ',', '.'); ?></td>
-                <td class="text-right"><?php echo number_format($toplam_adet, 0); ?></td>
+                <td class="text-right"><?php echo number_format((float) $toplam_cek, 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $toplam_adet, 0); ?></td>
             </tr>
         </tfoot>
     </table>

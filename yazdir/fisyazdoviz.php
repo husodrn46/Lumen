@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 include_once(__DIR__ . "/../ayr.php");
 include(__DIR__ . "/../kontrol.php");
-$doviz = $_SESSION['doviz'];
+$doviz = $_SESSION['doviz'] ?? 0;
 
 if (!isset($_GET['stokhareket'])) {
   echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">Please specify an order number.</div>';
