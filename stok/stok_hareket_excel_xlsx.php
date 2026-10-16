@@ -301,17 +301,13 @@ $dataEndRow = $row - 1;
 $row++;
 
 // TOPLAM BÖLÜMÜ
-$araToplam = isset($fisBilgisi['GROSSTOTAL']) ? (float) $fisBilgisi['GROSSTOTAL'] : 0.0;
-$toplamIskonto = isset($fisBilgisi['TOTALDISCOUNTS']) ? (float) $fisBilgisi['TOTALDISCOUNTS'] : 0.0;
-$toplamKdv = isset($fisBilgisi['TOTALVAT']) ? (float) $fisBilgisi['TOTALVAT'] : 0.0;
-$netToplamDb = isset($fisBilgisi['NETTOTAL']) ? (float) $fisBilgisi['NETTOTAL'] : 0.0;
-
-// NETTOTAL bazı kurulumlarda KDV dahil gelebilir; bu yüzden net (KDV hariç) değeri güvenli hesaplanır.
-$netToplamKdvHaric = $araToplam - $toplamIskonto;
-if ($netToplamKdvHaric < 0) {
-    $netToplamKdvHaric = max(0, $netToplamDb - $toplamKdv);
-}
-$genelToplam = $netToplamKdvHaric + $toplamKdv;
+require_once __DIR__ . '/../includes/fis_toplam.php';
+$toplamlar = lumen_fis_toplamlari(is_array($fisBilgisi) ? $fisBilgisi : []);
+$araToplam = $toplamlar['brut'];
+$toplamIskonto = $toplamlar['iskonto'];
+$toplamKdv = $toplamlar['kdv'];
+$netToplamKdvHaric = $toplamlar['net_kdv_haric'];
+$genelToplam = $toplamlar['genel'];
 
 $sheet->setCellValue('L' . $row, 'Ara Toplam (TL):');
 $sheet->setCellValue('M' . $row, $araToplam);

@@ -209,11 +209,14 @@ foreach ($satirlar as $satir) {
 echo '<tr><td colspan="11"></td></tr>';
 
 // Toplam bölümü
-$brutToplam = floatval($fisBilgisi['GROSSTOTAL'] ?? 0);
-$netToplam = floatval($fisBilgisi['NETTOTAL'] ?? 0);
-$toplamKdv = floatval($fisBilgisi['TOTALVAT'] ?? 0);
-$toplamIskonto = floatval($fisBilgisi['TOTALDISCOUNTS'] ?? 0);
-$genelToplam = $netToplam + $toplamKdv;
+// NETTOTAL KDV dahildir; toplamlar ortak fonksiyonla hesaplanır (KDV iki kez eklenmez).
+require_once __DIR__ . '/../includes/fis_toplam.php';
+$toplamlar = lumen_fis_toplamlari($fisBilgisi ?: []);
+$brutToplam = $toplamlar['brut'];
+$netToplam = $toplamlar['net_kdv_haric'];
+$toplamKdv = $toplamlar['kdv'];
+$toplamIskonto = $toplamlar['iskonto'];
+$genelToplam = $toplamlar['genel'];
 
 // Brüt Toplam
 echo '<tr style="background-color:#E7E6E6;">';

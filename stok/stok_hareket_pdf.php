@@ -84,11 +84,14 @@ try {
     ], static fn ($v) => trim($v) !== ''));
 
     // SQLSRV/PDO numeric alanları string döndürebildiği için float'a çeviriyoruz.
-    $brutToplam = (float) ($fisResult['GROSSTOTAL'] ?? 0);
-    $toplamIskonto = (float) ($fisResult['TOTALDISCOUNTS'] ?? 0);
-    $netToplam = (float) ($fisResult['NETTOTAL'] ?? 0);
-    $toplamKDV = (float) ($fisResult['TOTALVAT'] ?? 0);
-    $genelToplam = $netToplam + $toplamKDV;
+    // NETTOTAL KDV dahildir; toplamlar ortak fonksiyonla hesaplanır (KDV iki kez eklenmez).
+    require_once __DIR__ . '/../includes/fis_toplam.php';
+    $toplamlar = lumen_fis_toplamlari($fisResult);
+    $brutToplam = $toplamlar['brut'];
+    $toplamIskonto = $toplamlar['iskonto'];
+    $netToplam = $toplamlar['net_kdv_haric'];
+    $toplamKDV = $toplamlar['kdv'];
+    $genelToplam = $toplamlar['genel'];
 
     // 3. Stok hareket detayları sorgusu (Güvenli)
     $sqlDetails = "
