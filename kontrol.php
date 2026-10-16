@@ -193,7 +193,14 @@ $yetkidurum = null; // Başlangıçta yetkiyi tanımsız yap
 // *KRİTİK:* m_p_yetki() içinde mutlaka prepare edilmiş sorgu (prepared statement) kullanın.
 $kullaniciYetkiKodu = m_p_yetki($terminalkullanici, 'YETKI');
 
-switch ($kullaniciYetkiKodu) {
+// DİKKAT: m_p_yetki() veritabanı hatasında null döner. PHP 8'de switch gevşek
+// karşılaştırma yapar ve null == 0 olduğundan null "Yönetici" dalına düşüyordu:
+// geçici bir DB hatasında istek yönetici yetkisiyle çalışıyordu. Katı eşleme:
+$yetkiKoduInt = (is_int($kullaniciYetkiKodu) || (is_string($kullaniciYetkiKodu) && ctype_digit($kullaniciYetkiKodu)))
+    ? (int) $kullaniciYetkiKodu
+    : null;
+
+switch ($yetkiKoduInt ?? -1) {
     case 0: // Yönetici
         $yetkidurum = 0;
         break;

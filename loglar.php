@@ -990,11 +990,9 @@ if (isset($_POST['ajax_action'])) {
                 END
             ");
             // Upsert: kullaniciya ait kapatma damgasini GETDATE() yap (delete+insert; named param tekrarsiz)
-            $dbh->beginTransaction();
-            $dbh->prepare("DELETE FROM M_OTURUM_KAPAT WHERE KULLANICI_ID = :id")->execute([':id' => $kullaniciId]);
-            $dbh->prepare("INSERT INTO M_OTURUM_KAPAT (KULLANICI_ID, KAPATMA_TS, KAPATAN_ID) VALUES (:id, GETDATE(), :kapatan)")
-                ->execute([':id' => $kullaniciId, ':kapatan' => (int) $terminalkullanici]);
-            $dbh->commit();
+            // Damga + "Beni hatırla" + API belirteçleri birlikte (yalnız damga yetmiyordu:
+            // hatırlama çerezi olan kullanıcı bir sonraki istekte geri giriyordu).
+            lumen_oturumlari_sonlandir($dbh, (int) $kullaniciId, (int) $terminalkullanici);
             echo json_encode(['success' => true, 'message' => 'Kullanicinin tum oturumlari kapatildi. Bir sonraki islemde cikis yapacak.']);
         } catch (Throwable $e) {
             if ($dbh->inTransaction()) { $dbh->rollBack(); }

@@ -58,6 +58,14 @@ if ($yetki_kodu === 'YETKI') {
     }
 }
 
+$engel = lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $personel_id,
+    $yetki_kodu === 'YETKI' ? $yeni_deger : null, $yetki_kodu);
+if ($engel !== null) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => $engel]);
+    exit;
+}
+
 try {
     // Önce M_P_YETKI tablosunda hangi sütunlar var kontrol et
     $columns_check = $dbh->prepare("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'M_P_YETKI' AND COLUMN_NAME = :yetki_kodu");

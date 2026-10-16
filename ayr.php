@@ -469,6 +469,93 @@ function remember_token_sil_personel(int $personelId): bool
  * @param string $selector Token selector
  * @return bool Basarili mi
  */
+if (!function_exists('lumen_yetki_degisikligi_engeli')) {
+  /**
+   * Kullanıcı/yetki yönetiminde yetki yükseltmeyi engeller.
+   *
+   * Ayarlar (M16) yetkisi personele de verilebilir; ancak M16 sahibi personel
+   * kendini veya başkasını yönetici (YETKI=0) yapabiliyor, M16'yı dağıtabiliyor
+   * ve gerçek yöneticilerin parolasını değiştirebiliyordu. Kural: bu üç işlem
+   * yalnız gerçek yöneticiye (YETKI=0) açıktır. Yönetici sorgusu önbelleksizdir.
+   *
+   * @param int|null    $yeniTip Atanacak kullanıcı türü (0/1/2) veya değişmiyorsa null
+   * @param string|null $kod     Değiştirilen izin kolonu (ör. 'M16') veya null
+   * @return string|null Engel varsa kullanıcıya gösterilecek mesaj
+   */
+  function lumen_yetki_degisikligi_engeli(PDO $dbh, int $aktorId, int $hedefId, ?int $yeniTip = null, ?string $kod = null): ?string
+  {
+    $tip = static function (int $id) use ($dbh): ?int {
+      if ($id <= 0) {
+        return null;
+      }
+      $q = $dbh->prepare("SELECT YETKI FROM M_P_YETKI WHERE PERSONEL = :id");
+      $q->execute([':id' => $id]);
+      $v = $q->fetchColumn();
+      return ($v === false || $v === null) ? null : (int) $v;
+    };
+    if ($tip($aktorId) === 0) {
+      return null;
+    }
+    if ($tip($hedefId) === 0) {
+      return 'Yönetici hesapları yalnız bir yönetici tarafından değiştirilebilir.';
+    }
+    if ($yeniTip === 0 || $kod === 'YETKI' && $yeniTip === null) {
+      return 'Yönetici yetkisini yalnız bir yönetici verebilir.';
+    }
+    if ($kod === 'M16') {
+      return 'Ayarlar (M16) yetkisini yalnız bir yönetici değiştirebilir.';
+    }
+    return null;
+  }
+}
+
+if (!function_exists('lumen_oturumlari_sonlandir')) {
+  /**
+   * Bir kullanıcının TÜM oturumlarını sonlandırır: "Beni hatırla" belirteçleri
+   * silinir, API belirteçleri pasifleşir ve M_OTURUM_KAPAT damgası güncellenir
+   * (kontrol.php bir sonraki istekte açık web oturumlarını kapatır).
+   *
+   * Zorla çıkış, parola değişikliği ve kullanıcının pasifleştirilmesi bunu
+   * çağırmalıdır. Eskiden yalnız damga güncellendiğinden "Beni hatırla" çerezi
+   * olan kullanıcı bir sonraki istekte yeni login_ts ile geri giriyor; çalınan
+   * çerezler parola değişse de 30 gün geçerli kalıyordu.
+   *
+   * @return int|null Kapatma anı (unix zamanı); kendi oturumunu korumak isteyen
+   *                  çağıran $_SESSION['login_ts']'i bundan büyük yapmalıdır.
+   */
+  function lumen_oturumlari_sonlandir(PDO $dbh, int $personelId, int $kapatanId): ?int
+  {
+    if ($personelId <= 0) {
+      return null;
+    }
+    $an = null;
+    try {
+      $dbh->prepare("DELETE FROM M_REMEMBER_TOKEN WHERE PERSONEL_ID = :id")->execute([':id' => $personelId]);
+    } catch (Throwable $e) {
+      error_log('lumen_oturumlari_sonlandir remember: ' . $e->getMessage());
+    }
+    try {
+      $dbh->prepare("UPDATE M_API_TOKEN SET AKTIF = 0 WHERE PERSONEL = :id AND AKTIF = 1")->execute([':id' => $personelId]);
+    } catch (Throwable $e) {
+      // M_API_TOKEN henüz yoksa sorun değil
+    }
+    try {
+      $dbh->prepare("DELETE FROM M_OTURUM_KAPAT WHERE KULLANICI_ID = :id")->execute([':id' => $personelId]);
+      $dbh->prepare("INSERT INTO M_OTURUM_KAPAT (KULLANICI_ID, KAPATMA_TS, KAPATAN_ID) VALUES (:id, GETDATE(), :k)")
+        ->execute([':id' => $personelId, ':k' => $kapatanId]);
+      $ts = $dbh->prepare("SELECT CONVERT(VARCHAR(19), KAPATMA_TS, 120) FROM M_OTURUM_KAPAT WHERE KULLANICI_ID = :id");
+      $ts->execute([':id' => $personelId]);
+      $an = strtotime((string) $ts->fetchColumn()) ?: null;
+    } catch (Throwable $e) {
+      error_log('lumen_oturumlari_sonlandir oturum_kapat: ' . $e->getMessage());
+    }
+    if (function_exists('m_p_yetki_cache_temizle')) {
+      m_p_yetki_cache_temizle($personelId);
+    }
+    return $an;
+  }
+}
+
 function remember_token_sil(string $selector): bool
 {
     global $dbh;

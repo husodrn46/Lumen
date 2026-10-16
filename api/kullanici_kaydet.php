@@ -35,7 +35,9 @@ $id    = (int) ($body['id'] ?? 0);
 $kod   = trim((string) ($body['kod'] ?? ''));
 $ad    = trim((string) ($body['ad'] ?? ''));
 $sifre = trim((string) ($body['sifre'] ?? ''));
-$firma = (int) ($body['firma'] ?? 0);
+// firma gönderilmezse kurulumun firma numarası kullanılır (eskiden 0 yazılıyordu;
+// giriş FIRMNR'e göre süzdüğü için kullanıcı kilitleniyordu).
+$firma = (int) ($body['firma'] ?? $firmano);
 $yetki = (int) ($body['yetki'] ?? 1);
 
 /* ---- Ortak doğrulama (ekle + güncelle) ---- */
@@ -50,6 +52,19 @@ if (!in_array($yetki, [0, 1, 2], true)) {
 }
 
 $sifreGecerli = !($sifre === '' || $sifre === '0' || strlen($sifre) < 4);
+
+$engel = lumen_yetki_degisikligi_engeli($dbh, $personel, $id, $yetki);
+if ($engel !== null) {
+    api_json(['ok' => false, 'mesaj' => $engel], 403);
+}
+
+// Kod benzersiz olmalı: giriş CODE'a göre eşleştiğinden aynı kodlu iki kullanıcı
+// rastgele birine giriş yaptırır.
+$kodVar = $dbh->prepare("SELECT COUNT(*) FROM LG_SLSMAN WHERE CODE = :kod AND LOGICALREF <> :id");
+$kodVar->execute([':kod' => $kod, ':id' => $id]);
+if ((int) $kodVar->fetchColumn() > 0) {
+    api_json(['ok' => false, 'mesaj' => 'Bu kod başka bir kullanıcıda kullanılıyor.'], 409);
+}
 
 if ($id <= 0) {
     /* ==========================  EKLE  ========================== */
@@ -141,8 +156,10 @@ try {
 
     $dbh->commit();
 
-    // 4) Yetki cache temizliği
-    if (function_exists('m_p_yetki_cache_temizle')) {
+    // 4) Parola değiştiyse açık oturumlar/belirteçler kapanır; değilse yalnız cache temizliği
+    if ($sifreGecerli) {
+        lumen_oturumlari_sonlandir($dbh, $id, (int) $personel);
+    } elseif (function_exists('m_p_yetki_cache_temizle')) {
         m_p_yetki_cache_temizle($id);
     }
 } catch (Throwable $e) {

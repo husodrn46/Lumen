@@ -40,8 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $update->bindParam(':yeni', $hashedPassword);
                 $update->bindParam(':uid', $uid);
                 if ($update->execute()) {
-                    // Şifre değiştiğinde yetki cache'ini temizle
-                    m_p_yetki_cache_temizle($uid);
+                    // Diğer tüm oturumlar ve "Beni hatırla" çerezleri kapanır; bu oturum açık kalır.
+                    $kapatmaAni = lumen_oturumlari_sonlandir($dbh, (int) $uid, (int) $uid);
+                    if ($kapatmaAni !== null) {
+                        $_SESSION['login_ts'] = $kapatmaAni + 1;
+                    }
                     $success = "Şifreniz başarıyla değiştirildi.";
                 } else {
                     $error = "Şifre güncellenirken hata oluştu.";

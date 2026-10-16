@@ -62,10 +62,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $perid = (int) ($_POST['perid'] ?? 0);
         $durum = (string) ($_POST['durum'] ?? '');
         if ($perid > 0 && in_array($durum, ['aktif', 'pasif'], true)) {
+            if (lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $perid) !== null) {
+                header('Location: ' . $geri . '&hata=yonetici_korumali', true, 303);
+                exit;
+            }
             $dr = ($durum === 'aktif') ? 0 : 1; // LG_SLSMAN.ACTIVE: 0=aktif, 1=pasif
             $dbh->prepare("UPDATE LG_SLSMAN SET ACTIVE = :dr WHERE LOGICALREF = :id")
                 ->execute([':dr' => $dr, ':id' => $perid]);
-            if (function_exists('m_p_yetki_cache_temizle')) {
+            if ($dr === 1) {
+                // Pasifleştirilen kullanıcının açık oturumları ve belirteçleri de kapanır.
+                lumen_oturumlari_sonlandir($dbh, $perid, (int) $terminalkullanici);
+            } elseif (function_exists('m_p_yetki_cache_temizle')) {
                 m_p_yetki_cache_temizle($perid);
             }
             header('Location: ' . $geri . '&ok=durum', true, 303);
@@ -78,6 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Sil (yalnız pasif kullanıcı) ----
     if ($action === 'delete_user') {
         $perid = (int) ($_POST['perid'] ?? 0);
+        if ($perid > 0 && lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $perid) !== null) {
+            header('Location: ' . $geri . '&hata=yonetici_korumali', true, 303);
+            exit;
+        }
         if ($perid > 0) {
             $chk = $dbh->prepare("SELECT ACTIVE FROM LG_SLSMAN WHERE LOGICALREF = :id");
             $chk->execute([':id' => $perid]);
@@ -117,6 +128,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hataMsj = 'Geçersiz yetki tipi.';
         } elseif ($sifre !== '' && mb_strlen($sifre) < 4) {
             $hataMsj = 'Parola en az 4 karakter olmalıdır.';
+        } elseif (($engel = lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $id, $tip)) !== null) {
+            $hataMsj = $engel;
         }
 
         if ($hataMsj === '' && $id > 0) {
@@ -145,7 +158,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $dbh->commit();
-                if (function_exists('m_p_yetki_cache_temizle')) {
+                if ($sifre !== '') {
+                    // Parola sıfırlandı: eski parola/çerezle açılmış oturumlar kapanır.
+                    lumen_oturumlari_sonlandir($dbh, $id, (int) $terminalkullanici);
+                } elseif (function_exists('m_p_yetki_cache_temizle')) {
                     m_p_yetki_cache_temizle($id);
                 }
                 header('Location: ' . $geri . '&ok=guncellendi', true, 303);
