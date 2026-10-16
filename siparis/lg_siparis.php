@@ -33,8 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ? mb_substr((string)$aciklama1, 0, 33, 'UTF-8')
         : substr((string)$aciklama1, 0, 33);
 
-    // Açıklamaları güncelle
-    try {
+    // Açıklamaları güncelle — yalnız sipariş düzenleme yetkisiyle (yönetici/M1/M3).
+    // Yazdırma düğmeleri de bu formu gönderdiğinden yetkisiz kullanıcı için yazma
+    // atlanır, yazdırma akışı devam eder (eskiden yalnız görme yetkili kullanıcı
+    // sipariş açıklamalarını değiştirebiliyordu).
+    $aciklamaYazilabilir = m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null);
+    if ($aciklamaYazilabilir) try {
         $stmt_update = $dbh->prepare("
             UPDATE {$firmadonem}ORFICHE
                SET GENEXP1 = :aciklama1,
@@ -49,7 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':stokhareket' => $stokhareket,
         ]);
     } catch (PDOException $e) {
-        die("Açıklama güncellenirken hata oluştu: " . $e->getMessage());
+        error_log('lg_siparis aciklama: ' . $e->getMessage());
+        die("Açıklama güncellenirken hata oluştu.");
     }
 
     // Hangi buton tıklandıysa ona göre yönlendir (session bazlı temiz URL'ler)
