@@ -178,6 +178,26 @@ SELECT id FROM @yeni;";
     }
 }
 
+if (!function_exists('cek_numara_kilidi')) {
+    /**
+     * Çek/bordro numaralandırmasını (PORTFOYNO, ROLLNO = MAX+1) seri hale getirir.
+     * Kilitsiz MAX+1 okumasında eşzamanlı iki giriş aynı numarayı alıyordu
+     * (LOGO'da DOC+PORTFOYNO tekildir → biri hata verir ya da mükerrer bordro no).
+     * Kilit transaction'a bağlıdır; commit/rollback ile kendiliğinden bırakılır.
+     */
+    function cek_numara_kilidi(PDO $dbh): void
+    {
+        $st = $dbh->prepare("DECLARE @s INT; EXEC @s = sp_getapplock @Resource = 'lumen_cek_numara',
+            @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000; SELECT @s;");
+        $st->execute();
+        $sonuc = (int) $st->fetchColumn();
+        $st->closeCursor();
+        if ($sonuc < 0) {
+            throw new RuntimeException('Çek numaralandırma kilidi alınamadı (yoğunluk); lütfen tekrar deneyin.');
+        }
+    }
+}
+
 if (!function_exists('cek_seri_no')) {
     /** Sayısal seriden sonraki numarayı üretir (soldan sıfır dolgulu). where ile scope daraltılır.
      *  $prefix verilirse (örn 'A') SADECE o ön-ekli kayıtlar içinde bağımsız sayar ve ön-ekli döner
@@ -283,6 +303,7 @@ if (!function_exists('cek_giris_core')) {
 
         try {
             $dbh->beginTransaction();
+            cek_numara_kilidi($dbh);
 
             // Cari doğrula (isim OWING varsayılanı için de kullanılır)
             $cari = $dbh->prepare("SELECT LOGICALREF, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF = :r AND ACTIVE = 0");
@@ -507,6 +528,7 @@ if (!function_exists('cek_ciro_core')) {
         $bugun = "DATEADD(day,0,datediff(day,0,GETDATE()))";
         try {
             $dbh->beginTransaction();
+            cek_numara_kilidi($dbh);
 
             $c = $dbh->prepare("SELECT LOGICALREF, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF=:r AND ACTIVE=0");
             $c->execute([':r' => $hedefCariRef]);
@@ -726,6 +748,7 @@ if (!function_exists('cek_kendi_core')) {
         $bugun = "DATEADD(day,0,datediff(day,0,GETDATE()))";
         try {
             $dbh->beginTransaction();
+            cek_numara_kilidi($dbh);
 
             $c = $dbh->prepare("SELECT LOGICALREF, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF=:r AND ACTIVE=0");
             $c->execute([':r' => $hedefCariRef]);
