@@ -114,6 +114,13 @@ $whereC[] = "C.ACTIVE = 0";
 // Müşteri kartları (döviz modülü ile uyumlu)
 $whereC[] = "C.CARDTYPE IN (3, 10)";
 
+// M4 özel cari kısıtı: bakiyesi gizli cariler listelenmez
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'bakiye_gizli', 'M4');
+if ($ozelCariFiltresi['sql'] !== '') {
+    $whereC[] = $ozelCariFiltresi['sql'];
+    $params += $ozelCariFiltresi['params'];
+}
+
 if ($q !== '') {
     $like = "%{$q}%";
     $whereC[] = "

@@ -25,6 +25,10 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 $currentYear = (int) date('Y');
 $year = isset($_GET['year']) && is_numeric($_GET['year']) ? (int) $_GET['year'] : $currentYear;
 
+// Özel cari kısıtı: kısıtlı cariler listelenmez
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'ozel_cari');
+$ozelCariSql = $ozelCariFiltresi['sql'] !== '' ? ' AND ' . $ozelCariFiltresi['sql'] : '';
+
 $sql = "
   SELECT
     C.CODE           AS CUSTOMER_CODE,
@@ -39,7 +43,7 @@ $sql = "
   WHERE C.ACTIVE=0
     AND I.CANCELLED=0
     AND I.TRCODE IN (2,3,7,8)
-    AND YEAR(I.DATE_) = :y
+    AND YEAR(I.DATE_) = :y{$ozelCariSql}
   GROUP BY C.CODE, C.DEFINITION_, C.CITY
   HAVING SUM(CASE WHEN L.TRCODE IN (7,8)
                   THEN ISNULL(L.LINENET, 0) + ISNULL(L.VATAMNT, 0)
@@ -49,7 +53,7 @@ $sql = "
 
 try {
     $stmt = $dbh->prepare($sql);
-    $stmt->execute(['y' => $year]);
+    $stmt->execute(array_merge(['y' => $year], $ozelCariFiltresi['params']));
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     if (function_exists('app_log_exception')) {

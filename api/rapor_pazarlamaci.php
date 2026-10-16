@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * GET/POST /api/rapor_pazarlamaci.php
- * Gövde: { "prefix"?:"TMÇN", "yil"?:2026 }
+ * Gövde: { "prefix"?:"120.01", "yil"?:2026 }
  * Yanıt: { ok, prefix, yil, ozet:{ yillik_ciro, yillik_ciro_metin, yillik_tahsilat,
  *          yillik_tahsilat_metin, tahsilat_orani, bakiye, bakiye_metin, cari_sayisi },
  *          aylik:[{ ay, ay_adi, ciro, ciro_metin, tahsilat, tahsilat_metin }] }

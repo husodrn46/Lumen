@@ -11,7 +11,7 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 }
 
 // Yıl seçimi
-$selected_year = isset($_GET['yil']) ? intval($_GET['yil']) : 2024;
+$selected_year = isset($_GET['yil']) ? intval($_GET['yil']) : (int) date('Y');
 $start_date = $selected_year . '-01-01';
 $end_date = $selected_year . '-12-31';
 

@@ -12,7 +12,7 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 }
 
 // Yıl seçimi
-$selected_year = isset($_GET['yil']) ? intval($_GET['yil']) : 2024;
+$selected_year = isset($_GET['yil']) ? intval($_GET['yil']) : (int) date('Y');
 $start_date = $selected_year . '-01-01';
 $end_date = $selected_year . '-12-31';
 
@@ -81,14 +81,14 @@ $stmt_toplam_giris->bindParam(':start_date', $start_date);
 $stmt_toplam_giris->bindParam(':end_date', $end_date);
 $stmt_toplam_giris->execute();
 $result_giris = $stmt_toplam_giris->fetch(PDO::FETCH_ASSOC);
-$toplam_giris = $result_giris['TOPLAM'] ?? 0;
+$toplam_giris = (float) ($result_giris['TOPLAM'] ?? 0);
 
 // 4. Toplam Nakit Giriş (Önceki Yıl)
 $stmt_toplam_giris->bindParam(':start_date', $prev_start);
 $stmt_toplam_giris->bindParam(':end_date', $prev_end);
 $stmt_toplam_giris->execute();
 $result_prev_giris = $stmt_toplam_giris->fetch(PDO::FETCH_ASSOC);
-$prev_giris = $result_prev_giris['TOPLAM'] ?? 0;
+$prev_giris = (float) ($result_prev_giris['TOPLAM'] ?? 0);
 
 // 5. Toplam Nakit Çıkış (Mevcut Yıl)
 $sql_toplam_cikis = "
@@ -106,14 +106,14 @@ $stmt_toplam_cikis->bindParam(':start_date', $start_date);
 $stmt_toplam_cikis->bindParam(':end_date', $end_date);
 $stmt_toplam_cikis->execute();
 $result_cikis = $stmt_toplam_cikis->fetch(PDO::FETCH_ASSOC);
-$toplam_cikis = $result_cikis['TOPLAM'] ?? 0;
+$toplam_cikis = (float) ($result_cikis['TOPLAM'] ?? 0);
 
 // 6. Toplam Nakit Çıkış (Önceki Yıl)
 $stmt_toplam_cikis->bindParam(':start_date', $prev_start);
 $stmt_toplam_cikis->bindParam(':end_date', $prev_end);
 $stmt_toplam_cikis->execute();
 $result_prev_cikis = $stmt_toplam_cikis->fetch(PDO::FETCH_ASSOC);
-$prev_cikis = $result_prev_cikis['TOPLAM'] ?? 0;
+$prev_cikis = (float) ($result_prev_cikis['TOPLAM'] ?? 0);
 
 // 7. Net Nakit Akışı
 $net_akis = $toplam_giris - $toplam_cikis;

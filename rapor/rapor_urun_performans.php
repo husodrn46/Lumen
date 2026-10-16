@@ -12,7 +12,7 @@ declare(strict_types=1);
  * Veri tanımı (2026-07-09, kullanıcı isteği): NET satış — satış (TRCODE 7,8)
  * eksi satış iadesi (TRCODE 2,3); yalnız Firma 1. Satır tutarı
  * PRICE*AMOUNT-DISTDISC. Excel çıktısı aynı tanımı kullanır.
- * Yıl <= 2025 eski dönem tablosundan (LG_001_01_) okunur.
+ * Geçmiş yıllar önceki dönem tablosundan ($eskifirmadonem) okunur.
  */
 
 include_once(__DIR__ . "/../ayr.php");
@@ -27,8 +27,9 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 $currentYear = (int) date('Y');
 $year = (isset($_GET['year']) && is_numeric($_GET['year'])) ? (int) $_GET['year'] : $currentYear;
 
-// Yıl <= 2025 verisi eski dönem tablosunda (rapor_satis_aylik ile aynı eşleme)
-$donemTablo = ($year <= 2025) ? 'LG_001_01_' : $firmadonem;
+// Geçmiş yıl verisi önceki dönem tablosunda (rapor_satis_aylik ile aynı eşleme)
+// VARSAYIM: güncel dönem içinde bulunulan takvim yılıdır; geçmiş yıllar önceki dönem tablosunda
+$donemTablo = ($year < (int) date('Y') && !empty($eskifirmadonem)) ? $eskifirmadonem : $firmadonem;
 
 $urunKosulu = urun_kodu_kosulu('I');
 

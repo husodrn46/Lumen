@@ -158,6 +158,9 @@ $rapor_haric_cari_kelimeleri = [];
 // ürünleri kapsar. Yalnız kendi ürettiğiniz ürünleri raporlamak isterseniz
 // kullanın (ör. 'URN'). BOŞ bırakılırsa tüm ürünler dahil edilir (varsayılan).
 $urun_kodu_oneki = '';
+// Pazarlamacı raporlarının varsayılan cari kodu ön eki (.env PAZARLAMACI_CARI_ONEKI).
+// Boş = tüm cariler. Raporda ön ek ekrandan da değiştirilebilir.
+$pazarlamaci_cari_oneki = (string) (getenv('PAZARLAMACI_CARI_ONEKI') ?: '');
 
 // Yukarıdaki kapsamdan ayrıca hariç tutulacak ön ekler. Örnek: ['URN-HURDA']
 $urun_kodu_haric_onekleri = [];

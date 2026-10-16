@@ -8,6 +8,11 @@ require_once(__DIR__ . "/../kontrol.php");
     -------------------------------------------------------------------------- */
 include_once(__DIR__ . "/../log_ip.php");
 
+if (m_p_yetki($terminalkullanici, 'M17') != 1) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 /* ---- Sorgu (TOP 20) ----------------------------------------------------- */
 $urunKosulu = urun_kodu_kosulu('I');
 
@@ -467,7 +472,7 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
 
 <script>
 // Data from PHP
-const labels = <?= json_encode($labels, JSON_UNESCAPED_UNICODE) ?>;
+const labels = <?= json_encode($labels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 const chartData = {
     sales: <?= json_encode($salesData, JSON_NUMERIC_CHECK) ?>,
     qty:   <?= json_encode($qtyData,   JSON_NUMERIC_CHECK) ?>,
@@ -560,7 +565,7 @@ document.querySelectorAll('.chart-toggle button').forEach(button => {
 document.getElementById('exportCSV').addEventListener('click', function() {
     let csv = 'Kod,Urun Adi,Ciro (TL),Adet,Ort. Fiyat (TL)\n';
     <?php foreach ($rows as $r): ?>
-    csv += '<?= addslashes((string) $r['STOK_KODU']) ?>,<?= addslashes((string) $r['STOK_ADI']) ?>,<?= $r['TOPLAM_CIRO'] ?>,<?= $r['TOPLAM_MIKTAR'] ?>,<?= $r['ORT_FIYAT'] ?>\n';
+    csv += <?= json_encode((string) $r['STOK_KODU'] . ',' . (string) $r['STOK_ADI'] . ',' . (string) $r['TOPLAM_CIRO'] . ',' . (string) $r['TOPLAM_MIKTAR'] . ',' . (string) $r['ORT_FIYAT'] . "\n", JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?>;
     <?php endforeach; ?>
 
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });

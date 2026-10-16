@@ -13,7 +13,20 @@ if (m_p_yetki($terminalkullanici, 'M13') != 1) {
 
 // Bağlantı ayr.php'de kurulur ($dbh).
 // Tarih filtresi
-$selected_date = $_GET['tarih'] ?? date('Y-m-d');
+// Geçersiz tarih (ör. ?tarih=abc) strtotime false döndürür → bugüne düş
+$selected_date = (string) ($_GET['tarih'] ?? '');
+$tarihDogrulama = DateTime::createFromFormat('!Y-m-d', $selected_date);
+if ($tarihDogrulama === false || $tarihDogrulama->format('Y-m-d') !== $selected_date) {
+    $selected_date = date('Y-m-d');
+}
+
+// Özel cari kısıtı: kısıtlı cariler detay listelerinde gösterilmez (her sorgu kendi önekini kullanır)
+$ozelCariSatis = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.CLIENTREF', 'ozel_cari_satis');
+$ozelCariCekAlinan = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(T.CARDREF, 0)', 'ozel_cari_cek_a');
+$ozelCariCekVerilen = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(T.CARDREF, 0)', 'ozel_cari_cek_v');
+$ozelCariSatisSql = $ozelCariSatis['sql'] !== '' ? ' AND ' . $ozelCariSatis['sql'] : '';
+$ozelCariCekAlinanSql = $ozelCariCekAlinan['sql'] !== '' ? ' AND ' . $ozelCariCekAlinan['sql'] : '';
+$ozelCariCekVerilenSql = $ozelCariCekVerilen['sql'] !== '' ? ' AND ' . $ozelCariCekVerilen['sql'] : '';
 $display_date = date('d.m.Y', strtotime((string) $selected_date));
 
 // Excel başlıkları
@@ -53,12 +66,15 @@ $sql_sales_detail = "
     LEFT JOIN " . $firma . "CLCARD CL ON CL.LOGICALREF = C.CLIENTREF
     WHERE C.CANCELLED=0
         AND C.TRCODE=38
-        AND CAST(C.DATE_ AS DATE) = :tarih
+        AND CAST(C.DATE_ AS DATE) = :tarih" . $ozelCariSatisSql . "
     ORDER BY C.DATE_ DESC
 ";
 
 $stmt_sales_detail = $dbh->prepare($sql_sales_detail);
 $stmt_sales_detail->bindParam(':tarih', $selected_date, PDO::PARAM_STR);
+foreach ($ozelCariSatis['params'] as $ozelAd => $ozelDeger) {
+    $stmt_sales_detail->bindValue($ozelAd, $ozelDeger, PDO::PARAM_INT);
+}
 $stmt_sales_detail->execute();
 $sales_details = $stmt_sales_detail->fetchAll(PDO::FETCH_ASSOC);
 
@@ -117,12 +133,15 @@ $sql_checks_received_detail = "
         AND C.STATUS IN(0,1)
         AND C.DOC = 1
         AND CAST(T.DATE_ AS DATE) = :tarih
-        AND T.TRCODE IN (1, 2, 3)
+        AND T.TRCODE IN (1, 2, 3)" . $ozelCariCekAlinanSql . "
     ORDER BY C.DUEDATE
 ";
 
 $stmt_checks_received_detail = $dbh->prepare($sql_checks_received_detail);
 $stmt_checks_received_detail->bindParam(':tarih', $selected_date, PDO::PARAM_STR);
+foreach ($ozelCariCekAlinan['params'] as $ozelAd => $ozelDeger) {
+    $stmt_checks_received_detail->bindValue($ozelAd, $ozelDeger, PDO::PARAM_INT);
+}
 $stmt_checks_received_detail->execute();
 $checks_received_detail = $stmt_checks_received_detail->fetchAll(PDO::FETCH_ASSOC);
 
@@ -143,12 +162,15 @@ $sql_checks_given_detail = "
         AND C.STATUS IN(0,1)
         AND C.DOC = 1
         AND CAST(T.DATE_ AS DATE) = :tarih
-        AND T.TRCODE IN (1, 2, 3)
+        AND T.TRCODE IN (1, 2, 3)" . $ozelCariCekVerilenSql . "
     ORDER BY C.DUEDATE
 ";
 
 $stmt_checks_given_detail = $dbh->prepare($sql_checks_given_detail);
 $stmt_checks_given_detail->bindParam(':tarih', $selected_date, PDO::PARAM_STR);
+foreach ($ozelCariCekVerilen['params'] as $ozelAd => $ozelDeger) {
+    $stmt_checks_given_detail->bindValue($ozelAd, $ozelDeger, PDO::PARAM_INT);
+}
 $stmt_checks_given_detail->execute();
 $checks_given_detail = $stmt_checks_given_detail->fetchAll(PDO::FETCH_ASSOC);
 

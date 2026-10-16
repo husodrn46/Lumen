@@ -28,6 +28,10 @@ function raporDateFormat(mixed $value): string
     return ($ts === false) ? '-' : date('d.m.Y', $ts);
 }
 
+// Özel cari kısıtı: kısıtlı carilerin çekleri listelenmez (carisiz çekler korunur)
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(TX.CARDREF, 0)', 'ozel_cari');
+$ozelCariSql = $ozelCariFiltresi['sql'] !== '' ? ' AND ' . $ozelCariFiltresi['sql'] : '';
+
 try {
     $sql = "
         SELECT
@@ -49,11 +53,11 @@ try {
         WHERE C.CURRSTAT IN(1)
           AND C.STATUS IN(0,1)
           AND C.DOC = 1
-          AND C.OWING = :kimden
+          AND C.OWING = :kimden{$ozelCariSql}
         ORDER BY CAST(C.DUEDATE AS DATE) ASC, C.TRNET
     ";
     $stmt = $dbh->prepare($sql);
-    $stmt->execute([':kimden' => $kimden]);
+    $stmt->execute(array_merge([':kimden' => $kimden], $ozelCariFiltresi['params']));
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("fetch_customer_checks.php sorgu hatasi: " . $e->getMessage());
