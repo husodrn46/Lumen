@@ -35,6 +35,12 @@ if (!$siparis) {
     die('<script>alert("Hata: Sipariş bulunamadı!"); window.location="siparisler.php";</script>');
 }
 
+// Yetki: yalnızca bu siparişi görebilen kullanıcı ürün arayıp ekleyebilir
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisId)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 $trcurr = (int)$siparis['TRCURR'];
 $trrate = (float)$siparis['TRRATE'];
 
@@ -94,10 +100,17 @@ if (strlen($aramaMetni) >= 2) {
 
 // Ürün ekleme işlemi (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
-    // fis.php'ye yönlendir, orası ekleyecek
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
+    }
+    // fis.php'ye yönlendir, orası ekleyecek — yalnız beklenen alanlar + CSRF token aktarılır
     echo '<form id="addForm" method="POST" action="fis.php?id=' . $fisId . '">';
-    foreach ($_POST as $key => $val) {
-        echo '<input type="hidden" name="' . htmlspecialchars((string)$key) . '" value="' . htmlspecialchars((string)$val) . '">';
+    echo csrf_field();
+    foreach (['stokid', 'miktar', 'fiyat', 'kdv', 'aciklama'] as $key) {
+        if (isset($_POST[$key]) && is_scalar($_POST[$key])) {
+            echo '<input type="hidden" name="' . $key . '" value="' . htmlspecialchars((string)$_POST[$key]) . '">';
+        }
     }
     echo '</form>';
     echo '<script>document.getElementById("addForm").submit();</script>';
@@ -598,6 +611,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
             $i++;
           ?>
           <form method="POST" class="product-card" style="animation-delay: <?php echo $delay; ?>ms;">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="stokid" value="<?php echo (int)$urun['ID']; ?>">
             <input type="hidden" name="kdv" value="<?php echo (int)$urun['KDV']; ?>">
 

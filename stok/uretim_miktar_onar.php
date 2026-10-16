@@ -76,6 +76,11 @@ $msg = '';
 $err = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['repair'])) {
+    // CSRF koruması (onarım STLINE yazma işlemidir)
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
+    }
     $selectedIds = is_array($_POST['line_id'] ?? null) ? array_map('intval', $_POST['line_id']) : [];
     $selectedIds = array_values(array_filter(array_unique($selectedIds), static fn(int $id): bool => $id > 0));
 
@@ -190,6 +195,7 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </section>
 
     <form method="post" class="card">
+        <?= csrf_field() ?>
         <div class="scroll">
             <table>
                 <thead>

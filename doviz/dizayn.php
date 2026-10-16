@@ -42,6 +42,12 @@ if (!$siparis) {
     die('<script>alert("Sipariş bulunamadı!"); window.location="siparisler.php";</script>');
 }
 
+// Yetki: yalnızca bu siparişi görebilen kullanıcı (kısıtlı cari filtresi)
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 // Döviz kontrolü
 $trcurr = (int)$siparis['TRCURR'];
 $trrate = (float)$siparis['TRRATE'];
@@ -59,28 +65,37 @@ $doviz = $dovizBilgileri[$trcurr] ?? ['kod' => 'DV', 'sembol' => '?'];
 
 // Form gönderildi mi kontrol et
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF koruması (açıklama güncellemesi ve yazdırma kuyruğu yazma işlemidir)
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
+    }
     $miktar = isset($_POST['miktar']) ? intval($_POST['miktar']) : 1;
     $yazici = $_POST['yazici'] ?? '';
     $dizayn = $_POST['dizayn'] ?? '';
     $lokasyon = isset($_POST['lokasyon']) ? intval($_POST['lokasyon']) : 1;
-    $aciklama = $_POST['aciklama'] ?? '';
-    $aciklama2 = $_POST['aciklama2'] ?? '';
+    // GENEXP1/2 sütunları 250 karakter
+    $aciklama = mb_substr(trim((string)($_POST['aciklama'] ?? '')), 0, 250, 'UTF-8');
+    $aciklama2 = mb_substr(trim((string)($_POST['aciklama2'] ?? '')), 0, 250, 'UTF-8');
 
     $islem_basarili = false;
     $hata_mesaji = '';
 
     try {
-        // Açıklamaları güncelle
-        $stmt_update = $dbh->prepare("
-            UPDATE {$firmadonem}ORFICHE
-            SET GENEXP1 = :aciklama, GENEXP2 = :aciklama2
-            WHERE LOGICALREF = :stokhareket
-        ");
-        $stmt_update->execute([
-            ':aciklama' => $aciklama,
-            ':aciklama2' => $aciklama2,
-            ':stokhareket' => $stokhareket,
-        ]);
+        // Açıklamaları güncelle — yalnız sipariş düzenleme yetkisiyle (lg_siparis.php ile aynı);
+        // yetkisiz kullanıcıda yazma atlanır, yazdırma akışı devam eder.
+        if (m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)) {
+            $stmt_update = $dbh->prepare("
+                UPDATE {$firmadonem}ORFICHE
+                SET GENEXP1 = :aciklama, GENEXP2 = :aciklama2
+                WHERE LOGICALREF = :stokhareket
+            ");
+            $stmt_update->execute([
+                ':aciklama' => $aciklama,
+                ':aciklama2' => $aciklama2,
+                ':stokhareket' => $stokhareket,
+            ]);
+        }
 
         // M_MOBIL_DIZAYN tablosunun var olup olmadığını kontrol et
         $tableCheck = $dbh->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'M_MOBIL_DIZAYN'");

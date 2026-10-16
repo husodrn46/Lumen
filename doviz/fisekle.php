@@ -22,6 +22,11 @@ $dovizKuru = isset($_GET['kur']) ? (float)str_replace(',', '.', $_GET['kur']) : 
 if ($cariid <= 0) {
     die('<script>if (window.toast) { toast("Hata: Müşteri seçilmedi!", "error"); } else { alert("Hata: Müşteri seçilmedi!"); } window.location="cari.php";</script>');
 }
+// Kısıtlı (özel) cariye sipariş açılamaz (siparis/fisekle.php ile aynı kapı)
+if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $cariid)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 
 // Döviz bilgileri (LOGO kodları: 1=USD, 20=EUR)
 $dovizBilgileri = [
@@ -46,6 +51,12 @@ if ($dovizKuru <= 0) {
     } catch (Exception $e) {
         error_log("Döviz kur çekme hatası: " . $e->getMessage());
     }
+}
+
+// Sipariş oluşturma yazma işlemidir: CSRF doğrulaması
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_verify()) {
+    http_response_code(403);
+    die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
 }
 
 // Manuel kur girişi
@@ -752,6 +763,7 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
         <!-- FORM CARD -->
         <div class="glass-card">
             <form method="POST" action="">
+                <?php echo csrf_field(); ?>
 
                 <div class="field">
                     <label for="kur" class="field-label">Doviz Kuru (1 <?= htmlspecialchars($seciliDoviz['kod'], ENT_QUOTES, 'UTF-8') ?> = ? TL) <span class="required">*</span></label>

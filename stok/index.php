@@ -433,10 +433,14 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
                 <i class="fa-solid fa-wrench"></i>
                 <span>Miktar Onar</span>
             </a>
-            <a href="uretim_giris.php?yeni=1" class="btn-primary">
-                <i class="fas fa-plus-circle"></i>
-                <span>Yeni Üretim</span>
-            </a>
+            <form method="post" action="uretim_giris.php" style="display:inline;margin:0;">
+                <?php echo csrf_field(); ?>
+                <input type="hidden" name="yeni" value="1">
+                <button type="submit" class="btn-primary" style="border:0;cursor:pointer;font:inherit;">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Yeni Üretim</span>
+                </button>
+            </form>
         </div>
     </header>
 

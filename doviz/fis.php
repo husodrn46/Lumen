@@ -36,7 +36,7 @@ $stmtFis = $dbh->prepare("
         F.LOGICALREF, F.FICHENO, F.DATE_, F.GENEXP1,
         F.TRCURR, F.TRRATE, F.TRNET,
         F.NETTOTAL, F.GROSSTOTAL, F.TOTALVAT, F.TOTALDISCOUNTS,
-        F.CLIENTREF, F.SALESMANREF, F.STATUS,
+        F.CLIENTREF, F.SALESMANREF, F.STATUS, F.CANCELLED,
         C.CODE AS CARI_KOD, C.DEFINITION_ AS CARI_ISIM, C.CITY AS CARI_SEHIR
     FROM {$firmadonem}ORFICHE F
     LEFT JOIN {$firma}CLCARD C ON C.LOGICALREF = F.CLIENTREF
@@ -47,6 +47,12 @@ $siparis = $stmtFis->fetch(PDO::FETCH_ASSOC);
 
 if (!$siparis) {
     die('<script>if (window.toast) { toast("Hata: Sipariş bulunamadı!", "error"); } else { alert("Hata: Sipariş bulunamadı!"); } window.location="siparisler.php";</script>');
+}
+
+// Yetki: yalnızca bu siparişi görebilen kullanıcı (kısıtlı cari filtresi)
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $siparisId)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
 }
 
 // Döviz bilgileri
@@ -65,6 +71,36 @@ $dovizBilgileri = [
 ];
 $doviz = $dovizBilgileri[$trcurr] ?? ['kod' => 'DV', 'sembol' => '?', 'ad' => 'Döviz'];
 
+// Yazma işlemleri (satır ekle/sil): CSRF + düzenleme yetkisi + iptal edilmiş sipariş kontrolü
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
+    }
+    if (!m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)) {
+        header('Location: ' . APP_ROOT_URL . '/403.html');
+        exit;
+    }
+    if ((int)($siparis['CANCELLED'] ?? 0) !== 0) {
+        header("Location: fis.php?id=" . $siparisId . "&hata=" . urlencode('İptal edilmiş siparişte değişiklik yapılamaz.'));
+        exit;
+    }
+}
+
+// Fiş toplamlarını kalan ürün satırlarından yeniden hesapla (transaction içinde çağrılır)
+function doviz_fis_toplam_guncelle(PDO $dbh, string $firmadonem, int $siparisId): void
+{
+    $stmtGuncelle = $dbh->prepare("
+        UPDATE {$firmadonem}ORFICHE
+        SET NETTOTAL = (SELECT ISNULL(SUM(LINENET + VATAMNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id1 AND LINETYPE = 0),
+            GROSSTOTAL = (SELECT ISNULL(SUM(TOTAL), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id2 AND LINETYPE = 0),
+            TOTALVAT = (SELECT ISNULL(SUM(VATAMNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id3 AND LINETYPE = 0),
+            TRNET = (SELECT ISNULL(SUM(PRPRICE * AMOUNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id4 AND LINETYPE = 0)
+        WHERE LOGICALREF = :id5
+    ");
+    $stmtGuncelle->execute([':id1' => $siparisId, ':id2' => $siparisId, ':id3' => $siparisId, ':id4' => $siparisId, ':id5' => $siparisId]);
+}
+
 // Ürün ekleme işlemi
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
     $stokid = (int)$_POST['stokid'];
@@ -75,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
 
     if ($stokid > 0 && $miktar > 0 && $dovizFiyat > 0) {
         try {
+            $dbh->beginTransaction();
             // TL fiyatını hesapla
             $tlFiyat = $dovizFiyat * $trrate;
             $toplam = $miktar * $tlFiyat;
@@ -158,20 +195,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
             ]);
 
             // Fiş toplamlarını güncelle
-            $stmtGuncelle = $dbh->prepare("
-                UPDATE {$firmadonem}ORFICHE
-                SET NETTOTAL = (SELECT ISNULL(SUM(LINENET + VATAMNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id1 AND LINETYPE = 0),
-                    GROSSTOTAL = (SELECT ISNULL(SUM(TOTAL), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id2 AND LINETYPE = 0),
-                    TOTALVAT = (SELECT ISNULL(SUM(VATAMNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id3 AND LINETYPE = 0),
-                    TRNET = (SELECT ISNULL(SUM(PRPRICE * AMOUNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id4 AND LINETYPE = 0)
-                WHERE LOGICALREF = :id5
-            ");
-            $stmtGuncelle->execute([':id1' => $siparisId, ':id2' => $siparisId, ':id3' => $siparisId, ':id4' => $siparisId, ':id5' => $siparisId]);
+            doviz_fis_toplam_guncelle($dbh, $firmadonem, $siparisId);
+            $dbh->commit();
 
             $basari = "Ürün eklendi.";
 
-        } catch (PDOException $e) {
-            $hata = "Ürün ekleme hatası: " . $e->getMessage();
+        } catch (Throwable $e) {
+            if ($dbh->inTransaction()) {
+                $dbh->rollBack();
+            }
+            $hata = "Ürün eklenemedi; işlem geri alındı.";
             error_log("Döviz sipariş satır ekleme hatası: " . $e->getMessage());
         }
     } else {
@@ -183,30 +216,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
     exit;
 }
 
-// Satır silme işlemi
-if (isset($_GET['sil'])) {
-    $silId = (int)$_GET['sil'];
+// Satır silme işlemi (yalnız POST + CSRF; GET ?sil= artık veri değiştirmez)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sil'])) {
+    $silId = (int)$_POST['sil'];
+    $silHata = null;
     if ($silId > 0) {
         try {
-            $stmtSil = $dbh->prepare("DELETE FROM {$firmadonem}ORFLINE WHERE LOGICALREF = :id AND ORDFICHEREF = :fisid");
-            $stmtSil->execute([':id' => $silId, ':fisid' => $siparisId]);
-
-            // Fiş toplamlarını güncelle
-            $stmtGuncelle = $dbh->prepare("
-                UPDATE {$firmadonem}ORFICHE
-                SET NETTOTAL = (SELECT ISNULL(SUM(LINENET + VATAMNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id1 AND LINETYPE = 0),
-                    GROSSTOTAL = (SELECT ISNULL(SUM(TOTAL), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id2 AND LINETYPE = 0),
-                    TOTALVAT = (SELECT ISNULL(SUM(VATAMNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id3 AND LINETYPE = 0),
-                    TRNET = (SELECT ISNULL(SUM(PRPRICE * AMOUNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id4 AND LINETYPE = 0)
-                WHERE LOGICALREF = :id5
+            $dbh->beginTransaction();
+            // Sevk edilmiş (SHIPPEDAMOUNT > 0) satır silinemez
+            $stmtSil = $dbh->prepare("
+                DELETE FROM {$firmadonem}ORFLINE
+                WHERE LOGICALREF = :id AND ORDFICHEREF = :fisid AND LINETYPE = 0
+                  AND ISNULL(SHIPPEDAMOUNT, 0) <= 0
             ");
-            $stmtGuncelle->execute([':id1' => $siparisId, ':id2' => $siparisId, ':id3' => $siparisId, ':id4' => $siparisId, ':id5' => $siparisId]);
-
-        } catch (PDOException $e) {
+            $stmtSil->execute([':id' => $silId, ':fisid' => $siparisId]);
+            if ($stmtSil->rowCount() !== 1) {
+                $dbh->rollBack();
+                $silHata = 'Satır silinemedi (bulunamadı veya sevk edilmiş).';
+            } else {
+                // Fiş toplamlarını güncelle
+                doviz_fis_toplam_guncelle($dbh, $firmadonem, $siparisId);
+                $dbh->commit();
+            }
+        } catch (Throwable $e) {
+            if ($dbh->inTransaction()) {
+                $dbh->rollBack();
+            }
+            $silHata = 'Satır silinirken hata oluştu; işlem geri alındı.';
             error_log("Döviz sipariş satır silme hatası: " . $e->getMessage());
         }
     }
-    header("Location: fis.php?id=" . $siparisId);
+    header("Location: fis.php?id=" . $siparisId . ($silHata !== null ? "&hata=" . urlencode($silHata) : ''));
     exit;
 }
 
@@ -776,6 +816,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             border: 1px solid rgba(239,68,68,0.2);
             display: inline-flex; align-items: center; justify-content: center;
             text-decoration: none;
+            cursor: pointer; padding: 0; font: inherit;
             transition: transform .18s ease, background .2s ease;
         }
         .btn-del:hover { background: var(--red); color: #fff; transform: translateY(-1px); }
@@ -1122,11 +1163,14 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
                                 <td class="num total-doviz"><?php echo formatDoviz($dovizToplam, $doviz['sembol']); ?></td>
                                 <td class="num total-tl"><?php echo formatTL($satir['TOTAL']); ?></td>
                                 <td class="center">
-                                    <a href="?id=<?php echo $siparisId; ?>&sil=<?php echo (int)$satir['LOGICALREF']; ?>"
-                                       onclick="return confirm('Bu ürünü silmek istediğinize emin misiniz?')"
-                                       class="btn-del" title="Satırı Sil">
-                                        <i class="fa fa-trash"></i>
-                                    </a>
+                                    <form method="POST" action="?id=<?php echo $siparisId; ?>" style="display:inline;margin:0;"
+                                          onsubmit="return confirm('Bu ürünü silmek istediğinize emin misiniz?')">
+                                        <?php echo csrf_field(); ?>
+                                        <input type="hidden" name="sil" value="<?php echo (int)$satir['LOGICALREF']; ?>">
+                                        <button type="submit" class="btn-del" title="Satırı Sil">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -1149,11 +1193,14 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
                                     <div class="a"><?php echo htmlspecialchars((string)$satir['STOK_ADI']); ?></div>
                                 </div>
                             </div>
-                            <a href="?id=<?php echo $siparisId; ?>&sil=<?php echo (int)$satir['LOGICALREF']; ?>"
-                               onclick="return confirm('Bu ürünü silmek istediğinize emin misiniz?')"
-                               class="btn-del" title="Sil">
-                                <i class="fa fa-trash"></i>
-                            </a>
+                            <form method="POST" action="?id=<?php echo $siparisId; ?>" style="display:inline;margin:0;"
+                                  onsubmit="return confirm('Bu ürünü silmek istediğinize emin misiniz?')">
+                                <?php echo csrf_field(); ?>
+                                <input type="hidden" name="sil" value="<?php echo (int)$satir['LOGICALREF']; ?>">
+                                <button type="submit" class="btn-del" title="Sil">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </form>
                         </div>
                         <div class="lc-grid">
                             <div class="lc-cell">
