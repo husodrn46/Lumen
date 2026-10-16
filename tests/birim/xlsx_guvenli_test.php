@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
-if (is_file($autoload)) {
+if (is_file($autoload) && PHP_VERSION_ID >= 80200) {
     require_once $autoload;
     require_once dirname(__DIR__, 2) . '/includes/xlsx_guvenli.php';
 

@@ -2180,21 +2180,8 @@ function cokludepomiktar(int|string $stokref): string
  */
 function getUserIP(): string
 {
-  // Güvenlik: Sadece güvenilir proxy'lerden gelen X-Forwarded-For'a güven
-  $trustedProxies = ['127.0.0.1', '::1'];
-  $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
-
-  if (in_array($remoteAddr, $trustedProxies, true)) {
-      if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-          // İlk IP adresi orijinal istemcidir
-          $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-          return trim($ips[0]);
-      }
-      if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-          return $_SERVER['HTTP_CLIENT_IP'];
-      }
-  }
-  return $remoteAddr;
+  require_once __DIR__ . '/includes/istemci_ip.php';
+  return lumen_istemci_ip($_SERVER, lumen_guvenilir_proxyler());
 }
 
 /**
