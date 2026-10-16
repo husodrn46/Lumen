@@ -198,6 +198,37 @@ if (!function_exists('cek_numara_kilidi')) {
     }
 }
 
+if (!function_exists('cek_istek_id')) {
+    /**
+     * İstemcinin (panel sayfası açılışında üretilen) istek kimliği; geçersizse
+     * sunucu üretir. Aynı kimlikle gelen tekrar (çift tıklama, ağ tekrarı, ikinci
+     * sekme) cek_istek_tekrari() ile yakalanır. Eskiden kimlik her istekte sunucuda
+     * üretildiğinden M_CEK_LOG.REQUEST_ID tekilliği mükerrer kaydı hiç önlemiyordu.
+     */
+    function cek_istek_id(mixed $istemci): string
+    {
+        if (is_string($istemci) && preg_match('/^[a-f0-9]{32}$/', $istemci) === 1) {
+            return 'i-' . $istemci;
+        }
+        return (string) guid();
+    }
+}
+
+if (!function_exists('cek_istek_tekrari')) {
+    /**
+     * Bu istek kimliğiyle başarıyla işlenmiş bir kayıt varsa onun log ID'sini döner.
+     * cek_numara_kilidi() altında çağrılır; eşzamanlı tekrarlar da sıraya girer.
+     */
+    function cek_istek_tekrari(PDO $dbh, string $requestId): ?int
+    {
+        $q = $dbh->prepare("SELECT TOP 1 ID FROM M_CEK_LOG WHERE REQUEST_ID = :r AND DURUM <> 'HATA'");
+        $q->execute([':r' => $requestId]);
+        $id = $q->fetchColumn();
+        $q->closeCursor();
+        return $id === false ? null : (int) $id;
+    }
+}
+
 if (!function_exists('cek_seri_no')) {
     /** Sayısal seriden sonraki numarayı üretir (soldan sıfır dolgulu). where ile scope daraltılır.
      *  $prefix verilirse (örn 'A') SADECE o ön-ekli kayıtlar içinde bağımsız sayar ve ön-ekli döner
@@ -304,6 +335,11 @@ if (!function_exists('cek_giris_core')) {
         try {
             $dbh->beginTransaction();
             cek_numara_kilidi($dbh);
+            if (($oncekiLog = cek_istek_tekrari($dbh, $requestId)) !== null) {
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 409, 'tekrar' => true, 'log_id' => $oncekiLog,
+                        'mesaj' => 'Bu işlem zaten kaydedildi (tekrar gönderim). Sayfayı yenileyin.'];
+            }
 
             // Cari doğrula (isim OWING varsayılanı için de kullanılır)
             $cari = $dbh->prepare("SELECT LOGICALREF, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF = :r AND ACTIVE = 0");
@@ -529,6 +565,11 @@ if (!function_exists('cek_ciro_core')) {
         try {
             $dbh->beginTransaction();
             cek_numara_kilidi($dbh);
+            if (($oncekiLog = cek_istek_tekrari($dbh, $requestId)) !== null) {
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 409, 'tekrar' => true, 'log_id' => $oncekiLog,
+                        'mesaj' => 'Bu işlem zaten kaydedildi (tekrar gönderim). Sayfayı yenileyin.'];
+            }
 
             $c = $dbh->prepare("SELECT LOGICALREF, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF=:r AND ACTIVE=0");
             $c->execute([':r' => $hedefCariRef]);
@@ -749,6 +790,11 @@ if (!function_exists('cek_kendi_core')) {
         try {
             $dbh->beginTransaction();
             cek_numara_kilidi($dbh);
+            if (($oncekiLog = cek_istek_tekrari($dbh, $requestId)) !== null) {
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 409, 'tekrar' => true, 'log_id' => $oncekiLog,
+                        'mesaj' => 'Bu işlem zaten kaydedildi (tekrar gönderim). Sayfayı yenileyin.'];
+            }
 
             $c = $dbh->prepare("SELECT LOGICALREF, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF=:r AND ACTIVE=0");
             $c->execute([':r' => $hedefCariRef]);

@@ -245,6 +245,8 @@ $bugun = date('Y-m-d');
     <script>
     (function () {
         var csrf = <?php echo json_encode($csrf); ?>;
+        // Sayfa açılışı başına tek kullanımlık istek kimliği (mükerrer gönderim koruması)
+        var istekId = <?php echo json_encode(bin2hex(random_bytes(16))); ?>;
         var toast = document.getElementById('toast'); var tt = null;
         function bildir(msg, hata) { toast.textContent = msg; toast.style.background = hata ? '#b91c1c' : '#047857'; toast.classList.add('show'); clearTimeout(tt); tt = setTimeout(function(){ toast.classList.remove('show'); }, 2600); }
         function trPara(n) { var neg = n < 0; n = Math.abs(n); var p = n.toFixed(2).split('.'); p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return (neg ? '-' : '') + p[0] + ',' + p[1]; }
@@ -317,6 +319,7 @@ $bugun = date('Y-m-d');
                 body.append('aciklama', form.querySelector('[name=aciklama]').value);
                 body.append('kalemler', JSON.stringify(kl));
                 body.append('csrf_token', csrf);
+                body.append('istek_id', istekId);
                 fetch('cek_kendi.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
                     .then(function(r){ return r.json(); })
                     .then(function(j){ bildir(j.mesaj || (j.ok?'Verildi':'Hata'), !j.ok); if (j.ok) { setTimeout(function(){ location.reload(); }, 1300); } else { btn.disabled = false; } })

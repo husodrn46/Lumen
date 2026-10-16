@@ -77,7 +77,7 @@ foreach ($kalemler as $i => $k) {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $k['vade'])) { cek_json(['ok' => false, 'mesaj' => ($i + 1) . '. çek için vade tarihi seçin.'], 422); }
 }
 
-$requestId = (string) guid();
+$requestId = cek_istek_id($_POST['istek_id'] ?? null);
 $res = cek_giris_core($dbh, $firma, $firmadonem, $cariRef, [
     'resmi' => $resmi, 'aciklama' => $aciklama, 'kalemler' => $kalemler,
 ], (int) $terminalkullanici, $requestId, [

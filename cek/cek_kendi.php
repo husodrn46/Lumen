@@ -59,7 +59,7 @@ if ($hedefCari <= 0) { cek_kendi_json(['ok' => false, 'mesaj' => 'Hedef cari se�
 if ($bankaRef <= 0)  { cek_kendi_json(['ok' => false, 'mesaj' => 'Banka hesabı seçilmedi.'], 400); }
 if (!$kalemler)      { cek_kendi_json(['ok' => false, 'mesaj' => 'En az bir çek girin.'], 422); }
 
-$requestId = (string) guid();
+$requestId = cek_istek_id($_POST['istek_id'] ?? null);
 $res = cek_kendi_core($dbh, $firma, $firmadonem, $hedefCari, $bankaRef, $kalemler, $aciklama, (int) $terminalkullanici, $requestId, [
     'ip' => function_exists('getUserIP') ? (string) getUserIP() : (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
 ]);

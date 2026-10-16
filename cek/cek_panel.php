@@ -265,6 +265,8 @@ $bugun = date('Y-m-d');
     <script>
     (function () {
         var csrf = <?php echo json_encode($csrf); ?>;
+        // Sayfa açılışı başına tek kullanımlık istek kimliği (mükerrer gönderim koruması)
+        var istekId = <?php echo json_encode(bin2hex(random_bytes(16))); ?>;
         var toast = document.getElementById('toast'); var tt = null;
         function bildir(msg, hata) { toast.textContent = msg; toast.style.background = hata ? '#b91c1c' : '#047857'; toast.classList.add('show'); clearTimeout(tt); tt = setTimeout(function(){ toast.classList.remove('show'); }, 2400); }
 
@@ -369,6 +371,7 @@ $bugun = date('Y-m-d');
                 body.append('aciklama', form.querySelector('[name=aciklama]').value);
                 body.append('kalemler', JSON.stringify(kl));
                 body.append('csrf_token', csrf);
+                body.append('istek_id', istekId);
                 fetch('cek_giris.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
                     .then(function(r){ return r.json(); })
                     .then(function(j){ bildir(j.mesaj || (j.ok?'Kaydedildi':'Hata'), !j.ok); if (j.ok) { setTimeout(function(){ location.reload(); }, 1200); } else { btn.disabled = false; } })
