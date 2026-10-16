@@ -1,0 +1,67 @@
+# Lumen demo ortamı: sentetik LOGO veritabanı + uygulama.
+# Kurulum ve kullanım: demo/README.md  (kısaca: bash demo/kur.sh)
+name: lumen-demo
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${LUMEN_DEMO_SA_PASS:-Lumen_Demo_2026!}"
+      MSSQL_COLLATION: Turkish_CI_AS
+      MSSQL_PID: Developer
+    ports:
+      - "127.0.0.1:${LUMEN_DEMO_DB_PORT:-14330}:1433"
+    volumes:
+      - lumen-db:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 20s
+
+  app:
+    build:
+      context: ./docker
+    platform: linux/amd64
+    # Emülasyon (Apple Silicon) altında nadir php-fpm çökmeleri depo köküne yüzlerce
+    # MB'lık core dosyası bırakmasın.
+    ulimits:
+      core: 0
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      AKL_DB_SERVER: db
+      AKL_DB_NAME: LUMEN_DEMO
+      AKL_DB_USER: sa
+      AKL_DB_PASS: "${LUMEN_DEMO_SA_PASS:-Lumen_Demo_2026!}"
+      AKL_DB_TRUST_CERT: "1"
+      FIRMA_NO: "1"
+      FIRMA_PREFIX: LG_001_
+      FIRMA_DONEM: LG_001_02_
+      FIRMA_DONEM_VIEW: LV_001_02_
+      FIRMA_ESKI_DONEM: LG_001_01_
+      FIRMA_ESKI_DONEM_VIEW: LV_001_01_
+      FIRMA_BASLIK: Lumen Demo
+      MAGAZA_CARI: "0"
+      LOG_ROOT: /var/www/html/logs
+    volumes:
+      - ..:/var/www/html
+      # Bağlantı katmanı ortam değişkenlerinden okur; depodaki örnek dosya yeterli.
+      - ../_baglanti_.inc.example:/var/www/html/_baglanti_.inc:ro
+
+  web:
+    image: nginx:1.27-alpine
+    depends_on:
+      - app
+    ports:
+      - "127.0.0.1:${LUMEN_DEMO_PORT:-8088}:80"
+    volumes:
+      - ..:/var/www/html:ro
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  lumen-db:

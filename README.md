@@ -18,7 +18,7 @@
 
 **Lumen** is a modern, mobile-friendly web front-end for businesses running **LOGO Tiger ERP**. It runs on top of your existing LOGO SQL Server database and provides a fast sales-terminal experience — order entry, customer/stock lookup, balances, cheques, multi-currency and reporting — in Turkish, on any device.
 
-Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source under the **MIT** license. First-time setup is a browser wizard (`/kurulum.php`), which also creates the tables Lumen needs from the scripts in `sql/`. You can build a synthetic demo database from those same scripts to try it without touching production data.
+Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source under the **MIT** license. First-time setup is a browser wizard (`/kurulum.php`), which also creates the tables Lumen needs from the scripts in `sql/`. To try it without a LOGO licence, `bash demo/kur.sh` starts a Docker demo (SQL Server + synthetic LOGO data + the app) — see [demo/README.md](demo/README.md).
 
 **Used in production** at [AKEL Melamin](https://github.com/akel-melamin) — a Turkish melamine tableware manufacturer — for daily order entry, stock lookup and collections on a live LOGO Tiger installation. This repository is the de-branded, configurable open-source edition of that same codebase.
 
@@ -34,7 +34,7 @@ Lumen, LOGO Tiger için bir yardımcı arayüzdür. **PHP 8.2+**, `pdo_sqlsrv` v
 
 `v1.1.0-beta.1` deneysel bir ön sürümdür; sınırları için [beta sürüm notlarını](https://github.com/husodrn46/Lumen/releases/tag/v1.1.0-beta.1) okuyun.
 
-Demo için `sql/` altındaki şema betiklerinden ayrı bir test veritabanı hazırlayın; canlı şirket veritabanını deneme ortamı olarak kullanmayın. Bu, tek tıkla açılan bir çevrim içi demo değildir.
+Hızlı deneme için `bash demo/kur.sh` Docker üzerinde SQL Server + sentetik LOGO verisi + uygulamayı kurar ([demo/README.md](demo/README.md)). Canlı şirket veritabanını deneme ortamı olarak kullanmayın.
 
 ## İçindekiler
 
@@ -117,7 +117,15 @@ Kurulum bitince sihirbaz kilitlenir (`.installed`). Artık `giris.php` üzerinde
 
 ## Demo Veritabanı
 
-LOGO lisansınız olmadan denemek ister misiniz? `sql/` altındaki şema betiklerinden yola çıkarak sentetik bir demo veritabanı oluşturabilir; Lumen'in tüm çekirdek ekranlarını gerçek veriye dokunmadan görebilirsiniz. (Demo verisi tamamen uydurmadır; gerçek müşteri/ürün bilgisi içermez.)
+LOGO lisansınız olmadan denemek için Docker tabanlı hazır bir demo ortamı vardır:
+
+```bash
+bash demo/kur.sh
+```
+
+SQL Server, sentetik LOGO verisi (uydurma ürün/cari/sipariş/çek) ve uygulama birlikte
+kurulur; <http://localhost:8088/giris.php> adresinden `YONETICI` / `demo1234` ile giriş
+yapın. Ayrıntılar, diğer demo kullanıcıları ve testler: [demo/README.md](demo/README.md).
 
 ## Yapılandırma
 
@@ -126,6 +134,8 @@ LOGO lisansınız olmadan denemek ister misiniz? `sql/` altındaki şema betikle
 | `.env` | DB bağlantısı, firma/dönem önekleri, mağaza carisi, log kökü (gizli — git'e girmez) |
 | `_baglanti_.inc` | `.env`'i okuyan bağlantı katmanı |
 | `_bilgi_.inc` | Özellik bayrakları ve varsayılanlar (döviz, çoklu depo, çek, mağaza satışı…) |
+
+SQL Server bağlantısı Microsoft ODBC Driver 18 ile varsayılan olarak `TrustServerCertificate=1` kullanır (LOGO kurulumlarının çoğu kendinden imzalı sertifika kullanır); geçerli bir sertifikanız varsa `.env`'de `AKL_DB_TRUST_CERT=0`, şifrelemeyi açıkça yönetmek için `AKL_DB_ENCRYPT=0|1` verin.
 
 Öne çıkan ayarlar: `MAGAZA_CARI` (mağaza hızlı satış carisi, 0 = kapalı), `$dovizlicalis`, `$cokludepo`, `$urun_kodu_oneki` (raporları belirli bir ürün kodu ön ekiyle sınırlar; boş = tüm ürünler). Loglar `.env` `LOG_ROOT` verilmezse `logs/` klasörüne yazılır.
 
@@ -173,8 +183,12 @@ Katkılar memnuniyetle karşılanır. Değişiklikten önce:
 
 ```bash
 bash scripts/validate.sh     # sözdizim denetimi + sağlık taraması
+php tests/birim/calistir.php  # birim testleri
 php -l path/to/file.php       # tek dosya
 ```
+
+Sayfa davranışını değiştiren işlerde demo ortamında duman testini çalıştırın
+(`bash demo/kur.sh`, ardından [demo/README.md](demo/README.md) → Testler).
 
 Yeni PHP dosyalarında `declare(strict_types=1);` kullanın, mevcut kod stiline uyun, sorgularda daima prepared statement tercih edin.
 

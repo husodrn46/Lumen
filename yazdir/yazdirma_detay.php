@@ -13,6 +13,7 @@ if (session_id() === '') {
 
 if (!isset($_SESSION['plasiyer_id']) || empty($_SESSION['plasiyer_id'])) {
     ob_clean(); // Önceki tüm çıktıları temizle
+    http_response_code(401);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'Oturum gerekli']);
     exit;
