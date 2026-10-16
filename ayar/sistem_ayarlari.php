@@ -44,8 +44,11 @@ function sa_temiz(string $tip, $ham): string
         $n = (int) preg_replace('/[^0-9-]/', '', (string) $ham);
         return (string) max(0, min(999999, $n));
     }
-    // text: tırnak / ters bölü / ; / kontrol karakterlerini at, 60 karakterle sınırla
-    $s = preg_replace('/[\'"\\\\;\r\n\x00-\x1F]/', '', (string) $ham) ?? '';
+    // text: yalnız izin verilen karakterler kalır (harf, rakam, boşluk ve . _ - , / : @ # ( )).
+    // Değer _bilgi_.inc'e PHP literali olarak yazıldığından kara liste yetmez: çift
+    // tırnaklı ayarlarda `$`, `{` gibi karakterler değişken/ifade çözümlemesiyle kod
+    // çalıştırmaya yol açar ({${system(...)}}). Beyaz liste bunu tümden kapatır.
+    $s = preg_replace('/[^\p{L}\p{N} ._\-,\/:@#()]/u', '', (string) $ham) ?? '';
     return mb_substr(trim($s), 0, 60);
 }
 
