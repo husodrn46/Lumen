@@ -43,6 +43,11 @@ function marka_gorsel_kaydet(array $dosya, string $hedefYol, bool $kare): array
     if (!in_array($bilgi[2], [IMAGETYPE_PNG, IMAGETYPE_JPEG, IMAGETYPE_WEBP], true)) {
         return [false, 'Yalnızca PNG, JPG veya WEBP kabul edilir'];
     }
+    // Piksel sınırı: küçük bir dosya 20000×20000 boyut bildirip açılırken bellek
+    // sınırını aşarak sayfayı çökertebiliyordu (sıkıştırma bombası).
+    if ((int) $bilgi[0] * (int) $bilgi[1] > 16_000_000 || (int) $bilgi[0] > 8000 || (int) $bilgi[1] > 8000) {
+        return [false, 'Görsel çözünürlüğü çok yüksek (en fazla 16 megapiksel)'];
+    }
     $img = @imagecreatefromstring($veri);
     if (!$img) {
         return [false, 'Görsel işlenemedi'];
@@ -69,9 +74,13 @@ function marka_gorsel_kaydet(array $dosya, string $hedefYol, bool $kare): array
     if (is_file($hedefYol)) {
         @copy($hedefYol, $hedefYol . '.bak');   // eskiyi yedekle
     }
-    $ok = @imagepng($img, $hedefYol, 9);
+    // Önce geçici dosyaya yazılır, sonra yerine taşınır: yazma yarıda kalırsa
+    // mevcut logo bozulmaz.
+    $gecici = $hedefYol . '.yeni-' . bin2hex(random_bytes(4));
+    $ok = @imagepng($img, $gecici, 9);
     imagedestroy($img);
-    if (!$ok) {
+    if (!$ok || !@rename($gecici, $hedefYol)) {
+        @unlink($gecici);
         return [false, 'Kaydedilemedi — sunucunun klasöre yazma izni olmayabilir'];
     }
     return [true, 'Başarıyla güncellendi'];
