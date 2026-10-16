@@ -146,9 +146,7 @@ if (!function_exists('printer_draw_roundrect')) {
         return true;
     }
 }
-?>
 
-<?php
 require_once __DIR__ . '/../kontrol.php';
 // Güvenlik ve veritabanı bağlantısı, özel fonksiyonlar burada:
 include_once(__DIR__ . "/../ayr.php");

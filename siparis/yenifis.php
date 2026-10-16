@@ -1,10 +1,6 @@
 <?php
 declare(strict_types=1);
- include_once(__DIR__ . "/../ayr.php"); ?>
-
-
-
-<?php
+ include_once(__DIR__ . "/../ayr.php");
 require_once __DIR__ . '/../kontrol.php';
 $bilgi=fopen('ayr.php','r');
 $tarih=date("d/m/Y H:i:s");
