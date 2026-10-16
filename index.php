@@ -57,7 +57,7 @@ $bekleyen_talep_sayisi = 0;
 $cekGorselEksik = 0;
 if ((int) ($yetkidurum ?? 1) === 0) {
     try {
-        $cekGorselEksik = (int) $dbh->query("SELECT COUNT(*) FROM {$firmadonem}CSCARD C WITH(NOLOCK) WHERE C.CURRSTAT IN (1) AND C.STATUS IN (0,1) AND C.DOC = 1 AND NOT EXISTS (SELECT 1 FROM M_CEK_EK E WITH(NOLOCK) WHERE E.CEK_REF = C.LOGICALREF)")->fetchColumn();
+        $cekGorselEksik = (int) $dbh->query("SELECT COUNT(*) FROM {$firmadonem}CSCARD C WITH(NOLOCK) WHERE C.CURRSTAT IN (1) AND C.STATUS IN (0,1) AND C.DOC = 1 AND NOT EXISTS (SELECT 1 FROM M_CEK_EK E WITH(NOLOCK) WHERE E.CEK_REF = C.LOGICALREF AND (E.FIRMADONEM = " . $dbh->quote((string) $firmadonem) . " OR E.FIRMADONEM IS NULL))")->fetchColumn();
     } catch (Throwable $e) {
         $cekGorselEksik = 0;
     }

@@ -165,8 +165,10 @@ if ($mod === 'bordro') {
     $csrfTokenCek = function_exists('csrf_token') ? csrf_token() : '';
     $cekGorseller = [];
     try {
-        $gs = $dbh->prepare("SELECT ID, ETIKET, DOSYA_ADI FROM M_CEK_EK WHERE CEK_REF = :c ORDER BY ID");
-        $gs->execute([':c' => $CSREF]);
+        // Görüntülenen dönemin ekleri (+ dönem bilgisi olmayan eski ekler)
+        $gs = $dbh->prepare("SELECT ID, ETIKET, DOSYA_ADI FROM M_CEK_EK
+                             WHERE CEK_REF = :c AND (FIRMADONEM = :fd OR FIRMADONEM IS NULL) ORDER BY ID");
+        $gs->execute([':c' => $CSREF, ':fd' => (string) $firmadonem]);
         $cekGorseller = $gs->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) {
         $cekGorseller = [];
