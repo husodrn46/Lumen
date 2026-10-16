@@ -52,6 +52,28 @@ function sa_temiz(string $tip, $ham): string
     return mb_substr(trim($s), 0, 60);
 }
 
+/**
+ * Yazıcı adları: paylaşılan Windows yazıcıları ters bölü içerir (\\sunucu\yazici).
+ * Beyaz liste ters bölüyü siliyordu; her ayar kaydında yazıcı adı bozuluyordu.
+ * Ters bölüye yalnız bu alanlarda izin verilir ve değer sa_yaz_literal() ile
+ * var_export() (tek tırnaklı, kaçışlı) olarak yazılır.
+ */
+function sa_yazici_temiz($ham): string
+{
+    $s = preg_replace('/[^\p{L}\p{N} ._\-,\/:@#()\\\\]/u', '', (string) $ham) ?? '';
+    return mb_substr(trim($s), 0, 80);
+}
+
+/** `$var = ...;` değerini var_export() ile (tırnak stilinden bağımsız) güvenle yazar. */
+function sa_yaz_literal(string $content, string $var, string $deger): string
+{
+    $pattern = '/(\$' . preg_quote($var, '/') . '\s*=\s*)([\'"]?)(.*?)(\2)(\s*;)/s';
+    $yeni = preg_replace_callback($pattern, static function (array $m) use ($deger): string {
+        return $m[1] . var_export($deger, true) . $m[5];
+    }, $content, 1);
+    return $yeni ?? $content;
+}
+
 /** _bilgi_.inc içinde `$var = ...;` değerini, MEVCUT tırnak stilini koruyarak değiştir. */
 function sa_yaz(string $content, string $var, string $ic): string
 {
@@ -75,6 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guncelle'])) {
             $ic = isset($_POST[$key]) ? '1' : '0';
         } elseif ($tip === 'boolyn') {
             $ic = isset($_POST[$key]) ? 'evet' : 'hayir';
+        } elseif (isset($_POST[$key]) && str_contains($key, 'yazici')) {
+            $icerik = sa_yaz_literal($icerik, $key, sa_yazici_temiz($_POST[$key]));
+            continue;
         } elseif (isset($_POST[$key])) {
             $ic = sa_temiz($tip, $_POST[$key]);
         } else {
@@ -103,6 +128,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guncelle'])) {
                     ${$key} = isset($_POST[$key]) ? '1' : '0';
                 } elseif ($tip === 'boolyn') {
                     ${$key} = isset($_POST[$key]) ? 'evet' : 'hayir';
+                } elseif (isset($_POST[$key]) && str_contains($key, 'yazici')) {
+                    ${$key} = sa_yazici_temiz($_POST[$key]);
                 } elseif (isset($_POST[$key])) {
                     ${$key} = sa_temiz($tip, $_POST[$key]);
                 }
