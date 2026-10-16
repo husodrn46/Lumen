@@ -40,6 +40,26 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 $personel = isset($_SESSION['plasiyer_id']) ? (int) $_SESSION['plasiyer_id'] : null;
 
+// Yalnız oturum açmış kullanıcıdan ve oturum başına sınırlı sayıda kayıt kabul
+// edilir: uç oturumsuz ve sınırsız olduğundan herkes uygulama hata logunu
+// doldurabiliyor (disk / log gürültüsü) ve sahte kayıt ekleyebiliyordu.
+if ($personel === null) {
+    http_response_code(204);
+    exit;
+}
+$simdi = time();
+$pencere = array_values(array_filter(
+    (array) ($_SESSION['js_hata_log_zamanlari'] ?? []),
+    static fn($t): bool => is_int($t) && $t > $simdi - 600
+));
+if (count($pencere) >= 30) {
+    http_response_code(429);
+    echo json_encode(['ok' => false]);
+    exit;
+}
+$pencere[] = $simdi;
+$_SESSION['js_hata_log_zamanlari'] = $pencere;
+
 if (function_exists('app_log_write') && function_exists('app_error_ref')) {
     app_log_write('app-error', [
         'ref' => app_error_ref(),
