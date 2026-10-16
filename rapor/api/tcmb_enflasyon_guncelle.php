@@ -19,6 +19,13 @@ if ((int) m_p_yetki($terminalkullanici, 'M17') !== 1) {
     exit;
 }
 
+// Veritabanına yazan işlem: yalnız POST + CSRF (eskiden düz GET ile tetiklenebiliyordu).
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !csrf_verify()) {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'POST ve geçerli güvenlik belirteci gerekli.']);
+    exit;
+}
+
 // SQLite bağlantısı (klasör/tablolar yoksa oluşturulur — ayr.php)
 $db = enflasyon_db_baglan();
 if (!$db instanceof PDO) {
@@ -54,7 +61,10 @@ $url = $base_url . "series=" . $serie_code . "&startDate=" . $baslangic . "&endD
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+// TLS doğrulaması açık: API anahtarı URL'de gider; doğrulama kapalıyken araya
+// giren biri anahtarı çalıp sahte enflasyon oranı yazdırabiliyordu.
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 
 $response = curl_exec($ch);
@@ -69,7 +79,8 @@ if ($http_code !== 200) {
 $data = json_decode($response, true);
 
 if (!$data || !isset($data['items']) || empty($data['items'])) {
-    echo json_encode(['success' => false, 'error' => 'TCMB\'den veri alınamadı veya veri formatı hatalı.', 'response' => $response]);
+    error_log('tcmb_enflasyon_guncelle beklenmeyen yanıt: ' . substr((string) $response, 0, 500));
+    echo json_encode(['success' => false, 'error' => 'TCMB\'den veri alınamadı veya veri formatı hatalı.']);
     exit;
 }
 
