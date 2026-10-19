@@ -164,6 +164,15 @@ Ayarlar → **Marka / Logo** ekranından kendi yatay logonuzu ve uygulama ikonun
 - Tüm sorgular PDO prepared statement; çıktıda `htmlspecialchars`
 - Oturum sabitleme koruması, HttpOnly + SameSite=Strict çerezler
 - Gizli bilgiler `.env` / `_baglanti_.inc` içinde tutulur ve `.gitignore` ile korunur
+- Rol bazlı yetki her yazma ucunda (web + API); yönetici yetkisi yalnız yönetici tarafından verilebilir
+- Özel cari kısıtı (müşteri gizleme) sayfalarda, raporlarda, yazdırma ve Excel çıktılarında uygulanır
+- Zorla çıkış / parola değişikliği / pasifleştirme tüm oturumları, "Beni hatırla" ve API belirteçlerini iptal eder
+- "Beni hatırla" belirteci her kullanımda yenilenir; kopyalanan çerez tespit edilip iptal edilir
+- API belirteçleri veritabanında özet olarak saklanır, hesap başına tek canlı belirteç
+- Giriş denemesi sınırı (IP ve hesap bazlı), saldırı modu (yalnız yerel ağ; API dahil)
+- Ayarlar ekranı PHP dosyasına yazmaz (doğrulanmış JSON); ayar değişiklikleri denetim loguna düşer
+- Excel çıktılarında formül enjeksiyonu engellenir; içerik güvenlik politikası (CSP) ve güvenlik başlıkları
+- Sipariş satırında çakışma koruması; çek işlemlerinde mükerrer gönderim koruması
 
 ### Sunucu yapılandırması (önemli)
 
