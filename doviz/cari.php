@@ -22,7 +22,7 @@ $dovizTipleri = [
 $guncelKurlar = [];
 try {
     // USD kurunu çek (CRTYPE=1)
-    $stmtKurUSD = $dbh->prepare("SELECT TOP 1 RATES2 AS KUR FROM L_DAILYEXCHANGES WHERE CRTYPE = 1 ORDER BY LREF DESC");
+    $stmtKurUSD = $dbh->prepare("SELECT TOP 1 RATES2 AS KUR FROM {$GLOBALS['LUMEN_KUR']} WHERE CRTYPE = 1 ORDER BY LREF DESC");
     $stmtKurUSD->execute();
     $kurUSD = $stmtKurUSD->fetch(PDO::FETCH_ASSOC);
     if ($kurUSD) {
@@ -30,7 +30,7 @@ try {
     }
 
     // EUR kurunu çek (CRTYPE=20)
-    $stmtKurEUR = $dbh->prepare("SELECT TOP 1 RATES2 AS KUR FROM L_DAILYEXCHANGES WHERE CRTYPE = 20 ORDER BY LREF DESC");
+    $stmtKurEUR = $dbh->prepare("SELECT TOP 1 RATES2 AS KUR FROM {$GLOBALS['LUMEN_KUR']} WHERE CRTYPE = 20 ORDER BY LREF DESC");
     $stmtKurEUR->execute();
     $kurEUR = $stmtKurEUR->fetch(PDO::FETCH_ASSOC);
     if ($kurEUR) {

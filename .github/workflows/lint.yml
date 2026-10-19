@@ -127,8 +127,11 @@ jobs:
       - name: Bağımsız mod duman testi (taşınmamış modüller 501 kartı vermeli, çökmemeli)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/duman/tara.php
 
-      - name: Bağımsız mod akış testleri (giriş, kullanıcı yönetimi, görev, geçiş koruması)
+      - name: Bağımsız mod akış testleri (Lumen'e özgü akışlar)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/bagimsiz.php
+
+      - name: Bağımsız modda LOGO akışları (aynı akışlar LMV_ görünümleri üzerinden)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
 
       - name: Konteyner logları (hata durumunda)
         if: failure()

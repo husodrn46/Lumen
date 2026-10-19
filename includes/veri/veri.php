@@ -91,7 +91,9 @@ if (!function_exists('lumen_logo_onek')) {
  * ve WITH(NOLOCK) ipuçları her iki modda da geçerli kalır).
  * Yeni kod lumen_tablo('personel') ortak adlarını kullanmalıdır.
  */
-$GLOBALS['LUMEN_SLSMAN'] = lumen_bagimsiz_mi() ? 'dbo.LMV_SLSMAN' : 'LG_SLSMAN';   // görünüm: sql/lumen_cekirdek/05_gorunumler.sql
+$GLOBALS['LUMEN_SLSMAN'] = lumen_bagimsiz_mi() ? 'dbo.LMV_SLSMAN' : 'LG_SLSMAN';
+// Günlük kurlar: sabit adlı LOGO sistem tablosu; bağımsızda LM_KUR üzerindeki uyumlu görünüm.
+$GLOBALS['LUMEN_KUR'] = lumen_bagimsiz_mi() ? 'dbo.LMV_DAILYEXCHANGES' : 'L_DAILYEXCHANGES';   // görünüm: sql/lumen_cekirdek/05_gorunumler.sql
 
 if (!function_exists('lumen_personel_giris_bilgisi')) {
     /**

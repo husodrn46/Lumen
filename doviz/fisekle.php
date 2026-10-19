@@ -41,7 +41,7 @@ if ($dovizKuru <= 0) {
     try {
         $stmtKur = $dbh->prepare("
             SELECT TOP 1 RATES2 AS KUR
-            FROM L_DAILYEXCHANGES
+            FROM {$GLOBALS['LUMEN_KUR']}
             WHERE CRTYPE = :doviz
             ORDER BY LREF DESC
         ");

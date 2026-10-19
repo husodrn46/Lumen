@@ -968,7 +968,7 @@ function doviz_bul(string|int|float|null $doviz): float
     return $GLOBALS['_cache_doviz_bul'][$doviz];
   }
 
-  $stmt = $dbh->prepare("SELECT RATES1 FROM L_DAILYEXCHANGES WHERE CRTYPE=:doviz ORDER BY LREF DESC");
+  $stmt = $dbh->prepare("SELECT RATES1 FROM {$GLOBALS['LUMEN_KUR']} WHERE CRTYPE=:doviz ORDER BY LREF DESC");
   $stmt->bindParam(':doviz', $doviz, PDO::PARAM_STR);
   $stmt->execute();
   $bul = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1023,6 +1023,19 @@ if (!function_exists('lumen_insert_kimlik')) {
     // Kimlik kolonu: LOGO tablolarında LOGICALREF, Lumen (LM_) tablolarında ID.
     if (preg_match('/^[A-Z_]{2,30}$/', $kimlikKolonu) !== 1) {
       throw new InvalidArgumentException('lumen_insert_kimlik: geçersiz kimlik kolonu');
+    }
+    // Bağımsız modda LOGO uyumlu görünüme (dbo.LMV_…) ekleme INSTEAD OF tetikleyicisiyle LM_
+    // tablosuna gider; OUTPUT görünümün (boş) kimliğini verir. Tetikleyicinin eklediği satırın
+    // kimliği aynı oturumda @@IDENTITY'dedir (tetikleyici yalnız tek bir kimlikli tabloya yazar).
+    if (str_contains($insertSql, 'dbo.LMV_') && function_exists('lumen_bagimsiz_mi') && lumen_bagimsiz_mi()) {
+      $stmt = $dbh->prepare("SET NOCOUNT ON;\n{$insertSql};\nSELECT CAST(@@IDENTITY AS INT);");
+      $stmt->execute($parametreler);
+      $id = (int) $stmt->fetchColumn();
+      $stmt->closeCursor();
+      if ($id <= 0) {
+        throw new RuntimeException('lumen_insert_kimlik: yeni kayıt kimliği alınamadı (görünüm)');
+      }
+      return $id;
     }
     $sql = preg_replace('/\)\s*VALUES\s*\(/i', ") OUTPUT INSERTED.{$kimlikKolonu} INTO @lumen_yeni VALUES (", $insertSql, 1, $adet);
     if ($sql === null || $adet !== 1) {

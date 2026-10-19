@@ -106,6 +106,49 @@ FROM @cari;
 SET IDENTITY_INSERT LM_CARI OFF;
 GO
 
+-- ---------------------------------------------------------------- siparişler
+-- LOGO demosundakiyle aynı 30 sipariş; LOGO uyumlu görünümler (LMV_ORFICHE/LMV_ORFLINE)
+-- üzerinden eklenir — demo kurulumu aynı zamanda yazma tetikleyicilerini sınar.
+DECLARE @i INT = 1;
+WHILE @i <= 30
+BEGIN
+    DECLARE @cariRef INT = ((@i * 7) % 14) + 1;
+    DECLARE @tarih DATETIME = DATEADD(DAY, -(@i * 3), CAST('2026-10-15' AS DATETIME));
+    INSERT INTO dbo.LMV_ORFICHE (TRCODE, FICHENO, DATE_, TIME_, CLIENTREF, SALESMANREF, STATUS, SOURCEINDEX, BRANCH,
+                                 TRCURR, TRRATE, GENEXP1, CANCELLED, CAPIBLOCK_CREADEDDATE, CAPIBLOCK_CREATEDBY)
+    VALUES (1, 'SIP' + RIGHT('000000' + CAST(@i AS VARCHAR(6)), 6), @tarih, 168427520, @cariRef,
+            CASE WHEN @i % 3 = 0 THEN 1 ELSE 2 END, 4, 0, 0, 0, 0, N'Demo sipariş', 0, @tarih, 1);
+    DECLARE @fis INT = CAST(@@IDENTITY AS INT);   -- görünüme ekleme: kimlik tetikleyicinin eklemesinden
+
+    DECLARE @satir INT = 1;
+    WHILE @satir <= 2 + (@i % 4)
+    BEGIN
+        DECLARE @stok INT = ((@i * 5 + @satir * 3) % 25) + 1;
+        DECLARE @miktar FLOAT = ((@i + @satir) % 6 + 1) * 12;
+        DECLARE @fiyat FLOAT = (SELECT CAST(FIYAT AS FLOAT) FROM LM_FIYAT WHERE STOK_ID = @stok AND TUR = 1);
+        DECLARE @tutar FLOAT = ROUND(@miktar * @fiyat, 2);
+        DECLARE @uom INT = (SELECT SB.ID FROM LM_STOK_BIRIM SB JOIN LM_STOK S ON S.ID = SB.STOK_ID AND S.ANA_BIRIM_ID = SB.BIRIM_ID
+                            WHERE SB.STOK_ID = @stok);
+        INSERT INTO dbo.LMV_ORFLINE (ORDFICHEREF, CLIENTREF, STOCKREF, LINETYPE, LINENO_, TRCODE, DATE_, TIME_, AMOUNT, PRICE,
+                                     TOTAL, LINENET, VAT, VATAMNT, VATMATRAH, UOMREF, USREF, UINFO1, UINFO2, SOURCEINDEX,
+                                     STATUS, SALESMANREF, SHIPPEDAMOUNT, CLOSED, CANCELLED, TRCURR, TRRATE, PRCURR, PRPRICE)
+        VALUES (@fis, @cariRef, @stok, 0, @satir, 1, @tarih, 168427520, @miktar, @fiyat,
+                @tutar, @tutar, 20, ROUND(@tutar * 0.2, 2), @tutar, @uom, @stok, 1, 1, 0,
+                4, CASE WHEN @i % 3 = 0 THEN 1 ELSE 2 END, CASE WHEN @i > 20 THEN @miktar ELSE 0 END,
+                CASE WHEN @i > 20 THEN 1 ELSE 0 END, 0, 0, 0, 0, @fiyat);
+        SET @satir += 1;
+    END;
+
+    -- INSTEAD OF tetikleyicili görünüm birleştirmeli UPDATE ... FROM kabul etmez: alt sorgu ile.
+    DECLARE @t FLOAT = (SELECT SUM(TOTAL) FROM dbo.LMV_ORFLINE WHERE ORDFICHEREF = @fis);
+    DECLARE @v FLOAT = (SELECT SUM(VATAMNT) FROM dbo.LMV_ORFLINE WHERE ORDFICHEREF = @fis);
+    UPDATE dbo.LMV_ORFICHE SET GROSSTOTAL = @t, TOTALVAT = @v, NETTOTAL = @t + @v, TOTALDISCOUNTED = @t, REPORTNET = @t + @v
+    WHERE LOGICALREF = @fis;
+    SET @i += 1;
+END;
+UPDATE LM_SERI SET SON_NO = 30 WHERE TUR = 'SATIS_SIPARIS';
+GO
+
 -- ---------------------------------------------------------------- cari hareketler (açılış)
 -- LOGO demosundaki gibi: her cariye üç borç (fatura) ve bir tahsilat; 15. cari bakiyesiz.
 -- Belge/finans kayıtları sonraki fazlarda gelir; burada açılış hareketi (KAYNAK 4).

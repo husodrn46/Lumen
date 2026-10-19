@@ -17,10 +17,8 @@ declare(strict_types=1);
 
 require __DIR__ . '/_ortak.php';
 
-if (strtolower((string) getenv('LUMEN_VERI_KAYNAGI')) === 'lumen') {
-    fwrite(STDERR, "Bu akışlar LOGO modu içindir; bağımsız mod: tests/akis/bagimsiz.php\n");
-    exit(0);
-}
+// Bağımsız modda da çalışır: doğrulama sorgularındaki LOGO tablo adları LMV_ görünümlerine
+// çevrilir (tests/akis/_ortak.php). Henüz taşınmamış modülün akışı atlanır.
 
 $yonetici = (new Tarayici($URL))->giris('YONETICI');
 
@@ -130,7 +128,7 @@ akis('çek girişi kuruşlu tutarı aynen kaydeder; mükerrer gönderim ve geri 
     $g = json_decode($yonetici->istek('cek/cek_geri_al.php', ['csrf_token' => $t2, 'log_id' => $j['log_id']])['govde'], true);
     bekle(($g['ok'] ?? false) === true, 'geri alma başarısız: ' . ($g['mesaj'] ?? '?'));
     bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_CSCARD WHERE LOGICALREF = :r", [':r' => $j['cscard_ref']]) === 0, 'çek kartı silinmedi');
-});
+}, 'cek');
 
 akis('dövizli sipariş: döviz kodu TRCURR\'a yazılır, TRNET = NETTOTAL / kur', function () use ($yonetici, $pdo): void {
     $t = $yonetici->belirtec('doviz/fisekle.php?cariid=3&doviz=1');
@@ -170,7 +168,7 @@ akis('ayarlar JSON\'a yazılır; _bilgi_.inc değişmez; UNC yazıcı adı korun
 akis('yetki: stok personeli sipariş satırı ekleyemez, M16 personeli yönetici olamaz', function () use ($URL, $pdo, &$fis): void {
     $depo = (new Tarayici($URL))->giris('DEPO1');
     $once = (int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :f", [':f' => $fis]);
-    $t = $depo->belirtec('stok/index.php');
+    $t = $depo->belirtec('sifre_degistir.php');   // DEPO1'in açabildiği, CSRF formu olan bir sayfa
     $depo->istek("siparis/lg_fis.php?stokhareket={$fis}", ['csrf_token' => $t, 'stkid' => 2, 'stokhareket' => $fis,
         'kontrol' => uniqid(), 'stkbirim' => 1, 'stkadt' => 1, 'stbrm' => 1, 'stkfyt' => 1, 'stkkdv' => 20]);
     bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :f", [':f' => $fis]) === $once, 'DEPO1 satır ekleyebildi');
@@ -238,7 +236,9 @@ akis('entegrasyon hesabı: API okur, yazamaz, web\'e giremez', function () use (
         curl_close($ch);
         return $k;
     };
-    bekle($kod('rapor_kasa.php', false) === 200, 'okuma ucu kapalı');
+    // Okuma ucu: bağımsız modda rapor uçları henüz kapalı (Faz 6) — stok araması.
+    $okuma = lumen_bagimsiz_mi() ? 'stok_ara.php?q=tabak' : 'rapor_kasa.php';
+    bekle($kod($okuma, false) === 200, "okuma ucu kapalı: {$okuma}");
     foreach (['siparis_olustur.php', 'stok_guncelle.php', 'kullanici_listesi.php'] as $uc) {
         bekle($kod($uc, true) === 403, "yazma/yönetim ucu açık: {$uc}");
     }
@@ -324,14 +324,16 @@ akis('faturalama (BETA): kapalıyken kapalı; sipariş faturalanır, ikinci kez 
     } finally {
         $ayarla('0');
     }
-});
+}, 'logo_fatura');
 
 akis('cari ekstresi: ekran, bakiye listesi, PDF ve Excel aynı kaynaktan (cari_ekstre_lib)', function () use ($yonetici, $pdo): void {
     $bakiye = (float) tek($pdo, "SELECT DEBIT - CREDIT FROM LV_001_02_GNTOTCL WHERE CARDREF = 5 AND TOTTYP = 1");
     $metin = number_format(abs($bakiye), 2, ',', '.');
     $e = $yonetici->istek('cari/lg_hareket.php?cariid=5')['govde'];
     bekle(str_contains($e, $metin), "ekstrede bakiye ({$metin}) yok");
-    bekle(str_contains($e, 'Toptan Satış Faturası'), 'ekstrede işlem türü etiketi yok');
+    // Demo verisi: LOGO'da satış faturaları (CLFLINE 38), bağımsızda açılış hareketleri.
+    $etiket = lumen_bagimsiz_mi() ? 'Açılış Fişi' : 'Toptan Satış Faturası';
+    bekle(str_contains($e, $etiket), "ekstrede işlem türü etiketi ({$etiket}) yok");
     bekle(str_contains($yonetici->istek('cari/lg_bakiye.php?q=' . rawurlencode('anadolu ev'))['govde'], $metin), 'bakiye listesinde bakiye yok');
     foreach (['cari/lg_hareket_ekstre_pdf.php?cariid=5' => '%PDF', 'cari/lg_hareket_ekstre_excel.php?cariid=5' => "PK\x03\x04"] as $yol => $imza) {
         $r = $yonetici->istek($yol);

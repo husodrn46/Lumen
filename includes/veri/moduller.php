@@ -38,12 +38,12 @@ if (!function_exists('lumen_moduller')) {
                 'cari/lg_nakit.php', 'cari/lg_nakit_2025.php', 'cari/lg_fatura_yazdir.php', 'cari/lg_fatura_yazdir_2025.php',
                 'cari/lg_alinan-hizmet.php', 'cari/lg_alinan-hizmet_2025.php', 'cari/lg_hareketdetay.php',
             ]],
-            'cari_siparis' => ['ad' => 'Siparişli cari işlemleri', 'bagimsiz' => false, 'yollar' => [
+            'cari_siparis' => ['ad' => 'Siparişli cari işlemleri', 'bagimsiz' => true, 'yollar' => [
                 'cari/hizli_erisim.php', 'cari/cari_olustur_ve_aktar.php',
             ]],
             'stok' => ['ad' => 'Stok', 'bagimsiz' => true, 'yollar' => ['stok/', 'barkod/', 'fiyat/']],
             // stok/ altındaki sipariş satırı ve sipariş hareket ekranları sipariş modülündedir.
-            'stok_siparis' => ['ad' => 'Sipariş satırları', 'bagimsiz' => false, 'yollar' => [
+            'stok_siparis' => ['ad' => 'Sipariş satırları', 'bagimsiz' => true, 'yollar' => [
                 'stok/lg_stok_ekle.php', 'stok/lg_stok_bul.php', 'stok/lg_stok_duzenle.php', 'stok/lg_stoksonalisx.php',
                 'stok/favori_urunler_yukle.php', 'stok/stok_hareket_aktar.php', 'stok/stok_hareket_detay.php',
                 'stok/stok_hareket_excel.php', 'stok/stok_hareket_excel_xlsx.php', 'stok/stok_hareket_pdf.php',
@@ -52,11 +52,18 @@ if (!function_exists('lumen_moduller')) {
             'uretim' => ['ad' => 'Üretim fişleri', 'bagimsiz' => false, 'yollar' => [
                 'stok/index.php', 'stok/uretim_giris.php', 'stok/uretim_miktar_onar.php',
             ]],
-            'siparis' => ['ad' => 'Sipariş', 'bagimsiz' => false, 'yollar' => ['siparis/', 'yazdir/']],
-            'doviz' => ['ad' => 'Dövizli sipariş', 'bagimsiz' => false, 'yollar' => ['doviz/']],
+            'siparis' => ['ad' => 'Sipariş', 'bagimsiz' => true, 'yollar' => ['siparis/', 'yazdir/']],
+            'doviz' => ['ad' => 'Dövizli sipariş', 'bagimsiz' => true, 'yollar' => ['doviz/']],
             'cek' => ['ad' => 'Çek / senet', 'bagimsiz' => false, 'yollar' => ['cek/']],
             'rapor' => ['ad' => 'Raporlar', 'bagimsiz' => false, 'yollar' => ['rapor/', 'dashboard_kullanici.php']],
-            'api' => ['ad' => 'API', 'bagimsiz' => false, 'yollar' => ['api/']],
+            'api' => ['ad' => 'API', 'bagimsiz' => true, 'yollar' => ['api/']],
+            // Rapor, çek ve fatura uçları kendi modülleriyle birlikte açılır.
+            'api_rapor' => ['ad' => 'API raporları', 'bagimsiz' => false, 'yollar' => [
+                'api/rapor_borc_alacak.php', 'api/rapor_cek_vade.php', 'api/rapor_karsilastirmali.php', 'api/rapor_kasa.php',
+                'api/rapor_musteriler_top.php', 'api/rapor_nakit_akis.php', 'api/rapor_pazarlamaci.php', 'api/rapor_satis_aylik.php',
+                'api/rapor_top_satis.php', 'api/rapor_yaslandirma.php', 'api/cek_listesi.php', 'api/fatura_listesi.php',
+                'api/cari_hareket.php', 'api/cari_hareket_detay.php',
+            ]],
             // LOGO'ya özgü: siparişi LOGO faturasına çevirir. Bağımsız modda fatura,
             // Lumen'in kendi belge modülüdür (Faz 4).
             'logo_fatura' => ['ad' => 'Faturalama (LOGO, BETA)', 'bagimsiz' => false, 'yollar' => ['fatura/']],

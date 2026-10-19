@@ -28,14 +28,14 @@ $menuItems = [
 // Guncel kurlar (LOGO L_DAILYEXCHANGES)
 $kurlar = [];
 try {
-    $stmtUSD = $dbh->prepare("SELECT TOP 1 RATES2 AS SATIS FROM L_DAILYEXCHANGES WHERE CRTYPE = 1 ORDER BY LREF DESC");
+    $stmtUSD = $dbh->prepare("SELECT TOP 1 RATES2 AS SATIS FROM {$GLOBALS['LUMEN_KUR']} WHERE CRTYPE = 1 ORDER BY LREF DESC");
     $stmtUSD->execute();
     $kurUSD = $stmtUSD->fetch(PDO::FETCH_ASSOC);
     if ($kurUSD) {
         $kurlar[] = ['CRTYPE' => 1, 'SATIS' => $kurUSD['SATIS'], 'sembol' => '$',  'kod' => 'USD'];
     }
 
-    $stmtEUR = $dbh->prepare("SELECT TOP 1 RATES2 AS SATIS FROM L_DAILYEXCHANGES WHERE CRTYPE = 20 ORDER BY LREF DESC");
+    $stmtEUR = $dbh->prepare("SELECT TOP 1 RATES2 AS SATIS FROM {$GLOBALS['LUMEN_KUR']} WHERE CRTYPE = 20 ORDER BY LREF DESC");
     $stmtEUR->execute();
     $kurEUR = $stmtEUR->fetch(PDO::FETCH_ASSOC);
     if ($kurEUR) {

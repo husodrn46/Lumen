@@ -19,7 +19,40 @@ if (!preg_match('/^LUMEN_[A-Z0-9_]+$/', $DB)) {
     fwrite(STDERR, "REDDEDİLDİ: akış testleri yalnız demo/test veritabanında çalışır ({$DB}).\n");
     exit(3);
 }
-$pdo = new PDO(
+require_once dirname(__DIR__, 2) . '/includes/veri/moduller.php';
+
+/**
+ * Bağımsız modda akış testlerinin doğrulama sorguları LOGO tablo adlarıyla yazılmıştır;
+ * aynı adlar Lumen veritabanında LOGO uyumlu görünümlerdir (dbo.LMV_…). Bu sarmalayıcı
+ * adları çevirir — aynı akışlar iki modda da çalışır.
+ */
+final class TestPdo extends PDO
+{
+    private const CEVIRI = ['LG_001_02_' => 'dbo.LMV_', 'LV_001_02_' => 'dbo.LMV_', 'LG_001_' => 'dbo.LMV_',
+                            'LG_SLSMAN' => 'dbo.LMV_SLSMAN', 'L_DAILYEXCHANGES' => 'dbo.LMV_DAILYEXCHANGES'];
+
+    private static function cevir(string $sql): string
+    {
+        return lumen_bagimsiz_mi() ? strtr($sql, self::CEVIRI) : $sql;
+    }
+
+    public function prepare(string $query, array $options = []): PDOStatement|false
+    {
+        return parent::prepare(self::cevir($query), $options);
+    }
+
+    public function query(string $query, ?int $fetchMode = null, mixed ...$fetchModeArgs): PDOStatement|false
+    {
+        return $fetchMode === null ? parent::query(self::cevir($query)) : parent::query(self::cevir($query), $fetchMode, ...$fetchModeArgs);
+    }
+
+    public function exec(string $statement): int|false
+    {
+        return parent::exec(self::cevir($statement));
+    }
+}
+
+$pdo = new TestPdo(
     sprintf('sqlsrv:server=%s;database=%s;TrustServerCertificate=1', getenv('AKL_DB_SERVER') ?: 'db', $DB),
     getenv('AKL_DB_USER') ?: 'sa', getenv('AKL_DB_PASS') ?: '',
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
@@ -106,9 +139,14 @@ function tek(PDO $pdo, string $sql, array $p = []): mixed
 }
 
 $sonuclar = [];
-function akis(string $ad, callable $fn): void
+/** $modul: bağımsız modda henüz hazır olmayan modülün akışı atlanır (başarısız sayılmaz). */
+function akis(string $ad, callable $fn, string $modul = ''): void
 {
     global $sonuclar;
+    if ($modul !== '' && !lumen_modul_hazir_mi($modul)) {
+        echo "  - {$ad} (atlandı: {$modul} modülü bu modda hazır değil)\n";
+        return;
+    }
     try {
         $fn();
         $sonuclar[] = [true, $ad, ''];
