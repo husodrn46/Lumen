@@ -57,7 +57,7 @@ $bekleyen_talep_sayisi = 0;
 $cekGorselEksik = 0;
 if ((int) ($yetkidurum ?? 1) === 0) {
     try {
-        $cekGorselEksik = (int) $dbh->query("SELECT COUNT(*) FROM {$firmadonem}CSCARD C WITH(NOLOCK) WHERE C.CURRSTAT IN (1) AND C.STATUS IN (0,1) AND C.DOC = 1 AND NOT EXISTS (SELECT 1 FROM M_CEK_EK E WITH(NOLOCK) WHERE E.CEK_REF = C.LOGICALREF)")->fetchColumn();
+        $cekGorselEksik = (int) $dbh->query("SELECT COUNT(*) FROM {$firmadonem}CSCARD C WITH(NOLOCK) WHERE C.CURRSTAT IN (1) AND C.STATUS IN (0,1) AND C.DOC = 1 AND NOT EXISTS (SELECT 1 FROM M_CEK_EK E WITH(NOLOCK) WHERE E.CEK_REF = C.LOGICALREF AND (E.FIRMADONEM = " . $dbh->quote((string) $firmadonem) . " OR E.FIRMADONEM IS NULL))")->fetchColumn();
     } catch (Throwable $e) {
         $cekGorselEksik = 0;
     }
@@ -203,6 +203,17 @@ foreach ($menu_items as $item) {
 //     ];
 // }
 
+// Faturalama (BETA) — hem kill-switch açık hem M31 yetkisi gerekir.
+// Kapalıysa kutucuk hiç görünmez; ayar: _bilgi_.inc > $faturalama_aktif
+if (!empty($faturalama_aktif) && m_p_yetki($terminalkullanici, 'M31') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Faturalama',
+        'icon' => 'fa-file-invoice-dollar',
+        'href' => 'fatura/fatura_panel.php',
+        'theme' => 't-amber',
+    ];
+}
+
 if (m_p_yetki($terminalkullanici, 'M18') == 1 || $yetkidurum === 0) {
     $visible_menu_items[] = [
         'label' => 'Loglar',
@@ -327,6 +338,8 @@ $gun_isimleri = ['Monday'=>'Pazartesi','Tuesday'=>'Salı','Wednesday'=>'Çarşam
 $ay_isimleri = ['January'=>'Ocak','February'=>'Şubat','March'=>'Mart','April'=>'Nisan','May'=>'Mayıs','June'=>'Haziran','July'=>'Temmuz','August'=>'Ağustos','September'=>'Eylül','October'=>'Ekim','November'=>'Kasım','December'=>'Aralık'];
 $bugun_tr = date('j') . ' ' . ($ay_isimleri[date('F')] ?? date('F')) . ' ' . date('Y') . ', ' . ($gun_isimleri[date('l')] ?? date('l'));
 $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_sayisi;
+require_once __DIR__ . '/includes/bildirim.php';
+$okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -459,8 +472,6 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
         .h-btn i { font-size: 15px; }
 
         .h-btn-badge {
-            position: absolute;
-            top: 3px; right: 4px;
             min-width: 18px;
             height: 18px;
             border-radius: 9px;
@@ -472,6 +483,7 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
             align-items: center;
             justify-content: center;
             padding: 0 5px;
+            line-height: 1;
         }
 
         .h-btn-badge-amber { background: var(--amber); }
@@ -1210,6 +1222,7 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
         @media (max-width: 768px) {
             .top-header { height: 56px; }
             .h-btn-text { display: none; }
+            .h-btn-badge { position: absolute; top: 4px; right: 2px; }
             .h-btn { padding: 10px 12px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
             .header-date, .header-divider { display: none; }
             .h-hamburger { display: block; }
@@ -1281,6 +1294,10 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
             </div>
 
             <div class="header-right">
+                <a href="bildirimler.php" class="h-btn" title="Bildirimler" aria-label="Bildirimler<?php echo $okunmamis_bildirim > 0 ? ' (' . $okunmamis_bildirim . ' okunmamış)' : ''; ?>">
+                    <i class="fa-solid fa-bell"></i><span class="h-btn-text">Bildirimler</span>
+                    <?php if ($okunmamis_bildirim > 0): ?><span class="h-btn-badge"><?php echo $okunmamis_bildirim > 99 ? '99+' : $okunmamis_bildirim; ?></span><?php endif; ?>
+                </a>
                 <button type="button" onclick="if(window.lumenTur)window.lumenTur()" class="h-btn h-desktop-only" title="Tanıtım turu"><i class="fa-solid fa-circle-question"></i><span class="h-btn-text">Tur</span></button>
                 <a href="ayar/gorunum.php" class="h-btn h-desktop-only"><i class="fa-solid fa-sliders"></i><span class="h-btn-text">Ayarlar</span></a>
                 <a href="sifre_degistir.php" class="h-btn h-desktop-only"><i class="fa-solid fa-key"></i><span class="h-btn-text">Şifre</span></a>
@@ -1293,12 +1310,31 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
         </div>
 
         <div class="mobile-dropdown" id="mobileDropdown">
+            <a href="bildirimler.php"><i class="fa-solid fa-bell"></i> Bildirimler<?php echo $okunmamis_bildirim > 0 ? ' (' . $okunmamis_bildirim . ')' : ''; ?></a>
             <a href="ayar/gorunum.php"><i class="fa-solid fa-sliders"></i> Ayarlar</a>
             <a href="sifre_degistir.php"><i class="fa-solid fa-key"></i> Şifre Değiştir</a>
             <div class="dd-sep"></div>
             <a href="?cikis=1" class="dd-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Çıkış Yap</a>
         </div>
     </header>
+
+    <?php
+    // Şema geride mi? (yalnız yönetici; oturum başına 10 dk önbellek)
+    if ((int) ($yetkidurum ?? 1) === 0) {
+        if (!isset($_SESSION['sema_eksik_ts']) || time() - (int) $_SESSION['sema_eksik_ts'] > 600) {
+            require_once __DIR__ . '/includes/kurulum_sema.php';
+            $_SESSION['sema_eksik'] = lumen_sema_eksikleri($dbh);
+            $_SESSION['sema_eksik_ts'] = time();
+        }
+        if (!empty($_SESSION['sema_eksik'])): ?>
+    <div role="alert" style="max-width:1200px;margin:12px auto 0;padding:12px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:13.5px;">
+        <i class="fa-solid fa-database"></i>
+        <strong>Veritabanı şeması güncel değil.</strong>
+        Bazı özellikler çalışmayabilir. Sunucuda <code>php scripts/sema_guncelle.php</code> çalıştırın.
+        <span style="opacity:.75;">(Eksik: <?php echo e(implode(', ', (array) $_SESSION['sema_eksik'])); ?>)</span>
+    </div>
+    <?php endif;
+    } ?>
 
     <!-- ═══════════ HERO ═══════════ -->
     <section class="hero">

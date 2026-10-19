@@ -378,6 +378,18 @@ if (empty($_SESSION['hata_merkezi_csrf'])) {
 }
 $hataCsrfToken = (string) $_SESSION['hata_merkezi_csrf'];
 
+// Sistem grubu işlemleri (hata çözüldü işareti, IP onayı): yalnız yönetici veya M18.
+// Personel izleme grubuna M23 ile girilebildiğinden bu işlemler eskiden yalnız M23
+// yetkili kullanıcıya da açıktı (loglar.php?grup=personel'e POST).
+$loglarSistemYetkisi = (int) ($yetkidurum ?? 1) === 0 || m_p_yetki($terminalkullanici, 'M18') == 1;
+if (!$loglarSistemYetkisi && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
+    && (isset($_POST['ajax_action']) || (string) ($_POST['action'] ?? '') === 'toggle_solved')) {
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'message' => 'Bu işlem için yetkiniz yok']);
+    exit;
+}
+
 $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 if ($requestMethod === 'POST' && (string) ($_POST['action'] ?? '') === 'toggle_solved') {
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
@@ -990,11 +1002,9 @@ if (isset($_POST['ajax_action'])) {
                 END
             ");
             // Upsert: kullaniciya ait kapatma damgasini GETDATE() yap (delete+insert; named param tekrarsiz)
-            $dbh->beginTransaction();
-            $dbh->prepare("DELETE FROM M_OTURUM_KAPAT WHERE KULLANICI_ID = :id")->execute([':id' => $kullaniciId]);
-            $dbh->prepare("INSERT INTO M_OTURUM_KAPAT (KULLANICI_ID, KAPATMA_TS, KAPATAN_ID) VALUES (:id, GETDATE(), :kapatan)")
-                ->execute([':id' => $kullaniciId, ':kapatan' => (int) $terminalkullanici]);
-            $dbh->commit();
+            // Damga + "Beni hatırla" + API belirteçleri birlikte (yalnız damga yetmiyordu:
+            // hatırlama çerezi olan kullanıcı bir sonraki istekte geri giriyordu).
+            lumen_oturumlari_sonlandir($dbh, (int) $kullaniciId, (int) $terminalkullanici);
             echo json_encode(['success' => true, 'message' => 'Kullanicinin tum oturumlari kapatildi. Bir sonraki islemde cikis yapacak.']);
         } catch (Throwable $e) {
             if ($dbh->inTransaction()) { $dbh->rollBack(); }
@@ -1432,7 +1442,7 @@ foreach ($filtrelenmisLoglar as $log) {
 
         // Tutar bilgisini güncelle
         if (!empty($log['GENEL_TOPLAM']) && $log['GENEL_TOPLAM'] > $grupluLoglar[$ficheno]['TOPLAM_TUTAR']) {
-            $grupluLoglar[$ficheno]['TOPLAM_TUTAR'] = $log['GENEL_TOPLAM'];
+            $grupluLoglar[$ficheno]['TOPLAM_TUTAR'] = (float) $log['GENEL_TOPLAM'];
         }
 
         // Kullanıcıyı ekle
@@ -2763,9 +2773,11 @@ $islemRenkleri = [
                 <div>Filtreye uygun aktivite bulunamadi</div>
             </div>
         <?php else: ?>
-            <?php foreach ($sayfaGruplar as $grup): ?>
+            <?php foreach ($sayfaGruplar as $grupNo => $grup): ?>
+                <?php // DOM kimliği için sıra no: FICHENO LOGO'da serbest metindir; tırnak içeren
+                      // bir fiş no, id/onclick içinden çıkıp yönetici tarayıcısında betik çalıştırıyordu. ?>
                 <div class="fis-group">
-                    <div class="fis-head" id="head-<?php echo $grup['FICHENO']; ?>" onclick="toggleGrup('<?php echo $grup['FICHENO']; ?>')">
+                    <div class="fis-head" id="head-g<?php echo (int) $grupNo; ?>" onclick="toggleGrup('g<?php echo (int) $grupNo; ?>')">
                         <div class="f-left">
                             <div class="f-ico"><i class="fas fa-file-invoice"></i></div>
                             <div style="min-width:0;">
@@ -2773,7 +2785,7 @@ $islemRenkleri = [
                                 <div class="f-sub">
                                     <i class="fas fa-hashtag"></i> <span class="fis-no"><?php echo htmlspecialchars((string) $grup['FICHENO']); ?></span>
                                     <?php if ($grup['TOPLAM_TUTAR'] > 0): ?>
-                                        &nbsp;&middot;&nbsp;<i class="fas fa-lira-sign"></i> <?php echo number_format($grup['TOPLAM_TUTAR'], 2, ',', '.'); ?>
+                                        &nbsp;&middot;&nbsp;<i class="fas fa-lira-sign"></i> <?php echo number_format((float) $grup['TOPLAM_TUTAR'], 2, ',', '.'); ?>
                                     <?php endif; ?>
                                     &nbsp;&middot;&nbsp;<?php echo date('d.m.Y', strtotime((string) $grup['SON_TARIH'])); ?>
                                 </div>
@@ -2781,11 +2793,11 @@ $islemRenkleri = [
                         </div>
                         <div class="f-right">
                             <span class="f-count"><?php echo count($grup['ISLEMLER']); ?> islem</span>
-                            <i class="fas fa-chevron-down f-chevron" id="icon-<?php echo $grup['FICHENO']; ?>"></i>
+                            <i class="fas fa-chevron-down f-chevron" id="icon-g<?php echo (int) $grupNo; ?>"></i>
                         </div>
                     </div>
 
-                    <div class="fis-body" id="grup-<?php echo $grup['FICHENO']; ?>">
+                    <div class="fis-body" id="grup-g<?php echo (int) $grupNo; ?>">
                         <?php
                         $islemler = $grup['ISLEMLER'];
                         usort($islemler, fn($a, $b): int => strtotime((string) $a['TARIH']) - strtotime((string) $b['TARIH']));

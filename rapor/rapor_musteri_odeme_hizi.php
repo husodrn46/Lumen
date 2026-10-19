@@ -223,7 +223,7 @@ $startDate = sprintf('%04d-01-01', $year);
 $endDate = sprintf('%04d-01-01', $year + 1);
 $selectedCariId = moh_int_param('cariid');
 $rawQ = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
-$q = $rawQ !== '' ? turkce($rawQ) : '';
+$q = $rawQ !== '' ? lumen_arama_terimi($rawQ) : '';
 $pageError = '';
 
 $hiddenFilter = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'cari_liste_gizli');
@@ -262,8 +262,8 @@ try {
     if ($q !== '') {
         $choiceWhere[] = "
             (
-                 REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(C.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c') COLLATE Turkish_CI_AS LIKE :cq1
-              OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(C.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c') COLLATE Turkish_CI_AS LIKE :cq2
+                 " . lumen_arama_sql('C.DEFINITION_') . " LIKE :cq1
+              OR " . lumen_arama_sql('C.CODE') . " LIKE :cq2
             )
         ";
         $choiceParams[':cq1'] = '%' . $q . '%';
@@ -1078,6 +1078,10 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             main.page { padding: 16px 12px 40px; }
             .selected-strip { align-items: flex-start; flex-direction: column; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-primary { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-primary:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
     </style>
 </head>
 <body>

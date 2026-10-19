@@ -46,7 +46,7 @@ if ($cari === null) {
 }
 
 try {
-    $h = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, $kalemler);
+    $h = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, $kalemler, api_yetki_var($personel, 'SP1'));
     $hesap = siparis_toplam_hesapla($h['ready'], $iskonto1, $iskonto2);
 } catch (Throwable $e) {
     error_log('api/siparis_onizle: ' . $e->getMessage());

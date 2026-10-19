@@ -16,7 +16,7 @@ $CARIID = (int) ($_GET['cariid'] ?? 0);
 if ($CARIID <= 0) {
     ob_end_clean();
     header('Content-Type: text/plain; charset=utf-8');
-    die('Hata: Gecersiz cari id.');
+    lumen_hata_sayfasi('Cari seçilmedi', 'Ekstre için cari bilgisi eksik. Cari listesinden tekrar açın.');
 }
 
 $donemSecim = isset($_GET['donem']) ? (string) $_GET['donem'] : 'aktif';

@@ -219,11 +219,11 @@ function fetch_item_by_value(PDO $dbh, string $firma, mixed $value): ?array
     $stmt->execute([$value]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
-        $likeAny = '%' . $value . '%';
-        // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama
+        $likeAny = '%' . lumen_arama_terimi($value) . '%';
+        // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama (Türkçe harf/büyük-küçük duyarsız)
         $conditions = [
-            'S.CODE LIKE ?',
-            'S.NAME LIKE ?'
+            lumen_arama_sql('S.CODE') . ' LIKE ?',
+            lumen_arama_sql('S.NAME') . ' LIKE ?'
             // 'B.BARCODE LIKE ?'
         ];
         $params = [$likeAny, $likeAny];
@@ -282,12 +282,12 @@ function search_items(PDO $dbh, string $firma, string $term, int $limit = 10): a
     }
 
     $codePrefix = urun_kodu_oneki() . '%';
-    $likeAny = '%' . $term . '%';
+    $likeAny = '%' . lumen_arama_terimi($term) . '%';
 
-    // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama
+    // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama (Türkçe harf/büyük-küçük duyarsız)
     $searchConditions = [
-        'S.CODE LIKE ?',
-        'S.NAME LIKE ?'
+        lumen_arama_sql('S.CODE') . ' LIKE ?',
+        lumen_arama_sql('S.NAME') . ' LIKE ?'
         // 'B.BARCODE LIKE ?'
     ];
 
@@ -453,12 +453,30 @@ function recalc_fiche_totals(PDO $dbh, string $firmadonem, int|string $fis_id): 
         }
     }
 }
+// Fiş var mı ve üretim fişi (TRCODE=13) mi? Satır ekleme/silme öncesi doğrulanır.
+function uretim_fis_gecerli_mi(PDO $dbh, string $firmadonem, int $fis_id): bool
+{
+    if ($fis_id <= 0) {
+        return false;
+    }
+    $st = $dbh->prepare("SELECT COUNT(*) FROM {$firmadonem}STFICHE WHERE LOGICALREF = ? AND TRCODE = 13");
+    $st->execute([$fis_id]);
+    return (int) $st->fetchColumn() > 0;
+}
+
+// Durum değiştiren tüm işlemler (yeni fiş, satır ekle/sil, +1 koli) yalnız POST + CSRF ile
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_verify()) {
+    http_response_code(403);
+    die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
+}
+
 $fis_id = isset($_GET['fis']) ? (int) $_GET['fis'] : 0;
 $depogiris = isset($_GET['depogiris']) ? (int) $_GET['depogiris'] : 0;
 $depokaynak = 0;
 $msg = "";
-if (!$fis_id && isset($_GET['yeni'])) {
-    $depogiris = isset($_GET['depogiris']) ? (int) $_GET['depogiris'] : 0;
+// GET ?yeni=1 artık fiş oluşturmaz; sayfa "Yeni fiş oluştur" (POST) düğmesini gösterir
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni'])) {
+    $depogiris = isset($_POST['depogiris']) ? (int) $_POST['depogiris'] : 0;
     try {
         $dbh->beginTransaction();
         $ftime = (int) (date('G') * 65536 + date('i') * 256 + date('s'));
@@ -520,8 +538,12 @@ if ($fis_id > 0) {
     }
 }
 // --- SATIR EKLE ---
-if (isset($_POST['add_line']) && isset($_POST['fis'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_line']) && isset($_POST['fis'])) {
     $fis_id = (int) $_POST['fis'];
+    if (!uretim_fis_gecerli_mi($dbh, $firmadonem, $fis_id)) {
+        http_response_code(404);
+        die('Üretim fişi bulunamadı.');
+    }
     $depogiris = (int) $_POST['depogiris'];
     $depokaynak = isset($_POST['depokaynak']) ? (int) $_POST['depokaynak'] : 0;
     $koliRaw = $_POST['koli'] ?? '0';
@@ -723,10 +745,14 @@ if (isset($_POST['add_line']) && isset($_POST['fis'])) {
     }
 }
 // --- SATIR SİL ---
-if (isset($_GET['sil']) && isset($_GET['fis']) && isset($_GET['ln'])) {
-    $fis_id = (int) $_GET['fis'];
-    $depogiris = isset($_GET['depogiris']) ? (int) $_GET['depogiris'] : 0;
-    $lineno = (int) $_GET['ln'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sil']) && isset($_POST['fis']) && isset($_POST['ln'])) {
+    $fis_id = (int) $_POST['fis'];
+    $depogiris = isset($_POST['depogiris']) ? (int) $_POST['depogiris'] : 0;
+    $lineno = (int) $_POST['ln'];
+    if (!uretim_fis_gecerli_mi($dbh, $firmadonem, $fis_id)) {
+        http_response_code(404);
+        die('Üretim fişi bulunamadı.');
+    }
     try {
         $dbh->beginTransaction();
         $remaining = null;
@@ -741,8 +767,9 @@ if (isset($_GET['sil']) && isset($_GET['fis']) && isset($_GET['ln'])) {
             $del = $dbh->prepare("
                 DELETE FROM {$firmadonem}STLINE
                 WHERE STFICHEREF = ? AND TRCODE = 13 AND IOCODE = 1 AND LINETYPE = 0 AND STFICHELNNO = ?
+                  AND STFICHEREF IN (SELECT LOGICALREF FROM {$firmadonem}STFICHE WHERE LOGICALREF = ? AND TRCODE = 13)
             ");
-            $del->execute([$fis_id, $lineno]);
+            $del->execute([$fis_id, $lineno, $fis_id]);
             $cnt = $dbh->prepare("
                 SELECT COUNT(*)
                 FROM {$firmadonem}STLINE
@@ -753,7 +780,8 @@ if (isset($_GET['sil']) && isset($_GET['fis']) && isset($_GET['ln'])) {
             if ($remaining > 0) {
                 recalc_fiche_totals($dbh, $firmadonem, $fis_id);
             } else {
-                $dbh->prepare("DELETE FROM {$firmadonem}STLINE WHERE STFICHEREF = ?")->execute([$fis_id]);
+                $dbh->prepare("DELETE FROM {$firmadonem}STLINE WHERE STFICHEREF = ?
+                    AND STFICHEREF IN (SELECT LOGICALREF FROM {$firmadonem}STFICHE WHERE LOGICALREF = ? AND TRCODE = 13)")->execute([$fis_id, $fis_id]);
                 $dbh->prepare("DELETE FROM {$firmadonem}STFICHE WHERE LOGICALREF = ? AND TRCODE = 13")->execute([$fis_id]);
             }
         }
@@ -772,11 +800,15 @@ if (isset($_GET['sil']) && isset($_GET['fis']) && isset($_GET['ln'])) {
     }
 }
 // --- HIZLI EKLE (+1 Koli) ---
-if (isset($_GET['hizli_ekle']) && isset($_GET['stokref']) && isset($_GET['fis'])) {
-    $fis_id = (int) $_GET['fis'];
-    $depogiris = isset($_GET['depogiris']) ? (int) $_GET['depogiris'] : 0;
-    $stokrefHizli = (int) $_GET['stokref'];
-    $cokluMod = isset($_GET['coklu']) ? '1' : '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hizli_ekle']) && isset($_POST['stokref']) && isset($_POST['fis'])) {
+    $fis_id = (int) $_POST['fis'];
+    $depogiris = isset($_POST['depogiris']) ? (int) $_POST['depogiris'] : 0;
+    $stokrefHizli = (int) $_POST['stokref'];
+    $cokluMod = isset($_POST['coklu']) ? '1' : '';
+    if (!uretim_fis_gecerli_mi($dbh, $firmadonem, $fis_id)) {
+        http_response_code(404);
+        die('Üretim fişi bulunamadı.');
+    }
 
     try {
         $item = fetch_item_by_ref($dbh, $firma, $stokrefHizli);
@@ -1659,9 +1691,13 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             </span>
             <div class="header-actions">
                 <?php if ($fiche) { ?>
-                    <a class="btn-emerald" href="uretim_giris.php?yeni=1">
-                        <i class="fa fa-plus-circle"></i><span class="label-text">Yeni Fiş</span>
-                    </a>
+                    <form method="POST" action="uretim_giris.php" style="display:inline;margin:0;">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="yeni" value="1">
+                        <button type="submit" class="btn-emerald">
+                            <i class="fa fa-plus-circle"></i><span class="label-text">Yeni Fiş</span>
+                        </button>
+                    </form>
                 <?php } ?>
             </div>
         </div>
@@ -1759,6 +1795,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             <div class="glass-card">
                 <div class="card-body">
                     <form class="entry-form" method="POST" action="" id="entryForm">
+                        <?php echo csrf_field(); ?>
                         <input type="hidden" name="fis" value="<?php echo $fis_id; ?>">
                         <input type="hidden" name="depogiris" value="<?php echo $depogiris; ?>">
                         <input type="hidden" name="depokaynak" value="<?php echo $depokaynak; ?>">
@@ -1867,16 +1904,27 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
                                     <td><?php echo htmlspecialchars((string) trcevir($r['BIRIM']), ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td class="text-right">
                                         <div class="row-actions">
-                                            <a class="btn-row plus" title="+1 Koli"
-                                                href="uretim_giris.php?hizli_ekle=1&amp;fis=<?php echo $fis_id; ?>&amp;depogiris=<?php echo $depogiris; ?>&amp;stokref=<?php echo (int) $r['STOCKREF']; ?>">
-                                                <i class="fa fa-plus"></i> +1
-                                            </a>
-                                            <a class="btn-row danger"
-                                                onclick="return confirm('Satır silinsin mi?')"
-                                                href="uretim_giris.php?sil=1&amp;fis=<?php echo $fis_id; ?>&amp;depogiris=<?php echo $depogiris; ?>&amp;ln=<?php echo (int) $r['STFICHELNNO']; ?>"
-                                                title="Sil">
-                                                <i class="fa fa-trash"></i>
-                                            </a>
+                                            <form method="POST" action="uretim_giris.php?fis=<?php echo $fis_id; ?>&amp;depogiris=<?php echo $depogiris; ?>" style="display:inline;margin:0;">
+                                                <?php echo csrf_field(); ?>
+                                                <input type="hidden" name="hizli_ekle" value="1">
+                                                <input type="hidden" name="fis" value="<?php echo $fis_id; ?>">
+                                                <input type="hidden" name="depogiris" value="<?php echo $depogiris; ?>">
+                                                <input type="hidden" name="stokref" value="<?php echo (int) $r['STOCKREF']; ?>">
+                                                <button type="submit" class="btn-row plus" title="+1 Koli">
+                                                    <i class="fa fa-plus"></i> +1
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="uretim_giris.php?fis=<?php echo $fis_id; ?>&amp;depogiris=<?php echo $depogiris; ?>" style="display:inline;margin:0;"
+                                                onsubmit="return confirm('Satır silinsin mi?')">
+                                                <?php echo csrf_field(); ?>
+                                                <input type="hidden" name="sil" value="1">
+                                                <input type="hidden" name="fis" value="<?php echo $fis_id; ?>">
+                                                <input type="hidden" name="depogiris" value="<?php echo $depogiris; ?>">
+                                                <input type="hidden" name="ln" value="<?php echo (int) $r['STFICHELNNO']; ?>">
+                                                <button type="submit" class="btn-row danger" title="Sil">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
@@ -1923,7 +1971,13 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
         <?php } else { ?>
             <div class="glass-card">
                 <div class="card-body">
-                    <div class="alert alert-info"><i class="fa fa-info-circle"></i> Geçerli bir fiş ID'si ile gelmelisiniz. <a href="uretim_giris.php?yeni=1" style="color: var(--emerald-dark); font-weight: 700;">Yeni fiş oluştur</a>.</div>
+                    <div class="alert alert-info"><i class="fa fa-info-circle"></i> Geçerli bir fiş ID'si ile gelmelisiniz ya da yeni fiş oluşturun.</div>
+                    <form method="POST" action="uretim_giris.php" style="margin-top:12px;">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="yeni" value="1">
+                        <input type="hidden" name="depogiris" value="<?php echo (int) $depogiris; ?>">
+                        <button type="submit" class="btn-emerald"><i class="fa fa-plus-circle"></i> Yeni fiş oluştur</button>
+                    </form>
                 </div>
             </div>
         <?php } ?>
@@ -2446,6 +2500,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
 
                 ev.preventDefault();
                 var formData = new FormData(entryForm);
+                formData.append('add_line', '1'); // submit butonu FormData'ya girmez
                 var stokKodValue = formData.get('stok_kod') || '';
 
                 fetch('uretim_giris.php', {

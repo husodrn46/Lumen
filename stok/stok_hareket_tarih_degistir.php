@@ -11,6 +11,16 @@ if ($stokhareket <= 0) {
     exit;
 }
 
+// YETKI: siparis tarihini degistirmek yazma islemidir (fisekle.php kapisi: admin / M1 / M3)
+// + siparisin carisi kullaniciya gorunur olmali.
+if (
+    !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+    || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)
+) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 if (isset($_POST['yeni_tarih'])) {
     // CSRF koruması (POST istekleri için)
     if (!csrf_verify()) {
@@ -18,13 +28,39 @@ if (isset($_POST['yeni_tarih'])) {
         die('Geçersiz güvenlik doğrulaması.');
     }
 
-    $yeni_tarih = $_POST['yeni_tarih'];
+    $yeni_tarih = trim((string) $_POST['yeni_tarih']);
 
-    // Stok hareketinin tarihini güncelle
-    $stmt = $dbh->prepare("UPDATE {$firmadonem}ORFICHE SET DATE_ = :tarih WHERE LOGICALREF = :stokhareket");
-    $gncl = $stmt->execute([':tarih' => $yeni_tarih, ':stokhareket' => $stokhareket]);
+    // Tarih dogrulama: yalniz gecerli Y-m-d kabul edilir
+    $tarihObj = DateTime::createFromFormat('!Y-m-d', $yeni_tarih);
+    $tarihParca = explode('-', $yeni_tarih);
+    $tarihGecerli = $tarihObj !== false
+        && $tarihObj->format('Y-m-d') === $yeni_tarih
+        && count($tarihParca) === 3
+        && checkdate((int) $tarihParca[1], (int) $tarihParca[2], (int) $tarihParca[0]);
 
-    if ($gncl) {
+    // Stok hareketinin tarihini güncelle: fiş başlığı (ORFICHE) ve satırlar (ORFLINE) tek transaction'da
+    $gncl = false;
+    if ($tarihGecerli) {
+        $sqlTarih = $tarihObj->format('Ymd'); // SQL Server'da dil/DATEFORMAT'tan bagimsiz ISO bicim
+        try {
+            $dbh->beginTransaction();
+            $stmt = $dbh->prepare("UPDATE {$firmadonem}ORFICHE SET DATE_ = :tarih WHERE LOGICALREF = :stokhareket");
+            $stmt->execute([':tarih' => $sqlTarih, ':stokhareket' => $stokhareket]);
+            $stmtSatir = $dbh->prepare("UPDATE {$firmadonem}ORFLINE SET DATE_ = :tarih WHERE ORDFICHEREF = :stokhareket");
+            $stmtSatir->execute([':tarih' => $sqlTarih, ':stokhareket' => $stokhareket]);
+            $dbh->commit();
+            $gncl = true;
+        } catch (Throwable $e) {
+            if ($dbh->inTransaction()) {
+                $dbh->rollBack();
+            }
+            error_log('stok_hareket_tarih_degistir.php tarih guncelleme hatasi: ' . $e->getMessage());
+        }
+    }
+
+    if (!$tarihGecerli) {
+        echo "<script>if (window.toast) { toast('Geçersiz tarih!', 'error'); } else { alert('Geçersiz tarih!'); }</script>";
+    } elseif ($gncl) {
         echo "<script>if (window.toast) { toast('Stok hareketinin tarihi güncellendi!', 'success'); } else { alert('Stok hareketinin tarihi güncellendi!'); } window.location='../index.php';</script>";
     } else {
         echo "<script>if (window.toast) { toast('Hata oluştu!', 'error'); } else { alert('Hata oluştu!'); }</script>";

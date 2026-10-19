@@ -62,10 +62,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $perid = (int) ($_POST['perid'] ?? 0);
         $durum = (string) ($_POST['durum'] ?? '');
         if ($perid > 0 && in_array($durum, ['aktif', 'pasif'], true)) {
+            if (lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $perid) !== null) {
+                header('Location: ' . $geri . '&hata=yonetici_korumali', true, 303);
+                exit;
+            }
             $dr = ($durum === 'aktif') ? 0 : 1; // LG_SLSMAN.ACTIVE: 0=aktif, 1=pasif
             $dbh->prepare("UPDATE LG_SLSMAN SET ACTIVE = :dr WHERE LOGICALREF = :id")
                 ->execute([':dr' => $dr, ':id' => $perid]);
-            if (function_exists('m_p_yetki_cache_temizle')) {
+            if ($dr === 1) {
+                // Pasifleştirilen kullanıcının açık oturumları ve belirteçleri de kapanır.
+                lumen_oturumlari_sonlandir($dbh, $perid, (int) $terminalkullanici);
+            } elseif (function_exists('m_p_yetki_cache_temizle')) {
                 m_p_yetki_cache_temizle($perid);
             }
             header('Location: ' . $geri . '&ok=durum', true, 303);
@@ -78,6 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Sil (yalnız pasif kullanıcı) ----
     if ($action === 'delete_user') {
         $perid = (int) ($_POST['perid'] ?? 0);
+        if ($perid > 0 && lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $perid) !== null) {
+            header('Location: ' . $geri . '&hata=yonetici_korumali', true, 303);
+            exit;
+        }
         if ($perid > 0) {
             $chk = $dbh->prepare("SELECT ACTIVE FROM LG_SLSMAN WHERE LOGICALREF = :id");
             $chk->execute([':id' => $perid]);
@@ -113,10 +124,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hataMsj = 'Personel kodu boş olamaz ve en fazla 30 karakter olmalıdır.';
         } elseif ($adi === '' || mb_strlen($adi) > 50) {
             $hataMsj = 'Personel adı boş olamaz ve en fazla 50 karakter olmalıdır.';
-        } elseif (!in_array($tip, [0, 1, 2], true)) {
+        } elseif (!array_key_exists($tip, lumen_kullanici_turleri())) {
             $hataMsj = 'Geçersiz yetki tipi.';
-        } elseif ($sifre !== '' && mb_strlen($sifre) < 4) {
-            $hataMsj = 'Parola en az 4 karakter olmalıdır.';
+        } elseif ($sifre !== '' && mb_strlen($sifre) < LUMEN_PAROLA_MIN) {
+            $hataMsj = 'Parola en az ' . LUMEN_PAROLA_MIN . ' karakter olmalıdır.';
+        } elseif (($engel = lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $id, $tip)) !== null) {
+            $hataMsj = $engel;
         }
 
         if ($hataMsj === '' && $id > 0) {
@@ -138,14 +151,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $dbh->prepare($sql)->execute($p);
                 } else {
                     // Yetki satırı yok → parola zorunlu (auth bypass koruması)
-                    if (mb_strlen($sifre) < 4) {
+                    if (mb_strlen($sifre) < LUMEN_PAROLA_MIN) {
                         throw new RuntimeException('sifre_zorunlu');
                     }
                     ky_yetki_insert($dbh, $id, sifre_hashle($sifre), $tip);
                 }
 
                 $dbh->commit();
-                if (function_exists('m_p_yetki_cache_temizle')) {
+                if ($sifre !== '') {
+                    // Parola sıfırlandı: eski parola/çerezle açılmış oturumlar kapanır.
+                    lumen_oturumlari_sonlandir($dbh, $id, (int) $terminalkullanici);
+                } elseif (function_exists('m_p_yetki_cache_temizle')) {
                     m_p_yetki_cache_temizle($id);
                 }
                 header('Location: ' . $geri . '&ok=guncellendi', true, 303);
@@ -155,13 +171,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $dbh->rollBack();
                 }
                 $hataMsj = ($e->getMessage() === 'sifre_zorunlu')
-                    ? 'Bu kullanıcı için parola belirlemelisiniz (en az 4 karakter).'
+                    ? 'Bu kullanıcı için parola belirlemelisiniz (en az ' . LUMEN_PAROLA_MIN . ' karakter).'
                     : 'Kayıt sırasında hata oluştu. Lütfen tekrar deneyin.';
             }
         } elseif ($hataMsj === '' && $id === 0) {
             // ---------- EKLE ----------
-            if (mb_strlen($sifre) < 4) {
-                $hataMsj = 'Yeni kullanıcı için parola zorunludur (en az 4 karakter).';
+            if (mb_strlen($sifre) < LUMEN_PAROLA_MIN) {
+                $hataMsj = 'Yeni kullanıcı için parola zorunludur (en az ' . LUMEN_PAROLA_MIN . ' karakter).';
             } else {
                 $dup = $dbh->prepare("SELECT 1 FROM LG_SLSMAN WHERE CODE = :c AND FIRMNR = :f");
                 $dup->execute([':c' => $kodu, ':f' => $frm]);
@@ -222,7 +238,7 @@ if (isset($_GET['duzenle']) && (int) $_GET['duzenle'] > 0) {
     $duzenleUser = $ds->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
-$yetkiAd = [0 => 'Yönetici', 1 => 'Personel', 2 => 'Müşteri'];
+$yetkiAd = lumen_kullanici_turleri();
 $formAcik = ($hataMsj !== '');
 $aktifSekme = 'kullanicilar';
 $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
@@ -447,6 +463,7 @@ if ($hataMsj !== '') {
                             <option value="0">Yönetici — tüm yetkiler</option>
                             <option value="1" selected>Personel — kısıtlı (matristen ayarlanır)</option>
                             <option value="2">Müşteri — salt okunur</option>
+                            <option value="3">Entegrasyon — yalnız API, salt okunur (rapor/muhasebe yazılımları için)</option>
                         </select>
                     </div>
                     <div class="alan">
@@ -481,7 +498,7 @@ if ($hataMsj !== '') {
             document.getElementById('ky_tipi').value = '1';
             document.getElementById('ky_sifre').value = '';
             document.getElementById('ky_sifre').setAttribute('placeholder','En az 4 karakter (zorunlu)');
-            document.getElementById('ky_sifre_ipucu').textContent = 'Yeni kullanıcı için parola zorunludur (en az 4 karakter).';
+            document.getElementById('ky_sifre_ipucu').textContent = 'Yeni kullanıcı için parola zorunludur (en az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter).';
             kyModal.classList.add('acik');
             setTimeout(function(){ document.getElementById('ky_kodu').focus(); }, 50);
         }

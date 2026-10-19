@@ -72,11 +72,13 @@ if ($stokid > 0 && $fisid > 0) {
     setPageParam('stokid', $stokid, 'lg_stok_duzenle');
     setPageParam('stokhareket', $fisid, 'lg_stok_duzenle');
     setPageParam('return_to', $lgStokEkleBackUrl, 'lg_stok_duzenle');
-    echo '<script>window.location="lg_stok_duzenle.php";</script>';
+    // Kimlikler adreste taşınır (sekme güvenliği: oturum tüm sekmelerde ortaktır)
+    echo '<script>window.location="lg_stok_duzenle.php?stokid=' . (int) $stokid . '&stokhareket=' . (int) $fisid
+        . '&return_to=' . rawurlencode((string) $lgStokEkleBackUrl) . '";</script>';
     exit;
   }
 } else {
-  exit;
+  lumen_hata_sayfasi('Ürün seçilmedi', 'Siparişe eklenecek ürün veya sipariş bilgisi eksik. Siparişten tekrar deneyin.');
 }
 
 $stmt = $dbh->prepare("SELECT CLIENTREF FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :fisid");
@@ -106,7 +108,7 @@ ORDER BY URUN.CODE");
 $stmt->execute([':stokid' => $stokid]);
 $stokara = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!is_array($stokara) || $stokara === []) {
-  header('Location: ' . APP_ROOT_URL . '/lg_fis.php?stokhareket=' . $fisid . '&hata=stok_bulunamadi', true, 303);
+  header('Location: ' . APP_ROOT_URL . '/siparis/lg_fis.php?stokhareket=' . $fisid . '&hata=stok_bulunamadi', true, 303);
   exit;
 }
 

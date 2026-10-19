@@ -11,16 +11,22 @@ if (m_p_yetki($terminalkullanici, 'M13') != 1) {
     exit;
 }
 
-// Veritabanı bağlantısı
-try {
-    $dbh = new PDO("sqlsrv:server=" . $anamakina . ";database=" . $veritabani . ";", $kullanici, $sifre);
-    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Veritabanı bağlantı hatası: " . $e->getMessage());
+// Bağlantı ayr.php'de kurulur ($dbh).
+// Tarih filtresi
+// Geçersiz tarih (ör. ?tarih=abc) strtotime false döndürür → bugüne düş
+$selected_date = (string) ($_GET['tarih'] ?? '');
+$tarihDogrulama = DateTime::createFromFormat('!Y-m-d', $selected_date);
+if ($tarihDogrulama === false || $tarihDogrulama->format('Y-m-d') !== $selected_date) {
+    $selected_date = date('Y-m-d');
 }
 
-// Tarih filtresi
-$selected_date = $_GET['tarih'] ?? date('Y-m-d');
+// Özel cari kısıtı: kısıtlı cariler detay listelerinde gösterilmez (her sorgu kendi önekini kullanır)
+$ozelCariSatis = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.CLIENTREF', 'ozel_cari_satis');
+$ozelCariCekAlinan = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(T.CARDREF, 0)', 'ozel_cari_cek_a');
+$ozelCariCekVerilen = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(T.CARDREF, 0)', 'ozel_cari_cek_v');
+$ozelCariSatisSql = $ozelCariSatis['sql'] !== '' ? ' AND ' . $ozelCariSatis['sql'] : '';
+$ozelCariCekAlinanSql = $ozelCariCekAlinan['sql'] !== '' ? ' AND ' . $ozelCariCekAlinan['sql'] : '';
+$ozelCariCekVerilenSql = $ozelCariCekVerilen['sql'] !== '' ? ' AND ' . $ozelCariCekVerilen['sql'] : '';
 $display_date = date('d.m.Y', strtotime((string) $selected_date));
 
 // Excel başlıkları
@@ -60,12 +66,15 @@ $sql_sales_detail = "
     LEFT JOIN " . $firma . "CLCARD CL ON CL.LOGICALREF = C.CLIENTREF
     WHERE C.CANCELLED=0
         AND C.TRCODE=38
-        AND CAST(C.DATE_ AS DATE) = :tarih
+        AND CAST(C.DATE_ AS DATE) = :tarih" . $ozelCariSatisSql . "
     ORDER BY C.DATE_ DESC
 ";
 
 $stmt_sales_detail = $dbh->prepare($sql_sales_detail);
 $stmt_sales_detail->bindParam(':tarih', $selected_date, PDO::PARAM_STR);
+foreach ($ozelCariSatis['params'] as $ozelAd => $ozelDeger) {
+    $stmt_sales_detail->bindValue($ozelAd, $ozelDeger, PDO::PARAM_INT);
+}
 $stmt_sales_detail->execute();
 $sales_details = $stmt_sales_detail->fetchAll(PDO::FETCH_ASSOC);
 
@@ -124,12 +133,15 @@ $sql_checks_received_detail = "
         AND C.STATUS IN(0,1)
         AND C.DOC = 1
         AND CAST(T.DATE_ AS DATE) = :tarih
-        AND T.TRCODE IN (1, 2, 3)
+        AND T.TRCODE IN (1, 2, 3)" . $ozelCariCekAlinanSql . "
     ORDER BY C.DUEDATE
 ";
 
 $stmt_checks_received_detail = $dbh->prepare($sql_checks_received_detail);
 $stmt_checks_received_detail->bindParam(':tarih', $selected_date, PDO::PARAM_STR);
+foreach ($ozelCariCekAlinan['params'] as $ozelAd => $ozelDeger) {
+    $stmt_checks_received_detail->bindValue($ozelAd, $ozelDeger, PDO::PARAM_INT);
+}
 $stmt_checks_received_detail->execute();
 $checks_received_detail = $stmt_checks_received_detail->fetchAll(PDO::FETCH_ASSOC);
 
@@ -150,12 +162,15 @@ $sql_checks_given_detail = "
         AND C.STATUS IN(0,1)
         AND C.DOC = 1
         AND CAST(T.DATE_ AS DATE) = :tarih
-        AND T.TRCODE IN (1, 2, 3)
+        AND T.TRCODE IN (1, 2, 3)" . $ozelCariCekVerilenSql . "
     ORDER BY C.DUEDATE
 ";
 
 $stmt_checks_given_detail = $dbh->prepare($sql_checks_given_detail);
 $stmt_checks_given_detail->bindParam(':tarih', $selected_date, PDO::PARAM_STR);
+foreach ($ozelCariCekVerilen['params'] as $ozelAd => $ozelDeger) {
+    $stmt_checks_given_detail->bindValue($ozelAd, $ozelDeger, PDO::PARAM_INT);
+}
 $stmt_checks_given_detail->execute();
 $checks_given_detail = $stmt_checks_given_detail->fetchAll(PDO::FETCH_ASSOC);
 
@@ -234,12 +249,12 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
 
     <!-- Özet Bilgiler -->
     <div class="summary-box">
-        <strong>TOPLAM SATIŞ:</strong> <?php echo number_format($sales_summary['TOPLAM_SATIS'], 2, ',', '.'); ?> TL<br>
+        <strong>TOPLAM SATIŞ:</strong> <?php echo number_format((float) $sales_summary['TOPLAM_SATIS'], 2, ',', '.'); ?> TL<br>
         <strong>İŞLEM SAYISI:</strong> <?php echo $sales_summary['ISLEM_SAYISI']; ?> adet<br>
         <strong>MÜŞTERİ SAYISI:</strong> <?php echo $sales_summary['MUSTERI_SAYISI']; ?> adet<br>
-        <strong>KASA GİRİŞ:</strong> <?php echo number_format($cash_summary['GIRIS'], 2, ',', '.'); ?> TL<br>
-        <strong>KASA ÇIKIŞ:</strong> <?php echo number_format($cash_summary['CIKIS'], 2, ',', '.'); ?> TL<br>
-        <strong>NET KASA:</strong> <?php echo number_format($cash_summary['NET'], 2, ',', '.'); ?> TL<br>
+        <strong>KASA GİRİŞ:</strong> <?php echo number_format((float) $cash_summary['GIRIS'], 2, ',', '.'); ?> TL<br>
+        <strong>KASA ÇIKIŞ:</strong> <?php echo number_format((float) $cash_summary['CIKIS'], 2, ',', '.'); ?> TL<br>
+        <strong>NET KASA:</strong> <?php echo number_format((float) $cash_summary['NET'], 2, ',', '.'); ?> TL<br>
     </div>
 
     <!-- Satış İşlemleri -->
@@ -265,13 +280,13 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
                 <td><?php echo date('d.m.Y', strtotime((string) $sale['TARIH'])); ?></td>
                 <td><?php echo $sale['CARI_KODU']; ?></td>
                 <td><?php echo $sale['CARI_ADI']; ?></td>
-                <td class="text-right"><?php echo number_format($sale['TUTAR'], 2, ',', '.'); ?></td>
-                <td class="text-right"><?php echo number_format($sale['KUR'], 4, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $sale['TUTAR'], 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $sale['KUR'], 4, ',', '.'); ?></td>
             </tr>
             <?php endforeach; ?>
             <tr class="total-row">
                 <td colspan="3" class="text-right">TOPLAM:</td>
-                <td class="text-right"><?php echo number_format($total_sales, 2, ',', '.'); ?> TL</td>
+                <td class="text-right"><?php echo number_format((float) $total_sales, 2, ',', '.'); ?> TL</td>
                 <td></td>
             </tr>
         </tbody>
@@ -307,14 +322,14 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
                 <td><?php echo $cash['KASA_KODU']; ?></td>
                 <td><?php echo $cash['KASA_ADI']; ?></td>
                 <td><?php echo $cash['ACIKLAMA']; ?></td>
-                <td class="text-right"><?php echo $cash['GIRIS'] > 0 ? number_format($cash['GIRIS'], 2, ',', '.') : '-'; ?></td>
-                <td class="text-right"><?php echo $cash['CIKIS'] > 0 ? number_format($cash['CIKIS'], 2, ',', '.') : '-'; ?></td>
+                <td class="text-right"><?php echo $cash['GIRIS'] > 0 ? number_format((float) $cash['GIRIS'], 2, ',', '.') : '-'; ?></td>
+                <td class="text-right"><?php echo $cash['CIKIS'] > 0 ? number_format((float) $cash['CIKIS'], 2, ',', '.') : '-'; ?></td>
             </tr>
             <?php endforeach; ?>
             <tr class="total-row">
                 <td colspan="4" class="text-right">TOPLAM:</td>
-                <td class="text-right"><?php echo number_format($total_giris, 2, ',', '.'); ?> TL</td>
-                <td class="text-right"><?php echo number_format($total_cikis, 2, ',', '.'); ?> TL</td>
+                <td class="text-right"><?php echo number_format((float) $total_giris, 2, ',', '.'); ?> TL</td>
+                <td class="text-right"><?php echo number_format((float) $total_cikis, 2, ',', '.'); ?> TL</td>
             </tr>
         </tbody>
     </table>
@@ -348,12 +363,12 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
                 <td><?php echo $check['BORCLU']; ?></td>
                 <td><?php echo date('d.m.Y', strtotime((string) $check['TANZIM_TARIHI'])); ?></td>
                 <td><?php echo date('d.m.Y', strtotime((string) $check['VADE_TARIHI'])); ?></td>
-                <td class="text-right"><?php echo number_format($check['TUTAR'], 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $check['TUTAR'], 2, ',', '.'); ?></td>
             </tr>
             <?php endforeach; ?>
             <tr class="total-row">
                 <td colspan="5" class="text-right">TOPLAM:</td>
-                <td class="text-right"><?php echo number_format($total_checks_received, 2, ',', '.'); ?> TL</td>
+                <td class="text-right"><?php echo number_format((float) $total_checks_received, 2, ',', '.'); ?> TL</td>
             </tr>
         </tbody>
     </table>
@@ -387,12 +402,12 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
                 <td><?php echo $check['ALACAKLI']; ?></td>
                 <td><?php echo date('d.m.Y', strtotime((string) $check['TANZIM_TARIHI'])); ?></td>
                 <td><?php echo date('d.m.Y', strtotime((string) $check['VADE_TARIHI'])); ?></td>
-                <td class="text-right"><?php echo number_format($check['TUTAR'], 2, ',', '.'); ?></td>
+                <td class="text-right"><?php echo number_format((float) $check['TUTAR'], 2, ',', '.'); ?></td>
             </tr>
             <?php endforeach; ?>
             <tr class="total-row">
                 <td colspan="5" class="text-right">TOPLAM:</td>
-                <td class="text-right"><?php echo number_format($total_checks_given, 2, ',', '.'); ?> TL</td>
+                <td class="text-right"><?php echo number_format((float) $total_checks_given, 2, ',', '.'); ?> TL</td>
             </tr>
         </tbody>
     </table>

@@ -35,6 +35,12 @@ if (!$siparis) {
     die('<script>alert("Hata: Sipariş bulunamadı!"); window.location="siparisler.php";</script>');
 }
 
+// Yetki: yalnızca bu siparişi görebilen kullanıcı ürün arayıp ekleyebilir
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisId)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 $trcurr = (int)$siparis['TRCURR'];
 $trrate = (float)$siparis['TRRATE'];
 
@@ -48,7 +54,7 @@ $doviz = $dovizBilgileri[$trcurr] ?? ['kod' => 'DV', 'sembol' => '?', 'icon' => 
 // Ürün arama
 $urunler = [];
 if (strlen($aramaMetni) >= 2) {
-    $aramaParam = '%' . turkce($aramaMetni) . '%';
+    $aramaParam = '%' . lumen_arama_terimi($aramaMetni) . '%';
 
     // Önce barkod tam eşleşme kontrolü
     $stmtBarkod = $dbh->prepare("SELECT ITEMREF FROM {$firma}UNITBARCODE WHERE BARCODE = :barkod");
@@ -80,10 +86,8 @@ if (strlen($aramaMetni) >= 2) {
             LEFT JOIN {$firma}UNITSETL U ON U.UNITSETREF = I.UNITSETREF AND U.MAINUNIT = 1
             WHERE I.ACTIVE = 0 AND I.CARDTYPE <> 22
               AND (
-                  REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                    I.NAME, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                    LIKE :q1
-                  OR I.CODE LIKE :q2
+                  " . lumen_arama_sql('I.NAME') . " LIKE :q1
+                  OR " . lumen_arama_sql('I.CODE') . " LIKE :q2
               )
             ORDER BY I.NAME
         ");
@@ -94,10 +98,17 @@ if (strlen($aramaMetni) >= 2) {
 
 // Ürün ekleme işlemi (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
-    // fis.php'ye yönlendir, orası ekleyecek
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
+    }
+    // fis.php'ye yönlendir, orası ekleyecek — yalnız beklenen alanlar + CSRF token aktarılır
     echo '<form id="addForm" method="POST" action="fis.php?id=' . $fisId . '">';
-    foreach ($_POST as $key => $val) {
-        echo '<input type="hidden" name="' . htmlspecialchars((string)$key) . '" value="' . htmlspecialchars((string)$val) . '">';
+    echo csrf_field();
+    foreach (['stokid', 'miktar', 'fiyat', 'kdv', 'aciklama'] as $key) {
+        if (isset($_POST[$key]) && is_scalar($_POST[$key])) {
+            echo '<input type="hidden" name="' . $key . '" value="' . htmlspecialchars((string)$_POST[$key]) . '">';
+        }
     }
     echo '</form>';
     echo '<script>document.getElementById("addForm").submit();</script>';
@@ -502,7 +513,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
       .add-btn { padding: 0 12px; }
       .add-btn span { display: none; }
     }
-  </style>
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .search-btn { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .search-btn:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
+        .header-back { background: transparent; color: #6b7280; border-color: transparent; }
+        .header-back:hover { background: rgba(0, 0, 0, 0.04); color: var(--red, #6F1022); }
+    </style>
 </head>
 <body>
 
@@ -598,6 +615,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
             $i++;
           ?>
           <form method="POST" class="product-card" style="animation-delay: <?php echo $delay; ?>ms;">
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="stokid" value="<?php echo (int)$urun['ID']; ?>">
             <input type="hidden" name="kdv" value="<?php echo (int)$urun['KDV']; ?>">
 

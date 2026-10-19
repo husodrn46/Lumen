@@ -11,7 +11,19 @@ $stokhareket = filter_input(INPUT_GET, 'stokhareket', FILTER_SANITIZE_NUMBER_INT
 if (!$stokhareket || $stokhareket <= 0) { // Sıfır veya geçersizse durdur
     ob_end_clean();
     header("Content-Type: text/plain; charset=utf-8"); // Hata mesajı için düz metin
-    die("Hata: Gecersiz veya eksik stok hareket numarasi.");
+    lumen_hata_sayfasi('Kayıt seçilmedi', 'Stok hareket numarası eksik veya geçersiz.');
+}
+
+// YETKI: siparisin carisi kullaniciya gorunur olmali. Bu cikti fiyat/tutar gosterir;
+// fiyatlari maskelemek yerine (en basit tutarli kural) ST2 (Satis Fiyati Gorme) yetkisi
+// olmayan, yonetici olmayan kullanicinin erisimi reddedilir.
+if (
+    !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)
+    || ((int) ($yetkidurum ?? 1) !== 0 && m_p_yetki($terminalkullanici, 'ST2') != 1)
+) {
+    ob_end_clean();
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
 }
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -84,11 +96,14 @@ try {
     ], static fn ($v) => trim($v) !== ''));
 
     // SQLSRV/PDO numeric alanları string döndürebildiği için float'a çeviriyoruz.
-    $brutToplam = (float) ($fisResult['GROSSTOTAL'] ?? 0);
-    $toplamIskonto = (float) ($fisResult['TOTALDISCOUNTS'] ?? 0);
-    $netToplam = (float) ($fisResult['NETTOTAL'] ?? 0);
-    $toplamKDV = (float) ($fisResult['TOTALVAT'] ?? 0);
-    $genelToplam = $netToplam + $toplamKDV;
+    // NETTOTAL KDV dahildir; toplamlar ortak fonksiyonla hesaplanır (KDV iki kez eklenmez).
+    require_once __DIR__ . '/../includes/fis_toplam.php';
+    $toplamlar = lumen_fis_toplamlari($fisResult);
+    $brutToplam = $toplamlar['brut'];
+    $toplamIskonto = $toplamlar['iskonto'];
+    $netToplam = $toplamlar['net_kdv_haric'];
+    $toplamKDV = $toplamlar['kdv'];
+    $genelToplam = $toplamlar['genel'];
 
     // 3. Stok hareket detayları sorgusu (Güvenli)
     $sqlDetails = "

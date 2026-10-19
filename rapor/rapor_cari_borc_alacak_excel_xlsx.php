@@ -60,7 +60,7 @@ function report_excel_date(mixed $value): ?DateTime
 }
 
 $rawQ = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
-$q = $rawQ !== '' ? turkce($rawQ) : '';
+$q = $rawQ !== '' ? lumen_arama_terimi($rawQ) : '';
 
 $durum = 'borclu';
 $hideZero = true;
@@ -104,15 +104,9 @@ try {
         $like = "%{$q}%";
         $where[] = "
             (
-                 REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                   C.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                   COLLATE Turkish_CI_AS LIKE :p1
-              OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                   C.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                   COLLATE Turkish_CI_AS LIKE :p2
-              OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                   C.CITY, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                   COLLATE Turkish_CI_AS LIKE :p3
+                 " . lumen_arama_sql('C.DEFINITION_') . " LIKE :p1
+              OR " . lumen_arama_sql('C.CODE') . " LIKE :p2
+              OR " . lumen_arama_sql('C.CITY') . " LIKE :p3
             )
         ";
         $params[':p1'] = $like;
@@ -121,6 +115,13 @@ try {
     }
 
     $where[] = "{$balanceExpr} > 0";
+
+    // M4 özel cari kısıtı: bakiyesi gizli cariler listelenmez
+    $ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'bakiye_gizli', 'M4');
+    if ($ozelCariFiltresi['sql'] !== '') {
+        $where[] = $ozelCariFiltresi['sql'];
+        $params += $ozelCariFiltresi['params'];
+    }
 
     if ($minAbs > 0) {
         $where[] = "{$balanceExpr} >= :min_abs";
@@ -216,6 +217,9 @@ foreach ($rows as $r) {
 }
 
 // Excel
+// Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
+require_once __DIR__ . '/../includes/xlsx_guvenli.php';
+lumen_xlsx_guvenli_baglayici();
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator('Lumen')

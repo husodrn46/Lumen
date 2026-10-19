@@ -25,6 +25,10 @@ include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma, $firmadonem;
 $oturum   = api_oturum_gerekli($dbh);
+// Web karşılığıyla aynı yetki (M5); önceden her personel belirteci okuyabiliyordu.
+if (!api_yetki_var((int) $oturum['personel'], 'M5')) {
+    api_json(['ok' => false, 'mesaj' => 'Sipariş listesi yetkiniz yok.'], 403);
+}
 $personel = (int) $oturum['personel'];
 
 $body   = api_body();

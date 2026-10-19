@@ -76,6 +76,11 @@ $msg = '';
 $err = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['repair'])) {
+    // CSRF koruması (onarım STLINE yazma işlemidir)
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
+    }
     $selectedIds = is_array($_POST['line_id'] ?? null) ? array_map('intval', $_POST['line_id']) : [];
     $selectedIds = array_values(array_filter(array_unique($selectedIds), static fn(int $id): bool => $id > 0));
 
@@ -142,19 +147,20 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <title>Uretim Miktar Onarimi</title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body{font-family:Arial,sans-serif;background:#f6f7f9;margin:0;color:#172033}
-        .top{position:sticky;top:0;background:#fff;border-bottom:1px solid #e5e7eb;padding:14px 22px;display:flex;gap:12px;align-items:center;z-index:3}
-        .back{width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:#334155;text-decoration:none;border:1px solid #e5e7eb}
-        .title{font-size:18px;font-weight:800;flex:1}
+        body{font-family:'Avenir Next','Montserrat',sans-serif;background:#f9fafb;margin:0;color:#1f2937}
+        .top{position:sticky;top:0;height:64px;box-sizing:border-box;background:rgba(255,255,255,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid rgba(248,113,113,.18);box-shadow:0 2px 8px rgba(111,16,34,.04);padding:0 24px;display:flex;gap:14px;align-items:center;z-index:40}
+        .back{width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;text-decoration:none}.back:hover{background:rgba(0,0,0,.04);color:var(--red,#6F1022)}
+        .title{font-size:18px;font-weight:700;flex:1}
         main{max-width:1280px;margin:0 auto;padding:20px}
-        .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.04);overflow:hidden;margin-bottom:16px}
+        .card{background:rgba(255,255,255,.94);border:1px solid rgba(248,113,113,.18);border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.04);overflow:hidden;margin-bottom:16px}
         .body{padding:16px}.muted{color:#64748b;font-size:12px}
         .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
         label{font-size:12px;font-weight:700;color:#475569;display:grid;gap:5px}
-        input{border:1px solid #d1d5db;border-radius:8px;padding:9px 10px}
-        .btn{border:0;border-radius:10px;background:var(--red,#6F1022);color:#fff;padding:10px 14px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;gap:8px;align-items:center}
-        .btn.secondary{background:#475569}.btn.gray{background:#64748b}
+        input{border:1px solid #e5e7eb;border-radius:10px;padding:9px 10px;font-family:inherit}
+        .btn{border:0;border-radius:10px;background:var(--red,#6F1022);color:#fff;padding:10px 14px;font-family:inherit;font-weight:600;font-size:13.5px;cursor:pointer;text-decoration:none;display:inline-flex;gap:8px;align-items:center}
+        .btn.secondary{background:#fff;color:#1f2937;border:1px solid #e5e7eb}.btn.gray{background:#64748b}
         table{width:100%;border-collapse:collapse}
         th,td{padding:9px;border-bottom:1px solid #eef2f7;font-size:12px;text-align:left;vertical-align:top}
         th{font-size:11px;text-transform:uppercase;color:#64748b;background:#f8fafc}
@@ -162,7 +168,7 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .warn{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:10px;padding:10px 12px;margin-bottom:12px}
         .num{text-align:right;font-variant-numeric:tabular-nums}
         .danger{color:#b91c1c;font-weight:800}
-        @media(max-width:900px){main{padding:12px}.top{padding:12px}table{min-width:980px}.scroll{overflow:auto}}
+        @media(max-width:900px){main{padding:12px}.top{height:50px;padding:0 12px}.title{font-size:15px}table{min-width:980px}.scroll{overflow:auto}}
     </style>
 </head>
 <body>
@@ -184,12 +190,13 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <label>Baslangic <input type="date" name="baslangic" value="<?= umo_h($startDate); ?>"></label>
                 <label>Bitis <input type="date" name="bitis" value="<?= umo_h($endDate); ?>"></label>
                 <label>Stok kodu <input type="text" name="stok" value="<?= umo_h($stockCode); ?>" placeholder="AKL365"></label>
-                <button class="btn gray" type="submit"><i class="fa fa-search"></i> Listele</button>
+                <button class="btn" type="submit"><i class="fa fa-search"></i> Listele</button>
             </form>
         </div>
     </section>
 
     <form method="post" class="card">
+        <?= csrf_field() ?>
         <div class="scroll">
             <table>
                 <thead>

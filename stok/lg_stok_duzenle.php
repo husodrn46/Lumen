@@ -20,7 +20,7 @@ $lgStokDuzenleBackUrl = safeLocalReturnUrl(
 );
 
 if ($stokid <= 0 || $fisid <= 0) {
-    exit("Gerekli parametreler eksik.");
+    lumen_hata_sayfasi('Satır seçilmedi', 'Düzenlenecek sipariş satırı bilgisi eksik. Siparişten tekrar açın.');
 }
 
 // Veritabanı işlemleri
@@ -39,7 +39,7 @@ try {
     $stokara = $stokara_stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$stokara) {
-        exit("Fişte düzenlenecek stok bilgisi bulunamadı.");
+        lumen_hata_sayfasi('Satır bulunamadı', 'Bu satır silinmiş veya fiş değişmiş olabilir.', 404);
     }
 
     if ($resmiKdvZorunlu) {
@@ -54,7 +54,7 @@ try {
 
 } catch (PDOException $e) {
     error_log("Stok Düzenleme Sayfası Veritabanı Hatası: " . $e->getMessage());
-    exit("Sistemde bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+    lumen_hata_sayfasi('Bir hata oluştu', 'Lütfen daha sonra tekrar deneyin.', 500);
 }
 
 // Orijinal formatlama fonksiyonlarınız
@@ -697,6 +697,7 @@ function kusuratadet1(float|int|string|null $kusurata): string
                 <form name="frm" id="frm" method="POST" action="../siparis/lg_fis.php?stokhareket=<?php echo $fisid; ?>" onsubmit="return validateForm()" autocomplete="off">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="stkduzenle" value="<?php echo $stokara['ID']; ?>">
+                    <input type="hidden" name="satir_surum" value="<?php echo lumen_satir_surumu($stokara); ?>">
                     <input type="hidden" name="kontrol" value="<?php echo uniqid(); ?>">
                     <input type="hidden" name="stokhareket" value="<?php echo $fisid; ?>">
                     <input type="hidden" name="stkbirim" value="<?php echo $stokara['UOMREF']; ?>">

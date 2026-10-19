@@ -57,7 +57,7 @@ if ($cari === null) {
 }
 
 // Fiş AÇMADAN önce tüm kalemleri doğrula (F3 kuralı) — fiyatsız kalem orphan fiş bırakmaz.
-$h     = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, $kalemler);
+$h     = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, $kalemler, api_yetki_var($personel, 'SP1'));
 $ready = $h['ready'];
 if (!$ready) {
     api_json(['ok' => false, 'mesaj' => 'Geçerli kalem bulunamadı, sipariş açılmadı.', 'atlanan' => $h['skipped']], 422);
@@ -89,12 +89,14 @@ try {
     $fisno  = (string) $sipno . str_pad((string) $yeniId, 6, '0', STR_PAD_LEFT);
     $ficheGuid = guid();
 
-    $stmtFiche = $dbh->prepare("INSERT INTO {$firmadonem}ORFICHE (
+    $sqlFiche = ("INSERT INTO {$firmadonem}ORFICHE (
 TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,CENTERREF,SOURCEINDEX,SOURCECOSTGRP,UPDCURR,ADDDISCOUNTS,TOTALDISCOUNTS,TOTALDISCOUNTED,ADDEXPENSES,TOTALEXPENSES,TOTALPROMOTIONS,TOTALVAT,GROSSTOTAL,NETTOTAL,REPORTRATE,REPORTNET,GENEXP1,GENEXP2,GENEXP3,GENEXP4,EXTENREF,PAYDEFREF,PRINTCNT,BRANCH,DEPARTMENT,STATUS,CAPIBLOCK_CREATEDBY,CAPIBLOCK_CREADEDDATE,CAPIBLOCK_CREATEDHOUR,CAPIBLOCK_CREATEDMIN,CAPIBLOCK_CREATEDSEC,CAPIBLOCK_MODIFIEDBY,CAPIBLOCK_MODIFIEDDATE,CAPIBLOCK_MODIFIEDHOUR,CAPIBLOCK_MODIFIEDMIN,CAPIBLOCK_MODIFIEDSEC,SALESMANREF,SHPTYPCOD,SHPAGNCOD,GENEXCTYP,LINEEXCTYP,TRADINGGRP,TEXTINC,SITEID,RECSTATUS,ORGLOGICREF,FACTORYNR,WFSTATUS,SHIPINFOREF,CUSTORDNO,SENDCNT,DLVCLIENT,DOCTRACKINGNR,CANCELLED,ORGLOGOID,OFFERREF,OFFALTREF,TYP,ALTNR,ADVANCEPAYM,TRCURR,TRRATE,TRNET,PAYMENTTYPE,ONLYONEPAYLINE,OPSTAT,WITHPAYTRANS,PROJECTREF,WFLOWCRDREF,UPDTRCURR,AFFECTCOLLATRL,POFFERBEGDT,POFFERENDDT,REVISNR,LASTREVISION,CHECKAMOUNT,SLSOPPRREF,SLSACTREF,SLSCUSTREF,AFFECTRISK,TOTALADDTAX,TOTALEXADDTAX,APPROVE,APPROVEDATE,CHECKPRICE,GUID,EINVOICE
 ) VALUES (
 :siparisdurum,:fisno,DATEADD(day,0,datediff(day,0,GETDATE())),:kayitsaat,'MASA-API','','',:cariid,0,0,0,:depo,0,0,0,0,0,0,0,0,0,0,0,1,0,'Masaustu siparis','','','',0,0,0,0,0,:status,1,DATEADD(day,0,datediff(day,0,GETDATE())),:saat,:dakika,:saniye,0,NULL,0,0,0,:terminalkullanici,'','',2,0,'',0,0,1,0,0,0,0,'',0,0,'',0,'',0,0,0,0,0,:doviz,:dovizkuru,0,0,0,0,0,0,0,0,0,NULL,NULL,'',0,0,0,0,0,1,0,0,0,NULL,0,:guid,0
 )");
-    $stmtFiche->execute([
+    // Yeni fişin gerçek LOGICALREF'i (OUTPUT INSERTED; MAX(LOGICALREF) eşzamanlı
+    // kayıtta başka fişi döndürüp satırları ona ekleyebiliyordu).
+    $fisId = lumen_insert_kimlik($dbh, $sqlFiche, [
         ':siparisdurum'      => 1,
         ':fisno'             => $fisno,
         ':kayitsaat'         => $kayitsaatI,
@@ -109,14 +111,6 @@ TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,
         ':dovizkuru'         => 0.0,
         ':guid'              => (string) $ficheGuid,
     ]);
-
-    // Yeni fişin gerçek LOGICALREF'i
-    $stmtMax->execute();
-    $maxRow2 = $stmtMax->fetch(PDO::FETCH_ASSOC);
-    $fisId = intcevir($maxRow2['SONID'] ?? 0);
-    if ($fisId <= 0) {
-        throw new RuntimeException('Fiş kimliği alınamadı.');
-    }
     // FICHENO'yu gerçek LOGICALREF'e göre kesinleştir (aşağıdaki toplam UPDATE'inde yazılır).
     $fisno = (string) $sipno . str_pad((string) $fisId, 6, '0', STR_PAD_LEFT);
 

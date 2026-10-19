@@ -42,8 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hareketsil'])) {
 		die("Geçersiz fiş ID");
 	}
 
-	if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
-		header('Location: 403.html');
+	// YETKI: satir silmek yazma islemidir (fisekle.php kapisi: admin / M1 / M3) + cari gorunurlugu.
+	if (
+		!m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+		|| !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)
+	) {
+		header('Location: ' . APP_ROOT_URL . '/403.html');
 		exit;
 	}
 
@@ -57,6 +61,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hareketsil'])) {
 		$stmtDel = $dbh->prepare("DELETE FROM ".$firmadonem."ORFLINE WHERE LOGICALREF = :hareketsil");
 		$stmtDel->bindParam(':hareketsil', $hareketsil, PDO::PARAM_INT);
 		$sil = $stmtDel->execute();
+
+		// Satır numaraları: ürün satırları 1..N, ardından iskonto satırları KENDİ
+		// SIRALARIYLA (1. iskonto, 2. iskonto ...). Eskiden tüm iskonto satırlarına
+		// aynı numara veriliyordu; iskonto uygulama sırası (LINENO_) belirsizleşiyordu.
+		// Satırlar önce fetchAll ile alınır (açık imleç varken UPDATE MARS'sız
+		// bağlantıda 'connection busy' veriyordu).
+		$stmtSira = $dbh->prepare("SELECT LOGICALREF FROM ".$firmadonem."ORFLINE WHERE ORDFICHEREF = :stokhareket
+			ORDER BY CASE WHEN LINETYPE = 2 THEN 1 ELSE 0 END, CASE WHEN LINETYPE = 2 THEN LINENO_ ELSE LOGICALREF END, LOGICALREF");
+		$stmtSira->execute([':stokhareket' => $stokhareket]);
+		$siraSatirlari = $stmtSira->fetchAll(PDO::FETCH_COLUMN);
+		$stmtSiraUp = $dbh->prepare("UPDATE ".$firmadonem."ORFLINE SET LINENO_ = :no WHERE LOGICALREF = :ref");
+		foreach ($siraSatirlari as $i => $ref) {
+			$stmtSiraUp->execute([':no' => $i + 1, ':ref' => (int) $ref]);
+		}
+
+		// Silinen satır iskonto dağıtımından çıkar: iskonto satırlarının TOTAL'ı ve
+		// kalan satırların DISTDISC/LINENET/KDV'si yeniden hesaplanır (hareketekle ile aynı).
+		require_once __DIR__ . '/iskonto_lib.php';
+		fis_iskonto_oranlari_uygula($dbh, $firmadonem, (int) $stokhareket);
 
 		$stmtTop = $dbh->prepare("SELECT ISNULL(SUM(VATAMNT),0) AS KDV, ISNULL(SUM(TOTAL),0) AS BRUT, ISNULL(SUM(DISTDISC),0) AS ISK
 			FROM ".$firmadonem."ORFLINE WHERE ORDFICHEREF = :stokhareket AND LINETYPE = 0");
@@ -107,28 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hareketsil'])) {
 	}
 
 
-	$yenisirano = 0;
-	$stmt = $dbh->prepare("SELECT LOGICALREF FROM ".$firmadonem."ORFLINE WHERE ORDFICHEREF = :stokhareket AND LINETYPE = 0 ORDER BY LOGICALREF ASC");
-	$stmt->bindParam(':stokhareket', $stokhareket, PDO::PARAM_INT);
-	$stmt->execute();
-	$sirano = $stmt;
-
-	WHILE($siranobul = $sirano->fetch(PDO::FETCH_ASSOC))
-	{
-		$yenisirano += 1;
-		$siraid1 = intcevir($siranobul['LOGICALREF']);
-
-		$stmtUpdate = $dbh->prepare("UPDATE ".$firmadonem."ORFLINE SET LINENO_ = :yenisirano WHERE LOGICALREF = :siraid1");
-		$stmtUpdate->bindParam(':yenisirano', $yenisirano, PDO::PARAM_INT);
-		$stmtUpdate->bindParam(':siraid1', $siraid1, PDO::PARAM_INT);
-		$siragncl = $stmtUpdate->execute();
-	}
-
-	$yenisirano += 1;
-	$stmt = $dbh->prepare("UPDATE ".$firmadonem."ORFLINE SET LINENO_ = :yenisirano WHERE ORDFICHEREF = :stokhareket AND LINETYPE = 2");
-	$stmt->bindParam(':yenisirano', $yenisirano, PDO::PARAM_INT);
-	$stmt->bindParam(':stokhareket', $stokhareket, PDO::PARAM_INT);
-	$siragncl = $stmt->execute();
+	// Satır numaralandırma silme transaction'ı içinde yapılır (yukarıda).
 
 	echo '<script>window.location="?stokhareket='.$stokhareket.'";</script>';
 

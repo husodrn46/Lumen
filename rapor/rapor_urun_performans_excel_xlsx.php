@@ -25,8 +25,9 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 $currentYear = (int) date('Y');
 $year = (isset($_GET['year']) && is_numeric($_GET['year'])) ? (int) $_GET['year'] : $currentYear;
 
-// Yıl <= 2025 verisi eski dönem tablosunda (rapor sayfasıyla aynı eşleme)
-$donemTablo = ($year <= 2025) ? 'LG_001_01_' : $firmadonem;
+// Geçmiş yıl verisi önceki dönem tablosunda (rapor sayfasıyla aynı eşleme)
+// VARSAYIM: güncel dönem içinde bulunulan takvim yılıdır; geçmiş yıllar önceki dönem tablosunda
+$donemTablo = ($year < (int) date('Y') && !empty($eskifirmadonem)) ? $eskifirmadonem : $firmadonem;
 
 // SQL: tüm ürünler, NET satışa göre desc (satış 7,8 − iade 2,3; rapor sayfasıyla birebir aynı tanım)
 $urunKosulu = urun_kodu_kosulu('I');
@@ -91,6 +92,9 @@ $fmtMoney = '#,##0' . ($decimals > 0 ? '.' . str_repeat('0', $decimals) : '') . 
 $fmtQty = '#,##0';
 
 // Excel
+// Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
+require_once __DIR__ . '/../includes/xlsx_guvenli.php';
+lumen_xlsx_guvenli_baglayici();
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator('Lumen')

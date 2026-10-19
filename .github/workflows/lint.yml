@@ -1,8 +1,8 @@
 name: Lint
 
-# Lumen'de otomatik test yok; bu iş akışı gerçekten doğrulanabilir olanı
-# doğrular: PHP sözdizimi, Composer kilidi/güvenliği ve güvenlik regresyonları.
-# Test altyapısı eklendiğinde buraya bir "test" job'u eklenebilir.
+# PHP sözdizimi, Composer kilidi/güvenliği, birim testleri ve güvenlik
+# regresyonları; ayrıca demo ortamında (SQL Server + sentetik LOGO verisi)
+# kurulum sihirbazı şeması ve tüm sayfaların duman testi.
 
 on:
   push:
@@ -63,6 +63,9 @@ jobs:
       - name: Üretim bağımlılıklarını denetle
         run: composer audit --locked --no-dev
 
+      - name: Birim testleri
+        run: php tests/birim/calistir.php
+
   gizli-dosya-kontrolu:
     name: Güvenlik regresyonları
     runs-on: ubuntu-latest
@@ -89,3 +92,38 @@ jobs:
 
       - name: Güvenlik regresyon kontrolleri
         run: bash scripts/security-regression.sh
+
+  demo-duman-testi:
+    name: Demo ortamı + duman testi
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Tekrar eden SQL parametresi taraması
+        run: python3 demo/araclar/tekrar_parametre.py
+
+      - name: Demo ortamını kur (SQL Server + sentetik LOGO verisi + sql/ şemaları)
+        run: bash demo/kur.sh
+
+      - name: Şema güncelleme tekrar çalıştırılabilir (mevcut kurulum senaryosu)
+        run: |
+          docker compose -f demo/docker-compose.yml exec -T app php scripts/sema_guncelle.php
+          docker compose -f demo/docker-compose.yml exec -T app php scripts/sema_guncelle.php
+
+      - name: Birim testleri (uygulama konteynerinde, PhpSpreadsheet dahil)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/birim/calistir.php
+
+      - name: Duman testi (tüm sayfalar × 3 kullanıcı + oturumsuz erişim)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/duman/tara.php
+
+      - name: Akış testleri (sipariş, iskonto, yazdırma, çek, döviz, ayarlar, yetki, API)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
+
+      - name: Konteyner logları (hata durumunda)
+        if: failure()
+        run: |
+          docker compose -f demo/docker-compose.yml logs --tail=200
+          tail -n 100 logs/app/app-error.log logs/php/php_errors.log 2>/dev/null || true
+

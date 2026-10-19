@@ -51,7 +51,7 @@ if ($ham !== '') {
 if ($hedefCari <= 0) { cek_ciro_json(['ok' => false, 'mesaj' => 'Hedef cari (tedarikçi) seçilmedi.'], 400); }
 if (!$cekRefleri)    { cek_ciro_json(['ok' => false, 'mesaj' => 'Ciro edilecek çek seçilmedi.'], 422); }
 
-$requestId = (string) guid();
+$requestId = cek_istek_id($_POST['istek_id'] ?? null);
 $res = cek_ciro_core($dbh, $firma, $firmadonem, $hedefCari, $cekRefleri, $aciklama, (int) $terminalkullanici, $requestId, [
     'ip' => function_exists('getUserIP') ? (string) getUserIP() : (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
 ]);

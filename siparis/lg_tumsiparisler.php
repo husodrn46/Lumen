@@ -80,36 +80,32 @@ if ($ozelCariTumSiparisFiltresi['sql'] !== '') {
     $params = array_merge($params, $ozelCariTumSiparisFiltresi['params']);
 }
 
-// Türkçe karakter duyarsız arama için SQL REPLACE fonksiyonu
-$sqlNormalize = function($column) {
-    return "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-        {$column}, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')";
-};
+// Türkçe harf ve büyük/küçük harf duyarsız arama: kolon lumen_arama_sql(), terim lumen_arama_terimi().
 
 // Unvan (Türkçe karakter duyarsız)
 if ($unvan !== '') {
-    $whereClauses[] = $sqlNormalize("CR.DEFINITION_") . " COLLATE Turkish_CI_AS LIKE :unvan";
-    $params[':unvan'] = '%' . turkce($unvan) . '%';
+    $whereClauses[] = lumen_arama_sql('CR.DEFINITION_') . " LIKE :unvan";
+    $params[':unvan'] = '%' . lumen_arama_terimi((string) $unvan) . '%';
 } elseif (!$showClient14) {
     $whereClauses[] = "FS.CLIENTREF <> 14";
 }
 
 // Cari kodu (Türkçe karakter duyarsız)
 if ($code !== '') {
-    $whereClauses[] = $sqlNormalize("CR.CODE") . " COLLATE Turkish_CI_AS LIKE :code";
-    $params[':code'] = '%' . turkce($code) . '%';
+    $whereClauses[] = lumen_arama_sql('CR.CODE') . " LIKE :code";
+    $params[':code'] = '%' . lumen_arama_terimi((string) $code) . '%';
 }
 
 // Şehir (Türkçe karakter duyarsız)
 if ($city !== '') {
-    $whereClauses[] = $sqlNormalize("CR.CITY") . " COLLATE Turkish_CI_AS LIKE :city";
-    $params[':city'] = '%' . turkce($city) . '%';
+    $whereClauses[] = lumen_arama_sql('CR.CITY') . " LIKE :city";
+    $params[':city'] = '%' . lumen_arama_terimi((string) $city) . '%';
 }
 
 // Fiş No
 if ($ficheno !== '') {
-    $whereClauses[] = "FS.FICHENO LIKE :ficheno";
-    $params[':ficheno'] = '%' . $ficheno . '%';
+    $whereClauses[] = lumen_arama_sql('FS.FICHENO') . " LIKE :ficheno";
+    $params[':ficheno'] = '%' . lumen_arama_terimi((string) $ficheno) . '%';
 }
 
 // Tutar aralığı

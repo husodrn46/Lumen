@@ -7,9 +7,20 @@ include_once __DIR__ . "/../log_ip.php";
 
 // Stok hareket ID kontrolü
 if (!isset($_GET['stokhareket']) || empty($_GET['stokhareket'])) {
-    die("Stok hareket ID eksik!");
+    lumen_hata_sayfasi('Kayıt seçilmedi', 'Stok hareket numarası eksik.');
 }
 $stokhareket = $_GET['stokhareket'];
+
+// YETKI: siparisin carisi kullaniciya gorunur olmali. Bu cikti fiyat/tutar gosterir;
+// fiyatlari maskelemek yerine (en basit tutarli kural) ST2 (Satis Fiyati Gorme) yetkisi
+// olmayan, yonetici olmayan kullanicinin erisimi reddedilir.
+if (
+    !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)
+    || ((int) ($yetkidurum ?? 1) !== 0 && m_p_yetki($terminalkullanici, 'ST2') != 1)
+) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 
 // Veritabanı sorguları
 try {
@@ -42,7 +53,7 @@ try {
     $fisBilgisi = $fisSorgu->fetch(PDO::FETCH_ASSOC);
 
     if (!$fisBilgisi) {
-        die("Fiş bulunamadı!");
+        lumen_hata_sayfasi('Fiş bulunamadı', 'Kayıt silinmiş veya başka döneme ait olabilir.', 404);
     }
 
     // Dosya adını oluştur
@@ -88,7 +99,8 @@ try {
     $iskontolar = $iskontolarSorgu->fetchAll(PDO::FETCH_COLUMN);
 
 } catch (PDOException $e) {
-    die("Veritabanı hatası: " . $e->getMessage());
+    error_log('stok_hareket_detay: ' . $e->getMessage());
+    lumen_hata_sayfasi('Bir hata oluştu', 'Kayıt okunurken bir hata oluştu. Lütfen tekrar deneyin.', 500);
 }
 
 // İstatistikler için değişkenler
@@ -209,11 +221,14 @@ foreach ($satirlar as $satir) {
 echo '<tr><td colspan="11"></td></tr>';
 
 // Toplam bölümü
-$brutToplam = floatval($fisBilgisi['GROSSTOTAL'] ?? 0);
-$netToplam = floatval($fisBilgisi['NETTOTAL'] ?? 0);
-$toplamKdv = floatval($fisBilgisi['TOTALVAT'] ?? 0);
-$toplamIskonto = floatval($fisBilgisi['TOTALDISCOUNTS'] ?? 0);
-$genelToplam = $netToplam + $toplamKdv;
+// NETTOTAL KDV dahildir; toplamlar ortak fonksiyonla hesaplanır (KDV iki kez eklenmez).
+require_once __DIR__ . '/../includes/fis_toplam.php';
+$toplamlar = lumen_fis_toplamlari($fisBilgisi ?: []);
+$brutToplam = $toplamlar['brut'];
+$netToplam = $toplamlar['net_kdv_haric'];
+$toplamKdv = $toplamlar['kdv'];
+$toplamIskonto = $toplamlar['iskonto'];
+$genelToplam = $toplamlar['genel'];
 
 // Brüt Toplam
 echo '<tr style="background-color:#E7E6E6;">';

@@ -24,7 +24,7 @@ $stkStmt = $dbh->prepare("
 $stkStmt->execute(['ref' => $stockref]);
 $stok = $stkStmt->fetch(PDO::FETCH_ASSOC);
 if (!$stok) {
-    die('Stok bulunamadı.');
+    lumen_hata_sayfasi('Stok bulunamadı', 'Stok kartı seçilmedi veya silinmiş.', 404);
 }
 
 // 3) Hareket verilerini çek
@@ -404,7 +404,7 @@ $toplamIslem = count($rows);
       <span class="icon-box"><span class="material-icons">call_received</span></span>
       <div class="stat-body">
         <span class="stat-label">Toplam Giris</span>
-        <span class="stat-value"><?php echo number_format($totalGiris, 2, ',', '.'); ?></span>
+        <span class="stat-value"><?php echo number_format((float) $totalGiris, 2, ',', '.'); ?></span>
         <span class="stat-sub">adet / miktar</span>
       </div>
     </div>
@@ -412,7 +412,7 @@ $toplamIslem = count($rows);
       <span class="icon-box"><span class="material-icons">call_made</span></span>
       <div class="stat-body">
         <span class="stat-label">Toplam Cikis</span>
-        <span class="stat-value"><?php echo number_format($totalCikis, 2, ',', '.'); ?></span>
+        <span class="stat-value"><?php echo number_format((float) $totalCikis, 2, ',', '.'); ?></span>
         <span class="stat-sub">adet / miktar</span>
       </div>
     </div>
@@ -420,7 +420,7 @@ $toplamIslem = count($rows);
       <span class="icon-box"><span class="material-icons">equalizer</span></span>
       <div class="stat-body">
         <span class="stat-label">Net Stok (<?php echo $toplamIslem; ?> islem)</span>
-        <span class="stat-value"><?php echo number_format($netStok, 2, ',', '.'); ?></span>
+        <span class="stat-value"><?php echo number_format((float) $netStok, 2, ',', '.'); ?></span>
         <span class="stat-sub">giris - cikis</span>
       </div>
     </div>
@@ -464,9 +464,9 @@ $toplamIslem = count($rows);
           ?>
           <tr>
             <td class="date"><?= htmlspecialchars((string) $r['date']) ?></td>
-            <td class="right giris"><?= $r['giris'] > 0 ? number_format($r['giris'], 2, ',', '.') : '<span class="muted">-</span>' ?></td>
-            <td class="right cikis"><?= $r['cikis'] > 0 ? number_format($r['cikis'], 2, ',', '.') : '<span class="muted">-</span>' ?></td>
-            <td class="right net <?= $netClass ?>"><?= number_format($r['net'], 2, ',', '.') ?></td>
+            <td class="right giris"><?= $r['giris'] > 0 ? number_format((float) $r['giris'], 2, ',', '.') : '<span class="muted">-</span>' ?></td>
+            <td class="right cikis"><?= $r['cikis'] > 0 ? number_format((float) $r['cikis'], 2, ',', '.') : '<span class="muted">-</span>' ?></td>
+            <td class="right net <?= $netClass ?>"><?= number_format((float) $r['net'], 2, ',', '.') ?></td>
             <td class="fis"><?= htmlspecialchars((string) $r['fis']) ?></td>
             <td class="ambar"><?= htmlspecialchars((string) $r['ambar']) ?></td>
           </tr>

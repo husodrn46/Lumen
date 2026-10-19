@@ -17,7 +17,7 @@ $CARIID = isset($_GET['cari_id']) ? (int) $_GET['cari_id'] : 0;
 $CSREF  = isset($_GET['CSREF']) ? (int) $_GET['CSREF'] : (isset($_GET['REF']) ? (int) $_GET['REF'] : 0);
 $ROLLREF = isset($_GET['ROLLREF']) ? (int) $_GET['ROLLREF'] : 0;
 if ($CARIID <= 0 || ($CSREF <= 0 && $ROLLREF <= 0)) {
-    exit('Parametre eksik.');
+    lumen_hata_sayfasi('Çek seçilmedi', 'Çek/senet bilgisi eksik. Cari hareket dökümünden tekrar açın.');
 }
 $mod = $ROLLREF > 0 ? 'bordro' : 'tekcek';
 
@@ -35,6 +35,11 @@ if ($mod === 'tekcek' && $CSREF > 0) {
     } catch (Throwable $e) {
         // hata olursa URL'deki cari_id ile devam
     }
+}
+// Özel cari kısıtı: kısıtlı carinin çek/bordro detayı açılamaz.
+if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4')) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
 }
 
 if (!function_exists('paraformat')) {
@@ -143,7 +148,7 @@ if ($mod === 'bordro') {
     $stmtHeader->execute([':csref' => $CSREF]);
     $sqlHeader = $stmtHeader->fetch(PDO::FETCH_ASSOC);
     if (!$sqlHeader) {
-        exit('Çek/Senet bulunamadı.');
+        lumen_hata_sayfasi('Çek/senet bulunamadı', 'Kayıt silinmiş veya başka döneme ait olabilir.', 404);
     }
 
     $sonTrcode = (int) ($sqlHeader['LastTrCode'] ?? 0);
@@ -160,8 +165,10 @@ if ($mod === 'bordro') {
     $csrfTokenCek = function_exists('csrf_token') ? csrf_token() : '';
     $cekGorseller = [];
     try {
-        $gs = $dbh->prepare("SELECT ID, ETIKET, DOSYA_ADI FROM M_CEK_EK WHERE CEK_REF = :c ORDER BY ID");
-        $gs->execute([':c' => $CSREF]);
+        // Görüntülenen dönemin ekleri (+ dönem bilgisi olmayan eski ekler)
+        $gs = $dbh->prepare("SELECT ID, ETIKET, DOSYA_ADI FROM M_CEK_EK
+                             WHERE CEK_REF = :c AND (FIRMADONEM = :fd OR FIRMADONEM IS NULL) ORDER BY ID");
+        $gs->execute([':c' => $CSREF, ':fd' => (string) $firmadonem]);
         $cekGorseller = $gs->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) {
         $cekGorseller = [];

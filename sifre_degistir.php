@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($eski === '' || $eski === '0' || ($yeni === '' || $yeni === '0') || ($yeni2 === '' || $yeni2 === '0')) {
             $error = "Lütfen tüm alanları doldurunuz.";
-        } elseif (strlen($yeni) < 6) {
-            $error = "Yeni şifre en az 6 karakter olmalıdır.";
+        } elseif (mb_strlen($yeni) < LUMEN_PAROLA_MIN) {
+            $error = "Yeni şifre en az " . LUMEN_PAROLA_MIN . " karakter olmalıdır.";
         } elseif ($yeni !== $yeni2) {
             $error = "Yeni şifreler eşleşmiyor.";
         } else {
@@ -40,8 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $update->bindParam(':yeni', $hashedPassword);
                 $update->bindParam(':uid', $uid);
                 if ($update->execute()) {
-                    // Şifre değiştiğinde yetki cache'ini temizle
-                    m_p_yetki_cache_temizle($uid);
+                    // Diğer tüm oturumlar ve "Beni hatırla" çerezleri kapanır; bu oturum açık kalır.
+                    $kapatmaAni = lumen_oturumlari_sonlandir($dbh, (int) $uid, (int) $uid);
+                    if ($kapatmaAni !== null) {
+                        $_SESSION['login_ts'] = $kapatmaAni + 1;
+                    }
                     $success = "Şifreniz başarıyla değiştirildi.";
                 } else {
                     $error = "Şifre güncellenirken hata oluştu.";
@@ -356,8 +359,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="yeni_sifre" class="field-label">Yeni Sifre</label>
                     <div class="input-wrap">
                         <input type="password" id="yeni_sifre" name="yeni_sifre" required
-                               class="field-control" placeholder="En az 6 karakter"
-                               autocomplete="new-password" minlength="6">
+                               class="field-control" placeholder="En az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter"
+                               autocomplete="new-password" minlength="<?php echo (int) LUMEN_PAROLA_MIN; ?>">
                         <i class="fa-solid fa-lock input-icon"></i>
                     </div>
                 </div>
@@ -367,7 +370,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="input-wrap">
                         <input type="password" id="yeni_sifre2" name="yeni_sifre2" required
                                class="field-control" placeholder="Yeni sifreyi tekrar girin"
-                               autocomplete="new-password" minlength="6">
+                               autocomplete="new-password" minlength="<?php echo (int) LUMEN_PAROLA_MIN; ?>">
                         <i class="fa-solid fa-lock input-icon"></i>
                     </div>
                 </div>

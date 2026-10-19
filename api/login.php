@@ -78,10 +78,21 @@ if (!$row || !isset($row['SIFRE']) || !sifre_dogrula($parola, (string) $row['SIF
 }
 
 $personel = (int) $row['LOGICALREF'];
+
+// Düz metin (eski) parola hash'e çevrilir (web girişindeki geçişle aynı);
+// eskiden yalnız web girişi çeviriyordu.
+if (function_exists('sifre_yenilenmeli') && sifre_yenilenmeli((string) $row['SIFRE'])) {
+    try {
+        $dbh->prepare("UPDATE M_P_YETKI SET SIFRE = :s WHERE PERSONEL = :p")
+            ->execute([':s' => sifre_hashle($parola), ':p' => $personel]);
+    } catch (Throwable $e) {
+        error_log('api/login parola hash gecisi: ' . $e->getMessage());
+    }
+}
 $yetkiKodu = m_p_yetki($personel, 'YETKI');
 $yetkidurum = is_numeric($yetkiKodu) ? (int) $yetkiKodu : -1;
 
-if (!in_array($yetkidurum, [0, 1], true)) {
+if (!in_array($yetkidurum, [0, 1, LUMEN_YETKI_ENTEGRASYON], true)) {
     api_json(['ok' => false, 'mesaj' => 'Bu hesabin masaustu uygulamasina giris yetkisi yok.'], 403);
 }
 
@@ -102,5 +113,6 @@ api_json([
         'depo' => (string) ($row['SPECODE'] ?? ''),
         'yetki_kodu' => (string) ($row['CYPHCODE'] ?? ''),
         'yetkidurum' => $yetkidurum,
+        'salt_okunur' => $yetkidurum === LUMEN_YETKI_ENTEGRASYON,
     ],
 ]);

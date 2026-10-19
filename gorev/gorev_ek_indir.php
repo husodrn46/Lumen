@@ -69,7 +69,10 @@ $disposition = in_array($mime, $inlineTipler, true) ? 'inline' : 'attachment';
 
 header('Content-Type: ' . $mime);
 header('Content-Length: ' . (string) filesize($dosyaYolu));
-header('Content-Disposition: ' . $disposition . '; filename="' . rawurlencode($indirmeAdi) . '"');
+// RFC 6266: ASCII yedek ad + UTF-8 ad. Eskiden yalnız rawurlencode'lu ad gönderiliyor,
+// Türkçe/boşluklu dosyalar "Rapor%20%C3%A7.pdf" olarak kaydediliyordu.
+$asciiAd = preg_replace('/[^A-Za-z0-9._-]+/', '_', strtr($indirmeAdi, ['ç' => 'c', 'Ç' => 'C', 'ğ' => 'g', 'Ğ' => 'G', 'ı' => 'i', 'İ' => 'I', 'ö' => 'o', 'Ö' => 'O', 'ş' => 's', 'Ş' => 'S', 'ü' => 'u', 'Ü' => 'U'])) ?: 'dosya';
+header('Content-Disposition: ' . $disposition . '; filename="' . $asciiAd . '"; filename*=UTF-8\'\'' . rawurlencode($indirmeAdi));
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: private, max-age=0, must-revalidate');
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
  * Aylık Satış Raporu — yıl karnesi görünümü (yeniden tasarım 2026-07-07).
  *
  * Veri tanımı: STLINE satış(7,8) − iade(2,3) + ürün kodu ön eki filtresi + LINETYPE=0; NET = LINENET+VATAMNT (KDV dahil, iadeler düşülmüş).
- * Geçen yıl karşılaştırması DOĞRU dönem tablosundan (yıl<=2025 → LG_001_01_) — eski
+ * Geçen yıl karşılaştırması DOĞRU dönem tablosundan (geçmiş yıl → $eskifirmadonem) — eski
  * "Karşılaştırmalı Satış" raporu buraya birleştirilmiştir (2026-07-07, git geçmişinde).
  */
 
@@ -28,6 +28,13 @@ for ($i = 1; $i <= 12; $i++) {
 
 $urunKosulu = urun_kodu_kosulu('ITM');
 
+// Dönem seçimi: içinde bulunulan yıl → güncel dönem ($firmadonem), daha eski yıllar →
+// önceki dönem ($eskifirmadonem). VARSAYIM: güncel dönem içinde bulunulan takvim yılıdır
+// (yıl bazlı dönem helper'ı yok; donem_helper.php yalnız ?donem=2025 parametresine bakar).
+$donemTablosu = static fn(int $yil): string =>
+    ($yil < (int) date('Y') && !empty($eskifirmadonem)) ? $eskifirmadonem : $firmadonem;
+$yilDonem = $donemTablosu($year);
+
 $sql = "
     SELECT
         MONTH(SL.DATE_) AS M,
@@ -36,7 +43,7 @@ $sql = "
         SUM(CASE WHEN SL.TRCODE IN (7,8)
                  THEN ISNULL(SL.LINENET, (SL.PRICE * SL.AMOUNT - SL.DISTDISC)) + ISNULL(SL.VATAMNT, 0)
                  ELSE -(ISNULL(SL.LINENET, (SL.PRICE * SL.AMOUNT - SL.DISTDISC)) + ISNULL(SL.VATAMNT, 0)) END) AS NET
-    FROM {$firmadonem}STLINE SL WITH(NOLOCK)
+    FROM {$yilDonem}STLINE SL WITH(NOLOCK)
     JOIN {$firma}ITEMS ITM ON SL.STOCKREF = ITM.LOGICALREF
     WHERE {$urunKosulu}
       AND SL.TRCODE IN (2,3,7,8)
@@ -59,9 +66,9 @@ while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $monthly[$m]['NET'] = (float) $r['NET'];
 }
 
-// ── GEÇEN YIL (aynı tanım, DOĞRU dönem tablosu: yıl<=2025 → LG_001_01_) ──
+// ── GEÇEN YIL (aynı tanım, DOĞRU dönem tablosu: geçmiş yıl → $eskifirmadonem) ──
 $prevYear = $year - 1;
-$prevDonem = ($prevYear <= 2025) ? 'LG_001_01_' : $firmadonem;
+$prevDonem = $donemTablosu($prevYear);
 $prevMonthly = array_fill(1, 12, 0.0);
 try {
     $stmtP = $dbh->prepare("

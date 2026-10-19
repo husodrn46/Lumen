@@ -22,3 +22,13 @@ BEGIN
     CREATE INDEX IX_M_CEK_EK_CEKREF ON M_CEK_EK (CEK_REF);
 END
 GO
+
+-- ----------------------------------------------------------------------------
+-- FIRMADONEM: CEK_REF (CSCARD.LOGICALREF) dönem tablosuna özeldir; yalnız ona
+-- bağlı ekler dönem devrinden sonra yeni dönemin aynı LOGICALREF'li çekine
+-- "geçiyordu". Yeni ekler dönem önekiyle (örn. LG_001_02_) kaydedilir. Eski
+-- satırlar NULL kalır ve geriye uyumluluk için her dönemde gösterilir.
+-- ----------------------------------------------------------------------------
+IF COL_LENGTH('dbo.M_CEK_EK', 'FIRMADONEM') IS NULL
+    ALTER TABLE dbo.M_CEK_EK ADD FIRMADONEM VARCHAR(20) NULL;
+GO

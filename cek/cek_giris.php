@@ -38,14 +38,6 @@ if (!csrf_verify($_POST['csrf_token'] ?? null)) {
     cek_json(['ok' => false, 'mesaj' => 'Oturum doğrulaması başarısız, sayfayı yenileyin.'], 403);
 }
 
-/** Tutar TR/EN format toleransı (1.234,56 veya 1234.56) → float */
-function cek_tutar_parse(mixed $s): float
-{
-    $s = str_replace(['.', ' '], '', trim((string) $s));
-    $s = str_replace(',', '.', $s);
-    return (float) $s;
-}
-
 $cariRef  = (int) ($_POST['cari_ref'] ?? 0);
 $aciklama = trim((string) ($_POST['aciklama'] ?? ''));
 $resmi    = (($_POST['resmi'] ?? '') === '1');
@@ -59,7 +51,7 @@ if ($ham !== '') {
         foreach ($j as $x) {
             if (!is_array($x)) { continue; }
             $kalemler[] = [
-                'tutar'  => cek_tutar_parse($x['tutar'] ?? '0'),
+                'tutar'  => cek_tutar_coz($x['tutar'] ?? '0'),
                 'cekno'  => trim((string) ($x['cekno'] ?? '')),
                 'banka'  => trim((string) ($x['banka'] ?? '')),
                 'vade'   => trim((string) ($x['vade'] ?? '')),
@@ -70,7 +62,7 @@ if ($ham !== '') {
 }
 if (!$kalemler) {
     $kalemler[] = [
-        'tutar'  => cek_tutar_parse($_POST['tutar'] ?? '0'),
+        'tutar'  => cek_tutar_coz($_POST['tutar'] ?? '0'),
         'cekno'  => trim((string) ($_POST['cekno'] ?? '')),
         'banka'  => trim((string) ($_POST['banka'] ?? '')),
         'vade'   => trim((string) ($_POST['vade'] ?? '')),
@@ -85,7 +77,7 @@ foreach ($kalemler as $i => $k) {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $k['vade'])) { cek_json(['ok' => false, 'mesaj' => ($i + 1) . '. çek için vade tarihi seçin.'], 422); }
 }
 
-$requestId = (string) guid();
+$requestId = cek_istek_id($_POST['istek_id'] ?? null);
 $res = cek_giris_core($dbh, $firma, $firmadonem, $cariRef, [
     'resmi' => $resmi, 'aciklama' => $aciklama, 'kalemler' => $kalemler,
 ], (int) $terminalkullanici, $requestId, [

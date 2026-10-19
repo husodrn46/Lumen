@@ -42,9 +42,8 @@ $highBalanceThreshold = 100000.0;
 
 // Sadece arama kutusunda bir değer varsa sorguyu çalıştır
 if ($raw_cari !== '' && $raw_cari !== '0') {
-    // Türkçe karakterleri ASCII'ye çevir (mağaza -> magaza, İSTANBUL -> istanbul)
-    $cari = turkce($raw_cari);
-    $like = "%{$cari}%";
+    // Türkçe harf ve büyük/küçük harf duyarsız arama (İç Anadolu = ic anadolu = IC ANADOLU)
+    $like = '%' . lumen_arama_terimi($raw_cari) . '%';
     // 'ayr.php' dosyasından gelmesi beklenen listeleme limiti
     $limit = isset($carilistesayisi) ? (int)$carilistesayisi : 100;
     $ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'bakiye_gizli', 'M4');
@@ -82,15 +81,9 @@ if ($raw_cari !== '' && $raw_cari !== '0') {
         WHERE C.ACTIVE = 0
           " . ($ozelCariFiltresi['sql'] !== '' ? "AND {$ozelCariFiltresi['sql']}" : '') . "
           AND (
-               REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                 C.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                 COLLATE Turkish_CI_AS LIKE :p1
-            OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                 C.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                 COLLATE Turkish_CI_AS LIKE :p2
-            OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                 C.CITY, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                 COLLATE Turkish_CI_AS LIKE :p3
+               " . lumen_arama_sql('C.DEFINITION_') . " LIKE :p1
+            OR " . lumen_arama_sql('C.CODE') . " LIKE :p2
+            OR " . lumen_arama_sql('C.CITY') . " LIKE :p3
           )
         ORDER BY C.DEFINITION_ ASC
     ";

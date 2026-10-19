@@ -16,7 +16,11 @@ include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 
 global $dbh, $firma, $firmadonem, $firmadonemx;
-api_oturum_gerekli($dbh);
+$oturum = api_oturum_gerekli($dbh);
+// Web karşılığıyla aynı yetki (M8); önceden her personel belirteci okuyabiliyordu.
+if (!api_yetki_var((int) $oturum['personel'], 'M8')) {
+    api_json(['ok' => false, 'mesaj' => 'Bekleyen siparişleri görme yetkiniz yok.'], 403);
+}
 
 $body  = api_body();
 $limit = max(1, min(2000, (int) ($body['limit'] ?? 1000)));

@@ -47,18 +47,25 @@ if ($satir['linetype'] !== 0) {
 }
 
 $fisId = $satir['fis_id'];
-$fis   = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId);
+$fis   = siparis_fis_duzenlenebilir($dbh, $firmadonem, $fisId, $personel);
 if ($fis === null) {
     api_json(['ok' => false, 'mesaj' => 'Sipariş bulunamadı veya iptal edilmiş.'], 404);
 }
 
+// Miktar, sevk edilmiş miktarın altına indirilemez.
+if ($miktar < $satir['sevk']) {
+    api_json(['ok' => false, 'mesaj' => 'Miktar sevk edilen miktarın (' . $satir['sevk'] . ') altına indirilemez.'], 409);
+}
+
 // fiyat/kdv verilmezse mevcut değeri koru.
-$fiyatRaw = $body['fiyat'] ?? null;
+// Fiyat/KDV yalnız SP1 (Sipariş Fiyatı Değiştirme) yetkisiyle değiştirilebilir.
+$fiyatDegistirebilir = api_yetki_var($personel, 'SP1');
+$fiyatRaw = $fiyatDegistirebilir ? ($body['fiyat'] ?? null) : null;
 $fiyat = ($fiyatRaw !== null && $fiyatRaw !== '') ? max(0.0, siparis_sayi($fiyatRaw)) : (float) $satir['fiyat'];
 if ($fiyat <= 0 || $fiyat > 100000000) {
     api_json(['ok' => false, 'mesaj' => 'Geçerli bir fiyat giriniz.'], 422);
 }
-$kdvRaw = $body['kdv'] ?? null;
+$kdvRaw = $fiyatDegistirebilir ? ($body['kdv'] ?? null) : null;
 $kdv = ($kdvRaw !== null && $kdvRaw !== '') ? max(0.0, min(100.0, siparis_sayi($kdvRaw))) : (float) $satir['kdv'];
 
 $toplam   = round($miktar * $fiyat, 2);

@@ -25,6 +25,10 @@ $erisim = $cekGirisOk;
 
 $cariRef = (int) ($_GET['cari'] ?? 0);
 $cari = null; $bakiye = 0.0; $portfoyAdet = 0; $portfoyTutar = 0.0;
+if ($erisim && $cariRef > 0 && !m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $cariRef, 'M4')) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 if ($erisim && $cariRef > 0) {
     try {
         $q = $dbh->prepare("SELECT LOGICALREF, CODE, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF=:r");

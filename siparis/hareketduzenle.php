@@ -51,10 +51,30 @@ if(isset($_POST['stkduzenle'])){
 		exit('Gecersiz satir tipi.');
 	}
 
-	$stokhareket = (int)$eskiSatir['ORDFICHEREF'];
-	if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
-		header('Location: 403.html');
+	// Çakışma koruması: form yüklendikten sonra satır başka biri tarafından
+	// değiştirildiyse kaydetme (araya giren değişiklik sessizce eziliyordu).
+	// Damga göndermeyen eski istemciler için kontrol atlanır.
+	$gelenSurum = isset($_POST['satir_surum']) && is_string($_POST['satir_surum']) ? $_POST['satir_surum'] : '';
+	if ($gelenSurum !== '' && !hash_equals(lumen_satir_surumu($eskiSatir), $gelenSurum)) {
+		echo '<script>alert("Bu satır siz düzenlerken başka biri tarafından değiştirildi. Güncel hali yüklenecek; değişikliğinizi tekrar yapın."); window.location="lg_fis.php?stokhareket=' . (int) $eskiSatir['ORDFICHEREF'] . '";</script>';
 		exit;
+	}
+
+	$stokhareket = (int)$eskiSatir['ORDFICHEREF'];
+	// YETKI: satir duzenlemek yazma islemidir (fisekle.php kapisi: admin / M1 / M3) + cari gorunurlugu.
+	if (
+		!m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+		|| !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)
+	) {
+		header('Location: ' . APP_ROOT_URL . '/403.html');
+		exit;
+	}
+
+	// FIYAT: fiyat alani yalniz SP1 (Siparis Fiyati Degistirme) veya admin icin yazilabilir
+	// (lg_stok_duzenle/lg_stok_bul ekranlariyla ayni kural). Yetkisizse POST'taki fiyat yok
+	// sayilir, satirin mevcut fiyati korunur.
+	if ((int) ($yetkidurum ?? 1) !== 0 && m_p_yetki($terminalkullanici, 'SP1') != 1) {
+		$stokfiyat = (float) $eskiSatir['PRICE'];
 	}
 
 	 $yenirakamx=round($stokadet*$stokfiyat, 2);
@@ -108,6 +128,19 @@ if(isset($_POST['stkduzenle'])){
 			exit;
 		}
 		throw $e; // Diğer hataları yeniden fırlat
+	}
+
+	// Satır tutarı değişti: fişteki iskonto (1./2.) yeniden dağıtılır. Eskiden
+	// LINENET/VATMATRAH/VATAMNT brüte sıfırlanıp eski DISTDISC bırakılıyordu;
+	// iskontolu fişte satır neti ve KDV fazla, iskonto satırlarının TOTAL'ı
+	// eskimiş kalıyordu (hareketekle.php ile aynı hesap).
+	if ($ekled) {
+		try {
+			require_once __DIR__ . '/iskonto_lib.php';
+			fis_iskonto_oranlari_uygula($dbh, $firmadonem, (int) $stokhareket);
+		} catch (Throwable $e) {
+			error_log('hareketduzenle.php iskonto yeniden dagitim: ' . $e->getMessage());
+		}
 	}
 
 	// Loglama yap

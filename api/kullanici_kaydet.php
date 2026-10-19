@@ -35,7 +35,9 @@ $id    = (int) ($body['id'] ?? 0);
 $kod   = trim((string) ($body['kod'] ?? ''));
 $ad    = trim((string) ($body['ad'] ?? ''));
 $sifre = trim((string) ($body['sifre'] ?? ''));
-$firma = (int) ($body['firma'] ?? 0);
+// firma gönderilmezse kurulumun firma numarası kullanılır (eskiden 0 yazılıyordu;
+// giriş FIRMNR'e göre süzdüğü için kullanıcı kilitleniyordu).
+$firma = (int) ($body['firma'] ?? $firmano);
 $yetki = (int) ($body['yetki'] ?? 1);
 
 /* ---- Ortak doğrulama (ekle + güncelle) ---- */
@@ -45,11 +47,24 @@ if ($kod === '' || strlen($kod) > 30) {
 if ($ad === '' || strlen($ad) > 50) {
     api_json(['ok' => false, 'mesaj' => 'Ad boş olamaz ve 50 karakterden uzun olamaz.'], 422);
 }
-if (!in_array($yetki, [0, 1, 2], true)) {
+if (!array_key_exists($yetki, lumen_kullanici_turleri())) {
     api_json(['ok' => false, 'mesaj' => 'Geçersiz yetki tipi.'], 422);
 }
 
-$sifreGecerli = !($sifre === '' || $sifre === '0' || strlen($sifre) < 4);
+$sifreGecerli = !($sifre === '' || $sifre === '0' || mb_strlen($sifre) < LUMEN_PAROLA_MIN);
+
+$engel = lumen_yetki_degisikligi_engeli($dbh, $personel, $id, $yetki);
+if ($engel !== null) {
+    api_json(['ok' => false, 'mesaj' => $engel], 403);
+}
+
+// Kod benzersiz olmalı: giriş CODE'a göre eşleştiğinden aynı kodlu iki kullanıcı
+// rastgele birine giriş yaptırır.
+$kodVar = $dbh->prepare("SELECT COUNT(*) FROM LG_SLSMAN WHERE CODE = :kod AND LOGICALREF <> :id");
+$kodVar->execute([':kod' => $kod, ':id' => $id]);
+if ((int) $kodVar->fetchColumn() > 0) {
+    api_json(['ok' => false, 'mesaj' => 'Bu kod başka bir kullanıcıda kullanılıyor.'], 409);
+}
 
 if ($id <= 0) {
     /* ==========================  EKLE  ========================== */
@@ -57,7 +72,7 @@ if ($id <= 0) {
 
     // 1) Şifre zorunlu
     if (!$sifreGecerli) {
-        api_json(['ok' => false, 'mesaj' => 'Şifre en az 4 karakter olmalıdır.'], 422);
+        api_json(['ok' => false, 'mesaj' => 'Şifre en az ' . LUMEN_PAROLA_MIN . ' karakter olmalıdır.'], 422);
     }
 
     try {
@@ -111,7 +126,7 @@ try {
 
     // 2) Yeni yetki satırı oluşturulacaksa parola zorunlu
     if ($exists === 0 && !$sifreGecerli) {
-        api_json(['ok' => false, 'mesaj' => 'Bu kullanıcı için şifre belirleyin (en az 4 karakter).'], 422);
+        api_json(['ok' => false, 'mesaj' => 'Bu kullanıcı için şifre belirleyin (en az ' . LUMEN_PAROLA_MIN . ' karakter).'], 422);
     }
 
     // 3) Tüm yazma işlemleri tek transaction içinde
@@ -141,8 +156,10 @@ try {
 
     $dbh->commit();
 
-    // 4) Yetki cache temizliği
-    if (function_exists('m_p_yetki_cache_temizle')) {
+    // 4) Parola değiştiyse açık oturumlar/belirteçler kapanır; değilse yalnız cache temizliği
+    if ($sifreGecerli) {
+        lumen_oturumlari_sonlandir($dbh, $id, (int) $personel);
+    } elseif (function_exists('m_p_yetki_cache_temizle')) {
         m_p_yetki_cache_temizle($id);
     }
 } catch (Throwable $e) {

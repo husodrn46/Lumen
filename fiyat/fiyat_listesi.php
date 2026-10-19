@@ -45,7 +45,7 @@ ini_set('display_errors', '0');
 	        WHERE I.ACTIVE = 0";
 
 	    if ($arama !== '') {
-	        $sql .= " AND (I.CODE LIKE :arama OR I.NAME LIKE :arama2)";
+	        $sql .= " AND (" . lumen_arama_sql('I.CODE') . " LIKE :arama OR " . lumen_arama_sql('I.NAME') . " LIKE :arama2)";
 	    }
 
 	    $sql .= "
@@ -53,7 +53,7 @@ ini_set('display_errors', '0');
 
 	    $stmt = $dbh->prepare($sql);
 	    if ($arama !== '') {
-	        $aramaParam = '%' . $arama . '%';
+	        $aramaParam = '%' . lumen_arama_terimi($arama) . '%';
 	        $stmt->bindValue(':arama', $aramaParam, PDO::PARAM_STR);
 	        $stmt->bindValue(':arama2', $aramaParam, PDO::PARAM_STR);
 	    }
@@ -88,13 +88,13 @@ ini_set('display_errors', '0');
     WHERE I.ACTIVE = 0";
 
 if (!empty($arama)) {
-    $sql .= " AND (I.CODE LIKE :arama OR I.NAME LIKE :arama2)";
+    $sql .= " AND (" . lumen_arama_sql('I.CODE') . " LIKE :arama OR " . lumen_arama_sql('I.NAME') . " LIKE :arama2)";
 }
 $sql .= " ORDER BY I.CODE";
 
 $stmt = $dbh->prepare($sql);
 if (!empty($arama)) {
-    $aramaParam = '%' . $arama . '%';
+    $aramaParam = '%' . lumen_arama_terimi($arama) . '%';
     $stmt->bindValue(':arama', $aramaParam, PDO::PARAM_STR);
     $stmt->bindValue(':arama2', $aramaParam, PDO::PARAM_STR);
 }

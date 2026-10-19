@@ -90,7 +90,7 @@ if (!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $asOf)) {
 
 // Filters
 $rawQ = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
-$q = $rawQ !== '' ? turkce($rawQ) : '';
+$q = $rawQ !== '' ? lumen_arama_terimi($rawQ) : '';
 
 $rawMin = isset($_GET['min']) ? trim((string) $_GET['min']) : '';
 $minTotal = 0.0;
@@ -159,19 +159,20 @@ if ($canSeeBalance) {
     // Müşteri kartları (döviz modülü ile uyumlu)
     $whereC[] = "C.CARDTYPE IN (3, 10)";
 
+    // M4 özel cari kısıtı: bakiyesi gizli cariler listelenmez
+    $ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'bakiye_gizli', 'M4');
+    if ($ozelCariFiltresi['sql'] !== '') {
+        $whereC[] = $ozelCariFiltresi['sql'];
+        $params += $ozelCariFiltresi['params'];
+    }
+
     if ($q !== '') {
         $like = "%{$q}%";
         $whereC[] = "
             (
-                 REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                   C.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                   COLLATE Turkish_CI_AS LIKE :p1
-              OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                   C.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                   COLLATE Turkish_CI_AS LIKE :p2
-              OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                   C.CITY, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                   COLLATE Turkish_CI_AS LIKE :p3
+                 " . lumen_arama_sql('C.DEFINITION_') . " LIKE :p1
+              OR " . lumen_arama_sql('C.CODE') . " LIKE :p2
+              OR " . lumen_arama_sql('C.CITY') . " LIKE :p3
             )
         ";
         $params[':p1'] = $like;
@@ -820,6 +821,10 @@ foreach ($rows as $r) {
             .glass-card { box-shadow: none !important; border-radius: 6px !important; }
             .gd-table tbody tr { page-break-inside: avoid; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-amber { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-amber:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
     </style>
 </head>
 <body>

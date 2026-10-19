@@ -51,3 +51,9 @@ Desktop.ini
 # Arşiv / geçici Office kilit dosyaları
 *.zip
 ~$*
+
+# Uygulama yerel verileri (ayarlar.json, enflasyon SQLite; TCMB API anahtarı içerir).
+# Klasör ve koruma dosyaları depoda; içerik versiyonlanmaz.
+/database/*
+!/database/.htaccess
+!/database/web.config

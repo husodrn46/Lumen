@@ -3,17 +3,21 @@ declare(strict_types=1);
 
 include_once(__DIR__ . "/../ayr.php");
 include(__DIR__ . "/../kontrol.php");
-$doviz = $_SESSION['doviz'];
 
 if (!isset($_GET['stokhareket'])) {
-  echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">Please specify an order number.</div>';
-  exit;
+  lumen_hata_sayfasi('Sipariş seçilmedi', 'Yazdırılacak sipariş numarası eksik. Sipariş listesinden tekrar deneyin.');
 }
 
 $stokhareket = $_GET['stokhareket'];
 
 // Yazdırma işlemini logla
 $stokhareket = (int) $stokhareket;
+// Özel cari kısıtı (fisyaz.php / yeni_dizayn.php ile aynı): kısıtlı carinin
+// siparişi numara değiştirilerek yazdırılamaz.
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 $stmtFisNoLog = $dbh->prepare("SELECT FICHENO FROM {$firmadonem}ORFICHE WHERE LOGICALREF = :stokhareket");
 $stmtFisNoLog->execute([':stokhareket' => $stokhareket]);
 $fisNoLog = $stmtFisNoLog->fetch(PDO::FETCH_ASSOC);
@@ -22,12 +26,15 @@ if (function_exists('logYazdir') && $fisNoLog) {
 }
 
 $stmtFis = $dbh->prepare("
-    SELECT CLIENTREF, DATE_, GENEXP1, TOTALVAT, NETTOTAL, GROSSTOTAL, FICHENO, TOTALDISCOUNTS
+    SELECT CLIENTREF, DATE_, GENEXP1, TOTALVAT, NETTOTAL, GROSSTOTAL, FICHENO, TOTALDISCOUNTS, TRCURR
     FROM {$firmadonem}ORFICHE
     WHERE LOGICALREF = :stokhareket
 ");
 $stmtFis->execute([':stokhareket' => $stokhareket]);
 $listfis = $stmtFis->fetch(PDO::FETCH_ASSOC);
+if (!$listfis) {
+    lumen_hata_sayfasi('Sipariş bulunamadı', 'Bu numarada bir sipariş yok veya başka döneme ait.', 404);
+}
 
 $cariid = intcevir($listfis['CLIENTREF']);
 $stmtCari = $dbh->prepare("
@@ -39,11 +46,16 @@ $stmtCari->execute([':cariid' => $cariid]);
 $sqlx = $stmtCari->fetch(PDO::FETCH_ASSOC);
 
 $dovizfiyat  = dovizkuru_bul($stokhareket); // örn: TL/1 USD veya TL/1 EUR
-$dovizsembol = dovizsembol_bul($doviz);
 
-// Para birimi & sembol (güvenli fallback)
-$currencyCode = strtoupper((string)($doviz ?? 'USD')); // Örn: 'USD' veya 'EUR'
-$currencySymbol = $dovizsembol ?: ($currencyCode === 'EUR' ? '€' : '$');
+// Para birimi siparişin kendisinden (TRCURR) okunur; oturumdaki son seçim
+// başka bir siparişe ait olabilir.
+$dovizKodlari = [1 => 'USD', 20 => 'EUR', 17 => 'GBP'];
+$trcurr = (int) ($listfis['TRCURR'] ?? 0);
+if (!isset($dovizKodlari[$trcurr]) || $dovizfiyat <= 0) {
+    lumen_hata_sayfasi('Dövizli sipariş değil', 'Bu sipariş TL olarak kayıtlı; normal fiş yazdırmayı kullanın.', 422);
+}
+$currencyCode = $dovizKodlari[$trcurr];
+$currencySymbol = dovizsembol_bul($trcurr);
 
 // Hacim ve ağırlık hesapla
 $hacimAgirlik = fis_hacim_agirlik_hesapla($stokhareket, 'siparis');
@@ -500,6 +512,10 @@ if ($currencyCode === 'EUR') {
             .sign-col .s-lbl { margin-bottom: 22px; font-size: 8px; }
             .footer-note { padding: 8px 14px; font-size: 10px; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-print { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-print:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
     </style>
 </head>
 <body>
@@ -613,6 +629,7 @@ if ($currencyCode === 'EUR') {
                         CASE WHEN O.AMOUNT<>0 THEN O.VATMATRAH/O.AMOUNT ELSE 0 END AS NETFIYAT,
                         O.TOTAL,
                         O.VATAMNT,
+                        O.DISTDISC,
                         I.CODE AS SKODU,
                         I.NAME AS SADI,
                         U.CODE AS BIRIM,
@@ -633,7 +650,7 @@ if ($currencyCode === 'EUR') {
                     ");
                     $stmtList->execute([':stokhareket' => $stokhareket]);
                     while ($row = $stmtList->fetch(PDO::FETCH_ASSOC)) {
-                        $total_with_vat = $row['TOTAL'] + $row['VATAMNT'];
+                        $total_with_vat = (float)$row['TOTAL'] - (float)$row['DISTDISC'] + (float)$row['VATAMNT'];   // iskontolu tutar + KDV
                     ?>
                         <tr>
                             <td class="cell-idx"><?php echo htmlspecialchars((string) $row['LINENO_']); ?></td>

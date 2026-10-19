@@ -27,22 +27,7 @@ if (function_exists('saldiri_modu_erisim_engelli_mi') && saldiri_modu_erisim_eng
 // Hata mesajlarını tutar
 $error_message = '';
 
-function normalize_login_username(string $username): string
-{
-    $username = trim($username);
-    $username = strtr($username, [
-        'ç' => 'c', 'Ç' => 'C',
-        'ğ' => 'g', 'Ğ' => 'G',
-        'ı' => 'i', 'I' => 'I',
-        'İ' => 'i', 'i' => 'i',
-        'ö' => 'o', 'Ö' => 'O',
-        'ş' => 's', 'Ş' => 'S',
-        'ü' => 'u', 'Ü' => 'U',
-    ]);
-    $username = preg_replace('/[^A-Za-z0-9_.-]/', '', $username) ?? '';
-
-    return strtoupper($username);
-}
+// normalize_login_username() ayr.php'dedir (web ve API girişinde aynı kural).
 
 // Oturum zorunluluğu veya yetki hatası ile yönlendirme durumunda mesaj göster
 if (isset($_GET['hata'])) {
@@ -50,6 +35,8 @@ if (isset($_GET['hata'])) {
         $error_message = 'Oturum gerekli: Lütfen giriş yapın.';
     } elseif ($_GET['hata'] === 'gecersiz_yetki') {
         $error_message = 'Geçersiz yetki: Erişim reddedildi.';
+    } elseif ($_GET['hata'] === 'entegrasyon') {
+        $error_message = 'Entegrasyon hesapları yalnız API ile kullanılır; web arayüzüne giriş yapamaz.';
     }
 }
 
@@ -83,6 +70,8 @@ if (!isset($_SESSION['plasiyer_id']) && (!function_exists('saldiri_modu_aktif_mi
                 $_SESSION['plasiyer_yetki'] = $personel['CYPHCODE'];
                 $_SESSION['kullanici_adi']  = $personel['CODE'];
                 $_SESSION['login_ts']       = time(); // force-logout referansi (oturum baslangici)
+                // Doğrulayıcı her kullanımda yenilenir; kopyalanan eski çerez geçersizleşir.
+                remember_token_yenile($selector);
 
                 // Yetki cache'ini temizle
                 if (function_exists('m_p_yetki_cache_temizle')) {
@@ -181,6 +170,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kullaniciadi'])) {
         if ($kilitRow && (int) $kilitRow['sayi'] >= $hesap_kilit_esik) {
             $kalan_dk = max(1, (int) ceil(((int) $kilitRow['kalan_saniye']) / 60));
             $error_message = "Çok fazla hatalı giriş nedeniyle hesabınız geçici olarak kilitlendi. Lütfen {$kalan_dk} dakika sonra tekrar deneyin.";
+            require_once __DIR__ . '/includes/bildirim.php';
+            // Saat başına bir bildirim (anahtar): kilitliyken her deneme yeni bildirim üretmez.
+            lumen_bildirim_yoneticilere($dbh, 'guvenlik', 'Hesap geçici olarak kilitlendi: ' . $veri_kullanici,
+                'Çok fazla hatalı giriş denemesi (IP ' . getUserIP() . ').', 'loglar.php', 'kilit-' . md5($veri_kullanici) . '-' . date('YmdH'));
             goto render_form;
         }
     } catch (Exception $e) {
@@ -232,18 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kullaniciadi'])) {
             $tokenData = remember_token_olustur((int)$sorgu2['LOGICALREF'], 30);
             if ($tokenData) {
                 $cookie_duration = time() + (86400 * 30); // 30 gun
-                setcookie('remember_selector', $tokenData['selector'], [
-                    'expires' => $cookie_duration,
-                    'path' => '/',
-                    'httponly' => true,
-                    'samesite' => 'Strict'
-                ]);
-                setcookie('remember_token', $tokenData['token'], [
-                    'expires' => $cookie_duration,
-                    'path' => '/',
-                    'httponly' => true,
-                    'samesite' => 'Strict'
-                ]);
+                lumen_hatirla_cerezi_yaz($tokenData['selector'], $tokenData['token'], $cookie_duration);
             }
             // Kullanici adini da sakla (form icin)
             setcookie('giriskontroladi', (string) $veri_kullanici, ['expires' => $cookie_duration, 'path' => '/', 'httponly' => true, 'samesite' => 'Strict']);

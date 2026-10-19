@@ -43,10 +43,18 @@ try {
 // Müşteri arama
 $aramaMetni = '';
 $musteriler = [];
+// Bakiye yalnız CR1 (Cari Bakiye) yetkisi veya yöneticiyle gösterilir
+$canSeeBalance = (($yetkidurum ?? null) === 0 || m_p_yetki($terminalkullanici, 'CR1') == 1);
 
 if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
     $aramaMetni = trim($_GET['q']);
-    $aramaParam = '%' . turkce($aramaMetni) . '%';
+    $aramaParam = '%' . lumen_arama_terimi($aramaMetni) . '%';
+    $bakiyeSql = $canSeeBalance
+        ? "ISNULL((SELECT SUM(DEBIT - CREDIT) FROM {$firmadonemx}GNTOTCL WHERE CARDREF = C.LOGICALREF AND TOTTYP = 1), 0)"
+        : "0";
+    // Kısıtlı (özel) cariler listeden çıkarılır
+    $ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'doviz_cari');
+    $ozelCariSql = ($ozelCariFiltresi['sql'] ?? '') !== '' ? "\n          AND " . $ozelCariFiltresi['sql'] : '';
 
     $stmt = $dbh->prepare("
         SELECT TOP 20
@@ -55,19 +63,17 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
             C.DEFINITION_ AS ISIM,
             C.CITY AS SEHIR,
             C.TELNRS1 AS TELEFON,
-            ISNULL((SELECT SUM(DEBIT - CREDIT) FROM {$firmadonemx}GNTOTCL WHERE CARDREF = C.LOGICALREF), 0) AS BAKIYE
+            {$bakiyeSql} AS BAKIYE
         FROM {$firma}CLCARD C
         WHERE C.ACTIVE = 0
           AND C.CARDTYPE IN (3, 10)
           AND (
-              REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                C.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                LIKE :q1
-              OR C.CODE LIKE :q2
-          )
+              " . lumen_arama_sql('C.DEFINITION_') . " LIKE :q1
+              OR " . lumen_arama_sql('C.CODE') . " LIKE :q2
+          ){$ozelCariSql}
         ORDER BY C.DEFINITION_
     ");
-    $stmt->execute([':q1' => $aramaParam, ':q2' => $aramaParam]);
+    $stmt->execute(array_merge([':q1' => $aramaParam, ':q2' => $aramaParam], $ozelCariFiltresi['params'] ?? []));
     $musteriler = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
@@ -777,6 +783,7 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
                         </div>
                     </div>
 
+                    <?php if ($canSeeBalance): ?>
                     <div class="cari-body">
                         <span class="bakiye-pill <?php echo $bkClass; ?>">
                             <i class="fa-solid <?php echo $bkIco; ?>"></i>
@@ -784,6 +791,7 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
                             <span style="font-weight:500;opacity:0.85;"><?php echo $bkLbl; ?></span>
                         </span>
                     </div>
+                    <?php endif; ?>
 
                     <div class="cari-footer">
                         <a href="#"

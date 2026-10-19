@@ -49,6 +49,12 @@ if ($cache_dosya !== '' && is_file($cache_dosya) && (time() - filemtime($cache_d
             echo json_encode(['ok' => true, 'kod' => $veri['kod']]);
             exit;
         }
+        // Son deneme başarısızsa 10 dk boyunca dış servise tekrar gidilmez
+        // (uç oturumsuzdur; aksi halde her istek 3 sn'lik dış çağrı başlatıyordu).
+        if (is_array($veri) && !empty($veri['hata']) && (time() - filemtime($cache_dosya)) < 600) {
+            echo json_encode(['ok' => false]);
+            exit;
+        }
     }
 }
 
@@ -57,13 +63,11 @@ $sehir = 'Istanbul';
 $ctx = stream_context_create(['http' => ['timeout' => 3, 'header' => "User-Agent: lumen/1.0\r\n"]]);
 $json = @file_get_contents('https://wttr.in/' . urlencode($sehir) . '?format=j1', false, $ctx);
 
-if ($json === false) {
-    echo json_encode(['ok' => false]);
-    exit;
-}
-
-$parsed = json_decode($json, true);
+$parsed = $json === false ? null : json_decode($json, true);
 if (!isset($parsed['current_condition'][0]['weatherCode'])) {
+    if ($cache_dosya !== '') {
+        @file_put_contents($cache_dosya, json_encode(['hata' => true, 'zaman' => time()]), LOCK_EX);
+    }
     echo json_encode(['ok' => false]);
     exit;
 }

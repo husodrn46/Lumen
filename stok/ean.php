@@ -13,7 +13,7 @@ function eanonuc(): string{
         if ($sonuc && !empty($sonuc['BARCODE'])) {
             // Son barkodun ilk 12 hanesini al
             $sonBarkod = substr((string) $sonuc['BARCODE'], 0, 12);
-            $yeniBarkod12 = str_pad((int)$sonBarkod + 1, 12, '0', STR_PAD_LEFT);
+            $yeniBarkod12 = str_pad((string) ((int) $sonBarkod + 1), 12, '0', STR_PAD_LEFT);
         } else {
             // Hiç barkod yoksa varsayılan başlangıç (869 Türkiye kodu ile)
             $yeniBarkod12 = '869000000001';
@@ -34,11 +34,3 @@ function eanonuc(): string{
         return '8690000000013';
     }
 }
-?>
- <SCRIPT language="javascript"> 
-function eanonucbar() {
-
-   frm.barkod.value = frm.stokbarkodx.value;
-
- }
-	</script>

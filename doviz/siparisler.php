@@ -20,7 +20,12 @@ $dovizBilgileri = [
 
 // Filtreleme
 $filtreDoviz = isset($_GET['doviz']) ? (int)$_GET['doviz'] : 0;
-$filtreTarih = isset($_GET['tarih']) ? $_GET['tarih'] : date('Y-m');
+$filtreTarih = isset($_GET['tarih']) && is_string($_GET['tarih']) ? $_GET['tarih'] : date('Y-m');
+// Geçersiz tarih (ör. ?tarih=x) strtotime false -> date() TypeError veriyordu; içinde bulunulan aya düş
+if (!preg_match('/^\d{4}-\d{2}$/', $filtreTarih)
+    || !checkdate((int)substr($filtreTarih, 5, 2), 1, (int)substr($filtreTarih, 0, 4))) {
+    $filtreTarih = date('Y-m');
+}
 $dovizSiparislerReturnUrl = 'siparisler.php';
 if (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '') {
     $dovizSiparislerReturnUrl .= '?' . $_SERVER['QUERY_STRING'];

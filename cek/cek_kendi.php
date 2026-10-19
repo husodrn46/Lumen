@@ -35,13 +35,6 @@ if (!csrf_verify($_POST['csrf_token'] ?? null)) {
     cek_kendi_json(['ok' => false, 'mesaj' => 'Oturum doğrulaması başarısız, sayfayı yenileyin.'], 403);
 }
 
-function cek_kendi_tutar_parse(mixed $s): float
-{
-    $s = str_replace(['.', ' '], '', trim((string) $s));
-    $s = str_replace(',', '.', $s);
-    return (float) $s;
-}
-
 $hedefCari = (int) ($_POST['hedef_cari'] ?? 0);
 $bankaRef  = (int) ($_POST['banka_ref'] ?? 0);
 $aciklama  = trim((string) ($_POST['aciklama'] ?? ''));
@@ -54,7 +47,7 @@ if ($ham !== '') {
         foreach ($j as $x) {
             if (!is_array($x)) { continue; }
             $kalemler[] = [
-                'tutar' => cek_kendi_tutar_parse($x['tutar'] ?? '0'),
+                'tutar' => cek_tutar_coz($x['tutar'] ?? '0'),
                 'vade'  => trim((string) ($x['vade'] ?? '')),
                 'cekno' => trim((string) ($x['cekno'] ?? '')),
             ];
@@ -66,7 +59,7 @@ if ($hedefCari <= 0) { cek_kendi_json(['ok' => false, 'mesaj' => 'Hedef cari se�
 if ($bankaRef <= 0)  { cek_kendi_json(['ok' => false, 'mesaj' => 'Banka hesabı seçilmedi.'], 400); }
 if (!$kalemler)      { cek_kendi_json(['ok' => false, 'mesaj' => 'En az bir çek girin.'], 422); }
 
-$requestId = (string) guid();
+$requestId = cek_istek_id($_POST['istek_id'] ?? null);
 $res = cek_kendi_core($dbh, $firma, $firmadonem, $hedefCari, $bankaRef, $kalemler, $aciklama, (int) $terminalkullanici, $requestId, [
     'ip' => function_exists('getUserIP') ? (string) getUserIP() : (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
 ]);

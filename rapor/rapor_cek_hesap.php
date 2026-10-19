@@ -94,6 +94,10 @@ $maxTutar = 1.0;
 $todayTs = strtotime(date('Y-m-d')) ?: time();
 $next7DaysTs = strtotime('+7 days', $todayTs) ?: $todayTs;
 
+// Özel cari kısıtı: kısıtlı carilerin çekleri listelenmez (carisiz çekler korunur)
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(TX.CARDREF, 0)', 'ozel_cari');
+$ozelCariSql = $ozelCariFiltresi['sql'] !== '' ? ' AND ' . $ozelCariFiltresi['sql'] : '';
+
 $sql_details = "
     SELECT
         CAST(LGMAIN.DUEDATE AS DATE) AS DUEDATE,
@@ -113,12 +117,12 @@ $sql_details = "
         FROM {$firmadonem}CSTRANS T WITH(NOLOCK)
     ) TX ON TX.CSREF = LGMAIN.LOGICALREF AND TX.RN = 1
     LEFT JOIN {$firma}CLCARD CL WITH(NOLOCK) ON CL.LOGICALREF = TX.CARDREF
-    WHERE LGMAIN.CURRSTAT {$currstatFiltre} AND LGMAIN.STATUS IN(0,1) AND LGMAIN.DOC=1
+    WHERE LGMAIN.CURRSTAT {$currstatFiltre} AND LGMAIN.STATUS IN(0,1) AND LGMAIN.DOC=1{$ozelCariSql}
     ORDER BY CAST(LGMAIN.DUEDATE AS DATE) ASC, LGMAIN.OWING, LGMAIN.TRNET
 ";
 
 $stmtDetails = $dbh->prepare($sql_details);
-$stmtDetails->execute();
+$stmtDetails->execute($ozelCariFiltresi['params']);
 while ($r = $stmtDetails->fetch(PDO::FETCH_ASSOC)) {
     $amount = isset($r['TUTAR']) ? (float) $r['TUTAR'] : 0.0;
     $dueTs = raporDateToTimestamp($r['DUEDATE'] ?? null);

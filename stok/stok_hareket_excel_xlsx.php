@@ -24,6 +24,18 @@ if (!isset($_GET['stokhareket']) || empty($_GET['stokhareket'])) {
 }
 $stokhareket = $_GET['stokhareket'];
 
+// YETKI: siparisin carisi kullaniciya gorunur olmali. Bu cikti fiyat/tutar gosterir;
+// fiyatlari maskelemek yerine (en basit tutarli kural) ST2 (Satis Fiyati Gorme) yetkisi
+// olmayan, yonetici olmayan kullanicinin erisimi reddedilir.
+if (
+    !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)
+    || ((int) ($yetkidurum ?? 1) !== 0 && m_p_yetki($terminalkullanici, 'ST2') != 1)
+) {
+    ob_end_clean();
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 // Veritabanı sorguları
 try {
     // Firma bilgisi
@@ -111,6 +123,9 @@ try {
 }
 
 // Excel oluştur (PhpSpreadsheet)
+// Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
+require_once __DIR__ . '/../includes/xlsx_guvenli.php';
+lumen_xlsx_guvenli_baglayici();
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator($firmaAdi)
@@ -301,17 +316,13 @@ $dataEndRow = $row - 1;
 $row++;
 
 // TOPLAM BÖLÜMÜ
-$araToplam = isset($fisBilgisi['GROSSTOTAL']) ? (float) $fisBilgisi['GROSSTOTAL'] : 0.0;
-$toplamIskonto = isset($fisBilgisi['TOTALDISCOUNTS']) ? (float) $fisBilgisi['TOTALDISCOUNTS'] : 0.0;
-$toplamKdv = isset($fisBilgisi['TOTALVAT']) ? (float) $fisBilgisi['TOTALVAT'] : 0.0;
-$netToplamDb = isset($fisBilgisi['NETTOTAL']) ? (float) $fisBilgisi['NETTOTAL'] : 0.0;
-
-// NETTOTAL bazı kurulumlarda KDV dahil gelebilir; bu yüzden net (KDV hariç) değeri güvenli hesaplanır.
-$netToplamKdvHaric = $araToplam - $toplamIskonto;
-if ($netToplamKdvHaric < 0) {
-    $netToplamKdvHaric = max(0, $netToplamDb - $toplamKdv);
-}
-$genelToplam = $netToplamKdvHaric + $toplamKdv;
+require_once __DIR__ . '/../includes/fis_toplam.php';
+$toplamlar = lumen_fis_toplamlari(is_array($fisBilgisi) ? $fisBilgisi : []);
+$araToplam = $toplamlar['brut'];
+$toplamIskonto = $toplamlar['iskonto'];
+$toplamKdv = $toplamlar['kdv'];
+$netToplamKdvHaric = $toplamlar['net_kdv_haric'];
+$genelToplam = $toplamlar['genel'];
 
 $sheet->setCellValue('L' . $row, 'Ara Toplam (TL):');
 $sheet->setCellValue('M' . $row, $araToplam);

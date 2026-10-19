@@ -7,11 +7,17 @@ require_once __DIR__ . '/../kontrol.php';
 include_once(__DIR__ . "/../donem_helper.php");
 
 if (!isset($_GET['stokhareket'])) {
-	    echo '<div class="notification msgerror">Lütfen bir fiş numarası belirtin.</div>';
+	    lumen_hata_sayfasi('Sipariş seçilmedi', 'Yazdırılacak sipariş numarası eksik. Sipariş listesinden tekrar deneyin.');
 	    exit;
 	}
 
 	$stokhareket = (int)$_GET['stokhareket'];
+// Özel cari kısıtı (fisyaz.php / yeni_dizayn.php ile aynı): kısıtlı carinin
+// siparişi numara değiştirilerek yazdırılamaz.
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 	$yazdir = isset($_GET['yazdir']) ? (string)$_GET['yazdir'] : '';
 	$fisyazFiyatsizBackUrl = safeLocalReturnUrl(
 	    isset($_GET['return_to']) ? (string) $_GET['return_to'] : '',

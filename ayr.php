@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/includes/oturum.php';
+require_once __DIR__ . '/includes/hata_sayfasi.php';
+
 //header("Content-Type: text/html; charset=utf-8");
 # Set timezone
 date_default_timezone_set('Europe/Istanbul');
@@ -119,7 +122,7 @@ function safe(mixed $value, mixed $default = ''): string
 function csrf_token(): string
 {
     if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+        lumen_oturum_baslat();
     }
 
     if (empty($_SESSION['csrf_token'])) {
@@ -146,7 +149,7 @@ function csrf_field(): string
 function csrf_verify(?string $token = null): bool
 {
     if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+        lumen_oturum_baslat();
     }
 
     if ($token === null) {
@@ -166,7 +169,7 @@ function csrf_verify(?string $token = null): bool
 function csrf_regenerate(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+        lumen_oturum_baslat();
     }
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -317,6 +320,35 @@ function sifre_hashle(string $password): string
  * @param string $hash Hash'lenmiş şifre
  * @return bool Şifre doğru mu
  */
+if (!function_exists('normalize_login_username')) {
+  /**
+   * Giriş kullanıcı adını normalleştirir (Türkçe harf → ASCII, büyük harf).
+   * Eskiden yalnız giris.php'de tanımlıydı; API girişi bunu bulamayıp ham adı
+   * kullanıyor, hesap kilidi sayacı web ve API'de farklı anahtarla tutuluyordu.
+   */
+  function normalize_login_username(string $username): string
+  {
+      $username = trim($username);
+      $username = strtr($username, [
+          'ç' => 'c', 'Ç' => 'C',
+          'ğ' => 'g', 'Ğ' => 'G',
+          'ı' => 'i', 'I' => 'I',
+          'İ' => 'i', 'i' => 'i',
+          'ö' => 'o', 'Ö' => 'O',
+          'ş' => 's', 'Ş' => 'S',
+          'ü' => 'u', 'Ü' => 'U',
+      ]);
+      $username = preg_replace('/[^A-Za-z0-9_.-]/', '', $username) ?? '';
+
+      return strtoupper($username);
+  }
+}
+
+if (!defined('LUMEN_PAROLA_MIN')) {
+  /** Yeni/değişen parolalar için en kısa uzunluk (eskiden ekrana göre 4 ya da 6). */
+  define('LUMEN_PAROLA_MIN', 8);
+}
+
 function sifre_dogrula(string $password, string $hash): bool
 {
     // Bos veya sentinel ('0') parola/hash kabul edilmez (auth bypass koruma)
@@ -334,7 +366,13 @@ function sifre_dogrula(string $password, string $hash): bool
         return hash_equals((string)$hash, (string)$password);
     }
 
-    return password_verify($password, $hash);
+    if (password_verify($password, $hash)) {
+        return true;
+    }
+    // Parola belirleme ekranları (sifre_degistir, kullanıcı yönetimi, API) parolayı
+    // trim'leyip hash'liyor, giriş ise trim'lemiyordu: baş/son boşluklu parola hiç
+    // eşleşmiyordu. Kırpılmış biçim de denenir.
+    return $passwordNormalized !== $password && password_verify($passwordNormalized, $hash);
 }
 
 /**
@@ -419,13 +457,23 @@ function remember_token_dogrula(string $selector, string $validator)
     global $dbh;
 
     try {
-        // Selector ile token bul
-        $stmt = $dbh->prepare("
-            SELECT ID, PERSONEL_ID, TOKEN_HASH, EXPIRES_AT
-            FROM M_REMEMBER_TOKEN
-            WHERE SELECTOR = :selector AND EXPIRES_AT > GETDATE()
-        ");
-        $stmt->execute([':selector' => $selector]);
+        // Yenileme kolonları (sql/m_denetim_tablolari.sql) yoksa eski sorguya düş.
+        try {
+            $stmt = $dbh->prepare("
+                SELECT ID, PERSONEL_ID, TOKEN_HASH, PREV_HASH,
+                       DATEDIFF(SECOND, YENILEME, GETDATE()) AS YENILEME_SN
+                FROM M_REMEMBER_TOKEN
+                WHERE SELECTOR = :selector AND EXPIRES_AT > GETDATE()
+            ");
+            $stmt->execute([':selector' => $selector]);
+        } catch (PDOException $e) {
+            $stmt = $dbh->prepare("
+                SELECT ID, PERSONEL_ID, TOKEN_HASH
+                FROM M_REMEMBER_TOKEN
+                WHERE SELECTOR = :selector AND EXPIRES_AT > GETDATE()
+            ");
+            $stmt->execute([':selector' => $selector]);
+        }
         $token = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$token) {
@@ -433,17 +481,77 @@ function remember_token_dogrula(string $selector, string $validator)
         }
 
         // Validator hash'ini kontrol et (timing-safe comparison)
-        $expectedHash = $token['TOKEN_HASH'];
         $actualHash = hash('sha256', $validator);
-
-        if (!hash_equals($expectedHash, $actualHash)) {
-            return false;
+        if (hash_equals((string) $token['TOKEN_HASH'], $actualHash)) {
+            return (int)$token['PERSONEL_ID'];
         }
 
-        return (int)$token['PERSONEL_ID'];
+        // Az önce yenilenmiş belirtecin önceki doğrulayıcısı: eşzamanlı istekler
+        // (aynı anda açılan sekmeler) için kısa tolerans.
+        $prev = (string) ($token['PREV_HASH'] ?? '');
+        if ($prev !== '' && hash_equals($prev, $actualHash)
+            && isset($token['YENILEME_SN']) && (int) $token['YENILEME_SN'] <= 60) {
+            return (int)$token['PERSONEL_ID'];
+        }
+
+        // Selector doğru ama doğrulayıcı eski: çerez kopyalanmış (çalınmış) ve
+        // asıl sahibi ya da saldırgan onu zaten kullanmış. Kullanıcının tüm
+        // hatırlama belirteçleri iptal edilir.
+        if ($prev !== '' && hash_equals($prev, $actualHash)) {
+            remember_token_sil_personel((int) $token['PERSONEL_ID']);
+            error_log('remember_token: eski dogrulayici yeniden kullanildi, personel ' . (int) $token['PERSONEL_ID'] . ' belirtecleri iptal edildi');
+            require_once __DIR__ . '/includes/bildirim.php';
+            $kimin = (int) $token['PERSONEL_ID'];
+            lumen_bildirim_ekle($dbh, $kimin, 'guvenlik', '"Beni hatırla" çereziniz başka bir cihazda kullanıldı',
+                'Güvenlik için tüm hatırlama oturumlarınız kapatıldı. Bu siz değilseniz parolanızı değiştirin.', 'sifre_degistir.php');
+            lumen_bildirim_yoneticilere($dbh, 'guvenlik', 'Kopyalanmış oturum çerezi tespit edildi',
+                'Kullanıcı #' . $kimin . ' için eski "beni hatırla" çerezi yeniden kullanıldı; belirteçleri iptal edildi.', 'loglar.php', null, $kimin);
+        }
+        return false;
     } catch (Exception $e) {
         return false;
     }
+}
+
+/**
+ * Başarılı otomatik girişten sonra doğrulayıcıyı yeniler (ömür uzamaz) ve
+ * çerezleri günceller. Yenileme kolonları yoksa sessizce hiçbir şey yapmaz.
+ */
+function remember_token_yenile(string $selector): void
+{
+    global $dbh;
+
+    try {
+        $yeni = bin2hex(random_bytes(32));
+        $stmt = $dbh->prepare("
+            UPDATE M_REMEMBER_TOKEN
+               SET PREV_HASH = TOKEN_HASH, TOKEN_HASH = :yeni, YENILEME = GETDATE()
+            OUTPUT DATEDIFF(SECOND, GETDATE(), INSERTED.EXPIRES_AT) AS KALAN_SN
+             WHERE SELECTOR = :selector AND EXPIRES_AT > GETDATE()
+               AND (YENILEME IS NULL OR DATEDIFF(SECOND, YENILEME, GETDATE()) > 60)
+        ");
+        $stmt->execute([':yeni' => hash('sha256', $yeni), ':selector' => $selector]);
+        $kalan = $stmt->fetchColumn();
+        $stmt->closeCursor();
+        if ($kalan !== false && (int) $kalan > 0) {
+            lumen_hatirla_cerezi_yaz($selector, $yeni, time() + (int) $kalan);
+        }
+    } catch (Throwable $e) {
+        // Kolonlar yoksa yenileme yapılmaz (eski davranış).
+    }
+}
+
+/** Hatırlama çerezlerini HttpOnly + SameSite=Strict (+ HTTPS'te Secure) yazar. */
+function lumen_hatirla_cerezi_yaz(string $selector, string $validator, int $bitis): void
+{
+    if (headers_sent()) {
+        return;
+    }
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    $ayar = ['expires' => $bitis, 'path' => '/', 'secure' => $https, 'httponly' => true, 'samesite' => 'Strict'];
+    setcookie('remember_selector', $selector, $ayar);
+    setcookie('remember_token', $validator, $ayar);
 }
 
 /**
@@ -469,6 +577,93 @@ function remember_token_sil_personel(int $personelId): bool
  * @param string $selector Token selector
  * @return bool Basarili mi
  */
+if (!function_exists('lumen_yetki_degisikligi_engeli')) {
+  /**
+   * Kullanıcı/yetki yönetiminde yetki yükseltmeyi engeller.
+   *
+   * Ayarlar (M16) yetkisi personele de verilebilir; ancak M16 sahibi personel
+   * kendini veya başkasını yönetici (YETKI=0) yapabiliyor, M16'yı dağıtabiliyor
+   * ve gerçek yöneticilerin parolasını değiştirebiliyordu. Kural: bu üç işlem
+   * yalnız gerçek yöneticiye (YETKI=0) açıktır. Yönetici sorgusu önbelleksizdir.
+   *
+   * @param int|null    $yeniTip Atanacak kullanıcı türü (0/1/2) veya değişmiyorsa null
+   * @param string|null $kod     Değiştirilen izin kolonu (ör. 'M16') veya null
+   * @return string|null Engel varsa kullanıcıya gösterilecek mesaj
+   */
+  function lumen_yetki_degisikligi_engeli(PDO $dbh, int $aktorId, int $hedefId, ?int $yeniTip = null, ?string $kod = null): ?string
+  {
+    $tip = static function (int $id) use ($dbh): ?int {
+      if ($id <= 0) {
+        return null;
+      }
+      $q = $dbh->prepare("SELECT YETKI FROM M_P_YETKI WHERE PERSONEL = :id");
+      $q->execute([':id' => $id]);
+      $v = $q->fetchColumn();
+      return ($v === false || $v === null) ? null : (int) $v;
+    };
+    if ($tip($aktorId) === 0) {
+      return null;
+    }
+    if ($tip($hedefId) === 0) {
+      return 'Yönetici hesapları yalnız bir yönetici tarafından değiştirilebilir.';
+    }
+    if ($yeniTip === 0 || $kod === 'YETKI' && $yeniTip === null) {
+      return 'Yönetici yetkisini yalnız bir yönetici verebilir.';
+    }
+    if ($kod === 'M16') {
+      return 'Ayarlar (M16) yetkisini yalnız bir yönetici değiştirebilir.';
+    }
+    return null;
+  }
+}
+
+if (!function_exists('lumen_oturumlari_sonlandir')) {
+  /**
+   * Bir kullanıcının TÜM oturumlarını sonlandırır: "Beni hatırla" belirteçleri
+   * silinir, API belirteçleri pasifleşir ve M_OTURUM_KAPAT damgası güncellenir
+   * (kontrol.php bir sonraki istekte açık web oturumlarını kapatır).
+   *
+   * Zorla çıkış, parola değişikliği ve kullanıcının pasifleştirilmesi bunu
+   * çağırmalıdır. Eskiden yalnız damga güncellendiğinden "Beni hatırla" çerezi
+   * olan kullanıcı bir sonraki istekte yeni login_ts ile geri giriyor; çalınan
+   * çerezler parola değişse de 30 gün geçerli kalıyordu.
+   *
+   * @return int|null Kapatma anı (unix zamanı); kendi oturumunu korumak isteyen
+   *                  çağıran $_SESSION['login_ts']'i bundan büyük yapmalıdır.
+   */
+  function lumen_oturumlari_sonlandir(PDO $dbh, int $personelId, int $kapatanId): ?int
+  {
+    if ($personelId <= 0) {
+      return null;
+    }
+    $an = null;
+    try {
+      $dbh->prepare("DELETE FROM M_REMEMBER_TOKEN WHERE PERSONEL_ID = :id")->execute([':id' => $personelId]);
+    } catch (Throwable $e) {
+      error_log('lumen_oturumlari_sonlandir remember: ' . $e->getMessage());
+    }
+    try {
+      $dbh->prepare("UPDATE M_API_TOKEN SET AKTIF = 0 WHERE PERSONEL = :id AND AKTIF = 1")->execute([':id' => $personelId]);
+    } catch (Throwable $e) {
+      // M_API_TOKEN henüz yoksa sorun değil
+    }
+    try {
+      $dbh->prepare("DELETE FROM M_OTURUM_KAPAT WHERE KULLANICI_ID = :id")->execute([':id' => $personelId]);
+      $dbh->prepare("INSERT INTO M_OTURUM_KAPAT (KULLANICI_ID, KAPATMA_TS, KAPATAN_ID) VALUES (:id, GETDATE(), :k)")
+        ->execute([':id' => $personelId, ':k' => $kapatanId]);
+      $ts = $dbh->prepare("SELECT CONVERT(VARCHAR(19), KAPATMA_TS, 120) FROM M_OTURUM_KAPAT WHERE KULLANICI_ID = :id");
+      $ts->execute([':id' => $personelId]);
+      $an = strtotime((string) $ts->fetchColumn()) ?: null;
+    } catch (Throwable $e) {
+      error_log('lumen_oturumlari_sonlandir oturum_kapat: ' . $e->getMessage());
+    }
+    if (function_exists('m_p_yetki_cache_temizle')) {
+      m_p_yetki_cache_temizle($personelId);
+    }
+    return $an;
+  }
+}
+
 function remember_token_sil(string $selector): bool
 {
     global $dbh;
@@ -508,13 +703,48 @@ if (!defined('APP_ROOT_URL')) {
 // Bu satırlar kaldırıldı çünkü header() redirect'i engelliyordu
 include_once(__DIR__ . "/_baglanti_.inc");
 include_once(__DIR__ . "/_bilgi_.inc");
+// v1.0.0'dan yükseltilen kurulumlar kendi _bilgi_.inc'lerini korur (o sürümde
+// Ayarlar ekranı değerleri bu dosyaya yazıyordu). Eski dosyada ayar deposunu
+// yükleyen satırlar yoktur; ekrandan kaydedilen ayarlar yine de uygulanır.
+require_once __DIR__ . '/includes/ayar_deposu.php';
+if (!defined('LUMEN_AYAR_UYGULANDI')) {
+  lumen_ayar_uygula();
+}
+$pazarlamaci_cari_oneki ??= (string) (getenv('PAZARLAMACI_CARI_ONEKI') ?: '');
+// Faturalama (BETA) varsayılanları — eski _bilgi_.inc'te bu bölüm yoktur.
+$faturalama_aktif ??= '0';
+$fatura_prefix ??= 'LMF';
+$fatura_irsaliye_prefix ??= 'LMI';
 
 // ================================================================
 // GÜVENLIK: Veritabanı Bağlantısı (İyileştirilmiş Error Handling)
 // ================================================================
+if (!function_exists('lumen_db_dsn')) {
+  /**
+   * SQL Server DSN'i. Microsoft ODBC Driver 18 varsayılan olarak şifreli bağlantı ve
+   * GEÇERLİ bir sunucu sertifikası ister; LOGO kurulumlarının çoğu kendinden imzalı
+   * sertifika kullandığından bu durumda bağlantı reddedilir. Kurulum sihirbazı
+   * bağlantıyı TrustServerCertificate=1 ile test ettiğinden sihirbaz başarılı olup
+   * uygulama bağlanamıyordu. Davranış .env ile yönetilir:
+   *   AKL_DB_ENCRYPT=0|1        → Encrypt (boş: sürücü varsayılanı)
+   *   AKL_DB_TRUST_CERT=0|1     → TrustServerCertificate (varsayılan 1: sihirbazla aynı)
+   */
+  function lumen_db_dsn(string $sunucu, string $veritabani): string
+  {
+    $dsn = "sqlsrv:server={$sunucu};database={$veritabani}";
+    $encrypt = (string) getenv('AKL_DB_ENCRYPT');
+    if ($encrypt === '0' || $encrypt === '1') {
+      $dsn .= ";Encrypt={$encrypt}";
+    }
+    $trust = (string) getenv('AKL_DB_TRUST_CERT');
+    $dsn .= ';TrustServerCertificate=' . ($trust === '0' ? '0' : '1');
+    return $dsn;
+  }
+}
+
 try {
   $SET = 'UTF-8';
-  $dbh = new PDO("sqlsrv:server=$anamakina;database=$veritabani;", $kullanici, $sifre);
+  $dbh = new PDO(lumen_db_dsn((string) $anamakina, (string) $veritabani), $kullanici, $sifre);
 
   // Güvenlik: PDO ayarları
   $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -771,6 +1001,31 @@ function dovizsembol_bul(int|string $doviz): string
   return $semboller[(int)$doviz] ?? '₺';
 }
 
+if (!function_exists('lumen_insert_kimlik')) {
+  /**
+   * Tek satırlık "INSERT INTO T (...) VALUES (...)" çalıştırır ve eklenen satırın
+   * LOGICALREF'ini döndürür. Kimlik OUTPUT INSERTED ... INTO tablo değişkeni ile
+   * alınır: LOGO tablolarındaki trigger'larla uyumludur (OUTPUT'u doğrudan kullanmak
+   * trigger'lı tabloda hata verir) ve eşzamanlı kayıtlarda yanlış satırı döndüren
+   * "SELECT MAX(LOGICALREF)" yönteminin yerine geçer.
+   */
+  function lumen_insert_kimlik(PDO $dbh, string $insertSql, array $parametreler): int
+  {
+    $sql = preg_replace('/\)\s*VALUES\s*\(/i', ') OUTPUT INSERTED.LOGICALREF INTO @lumen_yeni VALUES (', $insertSql, 1, $adet);
+    if ($sql === null || $adet !== 1) {
+      throw new InvalidArgumentException('lumen_insert_kimlik: INSERT ... VALUES (...) bekleniyor');
+    }
+    $stmt = $dbh->prepare("SET NOCOUNT ON; DECLARE @lumen_yeni TABLE (ID INT);\n{$sql};\nSELECT ID FROM @lumen_yeni;");
+    $stmt->execute($parametreler);
+    $id = (int) $stmt->fetchColumn();
+    $stmt->closeCursor();
+    if ($id <= 0) {
+      throw new RuntimeException('lumen_insert_kimlik: yeni kayıt kimliği alınamadı');
+    }
+    return $id;
+  }
+}
+
 // guid - birden fazla dosyada kullanılıyor
 function guid(): string
 {
@@ -790,6 +1045,31 @@ function turkce(string|int|float|null $text): string
   $replace = ['c', 'c', 'g', 'g', 'i', 'i', 'o', 'o', 's', 's', 'u', 'u'];
   return str_replace($search, $replace, (string)$text);
 }
+if (!function_exists('lumen_arama_sql')) {
+  /**
+   * Türkçe harf ve büyük/küçük harf duyarsız arama için SQL ifadesi.
+   *
+   * Turkish_CI_AS sıralamasında büyük I'nın küçüğü ı'dır (i değil); aramalar
+   * "TABAĞI" → "Tabağı" gibi büyük harfli yazımları bulamıyordu. Kolon NVARCHAR'a
+   * çevrilip Latin1_General_CI_AI ile (aksan ve harf duyarsız: ç=c, ğ=g, ş=s, ö=o,
+   * ü=u, İ=I=i) karşılaştırılır; ı ayrıca i yapılır. Terim lumen_arama_terimi()
+   * ile hazırlanmalıdır.
+   */
+  function lumen_arama_sql(string $ifade): string
+  {
+    return "REPLACE(CAST({$ifade} AS NVARCHAR(4000)) COLLATE Latin1_General_CI_AI, N'ı', N'i')";
+  }
+}
+
+if (!function_exists('lumen_arama_terimi')) {
+  /** Arama terimini lumen_arama_sql() ile karşılaştırmaya hazırlar (ı→i, LIKE kaçışı). */
+  function lumen_arama_terimi(string $q): string
+  {
+    $q = str_replace(['ı'], ['i'], trim($q));
+    return str_replace(['[', '%', '_'], ['[[]', '[%]', '[_]'], $q);
+  }
+}
+
 function turkcearama(string|int|float|null $text): string
 {
 
@@ -808,10 +1088,22 @@ function turkcearama(string|int|float|null $text): string
  */
 function enflasyon_db_baglan(): ?PDO
 {
-  $db_path = __DIR__ . '/database/enflasyon.db';
+  // database/ web sunucusu kurallarıyla (.htaccess / web.config / nginx) dışarıya
+  // kapalıdır: dosya TCMB API anahtarını içerir. Klasör ve tablolar ilk
+  // kullanımda oluşturulur (eskiden hiçbir yerde oluşturulmuyordu).
+  $dizin = __DIR__ . '/database';
+  $db_path = $dizin . '/enflasyon.db';
   try {
+    if (!is_dir($dizin) && !mkdir($dizin, 0750, true) && !is_dir($dizin)) {
+      throw new PDOException('database klasörü oluşturulamadı');
+    }
     $db = new PDO('sqlite:' . $db_path);
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db->exec("CREATE TABLE IF NOT EXISTS enflasyon_aylik (
+        yil INTEGER NOT NULL, ay INTEGER NOT NULL, oran REAL NOT NULL DEFAULT 0, tufe REAL NULL,
+        kaynak TEXT NULL, guncellenme_tarihi TEXT NULL, PRIMARY KEY (yil, ay))");
+    $db->exec("CREATE TABLE IF NOT EXISTS enflasyon_api_ayarlar (
+        id INTEGER PRIMARY KEY, api_key TEXT NULL, aktif INTEGER NOT NULL DEFAULT 0, son_guncelleme TEXT NULL)");
     return $db;
   } catch (PDOException $e) {
     error_log("Enflasyon DB Hata: " . $e->getMessage());
@@ -1110,7 +1402,7 @@ if (!function_exists('m_p_yetki_tum_sutunlar')) {
   {
     return [
       'YETKI', 'SIFRE', 'PERSONEL',
-      'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19', 'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30',
+      'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19', 'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31',
       'ST1', 'ST2', 'ST3',
       'CR1', 'CR2', 'CR3', 'CR4',
       'SP1', 'SP2', 'SP3', 'SP4',
@@ -1127,7 +1419,7 @@ if (!function_exists('m_p_menu_yetki_kodlari')) {
     return [
       'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10',
       'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19',
-      'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30',
+      'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31',
     ];
   }
 }
@@ -1206,6 +1498,7 @@ if (!function_exists('m_p_yetki_etiketleri')) {
       'M28' => 'Görevler',
       'M29' => 'Görev Atama',
       'M30' => 'Çek İşlemleri',
+      'M31' => 'Faturalama (beta)',
       'ST1' => 'Miktar Görme',
       'ST2' => 'Fiyat Görme',
       'ST3' => 'Stok Extre',
@@ -1829,6 +2122,15 @@ if (!function_exists('m_p_siparis_cari_ref_getir')) {
     $stmt->execute();
     $clientRef = $stmt->fetchColumn();
 
+    if ($clientRef === false) {
+      // Yazdırma ekranları (yeni_dizayn, hizli_yazdir) stok fişlerini (STFICHE) de
+      // aynı kimlikle açar; fiş orada ise onun carisiyle değerlendirilir.
+      $stmtSt = $dbh->prepare("SELECT TOP 1 CLIENTREF FROM {$firmadonem}STFICHE WITH(NOLOCK) WHERE LOGICALREF = :ref");
+      $stmtSt->bindValue(':ref', $siparisRef, PDO::PARAM_INT);
+      $stmtSt->execute();
+      $clientRef = $stmtSt->fetchColumn();
+    }
+
     return $clientRef === false ? null : (int) $clientRef;
   }
 }
@@ -1840,11 +2142,66 @@ if (!function_exists('m_p_siparis_goruntulebilir_mi')) {
   function m_p_siparis_goruntulebilir_mi(PDO $dbh, string $firmadonem, string $firma, int|string $personelId, int $siparisRef, ?string $yetkiKodu = null): bool
   {
     $cariRef = m_p_siparis_cari_ref_getir($dbh, $firmadonem, $siparisRef);
-    if ($cariRef === null || $cariRef <= 0) {
+    if ($cariRef === null) {
+      // Fiş yok: eskiden true dönüyordu ve satır ekleme uçları var olmayan fişe
+      // (CLIENTREF=0) yetim ORFLINE satırları yazabiliyordu.
+      return false;
+    }
+    if ($cariRef <= 0) {
       return true;
     }
 
     return m_p_cariid_goruntulebilir_mi($dbh, $firma, $personelId, $cariRef, $yetkiKodu);
+  }
+}
+
+if (!defined('LUMEN_YETKI_ENTEGRASYON')) {
+  /**
+   * Kullanıcı türü 3: entegrasyon (bot) hesabı. Yalnız API'den, yalnız okuma
+   * uçlarıyla çalışır; web arayüzüne giremez, hiçbir şey yazamaz. İzin
+   * kolonları (M17, CR1 …) ve özel cari kısıtları diğer kullanıcılar gibi uygulanır.
+   */
+  define('LUMEN_YETKI_ENTEGRASYON', 3);
+}
+
+if (!function_exists('lumen_kullanici_turleri')) {
+  /** @return array<int,string> YETKI değeri → ad */
+  function lumen_kullanici_turleri(): array
+  {
+    return [0 => 'Yönetici', 1 => 'Personel', 2 => 'Müşteri', LUMEN_YETKI_ENTEGRASYON => 'Entegrasyon (salt okunur API)'];
+  }
+}
+
+if (!function_exists('lumen_satir_surumu')) {
+  /**
+   * Sipariş satırının düzenleme anındaki sürüm damgası (iyimser kilit). Form bu
+   * değeri taşır; kayıtta satır o arada değişmişse (başka kullanıcı düzenlemiş)
+   * değişiklik ezilmez.
+   */
+  function lumen_satir_surumu(array $satir): string
+  {
+    return hash('sha256', implode('|', [
+      (string) ($satir['AMOUNT'] ?? ''), (string) ($satir['PRICE'] ?? ''),
+      (string) ($satir['VAT'] ?? ''), (string) ($satir['LINEEXP'] ?? ''),
+    ]));
+  }
+}
+
+if (!function_exists('m_p_siparis_duzenleyebilir_mi')) {
+  /**
+   * Kullanıcı sipariş fişini değiştirebilir mi (satır ekle/düzenle/sil, iskonto, KDV)?
+   * siparis/fisekle.php yazma kapısıyla birebir aynı: admin (yetkidurum=0) veya
+   * M1 (Yeni Sipariş) veya M3 (Mağaza Satış). Yalnız M2/M5 (sipariş listeleri)
+   * sahipleri fişi GÖRÜNTÜLEYEBİLİR ama değiştiremez.
+   * Cari görünürlüğü ayrıca m_p_siparis_goruntulebilir_mi ile kontrol edilmelidir.
+   */
+  function m_p_siparis_duzenleyebilir_mi(int|string $personelId, ?int $yetkidurum): bool
+  {
+    if ($yetkidurum === 0) {
+      return true;
+    }
+
+    return m_p_yetki_kodlarindan_birine_sahip_mi($personelId, ['M1', 'M3']);
   }
 }
 
@@ -2013,21 +2370,8 @@ function cokludepomiktar(int|string $stokref): string
  */
 function getUserIP(): string
 {
-  // Güvenlik: Sadece güvenilir proxy'lerden gelen X-Forwarded-For'a güven
-  $trustedProxies = ['127.0.0.1', '::1'];
-  $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
-
-  if (in_array($remoteAddr, $trustedProxies, true)) {
-      if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-          // İlk IP adresi orijinal istemcidir
-          $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-          return trim($ips[0]);
-      }
-      if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-          return $_SERVER['HTTP_CLIENT_IP'];
-      }
-  }
-  return $remoteAddr;
+  require_once __DIR__ . '/includes/istemci_ip.php';
+  return lumen_istemci_ip($_SERVER, lumen_guvenilir_proxyler());
 }
 
 /**
@@ -2869,22 +3213,24 @@ JS;
 }
 
 /**
- * URL parametrelerini session'a aktar ve yönlendir
- * Bu fonksiyon sayfa başında çağrılmalı (herhangi bir çıktıdan önce)
+ * URL parametrelerini session'a da kaydeder (geri dönüş değeri olarak).
+ *
+ * SEKME GÜVENLİĞİ: Eskiden parametreler oturuma yazılıp adres temizleniyordu
+ * (?fisid=5 → temiz URL'ye yönlendirme). Oturum tüm sekmelerde ortaktır: A
+ * sekmesinde sipariş 5, B sekmesinde sipariş 7 açıldığında A sekmesi yenilenince
+ * ya da numarasız bir bağlantıyla 7'yi açıyor; ürün ekleme/düzenleme yanlış
+ * siparişe yazılabiliyordu. Artık adres temizlenmez: her sekme kimliği kendi
+ * adresinde taşır, getPageParam() önce adresi okur; oturum yalnız adresi
+ * parametresiz açılan sayfalar için yedektir. $redirect geriye uyumluluk için
+ * kabul edilir ve yok sayılır.
  *
  * @param array $allowedParams İzin verilen parametre listesi
- * @param bool $redirect true ise temiz URL'ye yönlendir
- * @return bool Yönlendirme yapıldı mı
+ * @param bool $redirect Kullanılmıyor (bkz. yukarı)
+ * @return bool Oturuma parametre yazıldı mı
  */
 function migrateUrlToSession(array $allowedParams = [], bool $redirect = true): bool
 {
-    // POST isteği ise atla
-    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        return false;
-    }
-
-    // GET parametresi yoksa atla
-    if (empty($_GET)) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET' || empty($_GET)) {
         return false;
     }
 
@@ -2892,20 +3238,11 @@ function migrateUrlToSession(array $allowedParams = [], bool $redirect = true): 
     $hasParams = false;
 
     foreach ($_GET as $key => $value) {
-        // İzin listesi varsa kontrol et
-        if (!empty($allowedParams) && !in_array($key, $allowedParams)) {
+        if (!empty($allowedParams) && !in_array($key, $allowedParams, true)) {
             continue;
         }
-
         setPageParam($key, $value, $page);
         $hasParams = true;
-    }
-
-    // Yönlendirme yap
-    if ($hasParams && $redirect) {
-        $cleanUrl = strtok($_SERVER['REQUEST_URI'], '?');
-        header('Location: ' . $cleanUrl);
-        exit;
     }
 
     return $hasParams;

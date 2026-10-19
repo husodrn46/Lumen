@@ -13,7 +13,14 @@
 -- GÜVENLİK: Kayıt varsa dokunmaz (yanlışlıkla dolu tabloyu silmesin).
 -- ============================================================================
 
+-- Yalnız ESKİ şemadaki tablo için (yeni kolonlardan biri eksikse) müdahale edilir;
+-- şeması doğru olan tablo boş da olsa dolu da olsa olduğu gibi kalır. (Eskiden
+-- doğru şemalı boş tablo her çalıştırmada silinip yeniden oluşturuluyor, dolu
+-- tabloda ise betik her seferinde hata veriyordu — tekrar çalıştırılamıyordu.)
 IF OBJECT_ID('dbo.M_YAZDIR_LOG', 'U') IS NOT NULL
+   AND (COL_LENGTH('dbo.M_YAZDIR_LOG', 'FIS_REF') IS NULL
+        OR COL_LENGTH('dbo.M_YAZDIR_LOG', 'YAZDIRMA_TIPI') IS NULL
+        OR COL_LENGTH('dbo.M_YAZDIR_LOG', 'YAZDIRMA_SAYISI') IS NULL)
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbo.M_YAZDIR_LOG)
         DROP TABLE dbo.M_YAZDIR_LOG;

@@ -26,7 +26,7 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 $canSeeBalance = (m_p_yetki($terminalkullanici, 'CR1') == 1);
 
 $rawQ = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
-$q = $rawQ !== '' ? turkce($rawQ) : '';
+$q = $rawQ !== '' ? lumen_arama_terimi($rawQ) : '';
 
 // Minimum gösterim tutarı
 $rawMin = isset($_GET['min']) ? trim((string) $_GET['min']) : '';
@@ -80,13 +80,20 @@ if ($canSeeBalance) {
 
     if ($q !== '') {
         $like = "%{$q}%";
-        $where[] = "(" . $normalize('C.DEFINITION_') . " LIKE :p1 OR " . $normalize('C.CODE') . " LIKE :p2 OR " . $normalize('C.CITY') . " LIKE :p3)";
+        $where[] = "(" . lumen_arama_sql('C.DEFINITION_') . " LIKE :p1 OR " . lumen_arama_sql('C.CODE') . " LIKE :p2 OR " . lumen_arama_sql('C.CITY') . " LIKE :p3)";
         $params[':p1'] = $like;
         $params[':p2'] = $like;
         $params[':p3'] = $like;
     }
 
     $where[] = "{$balanceExpr} > 0";
+
+    // M4 özel cari kısıtı: bakiyesi gizli cariler listelenmez
+    $ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'bakiye_gizli', 'M4');
+    if ($ozelCariFiltresi['sql'] !== '') {
+        $where[] = $ozelCariFiltresi['sql'];
+        $params += $ozelCariFiltresi['params'];
+    }
 
     if ($minAbs > 0) {
         $where[] = "{$balanceExpr} >= :min_abs";
@@ -199,9 +206,9 @@ $para = static fn($x): string => number_format((float) $x, 2, ',', '.');
 $adetF = static fn($x): string => number_format((float) $x, 0, ',', '.');
 $kisa = static function ($v): string {
     $v = (float) $v;
-    if (abs($v) >= 1_000_000) { return number_format($v / 1_000_000, 2, ',', '.') . ' M'; }
-    if (abs($v) >= 1_000)     { return number_format($v / 1_000, 0, ',', '.') . ' B'; }
-    return number_format($v, 0, ',', '.');
+    if (abs($v) >= 1_000_000) { return number_format((float) $v / 1_000_000, 2, ',', '.') . ' M'; }
+    if (abs($v) >= 1_000)     { return number_format((float) $v / 1_000, 0, ',', '.') . ' B'; }
+    return number_format((float) $v, 0, ',', '.');
 };
 $sonRozet = static function (int $gun): array {
     if ($gun < 0) { return ['gri', 'alım yok']; }
@@ -430,7 +437,7 @@ $sonRozet = static function (int $gun): array {
                 <div style="min-width:0;">
                     <div class="vurgu-l">En Büyük Borçlu</div>
                     <div class="vurgu-v" style="font-size:13.5px;"><?php echo $enBuyuk ? $h(mb_substr((string) $enBuyuk['UNVANI'], 0, 24)) : '—'; ?></div>
-                    <div class="vurgu-s"><?php echo $enBuyuk ? $kisa((float) $enBuyuk['BAKIYE']) . ' ₺ · pay %' . number_format($enBuyuk['PAY'], 1, ',', '.') : 'veri yok'; ?></div>
+                    <div class="vurgu-s"><?php echo $enBuyuk ? $kisa((float) $enBuyuk['BAKIYE']) . ' ₺ · pay %' . number_format((float) $enBuyuk['PAY'], 1, ',', '.') : 'veri yok'; ?></div>
                 </div>
             </div>
             <div class="vurgu kir">
@@ -483,9 +490,9 @@ $sonRozet = static function (int $gun): array {
                             // "Son alım" sıralaması: alımı hiç olmayan en yaşlı sayılır
                             $gunSort = (int) $r['SON_GUN'] < 0 ? 99999 : (int) $r['SON_GUN'];
                             $paretoBurada = ($i + 1 === $pareto80 && $pareto80 < count($rows)); ?>
-                        <tr data-bakiye="<?php echo number_format($b, 4, '.', ''); ?>"
+                        <tr data-bakiye="<?php echo number_format((float) $b, 4, '.', ''); ?>"
                             data-gun="<?php echo $gunSort; ?>"
-                            data-wb="<?php echo number_format($w, 2, '.', ''); ?>">
+                            data-wb="<?php echo number_format((float) $w, 2, '.', ''); ?>">
                             <td><span class="sira"><?php echo $i + 1; ?></span></td>
                             <td>
                                 <div class="m-ad" title="<?php echo $h($r['UNVANI']); ?>"><?php echo $h($r['UNVANI']); ?></div>
@@ -497,8 +504,8 @@ $sonRozet = static function (int $gun): array {
                                     <span><?php echo $para($b); ?> ₺</span>
                                 </span>
                             </td>
-                            <td class="pay-t">%<?php echo number_format($r['PAY'], 2, ',', '.'); ?></td>
-                            <td class="kum-t">%<?php echo number_format($r['KUM'], 1, ',', '.'); ?><?php if ($paretoBurada): ?><span class="p80"><i class="fa-solid fa-flag"></i>%80</span><?php endif; ?></td>
+                            <td class="pay-t">%<?php echo number_format((float) $r['PAY'], 2, ',', '.'); ?></td>
+                            <td class="kum-t">%<?php echo number_format((float) $r['KUM'], 1, ',', '.'); ?><?php if ($paretoBurada): ?><span class="p80"><i class="fa-solid fa-flag"></i>%80</span><?php endif; ?></td>
                             <td class="yan-t"><?php echo $para((float) $r['BORC']); ?></td>
                             <td class="yan-t"><?php echo $para((float) $r['ALACAK']); ?></td>
                             <td><span class="son-rozet <?php echo $rc; ?>" title="Son ürün alımı: <?php echo $h($r['SON_TXT']); ?>"><?php echo $h($rt); ?></span></td>

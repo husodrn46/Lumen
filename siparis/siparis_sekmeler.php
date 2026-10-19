@@ -9,6 +9,12 @@
  *
  * Dahil eden sayfa, include'dan ÖNCE $sipAktifSekme = 'acik' | 'tum' tanımlar.
  */
+// Yalnız include edilerek kullanılır; doğrudan açılırsa (ayr.php yüklenmemiş) çık.
+if (!function_exists('m_p_yetki')) {
+    http_response_code(404);
+    exit;
+}
+
 $sipAktifSekme = $sipAktifSekme ?? 'acik';
 
 $sip_sekmeler = [];

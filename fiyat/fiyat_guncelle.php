@@ -23,6 +23,12 @@ if(isset($_POST['yeni_fiyat'])){
   }
 
   $fiyat = isset($_POST['stkfyt']) ? (string)virgul($_POST['stkfyt']) : '0';
+  // Fiyat sayı ve negatif olmamalı (eskiden negatif değer kaydediliyor,
+  // sayısal olmayan değer SQL hatasına düşüyordu).
+  if (!is_numeric($fiyat) || (float) $fiyat < 0) {
+    http_response_code(422);
+    die("Geçersiz fiyat.");
+  }
   $fiyat_id = isset($_POST['yeni_fiyat']) ? (int)$_POST['yeni_fiyat'] : 0;
   $grup_id = isset($_POST['fgrup']) ? (int)$_POST['fgrup'] : 0;
 
@@ -44,6 +50,12 @@ if(isset($_POST['yeni_fiyat_ekle'])){
     die("Geçersiz güvenlik doğrulaması.");
   }
   $fiyat = isset($_POST['stkfyt']) ? (string)virgul($_POST['stkfyt']) : '0';
+  // Fiyat sayı ve negatif olmamalı (eskiden negatif değer kaydediliyor,
+  // sayısal olmayan değer SQL hatasına düşüyordu).
+  if (!is_numeric($fiyat) || (float) $fiyat < 0) {
+    http_response_code(422);
+    die("Geçersiz fiyat.");
+  }
   $stokid = isset($_POST['yeni_fiyat_ekle']) ? (int)$_POST['yeni_fiyat_ekle'] : 0;
 $grup_id = isset($_POST['fgrup']) ? (int)$_POST['fgrup'] : 0;
 
@@ -209,12 +221,12 @@ while($grupliste=$grup->fetch(PDO::FETCH_ASSOC))
 
 
 ?>
-<option value="<?php echo $grupliste['LOGICALREF']; ?>" ><?php echo $grupliste['CODE'];?></option>
+<option value="<?php echo (int) $grupliste['LOGICALREF']; ?>" ><?php echo e($grupliste['CODE']); ?></option>
 <?php }
 ?>
  </th>
 <th>
-FİYATI:<br><input type="text" name="stkfyt" id="stkfyt" style="width:50px;" value="<?php echo  $fiyat;?>"><button class="blue" type="submit">düzenle</button></th></tr>
+FİYATI:<br><input type="text" name="stkfyt" id="stkfyt" style="width:50px;" value="<?php echo e($fiyat); ?>"><button class="blue" type="submit">düzenle</button></th></tr>
 
 
 </th><tr></thead></Table>
@@ -250,7 +262,7 @@ while($grupliste=$grup->fetch(PDO::FETCH_ASSOC))
 
 
 ?>
-<option value="<?php echo $grupliste['LOGICALREF']; ?>" ><?php echo $grupliste['CODE'];?></option>
+<option value="<?php echo (int) $grupliste['LOGICALREF']; ?>" ><?php echo e($grupliste['CODE']); ?></option>
 <?php }
 ?>
  </th>
@@ -276,7 +288,7 @@ $stokid = (int)$_GET['stok'];
 		 {
 		 ?>
 	<tr>
- <td ><?php echo $stokara['CODE'];?></td>
+ <td ><?php echo e($stokara['CODE']); ?></td>
 <td ><a href="fiyat_guncelle.php?fiyat=<?php echo kusuratpara($stokara['PRICE']);?>&grup=<?php echo $stokara['COKLUFIYATID'];?>&fiyatid=<?php echo $stokara['LOGICALREF'];?>"><?php echo kusuratpara($stokara['PRICE']);?></a></td></tr>
 
 

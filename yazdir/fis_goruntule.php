@@ -14,7 +14,7 @@ $fisRef = isset($_GET['fis']) ? intval($_GET['fis']) : 0;
 $tip = $_GET['tip'] ?? 'siparis'; // siparis veya fatura
 
 if ($fisRef <= 0) {
-    die("Geçersiz fiş referansı");
+    lumen_hata_sayfasi('Fiş seçilmedi', 'Görüntülenecek fiş bilgisi eksik.');
 }
 
 // Fiş bilgilerini çek (Sipariş veya Fatura)
@@ -52,7 +52,7 @@ if ($tip == 'siparis') {
     $fisInfo = $stmtFisInfo->fetch(PDO::FETCH_ASSOC);
 
     if (!$fisInfo) {
-        die("Fiş bulunamadı");
+        lumen_hata_sayfasi('Fiş bulunamadı', 'Kayıt silinmiş veya başka döneme ait olabilir.', 404);
     }
 
     // Fiş satırları
@@ -114,7 +114,7 @@ if ($tip == 'siparis') {
     $fisInfo = $stmtFisInfo->fetch(PDO::FETCH_ASSOC);
 
     if (!$fisInfo) {
-        die("Fatura bulunamadı");
+        lumen_hata_sayfasi('Fatura bulunamadı', 'Kayıt silinmiş veya başka döneme ait olabilir.', 404);
     }
 
     // Fatura satırları

@@ -100,12 +100,13 @@ if (!move_uploaded_file($dosya['tmp_name'], $hedef)) {
 
 try {
     $ins = $dbh->prepare(
-        "INSERT INTO M_CEK_EK (CEK_REF, ETIKET, DOSYA_ADI, DOSYA_YOLU, DOSYA_TIP, BOYUT, PERSONEL_ID, TARIH)
-         VALUES (:c, :e, :ad, :yol, :tip, :b, :p, GETDATE())"
+        "INSERT INTO M_CEK_EK (CEK_REF, ETIKET, DOSYA_ADI, DOSYA_YOLU, DOSYA_TIP, BOYUT, PERSONEL_ID, TARIH, FIRMADONEM)
+         VALUES (:c, :e, :ad, :yol, :tip, :b, :p, GETDATE(), :fd)"
     );
     $ins->execute([
         ':c' => $cekRef, ':e' => $etiket, ':ad' => $orijinalAd, ':yol' => $guvenliAd,
         ':tip' => $mime, ':b' => (int) $dosya['size'], ':p' => (int) $terminalkullanici,
+        ':fd' => (string) $firmadonem, // CEK_REF bu döneme özel (sql/m_cek_ek.sql)
     ]);
     cek_ek_cik(true, 'Gorsel eklendi.');
 } catch (PDOException $e) {

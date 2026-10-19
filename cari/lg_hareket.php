@@ -12,7 +12,7 @@ $mdoviz = "TL";
 // Session bazlı parametre sistemi kullanılıyor
 $CARIID = getPageParamInt('cariid');
 if ($CARIID <= 0) {
-    exit;
+    lumen_hata_sayfasi('Cari seçilmedi', 'Hareket dökümü için önce cari listesinden bir cari seçin.');
 }
 
 // Dönem seçimi (varsayılan: tüm dönemler)

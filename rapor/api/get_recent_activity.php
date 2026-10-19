@@ -13,12 +13,16 @@ if ((int) m_p_yetki($terminalkullanici, 'M17') !== 1) {
     exit;
 }
 
+// Özel cari kısıtı: kısıtlı carilerin faturaları listelenmez
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'I.CLIENTREF', 'ozel_cari');
+$ozelCariSql = $ozelCariFiltresi['sql'] !== '' ? ' AND ' . $ozelCariFiltresi['sql'] : '';
+
 $sql = "SELECT TOP 5 I.FICHENO, C.DEFINITION_ as UNVAN, I.NETTOTAL, I.DATE_
 	        FROM {$firmadonem}INVOICE I JOIN {$firma}CLCARD C ON I.CLIENTREF = C.LOGICALREF
-	        WHERE I.TRCODE = 8 AND I.CANCELLED = 0 ORDER BY I.DATE_ DESC, I.TIME_ DESC";
+	        WHERE I.TRCODE = 8 AND I.CANCELLED = 0{$ozelCariSql} ORDER BY I.DATE_ DESC, I.TIME_ DESC";
 
 $stmt = $dbh->prepare($sql);
-$stmt->execute();
+$stmt->execute($ozelCariFiltresi['params']);
 $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
 echo json_encode($activities, JSON_UNESCAPED_UNICODE);
 ?>

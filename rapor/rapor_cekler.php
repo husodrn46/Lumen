@@ -39,7 +39,11 @@ $tarihD = static function ($d): string {
 
 // --- Alınan çekler (portföydeki müşteri çekleri) = ALACAK ---
 $alinan = [];
+// Özel cari kısıtı: kısıtlı carilerin çekleri listelenmez (carisiz çekler korunur)
+$ozelCariA = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(TX.CARDREF, 0)', 'ozel_cari_a');
+$ozelCariK = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(TX.CARDREF, 0)', 'ozel_cari_k');
 try {
+    $ozelCariASql = $ozelCariA['sql'] !== '' ? ' AND ' . $ozelCariA['sql'] : '';
     $sqlA = "
         SELECT CAST(C.DUEDATE AS DATE) AS VADE, C.TRNET AS TUTAR, C.OWING AS KIMDEN,
                C.NEWSERINO AS SERI, C.DOC AS DOC,
@@ -51,10 +55,12 @@ try {
             FROM {$firmadonem}CSTRANS T WITH(NOLOCK)
         ) TX ON TX.CSREF = C.LOGICALREF AND TX.RN = 1
         LEFT JOIN {$firma}CLCARD CL WITH(NOLOCK) ON CL.LOGICALREF = TX.CARDREF
-        WHERE C.CURRSTAT = 1 AND C.STATUS IN (0,1) AND C.DOC = 1
+        WHERE C.CURRSTAT = 1 AND C.STATUS IN (0,1) AND C.DOC = 1{$ozelCariASql}
         ORDER BY C.DUEDATE ASC
     ";
-    $alinan = $dbh->query($sqlA)->fetchAll(PDO::FETCH_ASSOC);
+    $stA = $dbh->prepare($sqlA);
+    $stA->execute($ozelCariA['params']);
+    $alinan = $stA->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     error_log('rapor_cekler alinan: ' . $e->getMessage());
 }
@@ -62,6 +68,7 @@ try {
 // --- Kendi çeklerimiz (verdiğimiz çekler) = BORÇ ---
 $kendi = [];
 try {
+    $ozelCariKSql = $ozelCariK['sql'] !== '' ? ' AND ' . $ozelCariK['sql'] : '';
     $sqlK = "
         SELECT CAST(C.DUEDATE AS DATE) AS VADE, C.AMOUNT AS TUTAR, C.NEWSERINO AS SERI, C.DOC AS DOC,
                DATEDIFF(DAY, CAST(GETDATE() AS DATE), CAST(C.DUEDATE AS DATE)) AS GUN,
@@ -74,10 +81,12 @@ try {
         ) TX ON TX.CSREF = C.LOGICALREF AND TX.RN = 1
         LEFT JOIN {$firmadonem}CSROLL R WITH(NOLOCK) ON R.LOGICALREF = TX.ROLLREF
         LEFT JOIN {$firma}CLCARD CL WITH(NOLOCK) ON CL.LOGICALREF = TX.CARDREF
-        WHERE C.CURRSTAT = 9
+        WHERE C.CURRSTAT = 9{$ozelCariKSql}
         ORDER BY C.DUEDATE ASC
     ";
-    $kendi = $dbh->query($sqlK)->fetchAll(PDO::FETCH_ASSOC);
+    $stK = $dbh->prepare($sqlK);
+    $stK->execute($ozelCariK['params']);
+    $kendi = $stK->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     error_log('rapor_cekler kendi: ' . $e->getMessage());
 }

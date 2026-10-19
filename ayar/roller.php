@@ -107,14 +107,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $ozelRoller = rol_ozel_yukle();
 $aktifSekme = 'roller';
 $formAcik = ($hataMsj !== '');
-$yetkiTuruAd = [1 => 'Personel', 2 => 'Müşteri'];
+$yetkiTuruAd = array_diff_key(lumen_kullanici_turleri(), [0 => true]);
 $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 
 $bildirim = ''; $bildirimTip = 'ok';
 if ($hataMsj !== '') {
     $bildirim = $hataMsj; $bildirimTip = 'error';
 } elseif (isset($_GET['ok'])) {
-    $bildirim = ['eklendi' => 'Rol eklendi.', 'guncellendi' => 'Rol güncellendi.', 'silindi' => 'Rol silindi.'][$_GET['ok']] ?? '';
+    $bildirim = ['eklendi' => 'Rol eklendi.', 'guncellendi' => 'Rol güncellendi.', 'silindi' => 'Rol silindi.'][(string) (is_string($_GET['ok']) ? $_GET['ok'] : '')] ?? '';
 } elseif (isset($_GET['hata'])) {
     $bildirim = 'İşlem tamamlanamadı.'; $bildirimTip = 'error';
 }

@@ -43,6 +43,17 @@ function jcik(bool $ok, string $mesaj = '', array $ekstra = []): void
 /* ==========================================================================
    DETAY (GET, HTML parca)
    ========================================================================== */
+require_once __DIR__ . '/../includes/bildirim.php';
+
+/** Görev olayını karşı tarafa bildirim kutusuna yazar (kendine bildirim yazılmaz). */
+function gorev_bildir(PDO $dbh, int $alici, int $benimId, string $baslik, string $gorevBaslik): void
+{
+    if ($alici > 0 && $alici !== $benimId) {
+        lumen_bildirim_ekle($dbh, $alici, 'gorev', $baslik,
+            $gorevBaslik . ' — ' . gorev_kullanici_adi($dbh, $benimId), 'gorev/gorevler.php');
+    }
+}
+
 if ($islem === 'detay') {
     header('Content-Type: text/html; charset=utf-8');
     $gid = (int) ($_GET['id'] ?? 0);
@@ -155,6 +166,7 @@ if ($islem === 'olustur') {
 
         gorev_hareket_ekle($dbh, $yeniId, $benimId, GOREV_HAR_OLUSTUR, null, GOREV_DURUM_YENI, null);
         $dbh->commit();
+        gorev_bildir($dbh, (int) $atananId, $benimId, 'Size yeni görev atandı', (string) $baslik);
         jcik(true, 'Görev oluşturuldu.', ['id' => $yeniId]);
     } catch (PDOException $e) {
         if ($dbh->inTransaction()) {
@@ -205,6 +217,9 @@ if ($islem === 'durum') {
         $up->execute();
         gorev_hareket_ekle($dbh, $gid, $benimId, GOREV_HAR_DURUM, $eski, $yeni, null);
         $dbh->commit();
+        if ($yeni === GOREV_DURUM_BITTI) {
+            gorev_bildir($dbh, (int) $g['ATAYAN_ID'], $benimId, 'Görev tamamlandı, onayınızı bekliyor', (string) $g['BASLIK']);
+        }
         jcik(true, 'Durum güncellendi.');
     } catch (PDOException $e) {
         if ($dbh->inTransaction()) {
@@ -243,6 +258,7 @@ if ($islem === 'reddet') {
         $up->execute();
         gorev_hareket_ekle($dbh, $gid, $benimId, GOREV_HAR_DURUM, (int) $g['DURUM'], GOREV_DURUM_REDDEDILDI, $sebep);
         $dbh->commit();
+        gorev_bildir($dbh, (int) $g['ATAYAN_ID'], $benimId, 'Görev reddedildi', (string) $g['BASLIK']);
         jcik(true, 'Görev reddedildi.');
     } catch (PDOException $e) {
         if ($dbh->inTransaction()) {
@@ -273,6 +289,7 @@ if ($islem === 'iptal') {
         $up->execute();
         gorev_hareket_ekle($dbh, $gid, $benimId, GOREV_HAR_DURUM, (int) $g['DURUM'], GOREV_DURUM_IPTAL, null);
         $dbh->commit();
+        gorev_bildir($dbh, (int) $g['ATANAN_ID'], $benimId, 'Görev iptal edildi', (string) $g['BASLIK']);
         jcik(true, 'Görev iptal edildi.');
     } catch (PDOException $e) {
         if ($dbh->inTransaction()) {
@@ -299,6 +316,8 @@ if ($islem === 'yorum') {
     }
     try {
         gorev_hareket_ekle($dbh, $gid, $benimId, GOREV_HAR_YORUM, null, null, $mesaj);
+        $karsi = (int) $g['ATAYAN_ID'] === $benimId ? (int) $g['ATANAN_ID'] : (int) $g['ATAYAN_ID'];
+        gorev_bildir($dbh, $karsi, $benimId, 'Görevinize yorum yazıldı', (string) $g['BASLIK']);
         jcik(true, 'Yorum eklendi.');
     } catch (PDOException $e) {
         error_log('gorev yorum: ' . $e->getMessage());
@@ -326,6 +345,7 @@ if ($islem === 'onay') {
         $up->execute();
         gorev_hareket_ekle($dbh, $gid, $benimId, GOREV_HAR_DURUM, GOREV_DURUM_BITTI, GOREV_DURUM_ONAYLANDI, null);
         $dbh->commit();
+        gorev_bildir($dbh, (int) $g['ATANAN_ID'], $benimId, 'Görev onaylandı', (string) $g['BASLIK']);
         jcik(true, 'Görev onaylandı.');
     } catch (PDOException $e) {
         if ($dbh->inTransaction()) {

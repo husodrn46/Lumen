@@ -26,6 +26,8 @@ function cg_tarih(?string $t): string
 }
 
 // Portfoydeki cekler (CURRSTAT=1) + son hareketteki cari (kimden) + gorsel sayisi
+// Ekler döneme özeldir (sql/m_cek_ek.sql FIRMADONEM); önek yapılandırmadan gelir.
+$firmadonemSql = str_replace("'", "''", (string) $firmadonem);
 $sql = "
     SELECT
         C.LOGICALREF AS CEK_REF,
@@ -36,7 +38,7 @@ $sql = "
         C.PORTFOYNO,
         CAST(C.SETDATE AS DATE) AS GIRIS,
         ISNULL(CL.CODE, '') AS CARI_KOD,
-        (SELECT COUNT(*) FROM M_CEK_EK E WHERE E.CEK_REF = C.LOGICALREF) AS GORSEL_SAYI
+        (SELECT COUNT(*) FROM M_CEK_EK E WHERE E.CEK_REF = C.LOGICALREF AND (E.FIRMADONEM = '{$firmadonemSql}' OR E.FIRMADONEM IS NULL)) AS GORSEL_SAYI
     FROM {$firmadonem}CSCARD C WITH(NOLOCK)
     LEFT JOIN (
         SELECT T.CSREF, T.CARDREF, ROW_NUMBER() OVER (PARTITION BY T.CSREF ORDER BY T.LOGICALREF DESC) AS RN
@@ -44,7 +46,7 @@ $sql = "
     ) TX ON TX.CSREF = C.LOGICALREF AND TX.RN = 1
     LEFT JOIN {$firma}CLCARD CL WITH(NOLOCK) ON CL.LOGICALREF = TX.CARDREF
     WHERE C.CURRSTAT IN (1) AND C.STATUS IN (0,1) AND C.DOC = 1
-    ORDER BY (CASE WHEN (SELECT COUNT(*) FROM M_CEK_EK E WHERE E.CEK_REF = C.LOGICALREF) = 0 THEN 0 ELSE 1 END),
+    ORDER BY (CASE WHEN (SELECT COUNT(*) FROM M_CEK_EK E WHERE E.CEK_REF = C.LOGICALREF AND (E.FIRMADONEM = '{$firmadonemSql}' OR E.FIRMADONEM IS NULL)) = 0 THEN 0 ELSE 1 END),
              CAST(C.SETDATE AS DATE) DESC, CAST(C.DUEDATE AS DATE) ASC
 ";
 $cekler = $dbh->query($sql)->fetchAll(PDO::FETCH_ASSOC);
@@ -54,7 +56,7 @@ $gorseller = [];
 $refler = array_map(static fn($c) => (int) $c['CEK_REF'], $cekler);
 if ($refler !== []) {
     $ph = implode(',', array_fill(0, count($refler), '?'));
-    $gs = $dbh->prepare("SELECT ID, CEK_REF, ETIKET, DOSYA_ADI FROM M_CEK_EK WHERE CEK_REF IN ({$ph}) ORDER BY ID");
+    $gs = $dbh->prepare("SELECT ID, CEK_REF, ETIKET, DOSYA_ADI FROM M_CEK_EK E WHERE CEK_REF IN ({$ph}) AND (E.FIRMADONEM = '{$firmadonemSql}' OR E.FIRMADONEM IS NULL) ORDER BY ID");
     $gs->execute($refler);
     while ($r = $gs->fetch(PDO::FETCH_ASSOC)) {
         $gorseller[(int) $r['CEK_REF']][] = $r;

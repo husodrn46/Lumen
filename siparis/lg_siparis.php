@@ -11,7 +11,7 @@ migrateUrlToSession(['stokhareket', 'sipariskaydet']);
 // stokhareket parametresini al (session bazlı)
 $stokhareket = getPageParamInt('stokhareket');
 if ($stokhareket === 0) {
-    die("Geçersiz fiş numarası.");
+    lumen_hata_sayfasi('Sipariş seçilmedi', 'Sipariş numarası eksik veya geçersiz. Sipariş listesinden tekrar açın.');
 }
 if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
     header('Location: ' . APP_ROOT_URL . '/403.html');
@@ -20,6 +20,12 @@ if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici
 
 // FORM GÖNDERİLDİYSE (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF koruması (açıklama güncellemesi yazma işlemidir)
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Geçersiz güvenlik doğrulaması.');
+    }
+
     $action      = $_POST['action'] ?? 'save';
     $aciklama1   = $_POST['aciklama1'] ?? '';
     $aciklama2   = $_POST['aciklama2'] ?? '';
@@ -27,8 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ? mb_substr((string)$aciklama1, 0, 33, 'UTF-8')
         : substr((string)$aciklama1, 0, 33);
 
-    // Açıklamaları güncelle
-    try {
+    // Açıklamaları güncelle — yalnız sipariş düzenleme yetkisiyle (yönetici/M1/M3).
+    // Yazdırma düğmeleri de bu formu gönderdiğinden yetkisiz kullanıcı için yazma
+    // atlanır, yazdırma akışı devam eder (eskiden yalnız görme yetkili kullanıcı
+    // sipariş açıklamalarını değiştirebiliyordu).
+    $aciklamaYazilabilir = m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null);
+    if ($aciklamaYazilabilir) try {
         $stmt_update = $dbh->prepare("
             UPDATE {$firmadonem}ORFICHE
                SET GENEXP1 = :aciklama1,
@@ -43,7 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':stokhareket' => $stokhareket,
         ]);
     } catch (PDOException $e) {
-        die("Açıklama güncellenirken hata oluştu: " . $e->getMessage());
+        error_log('lg_siparis aciklama: ' . $e->getMessage());
+        die("Açıklama güncellenirken hata oluştu.");
     }
 
     // Hangi buton tıklandıysa ona göre yönlendir (session bazlı temiz URL'ler)
@@ -85,6 +96,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         default => '../index.php',
     };
 
+    // Sipariş kimliği adreste taşınır (sekme güvenliği: oturumdaki değer başka
+    // bir sekmede açılan siparişle ezilebilir).
+    if ($redirect_url !== '../index.php') {
+        $redirect_url .= (str_contains($redirect_url, '?') ? '&' : '?') . 'stokhareket=' . (int) $stokhareket;
+        if ($action === 'save_only') {
+            $redirect_url .= '&sipariskaydet=1';
+        }
+        if ($action === 'print_yeni_dizayn') {
+            $redirect_url .= '&tipdurum=1';
+        }
+    }
     header("Location: {$redirect_url}");
     exit;
 }
@@ -102,7 +124,8 @@ try {
         $eyne = ['GENEXP1' => '', 'GENEXP2' => ''];
     }
 } catch (PDOException $e) {
-    die("Fiş bilgileri çekilirken hata oluştu: " . $e->getMessage());
+    error_log('lg_siparis: ' . $e->getMessage());
+    lumen_hata_sayfasi('Sipariş açılamadı', 'Fiş bilgileri okunurken bir hata oluştu. Lütfen tekrar deneyin.', 500);
 }
 
 // Döviz modu
@@ -404,6 +427,7 @@ $printActions = [
 
   <main style="max-width:720px;margin:0 auto;padding:24px 20px 60px;">
     <form method="POST" action="">
+      <?php echo csrf_field(); ?>
       <input type="hidden" name="stokhareket" value="<?php echo $stokhareket; ?>">
 
       <!-- Aciklamalar -->

@@ -35,10 +35,12 @@ if (m_p_yetki($terminalkullanici, 'CR1') != 1) {
     exit;
 }
 
-$year = 2026;
+$year = (int) date('Y');
+$yilBaslangic = sprintf('%04d-01-01', $year);
+$yilBitis = sprintf('%04d-01-01', $year + 1);
 $cariPrefix = isset($_GET['prefix']) && trim((string) $_GET['prefix']) !== ''
     ? trim((string) $_GET['prefix'])
-    : 'TMÇN';
+    : (string) ($pazarlamaci_cari_oneki ?? ''); // .env PAZARLAMACI_CARI_ONEKI (eskiden firmaya özgü sabit)
 
 $monthNames = [
     1 => 'Ocak', 2 => 'Şubat', 3 => 'Mart', 4 => 'Nisan',
@@ -49,6 +51,15 @@ $monthNames = [
 /* =====================================================================
  *  VERİ SORGULARI
  * ===================================================================== */
+
+// Özel cari kısıtı: kısıtlı cariler müşteri bazlı listelerde gösterilmez
+// (her sorgu kendi önekini kullanır; yalnız aylık toplam sorguları filtresizdir)
+$ozelCariBakiye = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'ozel_cari_bky');
+$ozelCariSatis = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'CL.LOGICALREF', 'ozel_cari_sts');
+$ozelCariTahsilat = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'CL.LOGICALREF', 'ozel_cari_ths');
+$ozelCariBakiyeSql = $ozelCariBakiye['sql'] !== '' ? ' AND ' . $ozelCariBakiye['sql'] : '';
+$ozelCariSatisSql = $ozelCariSatis['sql'] !== '' ? ' AND ' . $ozelCariSatis['sql'] : '';
+$ozelCariTahsilatSql = $ozelCariTahsilat['sql'] !== '' ? ' AND ' . $ozelCariTahsilat['sql'] : '';
 
 // 1) Musteri bakiyeleri (devir haric) — devir CLFLINE TRCODE=14'ten;
 //    LV_ GNTOTCL view'inda TOTTYP=0 satiri yok (eski hesap devri dusmuyordu)
@@ -65,10 +76,10 @@ try {
             WHERE TRCODE = 14 AND CANCELLED = 0
             GROUP BY CLIENTREF
         ) DV ON DV.CLIENTREF=C.LOGICALREF
-        WHERE C.ACTIVE=0 AND C.CODE LIKE :prefix
+        WHERE C.ACTIVE=0 AND C.CODE LIKE :prefix{$ozelCariBakiyeSql}
         ORDER BY {$balanceExpr} DESC
     ");
-    $stmt->execute([':prefix' => $cariPrefix . '%']);
+    $stmt->execute(array_merge([':prefix' => $cariPrefix . '%'], $ozelCariBakiye['params']));
     $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) { throw $e; }
 
@@ -82,7 +93,7 @@ try {
         FROM {$firmadonem}STLINE SL WITH(NOLOCK)
         JOIN {$firma}CLCARD CL WITH(NOLOCK) ON SL.CLIENTREF=CL.LOGICALREF
         WHERE CL.CODE LIKE :prefix AND SL.TRCODE IN (7,8)
-          AND SL.DATE_>='2026-01-01' AND SL.DATE_<'2027-01-01'
+          AND SL.DATE_>='{$yilBaslangic}' AND SL.DATE_<'{$yilBitis}'
           AND SL.CANCELLED=0 AND SL.LINETYPE=0
         GROUP BY MONTH(SL.DATE_)
     ");
@@ -103,11 +114,11 @@ try {
         FROM {$firmadonem}STLINE SL WITH(NOLOCK)
         JOIN {$firma}CLCARD CL WITH(NOLOCK) ON SL.CLIENTREF=CL.LOGICALREF
         WHERE CL.CODE LIKE :prefix AND SL.TRCODE IN (7,8)
-          AND SL.DATE_>='2026-01-01' AND SL.DATE_<'2027-01-01'
-          AND SL.CANCELLED=0 AND SL.LINETYPE=0
+          AND SL.DATE_>='{$yilBaslangic}' AND SL.DATE_<'{$yilBitis}'
+          AND SL.CANCELLED=0 AND SL.LINETYPE=0{$ozelCariSatisSql}
         GROUP BY CL.LOGICALREF
     ");
-    $stmt->execute([':prefix' => $cariPrefix . '%']);
+    $stmt->execute(array_merge([':prefix' => $cariPrefix . '%'], $ozelCariSatis['params']));
     while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $customerSales[(int) $r['CARIID']] = $r;
     }
@@ -129,7 +140,7 @@ try {
         WHERE CL.CODE LIKE :prefix
           AND CF.TRCODE IN (1,4,20,61,62,70)
           AND CF.SIGN = 1
-          AND CF.DATE_ >= '2026-01-01' AND CF.DATE_ < '2027-01-01'
+          AND CF.DATE_ >= '{$yilBaslangic}' AND CF.DATE_ < '{$yilBitis}'
           AND CF.CANCELLED = 0
         GROUP BY MONTH(CF.DATE_)
     ");
@@ -154,11 +165,11 @@ try {
         WHERE CL.CODE LIKE :prefix
           AND CF.TRCODE IN (1,4,20,61,62,70)
           AND CF.SIGN = 1
-          AND CF.DATE_ >= '2026-01-01' AND CF.DATE_ < '2027-01-01'
-          AND CF.CANCELLED = 0
+          AND CF.DATE_ >= '{$yilBaslangic}' AND CF.DATE_ < '{$yilBitis}'
+          AND CF.CANCELLED = 0{$ozelCariTahsilatSql}
         GROUP BY CL.LOGICALREF
     ");
-    $stmt->execute([':prefix' => $cariPrefix . '%']);
+    $stmt->execute(array_merge([':prefix' => $cariPrefix . '%'], $ozelCariTahsilat['params']));
     while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $customerTahsilat[(int) $r['CARIID']] = (float) $r['TUTAR'];
     }
@@ -171,11 +182,14 @@ $decimals = (int) ($GLOBALS['parakusurat'] ?? 2);
 $fmtMoney = '#,##0' . ($decimals > 0 ? '.' . str_repeat('0', $decimals) : '') . '" ₺"';
 $fmtMoneySigned = $fmtMoney . ';[Red]-' . $fmtMoney;
 
+// Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
+require_once __DIR__ . '/../includes/xlsx_guvenli.php';
+lumen_xlsx_guvenli_baglayici();
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator($GLOBALS['firmabaslik'] ?? 'Lumen')
-    ->setTitle('Pazarlamaci Performans 2026')
-    ->setDescription('2026 pazarlamaci satis ve bakiye raporu (devir haric).');
+    ->setTitle('Pazarlamaci Performans ' . $year)
+    ->setDescription($year . ' pazarlamaci satis ve bakiye raporu (devir haric).');
 
 $hdrStyle = [
     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
@@ -201,7 +215,7 @@ $sheet->setTitle('Musteri Detay');
 
 $row = 1;
 $lastCol = 'H';
-$sheet->setCellValue("A{$row}", ($GLOBALS['firmabaslik'] ?? 'Lumen') . ' - Pazarlamaci Performans 2026');
+$sheet->setCellValue("A{$row}", ($GLOBALS['firmabaslik'] ?? 'Lumen') . ' - Pazarlamaci Performans ' . $year);
 $sheet->mergeCells("A{$row}:{$lastCol}{$row}");
 $sheet->getStyle("A{$row}")->applyFromArray([
     'font' => ['bold' => true, 'size' => 15, 'color' => ['rgb' => 'FFFFFF']],
@@ -212,7 +226,7 @@ $sheet->getRowDimension($row)->setRowHeight(28);
 $row++;
 
 $sheet->setCellValue("A{$row}", 'Rapor Donemi:');
-$sheet->setCellValue("B{$row}", '2026 Yili (devir haric)');
+$sheet->setCellValue("B{$row}", $year . ' Yili (devir haric)');
 $sheet->setCellValue("D{$row}", 'Cari Prefix:');
 $sheet->setCellValue("E{$row}", $cariPrefix);
 $sheet->getStyle("A{$row}:E{$row}")->getFont()->setBold(true);
@@ -225,7 +239,7 @@ $sheet->getStyle("A{$row}:E{$row}")->getFont()->setBold(true);
 $row += 2;
 
 $headerRow = $row;
-$headers = ['Kod', 'Musteri', 'Sehir', 'Bakiye (devir haric)', 'Durum', '2026 Ciro', 'Islem', '2026 Tahsilat'];
+$headers = ['Kod', 'Musteri', 'Sehir', 'Bakiye (devir haric)', 'Durum', $year . ' Ciro', 'Islem', $year . ' Tahsilat'];
 $col = 'A';
 foreach ($headers as $h) { $sheet->setCellValue($col . $headerRow, $h); $col++; }
 $sheet->getStyle("A{$headerRow}:{$lastCol}{$headerRow}")->applyFromArray($hdrStyle);
@@ -308,10 +322,10 @@ if ($dataEndRow >= $dataStartRow) {
  *  SAYFA 2: Aylik Satis Ozeti
  * ================================================================= */
 $sheet2 = $spreadsheet->createSheet();
-$sheet2->setTitle('Aylik Satis 2026');
+$sheet2->setTitle('Aylik Satis ' . $year);
 
 $row = 1;
-$sheet2->setCellValue("A{$row}", ($GLOBALS['firmabaslik'] ?? 'Lumen') . ' - 2026 Aylik Satis Ozeti');
+$sheet2->setCellValue("A{$row}", ($GLOBALS['firmabaslik'] ?? 'Lumen') . ' - ' . $year . ' Aylik Satis Ozeti');
 $sheet2->mergeCells("A{$row}:C{$row}");
 $sheet2->getStyle("A{$row}")->applyFromArray([
     'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
@@ -371,10 +385,10 @@ $sheet2->getColumnDimension('C')->setWidth(22);
  *  SAYFA 3: Aylik Tahsilat (Nakit/Havale/POS + Cek + Senet)
  * ================================================================= */
 $sheet3 = $spreadsheet->createSheet();
-$sheet3->setTitle('Aylik Tahsilat 2026');
+$sheet3->setTitle('Aylik Tahsilat ' . $year);
 
 $row = 1;
-$sheet3->setCellValue("A{$row}", ($GLOBALS['firmabaslik'] ?? 'Lumen') . ' - 2026 Aylik Tahsilat');
+$sheet3->setCellValue("A{$row}", ($GLOBALS['firmabaslik'] ?? 'Lumen') . ' - ' . $year . ' Aylik Tahsilat');
 $sheet3->mergeCells("A{$row}:E{$row}");
 $sheet3->getStyle("A{$row}")->applyFromArray([
     'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
@@ -450,7 +464,7 @@ $spreadsheet->setActiveSheetIndex(0);
 /* Dosya ciktisi */
 ob_end_clean();
 $safePrefix = preg_replace('/[^a-zA-Z0-9_-]/', '', turkce($cariPrefix));
-$filename = 'pazarlamaci_performans_2026_' . $safePrefix . '_' . date('Y-m-d') . '.xlsx';
+$filename = 'pazarlamaci_performans_' . $year . '_' . $safePrefix . '_' . date('Y-m-d') . '.xlsx';
 
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
