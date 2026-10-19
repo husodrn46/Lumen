@@ -40,7 +40,7 @@ belge_sayfa_basla('Kasa ve Banka', 'fa-building-columns', '../index.php',
 ?>
 <style>
     .hesaplar { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
-    .hesap { display: block; text-decoration: none; color: inherit; padding: 14px 16px; }
+    .hesap { display: block; text-decoration: none; color: inherit; padding: 14px 16px; margin-bottom: 0; }
     .hesap.secili { outline: 2px solid var(--red); }
     .hesap .tutar { font-size: 20px; font-weight: 700; margin-top: 6px; }
     .eksi { color: var(--red); }

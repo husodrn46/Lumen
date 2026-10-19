@@ -8,11 +8,14 @@ require_once __DIR__ . '/includes/oturum.php';
  * kurulum.php — Lumen kurulum sihirbazı.
  *
  * İlk kurulumda tek seferlik çalışır:
- *   Adım 1: Veritabanı bağlantısı + firma/dönem/başlık/mağaza carisi → .env yazılır,
- *           _baglanti_.inc oluşturulur, bağlantı test edilir ve Lumen'e özel
- *           tablolar (sql/*.sql — M_P_YETKI, M_CEK_*, M_GOREV vb.) otomatik kurulur.
- *   Adım 2: Yönetici kullanıcı (mevcut LOGO satış temsilcisi kodu + parola) → M_P_YETKI
- *           satırı (YETKI=0) yazılır.
+ *   Adım 1: Çalışma modu + veritabanı bağlantısı → .env yazılır, _baglanti_.inc
+ *           oluşturulur, bağlantı test edilir ve şema otomatik kurulur.
+ *           - LOGO'ya bağlı: firma/dönem önekleri; LOGO tabloları doğrulanır; Lumen'e
+ *             özel tablolar (sql/*.sql — M_P_YETKI, M_CEK_*, M_GOREV vb.).
+ *           - Bağımsız: LOGO gerekmez; veritabanı yoksa oluşturulur; Lumen çekirdek
+ *             şeması (sql/lumen_cekirdek/) + ortak tablolar (docs/mimari/bagimsiz-lumen.md).
+ *   Adım 2: Yönetici kullanıcı → M_P_YETKI satırı (YETKI=0). Bağlı modda mevcut LOGO
+ *           satış temsilcisi kodu; bağımsız modda kullanıcı LM_PERSONEL'de oluşturulur.
  * Tamamlanınca `.installed` kilit dosyası oluşur; sihirbaz bir daha açılmaz.
  * (Yeniden çalıştırmak için `.installed` dosyasını silin.)
  *
@@ -92,9 +95,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dno   = max(1, (int) ($_POST['donem_no'] ?? 2));
         $bas   = trim((string) ($_POST['firma_baslik'] ?? '')) ?: 'Lumen';
         $mcari = max(0, (int) ($_POST['magaza_cari'] ?? 0));
+        $bagimsiz = ($_POST['mod'] ?? 'logo') === 'lumen';
 
         if ($srv === '' || $db === '' || $usr === '') {
             $hata = 'Sunucu, veritabanı ve kullanıcı adı zorunludur.';
+        } elseif ($bagimsiz) {
+            // ---- Bağımsız mod: LOGO yok; veritabanı yoksa oluşturulur ----
+            try {
+                [$test, $yeniDb] = kurulum_bagimsiz_veritabani(
+                    static fn(string $d): PDO => new PDO($gd_dsn($srv, $d), $usr, $pss, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]),
+                    $db
+                );
+                $env = [
+                    'AKL_DB_SERVER'      => $srv,
+                    'AKL_DB_NAME'        => $db,
+                    'AKL_DB_USER'        => $usr,
+                    'AKL_DB_PASS'        => $pss,
+                    'LUMEN_VERI_KAYNAGI' => 'lumen',
+                    'FIRMA_NO'           => '1',
+                    'FIRMA_BASLIK'       => $bas,
+                    'MAGAZA_CARI'        => (string) $mcari,
+                    'LOG_ROOT'           => '',
+                    'APP_SLOW_QUERY_MS'  => '300',
+                    'DEBUG_MODE'         => 'false',
+                ];
+                if (!kurulum_env_yaz($ENV, $env)) {
+                    $hata = '.env dosyası yazılamadı — klasör yazma izinlerini kontrol edin.';
+                } else {
+                    if (!is_file($HEDEF_BAG) && is_file($ORNEK_BAG)) {
+                        @copy($ORNEK_BAG, $HEDEF_BAG);
+                    }
+                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'bagimsiz' => true];
+                    $adim = 2;
+                    $notlar[] = $yeniDb ? "'{$db}' veritabanı oluşturuldu, yapılandırma kaydedildi." : 'Bağlantı başarılı, yapılandırma kaydedildi.';
+                    $sema = kurulum_sema_uygula($test, $KOK . '/sql', true);
+                    if ($sema['hatalar'] === []) {
+                        $notlar[] = 'Lumen veritabanı hazırlandı (' . $sema['basarili'] . '/' . $sema['toplam'] . ' betik).';
+                        $test->prepare("MERGE dbo.LM_AYAR AS H USING (SELECT 'firma_unvan' AS ANAHTAR, :d AS DEGER) AS K ON H.ANAHTAR = K.ANAHTAR
+                                        WHEN MATCHED THEN UPDATE SET DEGER = K.DEGER WHEN NOT MATCHED THEN INSERT (ANAHTAR, DEGER) VALUES (K.ANAHTAR, K.DEGER);")
+                            ->execute([':d' => $bas]);
+                    } else {
+                        $hata = 'Şema kısmen kuruldu (' . $sema['basarili'] . '/' . $sema['toplam'] . '). Hatalı: '
+                            . implode(', ', array_keys($sema['hatalar'])) . ' — ' . (string) reset($sema['hatalar']);
+                    }
+                }
+            } catch (Throwable $e) {
+                $hata = 'Bağlantı/doğrulama başarısız: ' . $e->getMessage();
+            }
         } else {
             try {
                 $test = new PDO($gd_dsn($srv, $db), $usr, $pss, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
@@ -123,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!is_file($HEDEF_BAG) && is_file($ORNEK_BAG)) {
                         @copy($ORNEK_BAG, $HEDEF_BAG);
                     }
-                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'onek' => $onek];
+                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'onek' => $onek, 'bagimsiz' => false];
                     $adim = 2;
                     $notlar[] = 'Bağlantı başarılı, yapılandırma kaydedildi.';
 
@@ -153,42 +200,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hata = 'Kullanıcı kodu ve parola zorunludur.';
         } elseif ($p1 !== $p2) {
             $hata = 'Parolalar eşleşmiyor.';
-        } elseif (mb_strlen($p1) < 8) {
-            $hata = 'Parola en az 8 karakter olmalı.';
         } else {
             try {
                 $pdo = new PDO($gd_dsn($cfg['srv'], $cfg['db']), $cfg['usr'], $cfg['pss'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-                // Satış temsilcisi var mı?
-                $q = $pdo->prepare("SELECT LOGICALREF FROM {$GLOBALS['LUMEN_SLSMAN']} WHERE CODE = :k AND ACTIVE = 0");
-                $q->execute([':k' => $kod]);
-                $ref = $q->fetchColumn();
-                if ($ref === false) {
-                    $hata = "'{$kod}' kodlu aktif satış temsilcisi bulunamadı. Önce LOGO'da tanımlayın.";
+                $r = kurulum_yonetici_olustur($pdo, (bool) ($cfg['bagimsiz'] ?? false), $kod, (string) ($_POST['admin_ad'] ?? ''), $p1);
+                if (!$r['ok']) {
+                    $hata = $r['mesaj'];
                 } else {
-                    $ref = (int) $ref;
-                    // M_P_YETKI tablosu (yoksa oluştur)
-                    $pdo->exec("IF OBJECT_ID('dbo.M_P_YETKI','U') IS NULL
-                        CREATE TABLE M_P_YETKI (PERSONEL INT NOT NULL PRIMARY KEY, SIFRE NVARCHAR(255) NULL, YETKI INT NULL)");
-                    $hash = password_hash($p1, PASSWORD_DEFAULT);
-                    $var = (int) $pdo->query("SELECT COUNT(*) FROM M_P_YETKI WHERE PERSONEL = {$ref}")->fetchColumn();
-                    if ($var > 0) {
-                        $u = $pdo->prepare("UPDATE M_P_YETKI SET SIFRE = :s, YETKI = 0 WHERE PERSONEL = :p");
-                        $u->execute([':s' => $hash, ':p' => $ref]);
-                    } else {
-                        // Mevcut kurulumlarda M_P_YETKI ek NOT NULL izin kolonlarına (M1..Mn) sahip
-                        // olabilir; bunları 0 ile doldur (yönetici YETKI=0 zaten tüm izinleri açar).
-                        $extra = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                            WHERE TABLE_NAME = 'M_P_YETKI' AND IS_NULLABLE = 'NO'
-                              AND COLUMN_NAME NOT IN ('PERSONEL','SIFRE','YETKI')
-                              AND COLUMNPROPERTY(OBJECT_ID('dbo.M_P_YETKI'), COLUMN_NAME, 'IsIdentity') = 0")
-                            ->fetchAll(PDO::FETCH_COLUMN);
-                        $cols = ['[PERSONEL]', '[SIFRE]', '[YETKI]'];
-                        $vals = [':p', ':s', '0'];
-                        foreach ($extra as $c) { $cols[] = '[' . $c . ']'; $vals[] = '0'; }
-                        $sql = 'INSERT INTO M_P_YETKI (' . implode(',', $cols) . ') VALUES (' . implode(',', $vals) . ')';
-                        $i = $pdo->prepare($sql);
-                        $i->execute([':p' => $ref, ':s' => $hash]);
-                    }
                     unset($_SESSION['kurulum_db']);
                     if (file_put_contents($LOCK, "kurulum tamamlandi\n") === false) {
                         // Kilit yazılamazsa da sihirbaz .env var olduğu için kapanır;
@@ -249,7 +267,14 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
         .bitti { text-align:center; padding:10px 0; }
         .bitti .ico { width:64px; height:64px; border-radius:50%; background:var(--emerald-soft); color:var(--emerald); display:inline-flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:14px; }
         .bitti a { display:inline-flex; align-items:center; gap:8px; margin-top:18px; background:var(--red); color:#fff; text-decoration:none; padding:12px 24px; border-radius:11px; font-weight:700; }
-        @media (max-width:520px){ .grid2 { grid-template-columns:1fr; } }
+        .modlar { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+        .mod { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--border); border-radius:12px; padding:12px; cursor:pointer; }
+        .mod:has(input:checked) { border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft); }
+        .mod input { margin-top:3px; accent-color:var(--red); }
+        .mod b { display:block; font-size:13px; margin-bottom:3px; }
+        .mod small { display:block; font-size:11.5px; color:var(--t2); line-height:1.4; }
+        form.lumen .yalniz-logo, form:not(.lumen) .yalniz-lumen { display:none; }
+        @media (max-width:520px){ .grid2, .modlar { grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
@@ -272,19 +297,26 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
 
             <?php if ($adim === 1): ?>
                 <h1>Veritabanı Bağlantısı</h1>
-                <p class="alt">LOGO Tiger SQL Server veritabanınıza bağlanın.</p>
-                <form method="POST">
+                <p class="alt">Çalışma modunu seçin ve SQL Server veritabanınıza bağlanın.</p>
+                <form method="POST" id="kurulumForm">
                     <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
                     <input type="hidden" name="adim" value="1">
+                    <?php $modSec = ($_POST['mod'] ?? 'logo') === 'lumen' ? 'lumen' : 'logo'; ?>
+                    <div class="modlar" role="radiogroup" aria-label="Çalışma modu">
+                        <label class="mod"><input type="radio" name="mod" value="logo" <?php echo $modSec === 'logo' ? 'checked' : ''; ?>>
+                            <span><b><i class="fa-solid fa-link"></i> LOGO'ya bağlı</b><small>Veriler LOGO Tiger veritabanında; Lumen ön yüz olarak çalışır.</small></span></label>
+                        <label class="mod"><input type="radio" name="mod" value="lumen" <?php echo $modSec === 'lumen' ? 'checked' : ''; ?>>
+                            <span><b><i class="fa-solid fa-database"></i> Bağımsız</b><small>LOGO gerekmez; cari, stok, fatura, kasa Lumen'in kendi veritabanında.</small></span></label>
+                    </div>
                     <div class="grid2">
                         <div class="alan"><label>SQL Server</label><input name="db_server" value="<?php echo $val('db_server', 'localhost'); ?>" required></div>
-                        <div class="alan"><label>Veritabanı adı</label><input name="db_name" value="<?php echo $val('db_name'); ?>" placeholder="LOGODB" required></div>
+                        <div class="alan"><label>Veritabanı adı</label><input name="db_name" value="<?php echo $val('db_name'); ?>" placeholder="LOGODB" required><div class="ip yalniz-lumen">Yoksa oluşturulur; LOGO veritabanı olmamalı.</div></div>
                     </div>
                     <div class="grid2">
                         <div class="alan"><label>Kullanıcı</label><input name="db_user" value="<?php echo $val('db_user', 'sa'); ?>" required></div>
                         <div class="alan"><label>Parola</label><input type="password" name="db_pass" value=""></div>
                     </div>
-                    <div class="grid2">
+                    <div class="grid2 yalniz-logo">
                         <div class="alan"><label>Firma No</label><input type="number" name="firma_no" value="<?php echo $val('firma_no', '1'); ?>" min="1" required><div class="ip">LG_<b>001</b>_...</div></div>
                         <div class="alan"><label>Dönem No</label><input type="number" name="donem_no" value="<?php echo $val('donem_no', '2'); ?>" min="1" required><div class="ip">LG_001_<b>02</b>_...</div></div>
                     </div>
@@ -294,14 +326,39 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
                     </div>
                     <button class="btn" type="submit"><i class="fa-solid fa-plug"></i> Bağlan ve Devam Et</button>
                 </form>
+                <script>
+                (function () {
+                    var f = document.getElementById('kurulumForm');
+                    function uygula() {
+                        var lumen = f.querySelector('input[name="mod"]:checked').value === 'lumen';
+                        f.classList.toggle('lumen', lumen);
+                        f.querySelectorAll('.yalniz-logo input').forEach(function (i) { i.required = !lumen && i.name !== 'firma_baslik' && i.name !== 'magaza_cari'; });
+                        f.db_name.placeholder = lumen ? 'LUMEN' : 'LOGODB';
+                    }
+                    f.querySelectorAll('input[name="mod"]').forEach(function (r) { r.addEventListener('change', uygula); });
+                    uygula();
+                })();
+                </script>
 
             <?php elseif ($adim === 2): ?>
                 <h1>Yönetici Hesabı</h1>
-                <p class="alt">Yönetici olacak <b>mevcut LOGO satış temsilcisinin</b> kodunu ve bir parola belirleyin.</p>
+                <?php $kurBagimsiz = (bool) ($_SESSION['kurulum_db']['bagimsiz'] ?? false); ?>
+                <?php if ($kurBagimsiz): ?>
+                    <p class="alt">İlk kullanıcı (yönetici) için bir <b>kullanıcı kodu</b>, ad ve parola belirleyin.</p>
+                <?php else: ?>
+                    <p class="alt">Yönetici olacak <b>mevcut LOGO satış temsilcisinin</b> kodunu ve bir parola belirleyin.</p>
+                <?php endif; ?>
                 <form method="POST">
                     <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
                     <input type="hidden" name="adim" value="2">
-                    <div class="alan"><label>Satış temsilcisi kodu (kullanıcı adı)</label><input name="admin_kod" value="<?php echo $val('admin_kod'); ?>" required autofocus><div class="ip">LOGO'daki satış temsilcisi kodu (büyük harfe çevrilir)</div></div>
+                    <?php if ($kurBagimsiz): ?>
+                        <div class="grid2">
+                            <div class="alan"><label>Kullanıcı kodu</label><input name="admin_kod" value="<?php echo $val('admin_kod', 'YONETICI'); ?>" required autofocus><div class="ip">Giriş adı (büyük harfe çevrilir)</div></div>
+                            <div class="alan"><label>Ad soyad</label><input name="admin_ad" value="<?php echo $val('admin_ad'); ?>"></div>
+                        </div>
+                    <?php else: ?>
+                        <div class="alan"><label>Satış temsilcisi kodu (kullanıcı adı)</label><input name="admin_kod" value="<?php echo $val('admin_kod'); ?>" required autofocus><div class="ip">LOGO'daki satış temsilcisi kodu (büyük harfe çevrilir)</div></div>
+                    <?php endif; ?>
                     <div class="grid2">
                         <div class="alan"><label>Parola</label><input type="password" name="admin_pass" required></div>
                         <div class="alan"><label>Parola (tekrar)</label><input type="password" name="admin_pass2" required></div>

@@ -90,11 +90,11 @@ akis('görev ve bildirim: kullanıcı adları LM_PERSONEL\'den gelir', function 
 });
 
 akis('geçiş koruması: taşınmamış modül 501 kartı / JSON verir, menüde görünmez', function () use ($yonetici): void {
-    $r = $yonetici->istek('rapor/dashboard.php');
-    bekle($r['kod'] === 501 && str_contains($r['govde'], 'henüz hazır değil'), "rapor modülü korunmuyor (HTTP {$r['kod']})");
-    $j = $yonetici->istek('rapor/dashboard.php', null, ['X-Requested-With: XMLHttpRequest']);
+    $r = $yonetici->istek('stok/index.php');
+    bekle($r['kod'] === 501 && str_contains($r['govde'], 'henüz hazır değil'), "üretim modülü korunmuyor (HTTP {$r['kod']})");
+    $j = $yonetici->istek('stok/index.php', null, ['X-Requested-With: XMLHttpRequest']);
     bekle($j['kod'] === 501 && (json_decode($j['govde'], true)['ok'] ?? null) === false, 'AJAX isteğine JSON dönmedi');
-    bekle(!str_contains($yonetici->istek('index.php')['govde'], 'href="rapor/dashboard.php'), 'menüde taşınmamış modül var');
+    bekle(!str_contains($yonetici->istek('index.php')['govde'], 'href="stok/index.php'), 'menüde taşınmamış modül var');
 });
 
 // ---------------------------------------------------------------- cari (Faz 1)
@@ -341,6 +341,43 @@ akis('çek: portföy LM_CEK\'ten; ciro hedef cariyi borçlandırır, çeki portf
     bekle(($r['ok'] ?? false) === true, 'ciro başarısız: ' . json_encode($r, JSON_UNESCAPED_UNICODE));
     bekle((int) tek($pdo, "SELECT DURUM FROM LM_CEK WHERE ID = :i", [':i' => $cek['ID']]) === 2, 'çek ciro durumuna geçmedi');
     yakin($once + (float) $cek['TUTAR'], (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 10"), 'ciro sonrası hedef cari');
+});
+
+// ---------------------------------------------------------------- raporlar (Faz 6)
+
+akis('raporlar: bugünkü fatura ve tahsilat günlük özet, aylık satış, ürün ligi ve API\'de görünür', function () use ($yonetici, $pdo, $URL): void {
+    $gun = (string) tek($pdo, "SELECT ISNULL(SUM(NET), 0) FROM LM_BELGE WHERE TUR = 3 AND YON = 1 AND DURUM <> 9 AND TARIH = CAST(GETDATE() AS DATE)");
+    $f = belge_kes($yonetici, 'belge/yeni.php?tur=satis_fatura', ['tur' => 'satis_fatura', 'cari_id' => 3, 'tarih' => date('Y-m-d'),
+        'satir' => ['stok_id' => [5], 'birim_id' => [0], 'miktar' => ['10'], 'fiyat' => ['100'], 'iskonto' => ['0'], 'kdv' => ['20']]]);
+    bekle($f['id'] > 0, 'fatura kesilmedi: ' . ($f['hata'] ?? '?'));
+    $kasa = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'KASA.01'");
+    $t = fis_kes($yonetici, ['tur' => 1, 'hesap_id' => $kasa, 'cari_id' => 3, 'tutar' => '700', 'aciklama' => 'Rapor akışı']);
+    bekle($t['id'] > 0, 'tahsilat kesilmedi');
+    try {
+        $beklenen = number_format((float) $gun + 1200, 2, ',', '.');
+        $g = $yonetici->istek('rapor/gunluk_islemler.php?tarih=' . date('Y-m-d'))['govde'];
+        bekle(str_contains($g, $beklenen . ' ₺') || str_contains($g, $beklenen . ' &#8378;') || str_contains($g, $beklenen), "günlük özet satışı ({$beklenen}) yok");
+        bekle(str_contains($g, 'Rapor akışı') && str_contains($g, '700,00'), 'günlük özette kasa tahsilatı yok');
+        bekle(str_contains($yonetici->istek('rapor/rapor_urun_top20.php')['govde'], 'DM-0005'), 'ürün liginde satılan ürün yok');
+        // API (belirteçle): aylık satış bu ayı içerir, fatura listesi türü doğru
+        $ch = curl_init("{$URL}/api/login.php");
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode(['kullanici' => 'YONETICI', 'sifre' => 'demo1234'])]);
+        $tok = (string) (json_decode((string) curl_exec($ch), true)['token'] ?? '');
+        $api = static function (string $uc) use ($URL, $tok): array {
+            $ch = curl_init("{$URL}/api/{$uc}");
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ["Authorization: Bearer {$tok}"]]);
+            return json_decode((string) curl_exec($ch), true) ?: [];
+        };
+        $ay = array_values(array_filter($api('rapor_satis_aylik.php')['aylar'] ?? [], static fn($a) => (int) $a['ay'] === (int) date('n')))[0] ?? [];
+        bekle((float) ($ay['net'] ?? 0) >= 1200, 'API aylık satış bu ayın faturasını içermiyor');
+        $fl = array_values(array_filter($api('fatura_listesi.php')['faturalar'] ?? [], static fn($x) => (int) $x['id'] === $f['id']))[0] ?? [];
+        bekle(($fl['tur'] ?? '') === 'Toptan Satış', 'API fatura türü yanlış: ' . ($fl['tur'] ?? '?'));
+    } finally {
+        foreach ([['belge', $f['id']], ['finans', $t['id']]] as [$m, $id]) {
+            $yonetici->istek("{$m}/islem.php", ['csrf_token' => $yonetici->belirtec("{$m}/goster.php?id={$id}"), 'islem' => 'iptal', 'id' => $id]);
+        }
+    }
 });
 
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));

@@ -72,7 +72,7 @@ Hareket tabloları (fatura, kasa, çek) LOGO kodlarına göre sınıflandığın
 Modül koruması her zaman belirleyicidir: bir sayfa görünüm sayesinde "çalışıyor gibi"
 olsa bile modülü bağımsız modda açılmadan kullanıcıya gösterilmez.
 
-### Durum (2026-10-19, Faz 5 sonu)
+### Durum (2026-10-19, Faz 6 sonu)
 
 | Faz | Durum |
 |---|---|
@@ -82,7 +82,46 @@ olsa bile modülü bağımsız modda açılmadan kullanıcıya gösterilmez.
 | 3 — sipariş | ✅ TL ve dövizli sipariş, satır işlemleri, yazdırma, API (`LMV_ORFICHE/ORFLINE`, üretilmiş: `scripts/gelistirme/logo_uyum_uret.py`) |
 | 4 — belge | ✅ `belge/`: satış/alış faturası, irsaliye, iade, üretimden giriş, sayım; siparişten kısmi fatura; iptal; M31 |
 | 5 — kasa/banka/çek | ✅ `finans/`: tahsilat, ödeme, virman, masraf, iptal, mükerrer gönderim koruması (M32); çek giriş/ciro/kendi çek/geri alma `LM_CEK` üzerinde (`cek/cek_lumen_lib.php`); cari ekstresi fişlere bağlanır |
-| 6 — raporlar, kurulum, içe aktarma | sırada |
+| 6 — raporlar, kurulum, içe aktarma | ✅ rapor ekranları ve API rapor uçları `LMV_` görünümleri üzerinden; kurulum sihirbazında mod seçimi (bağımsızda veritabanı yoksa oluşturulur, yönetici LM_PERSONEL'e); `scripts/logo_aktar.php` |
+
+### Kurulum ve LOGO'dan geçiş
+
+**Yeni kurulum (bağımsız):** kurulum sihirbazında "Bağımsız" seçilir; boş (veya henüz
+olmayan) bir veritabanı adı verilir. Sihirbaz veritabanını oluşturur, şemayı kurar
+(`.env`: `LUMEN_VERI_KAYNAGI=lumen`) ve ilk yöneticiyi `LM_PERSONEL`'e yazar.
+Uçtan uca test: `tests/kurulum/sihirbaz_bagimsiz.sh`.
+
+**LOGO kullanan firmanın geçişi:**
+
+```bash
+# 1. Boş veritabanı aç (SQL Server), sonra deneme — hiçbir şey yazılmaz:
+php scripts/logo_aktar.php --kaynak LOGODB --hedef LUMEN --firma 1 --donem 2 --sema --tarih 2027-01-01
+# 2. Karşılaştırma tablosu "tamam" ise yaz:
+php scripts/logo_aktar.php --kaynak LOGODB --hedef LUMEN --firma 1 --donem 2 --tarih 2027-01-01 --uygula
+# 3. .env: AKL_DB_NAME=LUMEN, LUMEN_VERI_KAYNAGI=lumen
+```
+
+Ana veri (personel, cari, stok, birim, barkod, geçerli fiyat, depo) kimlikleriyle,
+bakiyeler açılış olarak gelir: cari devir hareketi, ambar başına açılış sayımı,
+kasa/banka açılış fişi, portföydeki çekler ve ödenmemiş kendi çeklerimiz. M_P_YETKI,
+özel cari kısıtları ve kullanıcı ayarları kimlikler korunduğu için aynen taşınır;
+kullanıcılar aynı kod ve parolayla girer. Araç tek işlemde yazar ve kaynak/hedef
+toplamlarını (cari, stok, kasa, banka, çek) karşılaştırır; tutmazsa hiçbir şey yazmaz.
+Test: `tests/aktarim/logo_aktar_test.php`.
+
+Aktarılmayanlar: geçmiş belgeler (fatura, sipariş, kasa hareketleri; LOGO'da okunur
+kalır), cariye özel fiyatlar, açık siparişler. Banka bakiyesi `BNFLINE` yoksa sıfır açılır.
+
+### Bilinen sınırlar (bağımsız mod)
+
+- **Üretim fişleri ekranı** (`stok/index.php`, LOGO STFICHE) kapalı: üretim girişi
+  belge modülünden (Faturalar → Üretimden giriş, M31) yapılır. Yalnız M15 yetkili depo
+  personeli bu yüzden bağımsız modda üretim giremez.
+- **LOGO nakit/fatura detay sayfaları** (`cari_belge`) kapalı; ekstre bağlantıları
+  Lumen kasa fişine ve belgesine gider.
+- Dövizli fatura TL tutarıyla kesilir; dövizli çekler TL tutarıyla aktarılır.
+- Faturalama (BETA, `fatura/`) yalnız LOGO modundadır; e-Fatura/e-Arşiv ve resmi
+  muhasebe sonraki aşamadır.
 
 ## 3. Lumen şeması (`sql/lumen_cekirdek/`)
 

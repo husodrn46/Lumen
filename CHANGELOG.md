@@ -1,5 +1,31 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı] — Bağımsız Lumen
+
+Lumen artık LOGO olmadan kendi veritabanıyla ön muhasebe yapabilir; LOGO'ya bağlı
+kullanım aynen sürer. Ayrıntı: `docs/mimari/bagimsiz-lumen.md`.
+
+### Yeni
+
+- **İki çalışma modu** (`LUMEN_VERI_KAYNAGI=logo|lumen`): kurulum sihirbazında seçilir.
+  Bağımsız modda veritabanı yoksa oluşturulur; ilk yönetici Lumen'de tanımlanır.
+- **Faturalar ve belgeler** (bağımsız mod, M31): satış/alış faturası, irsaliye, iade,
+  üretimden giriş, sayım; siparişten kısmi faturalama; iptal stok ve cariyi geri alır.
+- **Kasa ve banka** (bağımsız mod, M32 — yeni yetki): tahsilat, ödeme, virman, masraf;
+  çift gönderim koruması; iptal.
+- Cari, stok, sipariş (TL/döviz), çek/senet, raporlar ve API iki modda çalışır.
+- **LOGO'dan geçiş aracı** `scripts/logo_aktar.php`: ana veri kimlikleriyle, bakiyeler
+  açılış olarak; deneme kipi ve kaynak/hedef toplam karşılaştırması.
+
+### Düzeltmeler (LOGO modunu da etkiler)
+
+- Cari ve stok aramalarında özel cari kısıtı eksikti (otomatik tamamlama, hızlı arama).
+- Bazı ekranlar veritabanı hata metnini kullanıcıya gösteriyordu.
+- Koli ölçüsünde ondalıklı ağırlık tamsayıya çevriliyordu.
+- API fatura listesi satınalma iadelerini (TRCODE 6) satış faturası diye listeliyor,
+  türleri yanlış adlandırıyordu (7 perakende, 8 toptan, 9 verilen hizmet).
+- Cari bakiye detayında kullanılmayan 11 sorgu kaldırıldı.
+
 ## [1.2.0] — 2026-10-19
 
 Bu sürüm, v1.0.0 üzerine kapsamlı bir güvenlik ve doğruluk denetiminin sonucudur ve
