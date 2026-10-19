@@ -15,6 +15,10 @@
   girilir; stok, cari bakiye ve KDV TL'dir, döviz tutarı ve kur belgede, satırda ve
   cari harekette saklanır. Dövizli siparişten faturada kur, fatura gününün döviz alış
   kuru ile önerilir. Belge formunda "1.234,56" biçimli tutarlar doğru okunur.
+- **Fatura çıktısı ve PDF** (bağımsız mod): firma ve cari bilgileri, logo, satırlar,
+  KDV oranına göre döküm, toplamlar, yazıyla tutar, dövizde kur ve döviz toplamı,
+  irsaliye/faturada imza alanları. Firma bilgileri: unvan, adres, vergi dairesi/no,
+  telefon, e-posta. Çıktı e-Fatura/e-Arşiv değildir (belgede yazar).
 - Bağımsız modda **depo personeli** (yalnız M15) üretimden giriş ve sayım girer;
   fatura göremez, fiyat görmez.
 

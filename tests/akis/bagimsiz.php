@@ -342,6 +342,25 @@ akis('dövizli fatura: fiyat dövizle girilir, stok/cari/KDV TL; döviz tutarı 
     yakin($once, (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 6"), 'iptal sonrası cari bakiye');
 });
 
+akis('fatura çıktısı: yazdırma sayfası ve PDF; KDV dökümü, yazıyla tutar; depo personeli açamaz', function () use ($yonetici, $pdo, $URL): void {
+    $f = belge_kes($yonetici, 'belge/yeni.php', ['tur' => 'satis_fatura', 'cari_id' => 2, 'tarih' => date('Y-m-d'),
+        'satir' => ['stok_id' => [1, 9], 'birim_id' => [0, 0], 'miktar' => ['24', '6'], 'fiyat' => ['44', '250,50'], 'iskonto' => ['0', '0'], 'kdv' => ['20', '10']]]);
+    bekle($f['id'] > 0, 'fatura kesilmedi');
+    try {
+        $no = (string) tek($pdo, "SELECT NO FROM LM_BELGE WHERE ID = {$f['id']}");
+        $g = $yonetici->istek("belge/yazdir.php?id={$f['id']}")['govde'];
+        // 1.056 + 1.503 = 2.559; KDV 211,20 + 150,30 = 361,50 → 2.920,50
+        bekle(str_contains($g, $no) && str_contains($g, '2.920,50') && str_contains($g, 'İkibindokuzyüzyirmi Türk Lirası Elli Kuruş'), 'yazdırma sayfasında no/toplam/yazıyla yok');
+        bekle(str_contains($g, '%10') && str_contains($g, '150,30') && str_contains($g, '211,20'), 'KDV dökümü yok');
+        $pdf = $yonetici->istek("belge/yazdir.php?id={$f['id']}&pdf=1");
+        bekle($pdf['kod'] === 200 && str_starts_with($pdf['govde'], '%PDF'), 'PDF üretilmedi');
+        $depo = (new Tarayici($URL))->giris('DEPO1');
+        bekle($depo->istek("belge/yazdir.php?id={$f['id']}")['kod'] === 404, 'depo personeli faturayı yazdırdı');
+    } finally {
+        $yonetici->istek('belge/islem.php', ['csrf_token' => $yonetici->belirtec("belge/goster.php?id={$f['id']}"), 'islem' => 'iptal', 'id' => $f['id']]);
+    }
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */

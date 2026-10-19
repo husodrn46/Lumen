@@ -38,7 +38,9 @@ GO
 
 -- ---------------------------------------------------------------- firma
 DELETE FROM LM_AYAR WHERE ANAHTAR LIKE 'firma_%';
-INSERT INTO LM_AYAR (ANAHTAR, DEGER) VALUES ('firma_unvan', N'Lumen Demo Firması'), ('firma_vergi_no', '1234567890');
+INSERT INTO LM_AYAR (ANAHTAR, DEGER) VALUES ('firma_unvan', N'Lumen Demo Firması'), ('firma_vergi_no', '1234567890'),
+    ('firma_vergi_dairesi', N'Demo'), ('firma_adres', N'Örnek Mah. Deneme Cad. No: 1 Kadıköy / İstanbul'),
+    ('firma_telefon', '0 216 000 00 00'), ('firma_eposta', 'info@ornek.test');
 INSERT INTO LM_KUR (TARIH, PARA_BIRIMI, ALIS, SATIS) VALUES ('2026-10-15', 'USD', 41.10, 41.25), ('2026-10-15', 'EUR', 47.80, 48.00);
 GO
 

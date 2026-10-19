@@ -37,7 +37,8 @@ $dovizli = (string) $b['PARA_BIRIMI'] !== 'TRY';
 $dv = static fn(mixed $v): string => number_format((float) $v, 2, ',', '.') . ' ' . $b['PARA_BIRIMI'];
 
 belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
-    '<button type="button" class="btn btn-ikincil yazdirma-gizle" onclick="window.print()"><i class="fa-solid fa-print"></i><span class="metin">Yazdır</span></button>');
+    '<a class="btn btn-ikincil yazdirma-gizle" href="yazdir.php?id=' . $id . '&pdf=1"><i class="fa-solid fa-file-pdf"></i><span class="metin">PDF</span></a>'
+    . '<a class="btn btn-birincil yazdirma-gizle" href="yazdir.php?id=' . $id . '" target="_blank" rel="noopener"><i class="fa-solid fa-print"></i><span class="metin">Yazdır</span></a>');
 ?>
 <div class="kart kart-ic izgara">
     <div><div class="soluk">Belge</div><div class="koyu"><?= bh($turAd) ?> · <?= bh($b['NO']) ?>

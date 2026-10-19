@@ -28,3 +28,14 @@ test('form tutarı: TR ve EN biçimleri, binlik gruplu tamsayı, geçersiz girdi
     esit(0.0, lumen_tutar_coz('abc'));
     esit(7.25, lumen_tutar_coz(7.25));
 });
+
+test('tutar yazıyla: Türkçe fatura biçimi (bin, kuruş, döviz)', function (): void {
+    require_once dirname(__DIR__, 2) . '/includes/belge/fatura_sablon.php';
+    esit('İkibindörtyüzaltmışaltı Türk Lirası', lumen_tutar_yaziyla(2466));
+    esit('Bin Türk Lirası Elli Kuruş', lumen_tutar_yaziyla(1000.5));
+    esit('Yüzbir Türk Lirası', lumen_tutar_yaziyla(101));
+    esit('Birmilyonbinbir Türk Lirası', lumen_tutar_yaziyla(1001001));
+    esit('Sıfır Türk Lirası Bir Kuruş', lumen_tutar_yaziyla(0.01));
+    esit('Altmış ABD Doları', lumen_tutar_yaziyla(60, 'USD'));
+    esit('Onbin Türk Lirası', lumen_tutar_yaziyla(9999.999));
+});
