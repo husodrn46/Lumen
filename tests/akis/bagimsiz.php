@@ -12,6 +12,7 @@ declare(strict_types=1);
  */
 
 require __DIR__ . '/_ortak.php';
+require_once dirname(__DIR__, 2) . '/includes/belge/belge_lib.php';
 
 if (strtolower((string) getenv('LUMEN_VERI_KAYNAGI')) !== 'lumen') {
     fwrite(STDERR, "Bu akışlar bağımsız mod içindir (bash demo/kur.sh --bagimsiz).\n");
@@ -197,6 +198,76 @@ akis('fiyat güncelle: LM_FIYAT (satış) güncellenir', function () use ($yonet
     } finally {
         $pdo->prepare("UPDATE LM_FIYAT SET FIYAT = :f WHERE ID = :i")->execute([':f' => $eski, ':i' => $id]);
     }
+});
+
+// ---------------------------------------------------------------- belge / fatura (Faz 4)
+
+/** Belge formunu gönderir; sonuçtaki belge kimliğini (yönlendirmeden) döndürür. */
+function belge_kes(Tarayici $t, string $kaynakSayfa, array $alanlar): array
+{
+    $alanlar = ['csrf_token' => $t->belirtec($kaynakSayfa), 'islem' => 'kaydet'] + $alanlar;
+    $r = $t->istek('belge/islem.php', $alanlar);
+    parse_str((string) parse_url($r['yer'], PHP_URL_QUERY), $q);
+    return ['id' => (int) ($q['id'] ?? 0), 'ok' => $q['ok'] ?? null, 'hata' => $q['hata'] ?? null];
+}
+
+akis('siparişten kısmi satış faturası: stok çıkar, cari borçlanır, sipariş teslim miktarı ve "faturalı" görünümü', function () use ($yonetici, $pdo): void {
+    $sip = (int) tek($pdo, "SELECT TOP 1 B.ID FROM LM_BELGE B WHERE B.TUR = 1 AND B.DURUM = 1
+        AND EXISTS (SELECT 1 FROM LM_BELGE_SATIR S WHERE S.BELGE_ID = B.ID AND S.TESLIM_MIKTAR = 0) ORDER BY B.ID");
+    $satir = $pdo->query("SELECT ID, STOK_ID, BIRIM_ID, MIKTAR, FIYAT, KDV_ORANI, CARPAN FROM LM_BELGE_SATIR WHERE BELGE_ID = {$sip} ORDER BY SIRA")->fetch(PDO::FETCH_ASSOC);
+    $cari = (int) tek($pdo, "SELECT CARI_ID FROM LM_BELGE WHERE ID = {$sip}");
+    $bakiyeOnce = (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = {$cari}");
+    $stokOnce = (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = :s", [':s' => $satir['STOK_ID']]);
+    $yarim = (float) $satir['MIKTAR'] / 2;
+    // Fazlası reddedilir
+    $fazla = belge_kes($yonetici, "belge/siparisten.php?siparis={$sip}", ['tur' => 'satis_fatura', 'kaynak_belge_id' => $sip, 'cari_id' => $cari,
+        'tarih' => date('Y-m-d'), 'satir' => ['stok_id' => [$satir['STOK_ID']], 'birim_id' => [$satir['BIRIM_ID']], 'kaynak_satir_id' => [$satir['ID']],
+        'miktar' => [(float) $satir['MIKTAR'] + 1], 'fiyat' => [$satir['FIYAT']], 'iskonto' => [0], 'kdv' => [$satir['KDV_ORANI']]]]);
+    bekle($fazla['id'] === 0 && str_contains((string) $fazla['hata'], 'kalan'), 'siparişten fazlası faturalandı');
+
+    $r = belge_kes($yonetici, "belge/siparisten.php?siparis={$sip}", ['tur' => 'satis_fatura', 'kaynak_belge_id' => $sip, 'cari_id' => $cari,
+        'tarih' => date('Y-m-d'), 'satir' => ['stok_id' => [$satir['STOK_ID']], 'birim_id' => [$satir['BIRIM_ID']], 'kaynak_satir_id' => [$satir['ID']],
+        'miktar' => [$yarim], 'fiyat' => [$satir['FIYAT']], 'iskonto' => [0], 'kdv' => [$satir['KDV_ORANI']]]]);
+    bekle($r['id'] > 0, 'fatura kesilmedi: ' . ($r['hata'] ?? '?'));
+    $h = lumen_belge_satir_hesapla($yarim, (float) $satir['FIYAT'], 0, (float) $satir['KDV_ORANI']);
+    $genel = round($h['net'] + $h['kdv'], 2);
+    yakin($genel, (float) tek($pdo, "SELECT NET FROM LM_BELGE WHERE ID = :i", [':i' => $r['id']]), 'fatura genel toplam');
+    bekle(str_starts_with((string) tek($pdo, "SELECT NO FROM LM_BELGE WHERE ID = :i", [':i' => $r['id']]), 'FTR'), 'fatura numarası seriden değil');
+    yakin($bakiyeOnce + $genel, (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = {$cari}"), 'cari bakiye');
+    yakin($stokOnce - $yarim * (float) $satir['CARPAN'], (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = :s", [':s' => $satir['STOK_ID']]), 'stok');
+    yakin($yarim, (float) tek($pdo, "SELECT TESLIM_MIKTAR FROM LM_BELGE_SATIR WHERE ID = :i", [':i' => $satir['ID']]), 'teslim miktarı');
+    // LOGO uyumlu görünüm: sipariş ekranlarının "faturalandı mı" kontrolü
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LMV_STLINE WHERE ORDFICHEREF = :s AND INVOICEREF = :f", [':s' => $sip, ':f' => $r['id']]) === 1, 'LMV_STLINE siparişi bağlamıyor');
+    $g = $yonetici->istek("belge/goster.php?id={$r['id']}")['govde'];
+    bekle(str_contains($g, number_format($genel, 2, ',', '.')), 'belge ekranında genel toplam yok');
+
+    // İptal: her şey geri
+    $t = $yonetici->belirtec("belge/goster.php?id={$r['id']}");
+    $yonetici->istek('belge/islem.php', ['csrf_token' => $t, 'islem' => 'iptal', 'id' => $r['id']]);
+    bekle((int) tek($pdo, "SELECT DURUM FROM LM_BELGE WHERE ID = :i", [':i' => $r['id']]) === 9, 'iptal edilmedi');
+    yakin($bakiyeOnce, (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = {$cari}"), 'iptal sonrası cari bakiye');
+    yakin($stokOnce, (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = :s", [':s' => $satir['STOK_ID']]), 'iptal sonrası stok');
+    yakin(0, (float) tek($pdo, "SELECT TESLIM_MIKTAR FROM LM_BELGE_SATIR WHERE ID = :i", [':i' => $satir['ID']]), 'iptal sonrası teslim');
+});
+
+akis('serbest alış faturası ve üretimden giriş: stok girer, alış cariyi alacaklandırır', function () use ($yonetici, $pdo): void {
+    $stokOnce = (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 7");
+    $bakiyeOnce = (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 9");
+    $koli = (int) tek($pdo, "SELECT ID FROM LM_BIRIM WHERE KOD = 'KOLI'");
+    $carpan = (float) tek($pdo, "SELECT CARPAN FROM LM_STOK_BIRIM WHERE STOK_ID = 7 AND BIRIM_ID = :b", [':b' => $koli]);
+    $a = belge_kes($yonetici, 'belge/yeni.php?tur=alis_fatura', ['tur' => 'alis_fatura', 'cari_id' => 9, 'tarih' => date('Y-m-d'),
+        'satir' => ['stok_id' => [7], 'birim_id' => [$koli], 'miktar' => ['2'], 'fiyat' => ['100,00'], 'iskonto' => ['5'], 'kdv' => ['20']]]);
+    bekle($a['id'] > 0, 'alış faturası kesilmedi: ' . ($a['hata'] ?? '?'));
+    // 2 koli × 100 = 200; %5 iskonto 10 → net 190; KDV 38 → 228
+    yakin(228.0, (float) tek($pdo, "SELECT NET FROM LM_BELGE WHERE ID = :i", [':i' => $a['id']]), 'alış genel toplam');
+    yakin($bakiyeOnce - 228.0, (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 9"), 'alış sonrası cari bakiye');
+    yakin($stokOnce + 2 * $carpan, (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 7"), 'alış sonrası stok (koli → adet)');
+    $u = belge_kes($yonetici, 'belge/yeni.php?tur=uretim', ['tur' => 'uretim', 'tarih' => date('Y-m-d'),
+        'satir' => ['stok_id' => [7], 'birim_id' => [0], 'miktar' => ['10'], 'fiyat' => ['0'], 'iskonto' => ['0'], 'kdv' => ['0']]]);
+    bekle($u['id'] > 0, 'üretim girişi kesilmedi: ' . ($u['hata'] ?? '?'));
+    yakin($stokOnce + 2 * $carpan + 10, (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 7"), 'üretim sonrası stok');
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LM_CARI_HAREKET WHERE BELGE_ID = :i", [':i' => $u['id']]) === 0, 'üretim cari hareketi yazdı');
+    bekle(str_contains($yonetici->istek('belge/index.php?bas=' . date('Y-m-01'))['govde'], (string) tek($pdo, "SELECT NO FROM LM_BELGE WHERE ID = :i", [':i' => $a['id']])), 'listede yok');
 });
 
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));

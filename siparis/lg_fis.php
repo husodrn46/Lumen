@@ -823,6 +823,14 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                </div>
                <!-- Butonlar -->
                <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+                  <?php if (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M31') == 1): ?>
+                  <!-- Bağımsız mod: siparişten Lumen faturası / irsaliyesi (belge modülü) -->
+                  <a href="../belge/siparisten.php?siparis=<?php echo (int) $stokhareket; ?>"
+                     class="btn-flat btn-red" title="Faturala / İrsaliye" style="padding:8px 14px;">
+                     <i class="fa fa-file-invoice"></i>
+                     <span class="hidden sm:inline">Faturala</span>
+                  </a>
+                  <?php endif; ?>
                   <a href="../yazdir/yeni_dizayn.php?stokhareket=<?php echo $stokhareket; ?>&tipdurum=1"
                      class="btn-flat btn-amber" title="Yazdır" style="padding:8px 14px;">
                      <i class="fa fa-print"></i>

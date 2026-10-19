@@ -69,11 +69,11 @@ GO
 IF NOT EXISTS (SELECT 1 FROM dbo.LM_PARA_BIRIMI)
     INSERT INTO dbo.LM_PARA_BIRIMI (KOD, AD, SEMBOL) VALUES
         ('TRY', N'Türk Lirası', N'₺'), ('USD', N'ABD Doları', N'$'), ('EUR', N'Euro', N'€'), ('GBP', N'İngiliz Sterlini', N'£');
-IF NOT EXISTS (SELECT 1 FROM dbo.LM_SERI)
-    INSERT INTO dbo.LM_SERI (TUR, ONEK, HANE) VALUES
-        ('SATIS_SIPARIS', N'SIP', 6), ('ALIS_SIPARIS', N'ASP', 6),
-        ('SATIS_IRSALIYE', N'IRS', 6), ('ALIS_IRSALIYE', N'AIR', 6),
-        ('SATIS_FATURA', N'FTR', 6), ('ALIS_FATURA', N'AFT', 6),
-        ('SATIS_IADE', N'IAD', 6), ('URETIM', N'URT', 6), ('SAYIM', N'SYM', 6),
-        ('TAHSILAT', N'THS', 6), ('ODEME', N'ODM', 6), ('CEK_BORDRO', N'BRD', 6), ('VIRMAN', N'VRM', 6);
+-- Eksik seri türleri tek tek eklenir (yeni sürümle gelen türler mevcut kurulumda da oluşur).
+INSERT INTO dbo.LM_SERI (TUR, ONEK, HANE)
+SELECT V.TUR, V.ONEK, 6 FROM (VALUES
+    ('SATIS_SIPARIS', N'SIP'), ('ALIS_SIPARIS', N'ASP'), ('SATIS_IRSALIYE', N'IRS'), ('ALIS_IRSALIYE', N'AIR'),
+    ('SATIS_FATURA', N'FTR'), ('ALIS_FATURA', N'AFT'), ('SATIS_IADE', N'IAD'), ('ALIS_IADE', N'AIA'),
+    ('URETIM', N'URT'), ('SAYIM', N'SYM'), ('TAHSILAT', N'THS'), ('ODEME', N'ODM'), ('CEK_BORDRO', N'BRD'), ('VIRMAN', N'VRM')
+) V(TUR, ONEK) WHERE NOT EXISTS (SELECT 1 FROM dbo.LM_SERI S WHERE S.TUR = V.TUR);
 GO

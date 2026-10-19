@@ -20,7 +20,7 @@ if (!function_exists('lumen_moduller')) {
      * Modül → ad, yol önekleri (uygulama köküne göre) ve bağımsız modda hazır olup olmadığı.
      * Önek eşleşmesinde en uzun önek kazanır (ör. 'stok/uretim' 'stok/'tan önce).
      *
-     * @return array<string, array{ad:string, yollar:string[], bagimsiz:bool}>
+     * @return array<string, array{ad:string, yollar:string[], bagimsiz:bool, logo?:bool}>
      */
     function lumen_moduller(): array
     {
@@ -64,6 +64,9 @@ if (!function_exists('lumen_moduller')) {
                 'api/rapor_top_satis.php', 'api/rapor_yaslandirma.php', 'api/cek_listesi.php', 'api/fatura_listesi.php',
                 'api/cari_hareket.php', 'api/cari_hareket_detay.php',
             ]],
+            // Lumen'in kendi belge modülü (fatura, irsaliye, iade, üretim girişi, sayım): yalnız
+            // bağımsız modda — LOGO modunda bu belgeler LOGO'da kesilir.
+            'belge' => ['ad' => 'Faturalar ve belgeler', 'bagimsiz' => true, 'logo' => false, 'yollar' => ['belge/']],
             // LOGO'ya özgü: siparişi LOGO faturasına çevirir. Bağımsız modda fatura,
             // Lumen'in kendi belge modülüdür (Faz 4).
             'logo_fatura' => ['ad' => 'Faturalama (LOGO, BETA)', 'bagimsiz' => false, 'yollar' => ['fatura/']],
@@ -96,7 +99,8 @@ if (!function_exists('lumen_modul_hazir_mi')) {
     function lumen_modul_hazir_mi(?string $modul): bool
     {
         if (!lumen_bagimsiz_mi()) {
-            return true;
+            // LOGO modunda her şey açık; yalnız bağımsız moda özgü modüller ('logo' => false) kapalı.
+            return $modul === null || (lumen_moduller()[$modul]['logo'] ?? true);
         }
         $m = $modul !== null ? (lumen_moduller()[$modul] ?? null) : null;
         // Kayıt defterinde olmayan sayfa bağımsız modda kapalıdır (güvenli varsayılan).
@@ -131,7 +135,7 @@ if (!function_exists('lumen_modul_korumasi')) {
      */
     function lumen_modul_korumasi(): void
     {
-        if (!lumen_bagimsiz_mi() || PHP_SAPI === 'cli') {
+        if (PHP_SAPI === 'cli') {
             return;
         }
         $yol = lumen_istek_yolu();
@@ -140,7 +144,9 @@ if (!function_exists('lumen_modul_korumasi')) {
             return;
         }
         $ad = $modul !== null ? lumen_moduller()[$modul]['ad'] : 'Bu sayfa';
-        $mesaj = "{$ad} modülü bağımsız modda (Lumen veritabanı) henüz hazır değil; geçiş sürüyor.";
+        $mesaj = lumen_bagimsiz_mi()
+            ? "{$ad} modülü bağımsız modda (Lumen veritabanı) henüz hazır değil; geçiş sürüyor."
+            : "{$ad} yalnız bağımsız modda kullanılır; LOGO'ya bağlı kurulumda bu belgeler LOGO'da kesilir.";
         $ajax = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest'
             || str_contains(strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? '')), 'application/json');
         if ($ajax || str_starts_with($yol, 'api/')) {
