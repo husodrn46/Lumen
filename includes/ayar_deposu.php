@@ -211,5 +211,8 @@ if (!function_exists('lumen_ayar_uygula')) {
         foreach (lumen_ayar_oku() as $anahtar => $deger) {
             $GLOBALS[$anahtar] = $deger;
         }
+        if (!defined('LUMEN_AYAR_UYGULANDI')) {
+            define('LUMEN_AYAR_UYGULANDI', true);
+        }
     }
 }

@@ -76,15 +76,42 @@ Yükseltme sonrası **mutlaka** `php scripts/sema_guncelle.php` çalıştırın.
 - Temiz kurulumda çalışmayan şema betikleri düzeltildi (giriş denemesi koruması
   tablosu hiç oluşmuyordu; 11 tablonun betiği yoktu).
 
-### Yükseltme notları
+### Yükseltme notları (v1.0.0 → v1.2.0)
 
-1. Dosyaları güncelleyin, `composer install`.
-2. `php scripts/sema_guncelle.php`
-3. `.env.example`'daki yeni ayarlara bakın (`AKL_DB_TRUST_CERT`, `TRUSTED_PROXIES`,
-   `PAZARLAMACI_CARI_ONEKI`).
-4. Günlük zamanlanmış görevleri kurun (README → Zamanlanmış Görevler).
-5. Parolası 8 karakterden kısa kullanıcılar giriş yapabilir; parola değiştirirken
-   yeni kural uygulanır.
+Bu yol demo ortamında uçtan uca denendi: v1.0.0'ın kendi şema betikleriyle
+kurulmuş veritabanı + `sema_guncelle.php` → tüm sayfa ve akış testleri temiz.
+
+1. **Yedek alın** (veritabanı + uygulama klasörü).
+2. Dosyaları güncelleyin, `composer install`.
+   **Kendi `_bilgi_.inc` dosyanızı koruyun** (üzerine yazmayın): v1.0.0'da Ayarlar
+   ekranı değerleri bu dosyaya yazıyordu. Yeni sürüm eski dosyayla çalışır; ekrandan
+   yapılan yeni değişiklikler artık `database/ayarlar.json`'a kaydedilir ve dosyadaki
+   değerlerin üzerine uygulanır. `database/` klasörüne web sunucusu kullanıcısının
+   yazma izni olmalı (README → Yazma izinleri).
+3. `php scripts/sema_guncelle.php` (tekrar çalıştırılabilir; eksik tabloları ve
+   kolonları ekler, mevcut veriye dokunmaz).
+4. `.env.example`'daki yeni ayarlara bakın (`AKL_DB_TRUST_CERT`, `AKL_DB_ENCRYPT`,
+   `TRUSTED_PROXIES`, `PAZARLAMACI_CARI_ONEKI`).
+5. Günlük zamanlanmış görevleri kurun (README → Zamanlanmış Görevler).
+6. Parolası 8 karakterden kısa kullanıcılar giriş yapabilir; parola değiştirirken
+   yeni kural uygulanır. Mevcut API belirteçleri süreleri dolana dek (30 gün)
+   çalışmaya devam eder; yeni belirteçler özet olarak saklanır.
+7. Bu sürümden önce girilmiş **kuruşlu çekleri** kontrol edin (yukarıdaki ×100 hatası).
+
+### v1.1.0-beta.1 (Faturalama BETA) kullananlar
+
+v1.2.0 **v1.0.0 üzerine** kuruludur ve deneysel Faturalama modülünü **içermez**.
+Beta, v1.0.0 kodunu taşıdığı için bu sürümde kapatılan güvenlik açıklarını da
+taşır; üretimde beta yerine v1.2.0 kullanın. Faturalama ileride bu sürümün üzerine
+yeniden eklenecektir.
+
+### Bilinen sınırlar
+
+- Yeni sipariş satırı fiyatı, fiyat değiştirme yetkisi (SP1) olmayan kullanıcı için
+  sunucuda liste fiyatına karşı doğrulanmaz (arayüz alanı kilitler).
+- Sipariş yetkisi (M3) olan personel, görebildiği her siparişi düzenleyebilir
+  (siparişin sahibine göre ayrım yok).
+- Çıkış bağlantısı (`?cikis=1`) GET isteğidir.
 
 ## [1.0.0] — 2026-07-25
 

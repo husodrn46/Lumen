@@ -703,6 +703,14 @@ if (!defined('APP_ROOT_URL')) {
 // Bu satırlar kaldırıldı çünkü header() redirect'i engelliyordu
 include_once(__DIR__ . "/_baglanti_.inc");
 include_once(__DIR__ . "/_bilgi_.inc");
+// v1.0.0'dan yükseltilen kurulumlar kendi _bilgi_.inc'lerini korur (o sürümde
+// Ayarlar ekranı değerleri bu dosyaya yazıyordu). Eski dosyada ayar deposunu
+// yükleyen satırlar yoktur; ekrandan kaydedilen ayarlar yine de uygulanır.
+require_once __DIR__ . '/includes/ayar_deposu.php';
+if (!defined('LUMEN_AYAR_UYGULANDI')) {
+  lumen_ayar_uygula();
+}
+$pazarlamaci_cari_oneki ??= (string) (getenv('PAZARLAMACI_CARI_ONEKI') ?: '');
 
 // ================================================================
 // GÜVENLIK: Veritabanı Bağlantısı (İyileştirilmiş Error Handling)
