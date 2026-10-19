@@ -106,8 +106,8 @@ if (!function_exists('lumen_personel_getir')) {
     function lumen_personel_getir(PDO $dbh, int $id, bool $pasifDahil = false): ?array
     {
         $P = lumen_tablo('personel');
-        $st = $dbh->prepare("SELECT P.ID, P.KOD, P.AD, P.AKTIF, P.DEPO, P.YETKI_KODU FROM {$P} P WHERE P.ID = :id"
-            . ($pasifDahil ? '' : ' AND P.AKTIF = 1'));
+        $etkin = $pasifDahil ? '' : ' AND P.AKTIF = 1';
+        $st = $dbh->prepare("SELECT P.ID, P.KOD, P.AD, P.AKTIF, P.DEPO, P.YETKI_KODU FROM {$P} P WHERE P.ID = :id{$etkin}");
         $st->execute([':id' => $id]);
         $r = $st->fetch(PDO::FETCH_ASSOC);
         return $r ?: null;
