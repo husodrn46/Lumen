@@ -325,7 +325,7 @@ try {
 // Kullanıcının gerçek ismini LG_SLSMAN tablosundan çek
 $kullanici_adi = '';
 try {
-    $stmt = $dbh->prepare("SELECT DEFINITION_ FROM LG_SLSMAN WHERE LOGICALREF = :id AND ACTIVE = 0");
+    $stmt = $dbh->prepare("SELECT DEFINITION_ FROM {$GLOBALS['LUMEN_SLSMAN']} WHERE LOGICALREF = :id AND ACTIVE = 0");
     $stmt->bindParam(':id', $terminalkullanici, PDO::PARAM_INT);
     $stmt->execute();
     $slsman = $stmt->fetch(PDO::FETCH_ASSOC);

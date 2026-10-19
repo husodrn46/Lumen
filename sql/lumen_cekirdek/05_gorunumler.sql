@@ -28,3 +28,15 @@ FROM dbo.LM_FINANS_HESAP F
 LEFT JOIN dbo.LM_FINANS_HAREKET H ON H.HESAP_ID = F.ID
 GROUP BY F.ID;
 GO
+
+-- LOGO uyumlu kişi görünümü (geçiş dönemi): kullanıcı adı için LG_SLSMAN'a JOIN
+-- yapan okuma sorguları bağımsız modda bu görünüme yönlenir ($GLOBALS['LUMEN_SLSMAN']).
+-- ACTIVE: LOGO anlamıyla 0 = etkin. FIRMNR: tek firma; LM_AYAR.firma_no (yoksa 1),
+-- .env FIRMA_NO ile aynı olmalıdır (sorgular FIRMNR = FIRMA_NO ile süzer).
+CREATE OR ALTER VIEW dbo.LMV_SLSMAN AS
+SELECT ID AS LOGICALREF, KOD AS CODE, AD AS DEFINITION_,
+       CASE WHEN AKTIF = 1 THEN 0 ELSE 1 END AS ACTIVE,
+       CAST(ISNULL((SELECT TRY_CAST(DEGER AS INT) FROM dbo.LM_AYAR WHERE ANAHTAR = 'firma_no'), 1) AS INT) AS FIRMNR,
+       CAST(DEPO_ID AS NVARCHAR(20)) AS SPECODE, YETKI_KODU AS CYPHCODE, OLUSTURMA AS CAPIBLOCK_CREADEDDATE
+FROM dbo.LM_PERSONEL;
+GO

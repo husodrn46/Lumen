@@ -72,7 +72,7 @@ $satisSiparisWhereF = "F.TRCODE IN (1,20,21,22) AND F.NETTOTAL > 0 AND ISNULL(F.
 // Tüm aktif kullanıcıları çek
 $stmtKullanicilar = $dbh->prepare("
     SELECT LOGICALREF, CODE, DEFINITION_
-    FROM LG_SLSMAN
+    FROM {$GLOBALS['LUMEN_SLSMAN']}
     WHERE FIRMNR = :firmaNr
         AND ACTIVE = 0
     ORDER BY DEFINITION_ ASC
@@ -93,7 +93,7 @@ $performansSQL = "
         ISNULL(AVG(F.NETTOTAL), 0) AS ORTALAMA_ISLEM,
         SUM(CASE WHEN CONVERT(VARCHAR, F.DATE_, 102) = :bugun_islem THEN 1 ELSE 0 END) AS BUGUN_ISLEM,
         ISNULL(SUM(CASE WHEN CONVERT(VARCHAR, F.DATE_, 102) = :bugun_tutar THEN F.NETTOTAL ELSE 0 END), 0) AS BUGUN_TUTAR
-    FROM LG_SLSMAN S
+    FROM {$GLOBALS['LUMEN_SLSMAN']} S
     LEFT JOIN (
         -- Satış siparişleri - iptal ve 0 TL hariç
         SELECT
@@ -261,7 +261,7 @@ try {
             ISNULL(AVG(IL.YENI_DISCPER), 0) AS ORTALAMA_ISKONTO,
             ISNULL(MAX(IL.YENI_DISCPER), 0) AS MAX_ISKONTO
         FROM M_ISKONTO_LOG IL
-        LEFT JOIN LG_SLSMAN S ON S.LOGICALREF = IL.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = IL.KULLANICI
         LEFT JOIN " . $firmadonem . "ORFICHE F ON F.LOGICALREF = IL.FIS_REF
         WHERE CONVERT(VARCHAR, F.DATE_, 102) BETWEEN :filtre_tarih_bas AND :filtre_tarih_son
           AND {$satisSiparisWhereF}

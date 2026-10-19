@@ -33,6 +33,7 @@ test('modül eşleme: en uzun önek kazanır, kayıtsız sayfa bağımsız modda
     esit('cekirdek', lumen_yolun_modulu('/index.php'));
     esit('cekirdek', lumen_yolun_modulu('ayar/gorunum.php'));      // 'ayar/' önekinden uzun tam eşleşme
     esit('yonetim', lumen_yolun_modulu('ayar/kullanici_yetki.php'));
+    esit('cari', lumen_yolun_modulu('ayar/ozel_cari_kisitlari.php'));
     esit(null, lumen_yolun_modulu('bilinmeyen.php'));
     veri_modunda('logo', fn() => esit(true, lumen_yol_hazir_mi('bilinmeyen.php')));
     veri_modunda('lumen', function (): void {

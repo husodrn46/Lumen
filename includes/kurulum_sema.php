@@ -23,7 +23,7 @@ if (!function_exists('kurulum_sql_batchleri')) {
     }
 }
 
-require_once __DIR__ . '/veri/kaynak.php';
+require_once __DIR__ . '/veri/veri.php';
 
 if (!function_exists('kurulum_sema_dosyalari')) {
     /**

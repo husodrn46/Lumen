@@ -23,7 +23,7 @@ $permissionLabels = function_exists('m_p_yetki_etiketleri')
     ? m_p_yetki_etiketleri()
     : [];
 
-$firmaStmt = $dbh->prepare("SELECT NR, NAME FROM L_CAPIFIRM ORDER BY NAME ASC");
+$firmaStmt = $dbh->prepare("SELECT NR, NAME FROM " . lumen_tablo('firma') . " F ORDER BY NAME ASC");
 $firmaStmt->execute();
 $firmalar = $firmaStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -50,7 +50,7 @@ $sql = "SELECT
             S.FIRMNR,
             CASE WHEN Y.PERSONEL IS NULL THEN 0 ELSE 1 END AS HAS_YETKI_ROW,
             ISNULL(Y.YETKI, 2) AS YETKI_TURU
-        FROM LG_SLSMAN S
+        FROM {$GLOBALS['LUMEN_SLSMAN']} S
         LEFT JOIN M_P_YETKI Y ON Y.PERSONEL = S.LOGICALREF
         WHERE " . implode(' AND ', $whereParts) . "
         ORDER BY S.ACTIVE ASC, S.CODE ASC";

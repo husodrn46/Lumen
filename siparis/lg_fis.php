@@ -781,7 +781,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
    FROM {$firma}CLCARD C WITH(NOLOCK)
    LEFT JOIN SonFatura SF ON SF.CLIENTREF = C.LOGICALREF
    LEFT JOIN {$firmadonemx}GNTOTCL G WITH(NOLOCK) ON G.CARDREF = C.LOGICALREF AND G.TOTTYP = 1
-   LEFT JOIN LG_SLSMAN SL WITH(NOLOCK) ON SL.LOGICALREF = SF.SALESMANREF
+   LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = SF.SALESMANREF
    WHERE C.ACTIVE = 0 AND C.LOGICALREF = :clientRef2;
    ";
       $stmt = $dbh->prepare($sql);

@@ -61,7 +61,7 @@ if ($erisim) {
                 c.DEFINITION_ HEDEF, s.CODE GIREN
             FROM M_CEK_LOG l
             LEFT JOIN {$firma}CLCARD c ON c.LOGICALREF=l.CLIENTREF
-            LEFT JOIN LG_SLSMAN s ON s.LOGICALREF=l.KULLANICI
+            LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} s ON s.LOGICALREF=l.KULLANICI
             WHERE l.DURUM IN ('AKTIF','GERIALINDI') AND l.TUR='ciro' ORDER BY l.ID DESC")->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) { $cirolar = []; }
 }

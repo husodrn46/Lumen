@@ -131,7 +131,7 @@ function api_token_dogrula(PDO $dbh): ?array
     // (DATEADD'in 2. argümanı sabit INT — sqlsrv nvarchar tuzağına düşmez.)
     $stmt = $dbh->prepare("SELECT TOP 1 T.ID, T.PERSONEL, T.KULLANICI_ADI, T.OLUSTURMA, Y.YETKI
                            FROM M_API_TOKEN T
-                           INNER JOIN LG_SLSMAN S ON S.LOGICALREF = T.PERSONEL AND S.ACTIVE = 0
+                           INNER JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = T.PERSONEL AND S.ACTIVE = 0
                            INNER JOIN M_P_YETKI Y ON Y.PERSONEL = T.PERSONEL AND Y.YETKI IN (0, 1, 3)
                            WHERE T.TOKEN IN (:ozet, :duz) AND T.AKTIF = 1
                              AND T.OLUSTURMA > DATEADD(DAY, -30, GETDATE())");

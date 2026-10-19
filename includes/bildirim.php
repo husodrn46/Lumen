@@ -45,7 +45,7 @@ if (!function_exists('lumen_bildirim_yoneticilere')) {
                                          string $baglanti = '', ?string $anahtar = null, int $haric = 0): int
     {
         try {
-            $ids = $dbh->query("SELECT Y.PERSONEL FROM M_P_YETKI Y INNER JOIN LG_SLSMAN S ON S.LOGICALREF = Y.PERSONEL
+            $ids = $dbh->query("SELECT Y.PERSONEL FROM M_P_YETKI Y INNER JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = Y.PERSONEL
                                 WHERE Y.YETKI = 0 AND S.ACTIVE = 0")->fetchAll(PDO::FETCH_COLUMN);
         } catch (Throwable $e) {
             return 0;

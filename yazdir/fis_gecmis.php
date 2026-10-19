@@ -63,7 +63,7 @@ try {
             IP_ADRESI,
             SL.DEFINITION_ AS KULLANICI_ADI
         FROM M_FIS_LOG FL
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = FL.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = FL.KULLANICI
         WHERE FL.FIS_REF = :fisRef
     ");
     $stmtFisIslemler->execute([':fisRef' => $fisRef]);
@@ -92,7 +92,7 @@ try {
             YENI_FIYAT,
             YENI_TOTAL
         FROM M_SATIR_DEGISIKLIK_LOG SD
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = SD.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = SD.KULLANICI
         WHERE SD.FIS_REF = :fisRef
     ");
     $stmtSatirDegisiklikler->execute([':fisRef' => $fisRef]);
@@ -117,7 +117,7 @@ try {
             IP_ADRESI,
             SL.DEFINITION_ AS KULLANICI_ADI
         FROM M_ISKONTO_LOG IL
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = IL.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = IL.KULLANICI
         WHERE IL.FIS_REF = :fisRef
     ");
     $stmtIskontoler->execute([':fisRef' => $fisRef]);
@@ -141,7 +141,7 @@ try {
             IP_ADRESI,
             SL.DEFINITION_ AS KULLANICI_ADI
         FROM M_KDV_DEGISIKLIK_LOG KD
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = KD.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = KD.KULLANICI
         WHERE KD.FIS_REF = :fisRef
     ");
     $stmtKdvDegisiklikler->execute([':fisRef' => $fisRef]);
@@ -166,7 +166,7 @@ try {
             IP_ADRESI,
             SL.DEFINITION_ AS KULLANICI_ADI
         FROM M_FIYAT_LOG FD
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = FD.KULLANICI_ID
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = FD.KULLANICI_ID
         WHERE FD.FIS_REF = :fisRef
     ");
     $stmtFiyat->execute([':fisRef' => $fisRef]);
@@ -188,7 +188,7 @@ try {
             IP_ADRESI,
             SL.DEFINITION_ AS KULLANICI_ADI
         FROM M_YAZDIR_LOG YZ
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = YZ.KULLANICI_ID
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = YZ.KULLANICI_ID
         WHERE YZ.FIS_REF = :fisRef
     ");
     $stmtYazdir->execute([':fisRef' => $fisRef]);

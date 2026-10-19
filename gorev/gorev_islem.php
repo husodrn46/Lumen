@@ -137,7 +137,7 @@ if ($islem === 'olustur') {
 
     // Atanan kisi gecerli/aktif personel mi?
     try {
-        $chk = $dbh->prepare("SELECT COUNT(*) FROM LG_SLSMAN WITH(NOLOCK) WHERE LOGICALREF = :id AND ACTIVE = 0");
+        $chk = $dbh->prepare("SELECT COUNT(*) FROM {$GLOBALS['LUMEN_SLSMAN']} S WHERE LOGICALREF = :id AND ACTIVE = 0");
         $chk->bindValue(':id', $atananId, PDO::PARAM_INT);
         $chk->execute();
         if ((int) $chk->fetchColumn() === 0) {

@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $pdo = new PDO($gd_dsn($cfg['srv'], $cfg['db']), $cfg['usr'], $cfg['pss'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                 // Satış temsilcisi var mı?
-                $q = $pdo->prepare("SELECT LOGICALREF FROM LG_SLSMAN WHERE CODE = :k AND ACTIVE = 0");
+                $q = $pdo->prepare("SELECT LOGICALREF FROM {$GLOBALS['LUMEN_SLSMAN']} WHERE CODE = :k AND ACTIVE = 0");
                 $q->execute([':k' => $kod]);
                 $ref = $q->fetchColumn();
                 if ($ref === false) {

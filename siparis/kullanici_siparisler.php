@@ -61,7 +61,7 @@ $satisFaturaWhere = "TRCODE IN (7,8) AND NETTOTAL > 0 AND ISNULL(CANCELLED,0) = 
 // Kullanıcı bilgisi
 $stmtKullaniciBilgi = $dbh->prepare("
     SELECT CODE, DEFINITION_
-    FROM LG_SLSMAN
+    FROM {$GLOBALS['LUMEN_SLSMAN']}
     WHERE LOGICALREF = :kullaniciId
 ");
 $stmtKullaniciBilgi->execute([':kullaniciId' => $kullaniciId]);

@@ -60,7 +60,7 @@ if ($engel !== null) {
 
 // Kod benzersiz olmalı: giriş CODE'a göre eşleştiğinden aynı kodlu iki kullanıcı
 // rastgele birine giriş yaptırır.
-$kodVar = $dbh->prepare("SELECT COUNT(*) FROM LG_SLSMAN WHERE CODE = :kod AND LOGICALREF <> :id");
+$kodVar = $dbh->prepare("SELECT COUNT(*) FROM {$GLOBALS['LUMEN_SLSMAN']} WHERE CODE = :kod AND LOGICALREF <> :id");
 $kodVar->execute([':kod' => $kod, ':id' => $id]);
 if ((int) $kodVar->fetchColumn() > 0) {
     api_json(['ok' => false, 'mesaj' => 'Bu kod başka bir kullanıcıda kullanılıyor.'], 409);
@@ -77,22 +77,16 @@ if ($id <= 0) {
 
     try {
         // 2) Benzersizlik kontrolü
-        $kontrol = $dbh->prepare("SELECT CODE FROM LG_SLSMAN WHERE CODE = :kod AND FIRMNR = :firma");
+        $kontrol = $dbh->prepare("SELECT CODE FROM {$GLOBALS['LUMEN_SLSMAN']} WHERE CODE = :kod AND FIRMNR = :firma");
         $kontrol->execute([':kod' => $kod, ':firma' => $firma]);
         if ($kontrol->fetch()) {
             api_json(['ok' => false, 'mesaj' => 'Bu firmada bu kod zaten kullanılmış.'], 409);
         }
 
-        // 3-5) LG_SLSMAN + M_P_YETKI tek transaction içinde
+        // 3-5) Kullanıcı (LG_SLSMAN / LM_PERSONEL) + M_P_YETKI tek transaction içinde
         $dbh->beginTransaction();
 
-        $ekle = $dbh->prepare(
-            "INSERT INTO LG_SLSMAN (CODE, DEFINITION_, CARDTYPE, CAPIBLOCK_CREADEDDATE, USERID, FIRMNR, TYP, ACTIVE)
-             VALUES (:kod, :ad, 0, GETDATE(), 1, :firma, 0, 0)"
-        );
-        $ekle->execute([':kod' => $kod, ':ad' => $ad, ':firma' => $firma]);
-
-        $sonid = (int) $dbh->lastInsertId();
+        $sonid = lumen_personel_ekle($dbh, $kod, $ad, (int) $firma);
 
         $yetkiEkle = $dbh->prepare(
             "INSERT INTO M_P_YETKI (PERSONEL, SIFRE, YETKI) VALUES (:sonid, :sifre, :yetki)"
@@ -132,10 +126,7 @@ try {
     // 3) Tüm yazma işlemleri tek transaction içinde
     $dbh->beginTransaction();
 
-    $upd = $dbh->prepare(
-        "UPDATE LG_SLSMAN SET CODE = :kod, DEFINITION_ = :ad, FIRMNR = :firma WHERE LOGICALREF = :id"
-    );
-    $upd->execute([':kod' => $kod, ':ad' => $ad, ':firma' => $firma, ':id' => $id]);
+    lumen_personel_guncelle($dbh, $id, $kod, $ad, (int) $firma);
 
     if ($exists > 0) {
         $sqlYetki    = "UPDATE M_P_YETKI SET YETKI = :yetki";

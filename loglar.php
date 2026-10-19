@@ -46,7 +46,7 @@ if ($activeTab === 'ziyaret') {
                    SUM(Z.ZIYARET_SAYISI) AS TOP_ZIYARET,
                    MAX(Z.SON_ZIYARET) AS SON
             FROM M_SAYFA_ZIYARET Z
-            LEFT JOIN LG_SLSMAN S ON S.LOGICALREF = Z.PERSONEL_ID
+            LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = Z.PERSONEL_ID
             GROUP BY Z.PERSONEL_ID
             ORDER BY MAX(Z.SON_ZIYARET) DESC
         ");
@@ -1093,7 +1093,7 @@ try {
             NULL AS STOK_KODU,
             NULL AS STOK_ADI
         FROM M_FIS_LOG FL
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = FL.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = FL.KULLANICI
         WHERE FL.TARIH >= :date_from
           AND FL.TARIH < :date_to_exclusive
     ");
@@ -1128,7 +1128,7 @@ try {
             SD.STOK_KODU,
             SD.STOK_ADI
         FROM M_SATIR_DEGISIKLIK_LOG SD
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = SD.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = SD.KULLANICI
         WHERE SD.TARIH >= :date_from
           AND SD.TARIH < :date_to_exclusive
     ");
@@ -1163,7 +1163,7 @@ try {
             NULL AS STOK_KODU,
             NULL AS STOK_ADI
         FROM M_ISKONTO_LOG IL
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = IL.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = IL.KULLANICI
         WHERE IL.TARIH >= :date_from
           AND IL.TARIH < :date_to_exclusive
     ");
@@ -1198,7 +1198,7 @@ try {
             KD.STOK_KODU,
             KD.STOK_ADI
         FROM M_KDV_DEGISIKLIK_LOG KD
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = KD.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = KD.KULLANICI
         WHERE KD.TARIH >= :date_from
           AND KD.TARIH < :date_to_exclusive
     ");
@@ -1265,7 +1265,7 @@ try {
             MD.KULLANICI,
             SL.DEFINITION_ AS KULLANICI_ADI
         FROM M_MOBIL_DIZAYN_LOG MD
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = MD.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = MD.KULLANICI
         WHERE MD.TARIH >= :date_from
           AND MD.TARIH < :date_to_exclusive
     ");
@@ -1321,7 +1321,7 @@ try {
             FL.STOK_KODU,
             FL.STOK_ADI
         FROM M_FIYAT_LOG FL
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = FL.KULLANICI_ID
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = FL.KULLANICI_ID
         WHERE FL.TARIH >= :date_from
           AND FL.TARIH < :date_to_exclusive
     ");

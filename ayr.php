@@ -1011,9 +1011,13 @@ if (!function_exists('lumen_insert_kimlik')) {
    * trigger'lı tabloda hata verir) ve eşzamanlı kayıtlarda yanlış satırı döndüren
    * "SELECT MAX(LOGICALREF)" yönteminin yerine geçer.
    */
-  function lumen_insert_kimlik(PDO $dbh, string $insertSql, array $parametreler): int
+  function lumen_insert_kimlik(PDO $dbh, string $insertSql, array $parametreler, string $kimlikKolonu = 'LOGICALREF'): int
   {
-    $sql = preg_replace('/\)\s*VALUES\s*\(/i', ') OUTPUT INSERTED.LOGICALREF INTO @lumen_yeni VALUES (', $insertSql, 1, $adet);
+    // Kimlik kolonu: LOGO tablolarında LOGICALREF, Lumen (LM_) tablolarında ID.
+    if (preg_match('/^[A-Z_]{2,30}$/', $kimlikKolonu) !== 1) {
+      throw new InvalidArgumentException('lumen_insert_kimlik: geçersiz kimlik kolonu');
+    }
+    $sql = preg_replace('/\)\s*VALUES\s*\(/i', ") OUTPUT INSERTED.{$kimlikKolonu} INTO @lumen_yeni VALUES (", $insertSql, 1, $adet);
     if ($sql === null || $adet !== 1) {
       throw new InvalidArgumentException('lumen_insert_kimlik: INSERT ... VALUES (...) bekleniyor');
     }
