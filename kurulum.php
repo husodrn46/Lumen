@@ -272,6 +272,7 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
         .mod:has(input:checked) { border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft); }
         .mod input { margin-top:3px; accent-color:var(--red); }
         .mod b { display:block; font-size:13px; margin-bottom:3px; }
+        .mod .beta { font-size:10px; font-weight:700; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:1px 5px; margin-left:4px; vertical-align:1px; }
         .mod small { display:block; font-size:11.5px; color:var(--t2); line-height:1.4; }
         form.lumen .yalniz-logo, form:not(.lumen) .yalniz-lumen { display:none; }
         @media (max-width:520px){ .grid2, .modlar { grid-template-columns:1fr; } }
@@ -306,7 +307,7 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
                         <label class="mod"><input type="radio" name="mod" value="logo" <?php echo $modSec === 'logo' ? 'checked' : ''; ?>>
                             <span><b><i class="fa-solid fa-link"></i> LOGO'ya bağlı</b><small>Veriler LOGO Tiger veritabanında; Lumen ön yüz olarak çalışır.</small></span></label>
                         <label class="mod"><input type="radio" name="mod" value="lumen" <?php echo $modSec === 'lumen' ? 'checked' : ''; ?>>
-                            <span><b><i class="fa-solid fa-database"></i> Bağımsız</b><small>LOGO gerekmez; cari, stok, fatura, kasa Lumen'in kendi veritabanında.</small></span></label>
+                            <span><b><i class="fa-solid fa-database"></i> Bağımsız <span class="beta">BETA</span></b><small>LOGO gerekmez; cari, stok, fatura, kasa Lumen'in kendi veritabanında.</small></span></label>
                     </div>
                     <div class="grid2">
                         <div class="alan"><label>SQL Server</label><input name="db_server" value="<?php echo $val('db_server', 'localhost'); ?>" required></div>

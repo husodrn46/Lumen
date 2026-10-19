@@ -1,9 +1,22 @@
 # Değişiklik Günlüğü
 
-## [Yayımlanmadı] — Bağımsız Lumen
+## [1.3.0-beta.1] — 2026-10-19 (ÖN SÜRÜM — Bağımsız Lumen BETA)
+
+> ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.0**'ı kullanın. LOGO'ya bağlı
+> kullanımda davranış v1.2.0 ile aynıdır (aşağıdaki düzeltmeler hariç); yeni olan
+> **bağımsız mod** denemelik olarak sunulur.
 
 Lumen artık LOGO olmadan kendi veritabanıyla ön muhasebe yapabilir; LOGO'ya bağlı
 kullanım aynen sürer. Ayrıntı: `docs/mimari/bagimsiz-lumen.md`.
+
+**Yükseltme (v1.2.0'dan):** `php scripts/sema_guncelle.php` çalıştırın (yeni yetki
+kolonu M32 ve tablolar). Bağımsız moda geçiş için önce deneme kipinde
+`scripts/logo_aktar.php` (ayrıntı belgede); canlı LOGO veritabanına yazmaz.
+
+**Bilinen sınırlar (bağımsız mod):** üretim fişleri ekranı kapalı (üretim girişi
+Faturalar ekranından, M31); dövizli fatura ve dövizli çekler TL tutarıyla;
+Faturalama (BETA) yalnız LOGO modunda; e-Fatura/e-Arşiv ve resmi muhasebe yok;
+geçiş aracı geçmiş belgeleri, cariye özel fiyatları ve açık siparişleri taşımaz.
 
 ### Yeni
 

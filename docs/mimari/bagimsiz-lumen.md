@@ -1,5 +1,7 @@
 # Bağımsız Lumen — mimari ve yol haritası
 
+> **Durum: BETA** — ilk ön sürüm `v1.3.0-beta.1`. Kararlı sürüm (v1.2.0) yalnız LOGO'ya bağlı moddur.
+
 **Hedef:** Lumen tek başına çalışan bir ön muhasebe programı olur (kendi veritabanı,
 cari, stok, sipariş, irsaliye, KDV'li fatura, kasa/banka, çek/senet, raporlar) ve
 **ek olarak** hazır veritabanlarına (önce LOGO Tiger; ileride Netsis, Mikro, ETA)
