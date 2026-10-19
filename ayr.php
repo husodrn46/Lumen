@@ -2110,6 +2110,21 @@ if (!function_exists('m_p_siparis_goruntulebilir_mi')) {
   }
 }
 
+if (!function_exists('lumen_satir_surumu')) {
+  /**
+   * Sipariş satırının düzenleme anındaki sürüm damgası (iyimser kilit). Form bu
+   * değeri taşır; kayıtta satır o arada değişmişse (başka kullanıcı düzenlemiş)
+   * değişiklik ezilmez.
+   */
+  function lumen_satir_surumu(array $satir): string
+  {
+    return hash('sha256', implode('|', [
+      (string) ($satir['AMOUNT'] ?? ''), (string) ($satir['PRICE'] ?? ''),
+      (string) ($satir['VAT'] ?? ''), (string) ($satir['LINEEXP'] ?? ''),
+    ]));
+  }
+}
+
 if (!function_exists('m_p_siparis_duzenleyebilir_mi')) {
   /**
    * Kullanıcı sipariş fişini değiştirebilir mi (satır ekle/düzenle/sil, iskonto, KDV)?

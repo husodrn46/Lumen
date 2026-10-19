@@ -51,6 +51,15 @@ if(isset($_POST['stkduzenle'])){
 		exit('Gecersiz satir tipi.');
 	}
 
+	// Çakışma koruması: form yüklendikten sonra satır başka biri tarafından
+	// değiştirildiyse kaydetme (araya giren değişiklik sessizce eziliyordu).
+	// Damga göndermeyen eski istemciler için kontrol atlanır.
+	$gelenSurum = isset($_POST['satir_surum']) && is_string($_POST['satir_surum']) ? $_POST['satir_surum'] : '';
+	if ($gelenSurum !== '' && !hash_equals(lumen_satir_surumu($eskiSatir), $gelenSurum)) {
+		echo '<script>alert("Bu satır siz düzenlerken başka biri tarafından değiştirildi. Güncel hali yüklenecek; değişikliğinizi tekrar yapın."); window.location="lg_fis.php?stokhareket=' . (int) $eskiSatir['ORDFICHEREF'] . '";</script>';
+		exit;
+	}
+
 	$stokhareket = (int)$eskiSatir['ORDFICHEREF'];
 	// YETKI: satir duzenlemek yazma islemidir (fisekle.php kapisi: admin / M1 / M3) + cari gorunurlugu.
 	if (
