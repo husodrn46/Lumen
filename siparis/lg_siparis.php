@@ -96,6 +96,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         default => '../index.php',
     };
 
+    // Sipariş kimliği adreste taşınır (sekme güvenliği: oturumdaki değer başka
+    // bir sekmede açılan siparişle ezilebilir).
+    if ($redirect_url !== '../index.php') {
+        $redirect_url .= (str_contains($redirect_url, '?') ? '&' : '?') . 'stokhareket=' . (int) $stokhareket;
+        if ($action === 'save_only') {
+            $redirect_url .= '&sipariskaydet=1';
+        }
+        if ($action === 'print_yeni_dizayn') {
+            $redirect_url .= '&tipdurum=1';
+        }
+    }
     header("Location: {$redirect_url}");
     exit;
 }

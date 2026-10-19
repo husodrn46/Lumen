@@ -72,7 +72,9 @@ if ($stokid > 0 && $fisid > 0) {
     setPageParam('stokid', $stokid, 'lg_stok_duzenle');
     setPageParam('stokhareket', $fisid, 'lg_stok_duzenle');
     setPageParam('return_to', $lgStokEkleBackUrl, 'lg_stok_duzenle');
-    echo '<script>window.location="lg_stok_duzenle.php";</script>';
+    // Kimlikler adreste taşınır (sekme güvenliği: oturum tüm sekmelerde ortaktır)
+    echo '<script>window.location="lg_stok_duzenle.php?stokid=' . (int) $stokid . '&stokhareket=' . (int) $fisid
+        . '&return_to=' . rawurlencode((string) $lgStokEkleBackUrl) . '";</script>';
     exit;
   }
 } else {

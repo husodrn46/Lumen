@@ -3151,22 +3151,24 @@ JS;
 }
 
 /**
- * URL parametrelerini session'a aktar ve yönlendir
- * Bu fonksiyon sayfa başında çağrılmalı (herhangi bir çıktıdan önce)
+ * URL parametrelerini session'a da kaydeder (geri dönüş değeri olarak).
+ *
+ * SEKME GÜVENLİĞİ: Eskiden parametreler oturuma yazılıp adres temizleniyordu
+ * (?fisid=5 → temiz URL'ye yönlendirme). Oturum tüm sekmelerde ortaktır: A
+ * sekmesinde sipariş 5, B sekmesinde sipariş 7 açıldığında A sekmesi yenilenince
+ * ya da numarasız bir bağlantıyla 7'yi açıyor; ürün ekleme/düzenleme yanlış
+ * siparişe yazılabiliyordu. Artık adres temizlenmez: her sekme kimliği kendi
+ * adresinde taşır, getPageParam() önce adresi okur; oturum yalnız adresi
+ * parametresiz açılan sayfalar için yedektir. $redirect geriye uyumluluk için
+ * kabul edilir ve yok sayılır.
  *
  * @param array $allowedParams İzin verilen parametre listesi
- * @param bool $redirect true ise temiz URL'ye yönlendir
- * @return bool Yönlendirme yapıldı mı
+ * @param bool $redirect Kullanılmıyor (bkz. yukarı)
+ * @return bool Oturuma parametre yazıldı mı
  */
 function migrateUrlToSession(array $allowedParams = [], bool $redirect = true): bool
 {
-    // POST isteği ise atla
-    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-        return false;
-    }
-
-    // GET parametresi yoksa atla
-    if (empty($_GET)) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET' || empty($_GET)) {
         return false;
     }
 
@@ -3174,20 +3176,11 @@ function migrateUrlToSession(array $allowedParams = [], bool $redirect = true): 
     $hasParams = false;
 
     foreach ($_GET as $key => $value) {
-        // İzin listesi varsa kontrol et
-        if (!empty($allowedParams) && !in_array($key, $allowedParams)) {
+        if (!empty($allowedParams) && !in_array($key, $allowedParams, true)) {
             continue;
         }
-
         setPageParam($key, $value, $page);
         $hasParams = true;
-    }
-
-    // Yönlendirme yap
-    if ($hasParams && $redirect) {
-        $cleanUrl = strtok($_SERVER['REQUEST_URI'], '?');
-        header('Location: ' . $cleanUrl);
-        exit;
     }
 
     return $hasParams;
