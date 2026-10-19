@@ -140,6 +140,18 @@ SQL Server bağlantısı Microsoft ODBC Driver 18 ile varsayılan olarak `TrustS
 
 Öne çıkan ayarlar: `MAGAZA_CARI` (mağaza hızlı satış carisi, 0 = kapalı), `$dovizlicalis`, `$cokludepo`, `$urun_kodu_oneki` (raporları belirli bir ürün kodu ön ekiyle sınırlar; boş = tüm ürünler). Loglar `.env` `LOG_ROOT` verilmezse `logs/` klasörüne yazılır.
 
+## Zamanlanmış Görevler
+
+İsteğe bağlı bakım betikleri (`scripts/`, web'den erişilemez). Windows Görev
+Zamanlayıcı veya cron ile günde bir kez çalıştırın:
+
+| Betik | Ne yapar |
+|---|---|
+| `php scripts/bos_taslak_temizle.php --uygula` | Lumen'de açılıp vazgeçilen, satırsız ve 3+ gündür dokunulmamış sipariş taslaklarını siler (yalnız Lumen'in açtıkları; LOGO'nun fişlerine dokunmaz). `--uygula` olmadan yalnız listeler. |
+| `php scripts/log_hijyeni.php` | 10 MB'ı aşan log dosyalarını sıkıştırıp döndürür, 90 günden eski arşivleri siler (`--mb`, `--gun`, `--kuru`). |
+
+Örnek (Windows): `php.exe C:\inetpub\lumen\scripts\log_hijyeni.php`
+
 ## Kendi Markanız
 
 Ayarlar → **Marka / Logo** ekranından kendi yatay logonuzu ve uygulama ikonunuzu yükleyebilirsiniz (PNG/JPG/WEBP; sunucuda güvenli şekilde yeniden kodlanır). Vurgu rengi `--red` CSS değişkeniyle yönetilir.

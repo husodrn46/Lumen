@@ -41,44 +41,8 @@ if (!is_dir($logDir)) {
     @mkdir($logDir, 0775, true);
 }
 
-// 30 günden eski kayıtları temizle (günde 1 kez kontrol et)
-$cleanupFlag = $logDir . '/.last_cleanup';
-$shouldCleanup = false;
-
-if (!file_exists($cleanupFlag)) {
-    $shouldCleanup = true;
-} else {
-    $lastCleanup = filemtime($cleanupFlag);
-    // 24 saat geçtiyse tekrar temizle
-    if (time() - $lastCleanup > 86400) {
-        $shouldCleanup = true;
-    }
-}
-
-if ($shouldCleanup && file_exists($logFile)) {
-    $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    $cutoffDate = date('Y-m-d H:i:s', strtotime('-30 days'));
-    $newLines = [];
-
-    foreach ($lines as $line) {
-        // Satırdan tarih çıkar: [2025-08-06 16:15:48]
-        if (preg_match('/^\[([^\]]+)\]/', $line, $matches)) {
-            $logDate = $matches[1];
-            // 30 günden yeniyse tut
-            if ($logDate >= $cutoffDate) {
-                $newLines[] = $line;
-            }
-        }
-    }
-
-    // Temizlenmiş logları geri yaz
-    if (count($newLines) < count($lines)) {
-        file_put_contents($logFile, implode("\n", $newLines) . "\n", LOCK_EX);
-    }
-
-    // Temizlik zamanını kaydet
-    touch($cleanupFlag);
-}
+// Eski kayıt temizliği artık zamanlanmış görevdir: scripts/log_hijyeni.php
+// (eskiden günde bir kez bir kullanıcı isteği sırasında tüm log belleğe okunuyordu).
 
 // Log satırını dosyaya ekle
 @file_put_contents($logFile, $logLine, FILE_APPEND | LOCK_EX);
