@@ -116,6 +116,13 @@ Kurulum bitince sihirbaz kilitlenir (`.installed`). Artık `giris.php` üzerinde
 
 > Elle kurulum: `.env.example` → `.env` ve `_baglanti_.inc.example` → `_baglanti_.inc` kopyalayıp değerleri doldurun.
 
+### Yazma izinleri
+
+Web sunucusu kullanıcısının (IIS: `IIS_IUSRS` / uygulama havuzu kimliği; Apache/nginx:
+`www-data` vb.) şu klasörlere yazabilmesi gerekir: `logs/` (veya `LOG_ROOT`),
+`database/` (ayarlar ve enflasyon verisi), `cek_ekleri/`, `gorev_ekleri/`, `tmp/`;
+logo yüklemek için proje kökündeki `logo.png` / `icon.png`.
+
 ### Güncelleme
 
 Yeni bir Lumen sürümüne geçtikten sonra (dosyaları güncelleyip `composer install`),

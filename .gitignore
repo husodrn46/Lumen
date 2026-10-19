@@ -52,5 +52,8 @@ Desktop.ini
 *.zip
 ~$*
 
-# Uygulama yerel veritabanları (enflasyon SQLite; TCMB API anahtarı içerir)
-/database/
+# Uygulama yerel verileri (ayarlar.json, enflasyon SQLite; TCMB API anahtarı içerir).
+# Klasör ve koruma dosyaları depoda; içerik versiyonlanmaz.
+/database/*
+!/database/.htaccess
+!/database/web.config
