@@ -49,6 +49,16 @@ docker compose -f demo/docker-compose.yml exec app php tests/duman/tara.php
 LUMEN_TEST_SADECE=cari/ docker compose -f demo/docker-compose.yml exec -e LUMEN_TEST_SADECE app php tests/duman/tara.php
 ```
 
+```bash
+# Akış testleri: gerçek iş akışları uçtan uca, sonuç veritabanından doğrulanır
+# (sipariş + iskonto + satır silme, yazdırma düğmeleri, KDV toplamı, sekme
+#  güvenliği, çek girişi/mükerrer/geri alma, dövizli sipariş, ayarlar, yetki, API)
+docker compose -f demo/docker-compose.yml exec app php tests/akis/akislar.php
+```
+
+Akış testleri demo verisini değiştirir; yalnız `LUMEN_` ile başlayan veritabanında
+çalışır. Temiz başlangıç için önce `bash demo/kur.sh`.
+
 Duman testi her isteği sınar: HTTP 500, gövdede PHP hata metni, istek sırasında
 `logs/` altındaki PHP/uygulama hata loglarına yazılan satırlar; oturumsuz erişimin
 girişe yönlenmesi; personelin yönetici sayfalarına erişememesi. GitHub Actions'taki

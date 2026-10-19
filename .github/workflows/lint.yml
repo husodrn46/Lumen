@@ -113,6 +113,9 @@ jobs:
       - name: Duman testi (tüm sayfalar × 3 kullanıcı + oturumsuz erişim)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/duman/tara.php
 
+      - name: Akış testleri (sipariş, iskonto, yazdırma, çek, döviz, ayarlar, yetki, API)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
+
       - name: Konteyner logları (hata durumunda)
         if: failure()
         run: |
