@@ -26,7 +26,7 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 $canSeeBalance = (m_p_yetki($terminalkullanici, 'CR1') == 1);
 
 $rawQ = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
-$q = $rawQ !== '' ? turkce($rawQ) : '';
+$q = $rawQ !== '' ? lumen_arama_terimi($rawQ) : '';
 
 // Minimum gösterim tutarı
 $rawMin = isset($_GET['min']) ? trim((string) $_GET['min']) : '';
@@ -80,7 +80,7 @@ if ($canSeeBalance) {
 
     if ($q !== '') {
         $like = "%{$q}%";
-        $where[] = "(" . $normalize('C.DEFINITION_') . " LIKE :p1 OR " . $normalize('C.CODE') . " LIKE :p2 OR " . $normalize('C.CITY') . " LIKE :p3)";
+        $where[] = "(" . lumen_arama_sql('C.DEFINITION_') . " LIKE :p1 OR " . lumen_arama_sql('C.CODE') . " LIKE :p2 OR " . lumen_arama_sql('C.CITY') . " LIKE :p3)";
         $params[':p1'] = $like;
         $params[':p2'] = $like;
         $params[':p3'] = $like;

@@ -9,7 +9,7 @@ header('Content-Type: application/json; charset=utf-8');
  *  Parametre ve joker (%) hazırlığı
  * ----------------------------------------------------- */
 $raw = isset($_GET['term']) ? trim((string) $_GET['term']) : '';
-$like = '%' . str_replace(['[', '%', '_'], ['[[]', '[%]', '[_]'], $raw) . '%';
+$like = '%' . lumen_arama_terimi($raw) . '%';
 
 /* -------------------------------------------------------
  *  Sorgu – aktif cariler + arama filtresi
@@ -27,9 +27,9 @@ $sql = "
          COUNTRY
   FROM   {$firma}CLCARD
   WHERE  ACTIVE = 0
-    AND ( CODE          LIKE :q1
-       OR DEFINITION_   LIKE :q2
-       OR DEFINITION2   LIKE :q3 )
+    AND ( " . lumen_arama_sql('CODE') . " LIKE :q1
+       OR " . lumen_arama_sql('DEFINITION_') . " LIKE :q2
+       OR " . lumen_arama_sql('DEFINITION2') . " LIKE :q3 )
   ORDER BY CODE";
 
 $stmt = $dbh->prepare($sql);

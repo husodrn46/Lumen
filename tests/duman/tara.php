@@ -165,7 +165,8 @@ foreach (['YONETICI', 'SATIS1', 'DEPO1'] as $kullanici) {
         $once = log_boyutlari($logDosyalari);
         $r = istek("$URL/$yol", $cerez);
         $etiket = "$kullanici";
-        if ($r['kod'] >= 500) {
+        // 501: sunucuda bulunmayan özellik için bilinçli yanıt (ör. php_printer yok)
+        if ($r['kod'] >= 500 && $r['kod'] !== 501) {
             $hata("HTTP{$r['kod']}", $yol, "$etiket");
         }
         if (preg_match(PHP_HATA_DESENI, $r['govde'], $m)) {

@@ -77,10 +77,11 @@ $salesmanRef = isset($_GET['salesman']) ? (int)$_GET['salesman'] : 0;
 // -- 1c) Gelişmiş filtreler
 $searchQuery = trim((string)($_GET['q'] ?? ''));
 $searchQuery = function_exists('mb_substr') ? mb_substr($searchQuery, 0, 120) : substr($searchQuery, 0, 120);
-// Turkce karakterleri normalize et (magaza = MAĞAZA esitligi icin).
-// DB charset latin5, PHP UTF-8. Kullanici "mağa" yazarsa "maga"ya cevrilir,
-// SQL tarafinda COLLATE Turkish_CI_AI ile accent-insensitive eslesir.
-$searchQueryNorm = function_exists('turkce') ? turkce($searchQuery) : $searchQuery;
+// Türkçe harf ve büyük/küçük harf duyarsız arama (MAĞAZA = magaza, IC ANADOLU = İç Anadolu):
+// kolon tarafında lumen_arama_sql(), terim tarafında lumen_arama_terimi() (LIKE kaçışlı).
+$searchQueryNorm = lumen_arama_terimi($searchQuery);
+// Tam eşleşme (=) için LIKE kaçışı uygulanmaz; yalnız ı→i katlaması.
+$searchQueryExact = str_replace('ı', 'i', $searchQuery);
 $dateFromInput = trim((string)($_GET['date_from'] ?? ''));
 $dateToInput = trim((string)($_GET['date_to'] ?? ''));
 $minTotalInput = trim((string)($_GET['min_total'] ?? ''));
@@ -185,30 +186,33 @@ if ($salesmanRef > 0) {
 
 $relevanceSelect = "0 AS RELEVANCE_SCORE";
 if ($searchQuery !== '') {
-    // COLLATE Latin1_General_CI_AI: Case Insensitive + Accent Insensitive,
-    // "I = i" esitligi (Ingilizce kurali). Turkish_CI_AI kullanmiyoruz cunku
-    // Turkce'de I -> ı cevriliyor ve "teklif" aramasi "TEKLIF" ile eslesmiyor.
-    // Latin1_General ile hem ş/s, ğ/g hem de I/i esit sayilir.
-    $conditions[] = "(FS.FICHENO COLLATE Latin1_General_CI_AI LIKE :q_where_ficheno
-        OR CR.DEFINITION_ COLLATE Latin1_General_CI_AI LIKE :q_where_musteri
-        OR CR.CITY COLLATE Latin1_General_CI_AI LIKE :q_where_sehir
-        OR SL.CODE COLLATE Latin1_General_CI_AI LIKE :q_where_satiskodu
-        OR SL.DEFINITION_ COLLATE Latin1_General_CI_AI LIKE :q_where_satisadi
-        OR FS.GENEXP1 COLLATE Latin1_General_CI_AI LIKE :q_where_aciklama)";
+    // lumen_arama_sql(): NVARCHAR + Latin1_General_CI_AI + ı→i; Türkçe harf ve
+    // büyük/küçük harf duyarsız (I = i = İ = ı, ş = s, ğ = g ...).
+    $aFis = lumen_arama_sql('FS.FICHENO');
+    $aMusteri = lumen_arama_sql('CR.DEFINITION_');
+    $aSehir = lumen_arama_sql('CR.CITY');
+    $aSatisKodu = lumen_arama_sql('SL.CODE');
+    $aSatisAdi = lumen_arama_sql('SL.DEFINITION_');
+    $aAciklama = lumen_arama_sql('FS.GENEXP1');
+    $conditions[] = "({$aFis} LIKE :q_where_ficheno
+        OR {$aMusteri} LIKE :q_where_musteri
+        OR {$aSehir} LIKE :q_where_sehir
+        OR {$aSatisKodu} LIKE :q_where_satiskodu
+        OR {$aSatisAdi} LIKE :q_where_satisadi
+        OR {$aAciklama} LIKE :q_where_aciklama)";
 
     $relevanceSelect = "CASE
-            WHEN FS.FICHENO COLLATE Latin1_General_CI_AI = :q_exact THEN 100
-            WHEN FS.FICHENO COLLATE Latin1_General_CI_AI LIKE :q_prefix_fis THEN 70
-            WHEN FS.FICHENO COLLATE Latin1_General_CI_AI LIKE :q_like_fis THEN 50
-            WHEN CR.DEFINITION_ COLLATE Latin1_General_CI_AI LIKE :q_prefix_musteri THEN 35
-            WHEN CR.DEFINITION_ COLLATE Latin1_General_CI_AI LIKE :q_like_musteri THEN 25
-            WHEN CR.CITY COLLATE Latin1_General_CI_AI LIKE :q_like_sehir THEN 15
-            WHEN SL.CODE COLLATE Latin1_General_CI_AI LIKE :q_prefix_satiskodu THEN 12
-            WHEN SL.DEFINITION_ COLLATE Latin1_General_CI_AI LIKE :q_like_satisadi THEN 10
+            WHEN {$aFis} = :q_exact THEN 100
+            WHEN {$aFis} LIKE :q_prefix_fis THEN 70
+            WHEN {$aFis} LIKE :q_like_fis THEN 50
+            WHEN {$aMusteri} LIKE :q_prefix_musteri THEN 35
+            WHEN {$aMusteri} LIKE :q_like_musteri THEN 25
+            WHEN {$aSehir} LIKE :q_like_sehir THEN 15
+            WHEN {$aSatisKodu} LIKE :q_prefix_satiskodu THEN 12
+            WHEN {$aSatisAdi} LIKE :q_like_satisadi THEN 10
             ELSE 1
         END AS RELEVANCE_SCORE";
 
-    // Normalize edilmis (Turkce karakteri cikarilmis) versiyonla arama yap
     $searchLike = '%' . $searchQueryNorm . '%';
     $searchPrefix = $searchQueryNorm . '%';
     $queryParams[':q_where_ficheno'] = $searchLike;
@@ -217,7 +221,7 @@ if ($searchQuery !== '') {
     $queryParams[':q_where_satiskodu'] = $searchLike;
     $queryParams[':q_where_satisadi'] = $searchLike;
     $queryParams[':q_where_aciklama'] = $searchLike;
-    $queryParams[':q_exact'] = $searchQueryNorm;
+    $queryParams[':q_exact'] = $searchQueryExact;
     $queryParams[':q_prefix_fis'] = $searchPrefix;
     $queryParams[':q_like_fis'] = $searchLike;
     $queryParams[':q_prefix_musteri'] = $searchPrefix;

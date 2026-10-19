@@ -43,7 +43,7 @@ if (!function_exists('paraformat')) {
 $rows = [];
 // Session bazli parametre sistemi
 $raw = getPageParamString('cari');
-$cari = turkce($raw);
+$cari = lumen_arama_terimi($raw);
 $hasSearch = ($cari !== '');
 $limit = isset($carilistesayisi) ? max(1, (int) $carilistesayisi) : 100;
 
@@ -83,15 +83,9 @@ if ($hasSearch) {
     $like = "%{$cari}%";
     $sql .= "
     AND (
-         REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-           C.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-           COLLATE Turkish_CI_AS LIKE :p1
-      OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-           C.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-           COLLATE Turkish_CI_AS LIKE :p2
-      OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-           C.CITY, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-           COLLATE Turkish_CI_AS LIKE :p3
+         " . lumen_arama_sql('C.DEFINITION_') . " LIKE :p1
+      OR " . lumen_arama_sql('C.CODE') . " LIKE :p2
+      OR " . lumen_arama_sql('C.CITY') . " LIKE :p3
     )";
     $params = array_merge($params, [':p1' => $like, ':p2' => $like, ':p3' => $like]);
 }

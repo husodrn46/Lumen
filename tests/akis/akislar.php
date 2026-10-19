@@ -186,6 +186,15 @@ akis('sekme güvenliği: başka sekmede açılan fiş ilk sekmeyi etkilemez', fu
     bekle(str_contains($g, "stokhareket={$fis}"), 'ilk sekme diğer sekmenin fişine yazacak');
 });
 
+akis('arama Türkçe harf ve büyük/küçük harf duyarsız (cari + ürün)', function () use ($yonetici): void {
+    foreach (['İç Anadolu', 'ic anadolu', 'IC ANADOLU'] as $q) {
+        bekle(str_contains($yonetici->istek('cari/cari.php?cari=' . rawurlencode($q))['govde'], '120.DM.009'), "cari bulunamadı: {$q}");
+    }
+    foreach (['Tabağı', 'tabagi', 'TABAGI', 'TABAĞI'] as $q) {
+        bekle(str_contains($yonetici->istek('fiyat/fiyat_listesi.php?q=' . rawurlencode($q))['govde'], 'DM-0001'), "ürün bulunamadı: {$q}");
+    }
+});
+
 akis('çek girişi kuruşlu tutarı aynen kaydeder; mükerrer gönderim ve geri alma', function () use ($yonetici, $pdo): void {
     $t = $yonetici->belirtec('cek/cek_panel.php?cari=4');
     $istek = bin2hex(random_bytes(16));

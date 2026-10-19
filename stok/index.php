@@ -58,8 +58,8 @@ if ($endDate !== '') {
     $params[] = $endDate . ' 00:00:00';
 }
 if ($fichenoFilter !== '') {
-    $conditions[] = "f.FICHENO LIKE ?";
-    $params[] = '%' . $fichenoFilter . '%';
+    $conditions[] = lumen_arama_sql('f.FICHENO') . " LIKE ?";
+    $params[] = '%' . lumen_arama_terimi($fichenoFilter) . '%';
 }
 $whereSql = implode(' AND ', $conditions);
 $query = "

@@ -9,12 +9,11 @@ header('Content-Type: application/json; charset=utf-8');
 $query = $_GET['q'] ?? '';
 
 if (!empty($query)) {
-    $escaped = str_replace(['[', '%', '_'], ['[[]', '[%]', '[_]'], $query);
-    $searchTerm = "%$escaped%";
+    $searchTerm = '%' . lumen_arama_terimi($query) . '%';
     $stmt = $dbh->prepare("
         SELECT TOP 10 LOGICALREF, CODE, DEFINITION_
         FROM {$firma}CLCARD
-        WHERE (CODE LIKE :query1 OR DEFINITION_ LIKE :query2) AND ACTIVE=0
+        WHERE (" . lumen_arama_sql('CODE') . " LIKE :query1 OR " . lumen_arama_sql('DEFINITION_') . " LIKE :query2) AND ACTIVE=0
     ");
     $stmt->bindParam(':query1', $searchTerm, PDO::PARAM_STR);
     $stmt->bindParam(':query2', $searchTerm, PDO::PARAM_STR);

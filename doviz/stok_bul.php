@@ -54,7 +54,7 @@ $doviz = $dovizBilgileri[$trcurr] ?? ['kod' => 'DV', 'sembol' => '?', 'icon' => 
 // Ürün arama
 $urunler = [];
 if (strlen($aramaMetni) >= 2) {
-    $aramaParam = '%' . turkce($aramaMetni) . '%';
+    $aramaParam = '%' . lumen_arama_terimi($aramaMetni) . '%';
 
     // Önce barkod tam eşleşme kontrolü
     $stmtBarkod = $dbh->prepare("SELECT ITEMREF FROM {$firma}UNITBARCODE WHERE BARCODE = :barkod");
@@ -86,10 +86,8 @@ if (strlen($aramaMetni) >= 2) {
             LEFT JOIN {$firma}UNITSETL U ON U.UNITSETREF = I.UNITSETREF AND U.MAINUNIT = 1
             WHERE I.ACTIVE = 0 AND I.CARDTYPE <> 22
               AND (
-                  REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                    I.NAME, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                    LIKE :q1
-                  OR I.CODE LIKE :q2
+                  " . lumen_arama_sql('I.NAME') . " LIKE :q1
+                  OR " . lumen_arama_sql('I.CODE') . " LIKE :q2
               )
             ORDER BY I.NAME
         ");

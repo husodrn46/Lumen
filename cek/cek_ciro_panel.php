@@ -32,8 +32,9 @@ if ($erisim) {
     if ($ara !== '' && $cariRef <= 0) {
         try {
             $q = $dbh->prepare("SELECT TOP 30 LOGICALREF, CODE, DEFINITION_ FROM {$firma}CLCARD
-                                WHERE ACTIVE=0 AND (DEFINITION_ LIKE :a1 OR CODE LIKE :a2) ORDER BY DEFINITION_");
-            $q->execute([':a1' => '%' . $ara . '%', ':a2' => '%' . $ara . '%']);
+                                WHERE ACTIVE=0 AND (" . lumen_arama_sql('DEFINITION_') . " LIKE :a1 OR " . lumen_arama_sql('CODE') . " LIKE :a2) ORDER BY DEFINITION_");
+            $araLike = '%' . lumen_arama_terimi($ara) . '%';
+            $q->execute([':a1' => $araLike, ':a2' => $araLike]);
             $cariler = $q->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) { $cariler = []; }
     }

@@ -27,9 +27,10 @@ $countSql = "SELECT COUNT(*) as toplam FROM {$firma}ITEMS WHERE {$urunKosuluDuz}
 $countParams = [];
 
 if ($arama !== '') {
-    $countSql .= " AND (CODE LIKE :arama OR NAME LIKE :arama2)";
-    $countParams[':arama'] = "%$arama%";
-    $countParams[':arama2'] = "%$arama%";
+    $countSql .= " AND (" . lumen_arama_sql('CODE') . " LIKE :arama OR " . lumen_arama_sql('NAME') . " LIKE :arama2)";
+    $aramaLike = '%' . lumen_arama_terimi($arama) . '%';
+    $countParams[':arama'] = $aramaLike;
+    $countParams[':arama2'] = $aramaLike;
 }
 
 $countStmt = $dbh->prepare($countSql);
@@ -56,9 +57,9 @@ $sql = "
 
 $params = [];
 if ($arama !== '') {
-    $sql .= " AND (I.CODE LIKE :arama OR I.NAME LIKE :arama2)";
-    $params[':arama'] = "%$arama%";
-    $params[':arama2'] = "%$arama%";
+    $sql .= " AND (" . lumen_arama_sql('I.CODE') . " LIKE :arama OR " . lumen_arama_sql('I.NAME') . " LIKE :arama2)";
+    $params[':arama'] = $aramaLike;
+    $params[':arama2'] = $aramaLike;
 }
 
 $sql .= " ORDER BY

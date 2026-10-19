@@ -219,11 +219,11 @@ function fetch_item_by_value(PDO $dbh, string $firma, mixed $value): ?array
     $stmt->execute([$value]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
-        $likeAny = '%' . $value . '%';
-        // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama
+        $likeAny = '%' . lumen_arama_terimi($value) . '%';
+        // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama (Türkçe harf/büyük-küçük duyarsız)
         $conditions = [
-            'S.CODE LIKE ?',
-            'S.NAME LIKE ?'
+            lumen_arama_sql('S.CODE') . ' LIKE ?',
+            lumen_arama_sql('S.NAME') . ' LIKE ?'
             // 'B.BARCODE LIKE ?'
         ];
         $params = [$likeAny, $likeAny];
@@ -282,12 +282,12 @@ function search_items(PDO $dbh, string $firma, string $term, int $limit = 10): a
     }
 
     $codePrefix = urun_kodu_oneki() . '%';
-    $likeAny = '%' . $term . '%';
+    $likeAny = '%' . lumen_arama_terimi($term) . '%';
 
-    // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama
+    // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama (Türkçe harf/büyük-küçük duyarsız)
     $searchConditions = [
-        'S.CODE LIKE ?',
-        'S.NAME LIKE ?'
+        lumen_arama_sql('S.CODE') . ' LIKE ?',
+        lumen_arama_sql('S.NAME') . ' LIKE ?'
         // 'B.BARCODE LIKE ?'
     ];
 

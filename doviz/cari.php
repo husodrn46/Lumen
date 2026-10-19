@@ -48,7 +48,7 @@ $canSeeBalance = (($yetkidurum ?? null) === 0 || m_p_yetki($terminalkullanici, '
 
 if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
     $aramaMetni = trim($_GET['q']);
-    $aramaParam = '%' . turkce($aramaMetni) . '%';
+    $aramaParam = '%' . lumen_arama_terimi($aramaMetni) . '%';
     $bakiyeSql = $canSeeBalance
         ? "ISNULL((SELECT SUM(DEBIT - CREDIT) FROM {$firmadonemx}GNTOTCL WHERE CARDREF = C.LOGICALREF AND TOTTYP = 1), 0)"
         : "0";
@@ -68,10 +68,8 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
         WHERE C.ACTIVE = 0
           AND C.CARDTYPE IN (3, 10)
           AND (
-              REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                C.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                LIKE :q1
-              OR C.CODE LIKE :q2
+              " . lumen_arama_sql('C.DEFINITION_') . " LIKE :q1
+              OR " . lumen_arama_sql('C.CODE') . " LIKE :q2
           ){$ozelCariSql}
         ORDER BY C.DEFINITION_
     ");
