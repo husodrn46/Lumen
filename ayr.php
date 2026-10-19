@@ -499,6 +499,12 @@ function remember_token_dogrula(string $selector, string $validator)
         if ($prev !== '' && hash_equals($prev, $actualHash)) {
             remember_token_sil_personel((int) $token['PERSONEL_ID']);
             error_log('remember_token: eski dogrulayici yeniden kullanildi, personel ' . (int) $token['PERSONEL_ID'] . ' belirtecleri iptal edildi');
+            require_once __DIR__ . '/includes/bildirim.php';
+            $kimin = (int) $token['PERSONEL_ID'];
+            lumen_bildirim_ekle($dbh, $kimin, 'guvenlik', '"Beni hatırla" çereziniz başka bir cihazda kullanıldı',
+                'Güvenlik için tüm hatırlama oturumlarınız kapatıldı. Bu siz değilseniz parolanızı değiştirin.', 'sifre_degistir.php');
+            lumen_bildirim_yoneticilere($dbh, 'guvenlik', 'Kopyalanmış oturum çerezi tespit edildi',
+                'Kullanıcı #' . $kimin . ' için eski "beni hatırla" çerezi yeniden kullanıldı; belirteçleri iptal edildi.', 'loglar.php', null, $kimin);
         }
         return false;
     } catch (Exception $e) {

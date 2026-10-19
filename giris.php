@@ -170,6 +170,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kullaniciadi'])) {
         if ($kilitRow && (int) $kilitRow['sayi'] >= $hesap_kilit_esik) {
             $kalan_dk = max(1, (int) ceil(((int) $kilitRow['kalan_saniye']) / 60));
             $error_message = "Çok fazla hatalı giriş nedeniyle hesabınız geçici olarak kilitlendi. Lütfen {$kalan_dk} dakika sonra tekrar deneyin.";
+            require_once __DIR__ . '/includes/bildirim.php';
+            // Saat başına bir bildirim (anahtar): kilitliyken her deneme yeni bildirim üretmez.
+            lumen_bildirim_yoneticilere($dbh, 'guvenlik', 'Hesap geçici olarak kilitlendi: ' . $veri_kullanici,
+                'Çok fazla hatalı giriş denemesi (IP ' . getUserIP() . ').', 'loglar.php', 'kilit-' . md5($veri_kullanici) . '-' . date('YmdH'));
             goto render_form;
         }
     } catch (Exception $e) {

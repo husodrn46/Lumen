@@ -183,6 +183,12 @@ if (!function_exists('lumen_ayar_kaydet')) {
                 @unlink($gecici);
                 return false;
             }
+            if ($degisen !== [] && isset($GLOBALS['dbh']) && $GLOBALS['dbh'] instanceof PDO) {
+                require_once __DIR__ . '/bildirim.php';
+                lumen_bildirim_yoneticilere($GLOBALS['dbh'], 'ayar', 'Sistem ayarları değiştirildi',
+                    'Değişen: ' . implode(', ', array_keys($degisen)) . ' (kullanıcı #' . $kullaniciId . ')',
+                    'ayar/sistem_ayarlari.php', null, $kullaniciId);
+            }
             if ($degisen !== [] && function_exists('app_log_write')) {
                 app_log_write('ayar-degisiklik', [
                     'kullanici' => $kullaniciId,

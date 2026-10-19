@@ -327,6 +327,8 @@ $gun_isimleri = ['Monday'=>'Pazartesi','Tuesday'=>'Salı','Wednesday'=>'Çarşam
 $ay_isimleri = ['January'=>'Ocak','February'=>'Şubat','March'=>'Mart','April'=>'Nisan','May'=>'Mayıs','June'=>'Haziran','July'=>'Temmuz','August'=>'Ağustos','September'=>'Eylül','October'=>'Ekim','November'=>'Kasım','December'=>'Aralık'];
 $bugun_tr = date('j') . ' ' . ($ay_isimleri[date('F')] ?? date('F')) . ' ' . date('Y') . ', ' . ($gun_isimleri[date('l')] ?? date('l'));
 $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_sayisi;
+require_once __DIR__ . '/includes/bildirim.php';
+$okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -1281,6 +1283,10 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
             </div>
 
             <div class="header-right">
+                <a href="bildirimler.php" class="h-btn" title="Bildirimler" style="position:relative;" aria-label="Bildirimler<?php echo $okunmamis_bildirim > 0 ? ' (' . $okunmamis_bildirim . ' okunmamış)' : ''; ?>">
+                    <i class="fa-solid fa-bell"></i><span class="h-btn-text">Bildirimler</span>
+                    <?php if ($okunmamis_bildirim > 0): ?><span class="h-btn-badge"><?php echo $okunmamis_bildirim > 99 ? '99+' : $okunmamis_bildirim; ?></span><?php endif; ?>
+                </a>
                 <button type="button" onclick="if(window.lumenTur)window.lumenTur()" class="h-btn h-desktop-only" title="Tanıtım turu"><i class="fa-solid fa-circle-question"></i><span class="h-btn-text">Tur</span></button>
                 <a href="ayar/gorunum.php" class="h-btn h-desktop-only"><i class="fa-solid fa-sliders"></i><span class="h-btn-text">Ayarlar</span></a>
                 <a href="sifre_degistir.php" class="h-btn h-desktop-only"><i class="fa-solid fa-key"></i><span class="h-btn-text">Şifre</span></a>
@@ -1293,6 +1299,7 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
         </div>
 
         <div class="mobile-dropdown" id="mobileDropdown">
+            <a href="bildirimler.php"><i class="fa-solid fa-bell"></i> Bildirimler<?php echo $okunmamis_bildirim > 0 ? ' (' . $okunmamis_bildirim . ')' : ''; ?></a>
             <a href="ayar/gorunum.php"><i class="fa-solid fa-sliders"></i> Ayarlar</a>
             <a href="sifre_degistir.php"><i class="fa-solid fa-key"></i> Şifre Değiştir</a>
             <div class="dd-sep"></div>

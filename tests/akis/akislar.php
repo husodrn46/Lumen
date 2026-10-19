@@ -327,6 +327,27 @@ akis('entegrasyon hesabı: API okur, yazamaz, web\'e giremez', function () use (
     bekle(str_contains($web->istek('index.php')['yer'], 'hata=entegrasyon'), 'entegrasyon hesabı web\'e girdi');
 });
 
+akis('bildirim: görev atanınca alıcının zilinde görünür, tıklayınca okunur', function () use ($yonetici, $URL, $pdo): void {
+    $t = $yonetici->belirtec('gorev/gorevler.php');
+    $baslik = 'Akış testi görevi ' . bin2hex(random_bytes(3));
+    $j = json_decode($yonetici->istek('gorev/gorev_islem.php', ['csrf_token' => $t, 'islem' => 'olustur', 'atanan_id' => 2,
+        'baslik' => $baslik, 'oncelik' => 1, 'kategori' => 1])['govde'], true);
+    bekle(($j['ok'] ?? $j['success'] ?? false) == true, 'görev oluşturulamadı: ' . json_encode($j, JSON_UNESCAPED_UNICODE));
+    $id = (int) tek($pdo, "SELECT TOP 1 ID FROM M_BILDIRIM WHERE PERSONEL_ID = 2 AND TUR = 'gorev' AND METIN LIKE :b ORDER BY ID DESC",
+        [':b' => $baslik . '%']);
+    bekle($id > 0, 'atanana bildirim yazılmadı');
+    $satis = (new Tarayici($URL))->giris('SATIS1');
+    bekle(str_contains($satis->istek('index.php')['govde'], 'h-btn-badge'), 'zilde okunmamış rozeti yok');
+    $tb = $satis->belirtec('bildirimler.php');
+    $r = $satis->istek('bildirimler.php', ['csrf_token' => $tb, 'ac' => $id]);
+    bekle(str_contains($r['yer'], 'gorev/gorevler.php'), 'bildirim görev sayfasına götürmedi');
+    bekle((int) tek($pdo, "SELECT OKUNDU FROM M_BILDIRIM WHERE ID = :i", [':i' => $id]) === 1, 'bildirim okundu işaretlenmedi');
+    // Başkasının bildirimini okundu yapamaz
+    $diger = (int) tek($pdo, "INSERT INTO M_BILDIRIM (PERSONEL_ID, TUR, BASLIK) OUTPUT INSERTED.ID VALUES (3, 'sistem', N'DEPO1 icin')");
+    $satis->istek('bildirimler.php', ['csrf_token' => $satis->belirtec('bildirimler.php'), 'ac' => $diger]);
+    bekle((int) tek($pdo, "SELECT OKUNDU FROM M_BILDIRIM WHERE ID = :i", [':i' => $diger]) === 0, 'başkasının bildirimi değiştirildi');
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

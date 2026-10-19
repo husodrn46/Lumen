@@ -73,6 +73,7 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
 - 📊 **Raporlar** — satış, cari yaşlandırma, kâr-zarar, çek, KDV, pazarlamacı performansı
 - 🏷️ **Barkod / etiket** üretimi
 - ✅ **Görev takibi**
+- 🔔 **Bildirim kutusu** — görev atama/tamamlama/yorum, vadesi yaklaşan görev ve çekler, güvenlik ve ayar olayları
 - 📱 **Mobil uyumlu + PWA** — telefona kısayol olarak eklenebilir
 - 🎨 **Kişiselleştirme** — kullanıcı bazlı vurgu rengi, yazı boyutu, "müşteri yanında" gizli mod
 - 🔐 **Rol bazlı yetki** — yönetici / personel / müşteri / entegrasyon (salt okunur API hesabı); kod bazlı ekran izinleri
@@ -148,6 +149,7 @@ Zamanlayıcı veya cron ile günde bir kez çalıştırın:
 | Betik | Ne yapar |
 |---|---|
 | `php scripts/bos_taslak_temizle.php --uygula` | Lumen'de açılıp vazgeçilen, satırsız ve 3+ gündür dokunulmamış sipariş taslaklarını siler (yalnız Lumen'in açtıkları; LOGO'nun fişlerine dokunmaz). `--uygula` olmadan yalnız listeler. |
+| `php scripts/bildirim_hatirlatici.php` | Vadesi yarın/bugün olan veya geçen görevleri atanana, vadesi 3 gün içinde olan portföy çeklerini çek yetkililerine bildirim kutusuna yazar (her olay bir kez). |
 | `php scripts/log_hijyeni.php` | 10 MB'ı aşan log dosyalarını sıkıştırıp döndürür, 90 günden eski arşivleri siler (`--mb`, `--gun`, `--kuru`). |
 
 Örnek (Windows): `php.exe C:\inetpub\lumen\scripts\log_hijyeni.php`
