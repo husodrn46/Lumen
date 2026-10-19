@@ -22,6 +22,13 @@ if ($db === null || $dosyalar === []) {
     exit(2);
 }
 
+// Canlı veritabanı koruması: bu araç veritabanına yazar (demo verisini siler).
+// Yalnız LUMEN_ ile başlayan (demo/test) veritabanlarında çalışır.
+if (!preg_match('/^LUMEN_[A-Z0-9_]+$/', (string) $db)) {
+    fwrite(STDERR, "REDDEDİLDİ: '{$db}' bir demo/test veritabanı değil (LUMEN_ ile başlamalı).\n");
+    exit(3);
+}
+
 $dsn = sprintf('sqlsrv:server=%s;database=%s;TrustServerCertificate=1', getenv('AKL_DB_SERVER') ?: 'db', $db);
 $pdo = new PDO($dsn, getenv('AKL_DB_USER') ?: 'sa', getenv('AKL_DB_PASS') ?: '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
