@@ -20,9 +20,8 @@ $donemSecim = isset($_GET['donem']) ? $_GET['donem'] : 'tumu';
 // Geçerli seçenekler: aktif (2026), onceki (2025), tumu (her iki dönem)
 
 // CARİ BİLGİLERİNİ ÇEKME (BAŞLIKTA KULLANMAK İÇİN)
-$sql_cari_info = $dbh->prepare("SELECT CODE, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF = :cariid");
-$sql_cari_info->execute([':cariid' => $CARIID]);
-$cari_info = $sql_cari_info->fetch(PDO::FETCH_ASSOC);
+require_once __DIR__ . '/cari_ekstre_lib.php';
+$cari_info = cari_ekstre_cari($dbh, (int) $CARIID);
 $cari_unvan = $cari_info ? $cari_info['DEFINITION_'] : 'Bilinmeyen Cari';
 $cari_kod = $cari_info ? $cari_info['CODE'] : '';
 if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4')) {
@@ -517,93 +516,10 @@ function paraformat(float|int|string|null $kusurat): string
         $toplam_alacak = 0;
         $bakiye = 0;
 
-        // RESMİ BAKİYE: GNTOTCL view'ından al (lg_bakiye.php ile aynı kaynak)
-        // Bu her zaman güncel ve doğru bakiyeyi verir
-        $stmtResmi = $dbh->prepare("SELECT (ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE
-            FROM {$firmadonemx}GNTOTCL G WITH(NOLOCK)
-            WHERE G.CARDREF = :cariid AND G.TOTTYP = 1");
-        $stmtResmi->execute([':cariid' => $CARIID]);
-        $resmi_bakiye = (float)$stmtResmi->fetchColumn();
-
-        // Dönem seçimine göre kullanılacak tablo prefixlerini belirle
-        $donemPrefixler = match($donemSecim) {
-            'onceki' => [$eskifirmadonem],
-            'tumu' => [$firmadonem, $eskifirmadonem],
-            default => [$firmadonem], // aktif
-        };
-
-        // TRCODE CASE ifadesi (tekrar kullanım için)
-        $trcodeCaseExpr = "CASE HAREKET.TRCODE
-            WHEN 1 THEN 'Nakit Tahsilat' WHEN 2 THEN 'Nakit Ödeme' WHEN 3 THEN 'Borç Dekontu' WHEN 4 THEN 'Alacak Dekontu' WHEN 5 THEN 'Virman Fişi'
-            WHEN 6 THEN 'Kur Farkı Fişi' WHEN 12 THEN 'Özel Fiş' WHEN 14 THEN 'Açılış Fişi' WHEN 20 THEN 'Gelen Havale' WHEN 21 THEN 'Gönderilen Havale'
-            WHEN 24 THEN 'Döviz Alış Belgesi' WHEN 25 THEN 'Döviz Satış belgesi' WHEN 28 THEN 'Alınan Hizmet Faturası' WHEN 29 THEN 'Verilen Hizmet Faturası'
-            WHEN 31 THEN 'Satın Alma Faturası' WHEN 32 THEN 'Perakende Satış İade Faturası' WHEN 33 THEN 'Toptan Satış İade Faturası'
-            WHEN 34 THEN 'Alınan Hizmet Faturası' WHEN 35 THEN 'Alınan Proforma Fatura' WHEN 36 THEN 'Satın Alma İade Faturası'
-            WHEN 37 THEN 'Perakende Satış Faturası' WHEN 38 THEN 'Toptan Satış Faturası' WHEN 39 THEN 'Verilen Hizmet Faturası'
-            WHEN 40 THEN 'Verilen proforma fatura' WHEN 41 THEN 'Verilen Vade Farkı Faturası' WHEN 42 THEN 'Alınan Vade Farkı Faturası'
-            WHEN 43 THEN 'Satın Alma Fiyat Farkı Faturası' WHEN 44 THEN 'Satış Fiyat Farkı Faturası' WHEN 45 THEN 'Verilen Serbest Meslek Makbuzu'
-            WHEN 46 THEN 'Alınan Serbest Meslek Makbuzu' WHEN 56 THEN 'Müstahsil Makbuzu'
-            WHEN 61 THEN 'Çek Girişi' WHEN 62 THEN 'Senet Girişi'
-            WHEN 63 THEN 'Çek Çıkışı (Cari Hesaba)' WHEN 64 THEN 'Senet Çıkışı (Cari Hesaba)'
-            WHEN 70 THEN 'Kredi Kartı Fişi' WHEN 71 THEN 'Kredi Kartı İade Fişi' WHEN 72 THEN 'Firma Kredi Kartı Fişi' WHEN 73 THEN 'Firma Kredi Kartı İade Fişi'
-            WHEN 81 THEN 'Satınalma Siparişi' WHEN 82 THEN 'Satış Siparişi'
-          END";
-
-        // Her dönem için sorgu parçası oluştur (cariid değeri doğrudan SQL'e yerleştirilecek)
-        $cariIdSafe = (int)$CARIID; // SQL injection koruması
-        $queryParts = [];
-        foreach ($donemPrefixler as $prefix) {
-            // "Tüm Dönemler" seçildiğinde, TÜM dönemlerin açılış fişlerini (TRCODE=14) hariç tut
-            // Çünkü lg_bakiye.php sadece aktif dönemin GNTOTCL view'ını kullanıyor
-            // Bu view açılış fişlerini içsel olarak hesaba katıyor, biz sadece gerçek işlemleri göstermeliyiz
-            // Böylece lg_bakiye.php ve lg_hareket.php aynı bakiyeyi gösterir
-            $acilisFiltresi = '';
-            if ($donemSecim === 'tumu') {
-                $acilisFiltresi = ' AND HAREKET.TRCODE <> 14'; // 14 = Açılış Fişi (tüm dönemlerden hariç tut)
-            }
-
-            $queryParts[] = "
-            SELECT
-              HAREKET.LOGICALREF,
-              HAREKET.DATE_,
-              HAREKET.TRANNO AS DOCODE,
-              HAREKET.SOURCEFREF,
-              HAREKET.TRCODE AS TRCODE_NO,
-              {$trcodeCaseExpr} AS TRCODE,
-              KART.LOGICALREF AS KART_REF,
-              KART.CODE,
-              KART.DEFINITION_,
-              HAREKET.LINEEXP AS ACIKLAMA,
-              ISNULL((1 - HAREKET.SIGN) * HAREKET.AMOUNT, 0) AS BORC,
-              ISNULL(HAREKET.SIGN * HAREKET.AMOUNT, 0) AS ALACAK,
-              -- ONEMLI: cek/senet girisinde SOURCEFREF bir CSROLL (bordro) referansidir.
-              -- Ayni LOGICALREF sayisi CSTRANS'ta da bulunabilir (ID-uzayi cakismasi) ve
-              -- alakasiz bir cek-i tutturup yanlis CSREF uretir. Bu yuzden once BORDRO
-              -- yolunu (J) deneriz; yalnizca o boşsa dogrudan CSTRANS eslesmesine (CS) duseriz.
-              COALESCE(J.CSREF_FROM_ROLL, CS.CSREF) AS CSREF,
-              COALESCE(INV1.LOGICALREF, STF.INVOICEREF) AS INVOICE_REF,
-              '{$prefix}' AS DONEM_PREFIX
-            FROM {$prefix}CLFLINE AS HAREKET
-            JOIN {$firma}CLCARD AS KART ON HAREKET.CLIENTREF = KART.LOGICALREF
-            LEFT JOIN {$prefix}CSTRANS AS CS ON CS.LOGICALREF = HAREKET.SOURCEFREF
-            OUTER APPLY (
-              SELECT TOP (1) t.CSREF AS CSREF_FROM_ROLL
-              FROM {$prefix}CSROLL r
-              JOIN {$prefix}CSTRANS t ON t.ROLLREF = r.LOGICALREF
-              WHERE r.LOGICALREF = HAREKET.SOURCEFREF
-              ORDER BY t.LOGICALREF DESC
-            ) AS J
-            LEFT JOIN {$prefix}STFICHE AS STF ON STF.LOGICALREF = HAREKET.SOURCEFREF
-            LEFT JOIN {$prefix}INVOICE AS INV1 ON INV1.LOGICALREF = HAREKET.SOURCEFREF
-            WHERE HAREKET.CANCELLED = 0 AND KART.LOGICALREF = {$cariIdSafe}{$acilisFiltresi}";
-        }
-
-        // Sorguları UNION ALL ile birleştir ve subquery olarak sırala
-        $sql_sorgu_str = "SELECT * FROM (" . implode(" UNION ALL ", $queryParts) . ") AS BIRLESIK ORDER BY DATE_ ASC, LOGICALREF ASC";
-
-        $stmt = $dbh->prepare($sql_sorgu_str);
-        $stmt->execute();
-        $hareketler = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Resmi bakiye ve hareketler iki modda ortak kütüphaneden (cari/cari_ekstre_lib.php);
+        // PDF ve Excel çıktıları aynı veriyi kullanır.
+        $resmi_bakiye = cari_ekstre_resmi_bakiye($dbh, (int) $CARIID);
+        $hareketler = cari_ekstre_hareketleri($dbh, (int) $CARIID, (string) $donemSecim);
 
         foreach ($hareketler as $hareket) {
             $toplam_borc += $hareket['BORC'];

@@ -32,7 +32,15 @@ if (!function_exists('lumen_moduller')) {
             'gorev' => ['ad' => 'Görevler', 'bagimsiz' => true, 'yollar' => ['gorev/']],
             'yonetim' => ['ad' => 'Kullanıcı ve yetki yönetimi', 'bagimsiz' => true, 'yollar' => ['ayar/', 'loglar.php']],
             // Özel cari kısıtları cari kartlarını listeler: cari ile birlikte taşınır.
-            'cari' => ['ad' => 'Cari', 'bagimsiz' => false, 'yollar' => ['cari/', 'ayar/ozel_cari_kisitlari.php']],
+            'cari' => ['ad' => 'Cari', 'bagimsiz' => true, 'yollar' => ['cari/', 'ayar/ozel_cari_kisitlari.php']],
+            // Cari ekranlarından açılan ama başka alana ait sayfalar: o alanla birlikte taşınır.
+            'cari_belge' => ['ad' => 'Fatura ve kasa detayları', 'bagimsiz' => false, 'yollar' => [
+                'cari/lg_nakit.php', 'cari/lg_nakit_2025.php', 'cari/lg_fatura_yazdir.php', 'cari/lg_fatura_yazdir_2025.php',
+                'cari/lg_alinan-hizmet.php', 'cari/lg_alinan-hizmet_2025.php', 'cari/lg_hareketdetay.php',
+            ]],
+            'cari_siparis' => ['ad' => 'Siparişli cari işlemleri', 'bagimsiz' => false, 'yollar' => [
+                'cari/hizli_erisim.php', 'cari/cari_olustur_ve_aktar.php',
+            ]],
             'stok' => ['ad' => 'Stok', 'bagimsiz' => false, 'yollar' => ['stok/', 'barkod/', 'fiyat/']],
             'siparis' => ['ad' => 'Sipariş', 'bagimsiz' => false, 'yollar' => ['siparis/', 'yazdir/']],
             'doviz' => ['ad' => 'Dövizli sipariş', 'bagimsiz' => false, 'yollar' => ['doviz/']],

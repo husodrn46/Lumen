@@ -704,6 +704,13 @@ if (!defined('APP_ROOT_URL')) {
 // Her sayfa kendi head bölümünde bu dosyaları dahil etmeli
 // Bu satırlar kaldırıldı çünkü header() redirect'i engelliyordu
 include_once(__DIR__ . "/_baglanti_.inc");
+// Bağımsız modda LOGO tablo önekleri, LM_ tabloları üzerindeki LOGO uyumlu görünümlere
+// (dbo.LMV_CLCARD …) yönlenir: ana veriyi okuyan "{$firma}CLCARD" sorguları kod değişmeden
+// çalışır. Görünümü olmayan (taşınmamış) tablolar bulunamaz; o modüller zaten kapalıdır
+// (includes/veri/moduller.php).
+if (lumen_bagimsiz_mi()) {
+  $firma = $eskifirma = $firmadonem = $eskifirmadonem = $firmadonemx = $eskifirmadonemx = 'dbo.LMV_';
+}
 include_once(__DIR__ . "/_bilgi_.inc");
 // v1.0.0'dan yükseltilen kurulumlar kendi _bilgi_.inc'lerini korur (o sürümde
 // Ayarlar ekranı değerleri bu dosyaya yazıyordu). Eski dosyada ayar deposunu
@@ -933,7 +940,7 @@ function cari_bul(int|string $cariid): string
   }
 
   try {
-    $stmt = $dbh->prepare("SELECT CODE, DEFINITION_ FROM " . $firma . "CLCARD WHERE LOGICALREF = :cariid");
+    $stmt = $dbh->prepare("SELECT C.KOD AS CODE, C.UNVAN AS DEFINITION_ FROM " . lumen_tablo('cari') . " C WHERE C.ID = :cariid");
     $stmt->bindParam(':cariid', $cariid, PDO::PARAM_INT);
     $stmt->execute();
 
@@ -2075,7 +2082,7 @@ if (!function_exists('m_p_cari_kodu_getir')) {
       return null;
     }
 
-    $stmt = $dbh->prepare("SELECT TOP 1 CODE FROM {$firma}CLCARD WITH(NOLOCK) WHERE LOGICALREF = :cariid");
+    $stmt = $dbh->prepare("SELECT TOP 1 C.KOD FROM " . lumen_tablo('cari') . " C WHERE C.ID = :cariid");
     $stmt->bindValue(':cariid', $cariId, PDO::PARAM_INT);
     $stmt->execute();
     $code = $stmt->fetchColumn();
@@ -2743,9 +2750,9 @@ function logFisOlusturma(int|string $fisRef, string $ficheno, int|string $cariRe
   try {
     // Cari bilgilerini al
     $stmtCariInfo = $dbh->prepare("
-      SELECT CODE, DEFINITION_
-      FROM {$firma}CLCARD
-      WHERE LOGICALREF = :cariRef
+      SELECT C.KOD AS CODE, C.UNVAN AS DEFINITION_
+      FROM " . lumen_tablo('cari') . " C
+      WHERE C.ID = :cariRef
     ");
     $stmtCariInfo->execute([':cariRef' => (int) $cariRef]);
     $cariInfo = $stmtCariInfo->fetch(PDO::FETCH_ASSOC);

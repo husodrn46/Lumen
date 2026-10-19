@@ -50,30 +50,30 @@ $limit = isset($carilistesayisi) ? max(1, (int) $carilistesayisi) : 100;
 // Yetkiler satir bazli degil, sayfa bazli hesaplanir
 $cr1Yetkisi = (m_p_yetki($terminalkullanici, 'CR1') == 1);
 
+// Ortak tablolar (includes/veri/veri.php): LOGO'da CLCARD/GNTOTCL, bağımsızda LM_CARI/LMV_CARI_BAKIYE.
 $bakiyeSecim = "CAST(0 AS DECIMAL(18,2)) AS BAKIYE";
 $joinSql = "";
 if ($cr1Yetkisi) {
-    $bakiyeSecim = "(ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE";
-    $joinSql = "LEFT JOIN {$firmadonemx}GNTOTCL G WITH(NOLOCK)
-        ON G.CARDREF = C.LOGICALREF AND G.TOTTYP = 1";
+    $bakiyeSecim = "ISNULL(G.BAKIYE, 0) AS BAKIYE";
+    $joinSql = "LEFT JOIN " . lumen_tablo('cari_bakiye') . " G ON G.CARI_ID = C.ID";
 }
 
 $sql = "
   SELECT TOP {$limit}
-    C.LOGICALREF  AS CARIID,
-    C.CITY        AS SEHIR,
-    C.DISTRICT    AS AMBAR,
-    C.CODE        AS KODU,
-    C.TELNRS1,
-    C.EMAILADDR,
-    C.DEFINITION_ AS UNVANI,
+    C.ID          AS CARIID,
+    C.IL          AS SEHIR,
+    C.SEMT        AS AMBAR,
+    C.KOD         AS KODU,
+    C.TELEFON     AS TELNRS1,
+    C.EPOSTA      AS EMAILADDR,
+    C.UNVAN       AS UNVANI,
     {$bakiyeSecim}
-  FROM {$firma}CLCARD C WITH(NOLOCK)
+  FROM " . lumen_tablo('cari') . " C
   {$joinSql}
-  WHERE C.ACTIVE = 0
+  WHERE C.AKTIF = 1
 ";
 $params = [];
-$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'cari_liste_gizli');
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.ID', 'cari_liste_gizli');
 if ($ozelCariFiltresi['sql'] !== '') {
     $sql .= "\n  AND " . $ozelCariFiltresi['sql'];
     $params = array_merge($params, $ozelCariFiltresi['params']);
@@ -83,15 +83,15 @@ if ($hasSearch) {
     $like = "%{$cari}%";
     $sql .= "
     AND (
-         " . lumen_arama_sql('C.DEFINITION_') . " LIKE :p1
-      OR " . lumen_arama_sql('C.CODE') . " LIKE :p2
-      OR " . lumen_arama_sql('C.CITY') . " LIKE :p3
+         " . lumen_arama_sql('C.UNVAN') . " LIKE :p1
+      OR " . lumen_arama_sql('C.KOD') . " LIKE :p2
+      OR " . lumen_arama_sql('C.IL') . " LIKE :p3
     )";
     $params = array_merge($params, [':p1' => $like, ':p2' => $like, ':p3' => $like]);
 }
 
 $sql .= "
-  ORDER BY C.DEFINITION_ ASC
+  ORDER BY C.UNVAN ASC
 ";
 
 if ($hasSearch) {
@@ -116,22 +116,23 @@ if ($hasSearch) {
 $enCokCariler = [];
 if (!$hasSearch) {
     try {
+        // Fatura sayısı: LOGO'da INVOICE (TRCODE 7 satış, 8 iade), bağımsızda LM_BELGE (TUR 3 fatura, 4 iade).
+        $faturaSql = lumen_bagimsiz_mi()
+            ? "SELECT CARI_ID, ID FROM dbo.LM_BELGE WHERE TUR IN (3, 4) AND DURUM = 1"
+            : "SELECT CLIENTREF AS CARI_ID, LOGICALREF AS ID FROM {$firmadonem}INVOICE WITH(NOLOCK) WHERE CANCELLED = 0 AND TRCODE IN (7, 8)";
         $stmtTopCari = $dbh->query("
             SELECT TOP 5
-                C.LOGICALREF       AS CARIID,
-                C.CODE             AS KODU,
-                C.DEFINITION_      AS UNVANI,
-                C.CITY             AS SEHIR,
-                COUNT(I.LOGICALREF) AS ISLEM_ADEDI
-            FROM {$firma}CLCARD C WITH(NOLOCK)
-            INNER JOIN {$firmadonem}INVOICE I WITH(NOLOCK)
-                ON I.CLIENTREF = C.LOGICALREF
-            WHERE C.ACTIVE = 0
-              AND C.LOGICALREF <> 2          -- mağaza/perakende satışı hariç
-              AND I.CANCELLED = 0
-              AND I.TRCODE IN (7, 8)         -- 7=satış faturası, 8=iade
-            GROUP BY C.LOGICALREF, C.CODE, C.DEFINITION_, C.CITY
-            ORDER BY COUNT(I.LOGICALREF) DESC
+                C.ID               AS CARIID,
+                C.KOD              AS KODU,
+                C.UNVAN            AS UNVANI,
+                C.IL               AS SEHIR,
+                COUNT(I.ID)        AS ISLEM_ADEDI
+            FROM " . lumen_tablo('cari') . " C
+            INNER JOIN ({$faturaSql}) I ON I.CARI_ID = C.ID
+            WHERE C.AKTIF = 1
+              AND C.ID <> 2                  -- mağaza/perakende satışı hariç
+            GROUP BY C.ID, C.KOD, C.UNVAN, C.IL
+            ORDER BY COUNT(I.ID) DESC
         ");
         $enCokCariler = $stmtTopCari->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) {

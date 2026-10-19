@@ -326,6 +326,19 @@ akis('faturalama (BETA): kapalıyken kapalı; sipariş faturalanır, ikinci kez 
     }
 });
 
+akis('cari ekstresi: ekran, bakiye listesi, PDF ve Excel aynı kaynaktan (cari_ekstre_lib)', function () use ($yonetici, $pdo): void {
+    $bakiye = (float) tek($pdo, "SELECT DEBIT - CREDIT FROM LV_001_02_GNTOTCL WHERE CARDREF = 5 AND TOTTYP = 1");
+    $metin = number_format(abs($bakiye), 2, ',', '.');
+    $e = $yonetici->istek('cari/lg_hareket.php?cariid=5')['govde'];
+    bekle(str_contains($e, $metin), "ekstrede bakiye ({$metin}) yok");
+    bekle(str_contains($e, 'Toptan Satış Faturası'), 'ekstrede işlem türü etiketi yok');
+    bekle(str_contains($yonetici->istek('cari/lg_bakiye.php?q=' . rawurlencode('anadolu ev'))['govde'], $metin), 'bakiye listesinde bakiye yok');
+    foreach (['cari/lg_hareket_ekstre_pdf.php?cariid=5' => '%PDF', 'cari/lg_hareket_ekstre_excel.php?cariid=5' => "PK\x03\x04"] as $yol => $imza) {
+        $r = $yonetici->istek($yol);
+        bekle($r['kod'] === 200 && str_starts_with($r['govde'], $imza), "{$yol}: dosya üretilmedi (HTTP {$r['kod']})");
+    }
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

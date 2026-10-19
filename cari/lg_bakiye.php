@@ -46,46 +46,43 @@ if ($raw_cari !== '' && $raw_cari !== '0') {
     $like = '%' . lumen_arama_terimi($raw_cari) . '%';
     // 'ayr.php' dosyasından gelmesi beklenen listeleme limiti
     $limit = isset($carilistesayisi) ? (int)$carilistesayisi : 100;
-    $ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'bakiye_gizli', 'M4');
+    $ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.ID', 'bakiye_gizli', 'M4');
+
+    // Son mal içeren fatura tarihi: LOGO'da INVOICE + STLINE, bağımsızda LM_BELGE (3 fatura, 4 iade) + satır.
+    $sonAlimSql = lumen_bagimsiz_mi()
+        ? "SELECT TOP 1 B.TARIH AS SON_URUN_ALIMI FROM dbo.LM_BELGE B
+             WHERE B.CARI_ID = C.ID AND B.TUR IN (3, 4) AND B.DURUM = 1
+               AND EXISTS (SELECT 1 FROM dbo.LM_BELGE_SATIR S WHERE S.BELGE_ID = B.ID)
+             ORDER BY B.TARIH DESC, B.ID DESC"
+        : "SELECT TOP 1 I.DATE_ AS SON_URUN_ALIMI FROM {$firmadonem}INVOICE I WITH(NOLOCK)
+             WHERE I.CLIENTREF = C.ID AND I.CANCELLED = 0 AND I.TRCODE IN (7, 8)
+               AND EXISTS (SELECT 1 FROM {$firmadonem}STLINE L WITH(NOLOCK)
+                           WHERE L.INVOICEREF = I.LOGICALREF AND L.CANCELLED = 0 AND L.LINETYPE = 0)
+             ORDER BY I.DATE_ DESC, I.LOGICALREF DESC";
 
     // Güvenli ve parametreli SQL sorgusu
     $sql = "
         SELECT TOP {$limit}
-          C.LOGICALREF    AS CARIID,
-          C.CITY          AS SEHIR,
-          C.DISTRICT      AS AMBAR,
-          C.CODE          AS KODU,
-          C.TELNRS1,
-          C.EMAILADDR,
-          C.DEFINITION_   AS UNVANI,
+          C.ID            AS CARIID,
+          C.IL            AS SEHIR,
+          C.SEMT          AS AMBAR,
+          C.KOD           AS KODU,
+          C.TELEFON       AS TELNRS1,
+          C.EPOSTA        AS EMAILADDR,
+          C.UNVAN         AS UNVANI,
           LS.SON_URUN_ALIMI,
-          (ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE
-        FROM {$firma}CLCARD C WITH(NOLOCK)
-        LEFT JOIN {$firmadonemx}GNTOTCL G WITH(NOLOCK)
-            ON G.CARDREF = C.LOGICALREF AND G.TOTTYP = 1
-        OUTER APPLY (
-            SELECT TOP 1 I.DATE_ AS SON_URUN_ALIMI
-            FROM {$firmadonem}INVOICE I WITH(NOLOCK)
-            WHERE I.CLIENTREF = C.LOGICALREF
-              AND I.CANCELLED = 0
-              AND I.TRCODE IN (7, 8)
-              AND EXISTS (
-                  SELECT 1
-                  FROM {$firmadonem}STLINE L WITH(NOLOCK)
-                  WHERE L.INVOICEREF = I.LOGICALREF
-                    AND L.CANCELLED = 0
-                    AND L.LINETYPE = 0
-              )
-            ORDER BY I.DATE_ DESC, I.LOGICALREF DESC
-        ) LS
-        WHERE C.ACTIVE = 0
+          ISNULL(G.BAKIYE, 0) AS BAKIYE
+        FROM " . lumen_tablo('cari') . " C
+        LEFT JOIN " . lumen_tablo('cari_bakiye') . " G ON G.CARI_ID = C.ID
+        OUTER APPLY ({$sonAlimSql}) LS
+        WHERE C.AKTIF = 1
           " . ($ozelCariFiltresi['sql'] !== '' ? "AND {$ozelCariFiltresi['sql']}" : '') . "
           AND (
-               " . lumen_arama_sql('C.DEFINITION_') . " LIKE :p1
-            OR " . lumen_arama_sql('C.CODE') . " LIKE :p2
-            OR " . lumen_arama_sql('C.CITY') . " LIKE :p3
+               " . lumen_arama_sql('C.UNVAN') . " LIKE :p1
+            OR " . lumen_arama_sql('C.KOD') . " LIKE :p2
+            OR " . lumen_arama_sql('C.IL') . " LIKE :p3
           )
-        ORDER BY C.DEFINITION_ ASC
+        ORDER BY C.UNVAN ASC
     ";
     $params = array_merge($ozelCariFiltresi['params'], [':p1' => $like, ':p2' => $like, ':p3' => $like]);
 
@@ -99,7 +96,9 @@ if ($raw_cari !== '' && $raw_cari !== '0') {
     } catch (PDOException $e) {
         // Hata durumunda kullanıcıya dostane bir mesaj göster ve işlemi durdur.
         // Gerçek hatayı loglamak daha güvenli bir yöntemdir.
-        die('<div class="p-4 bg-red-800 text-white text-center">Veritabanı Hatası: ' . htmlspecialchars($e->getMessage()) . '</div>');
+        // Hata ayrıntısı ekrana değil loga (eskiden SQL hatası kullanıcıya basılıyordu).
+        error_log('lg_bakiye: ' . $e->getMessage());
+        lumen_hata_sayfasi('Bakiye listesi okunamadı', 'Bir veritabanı hatası oluştu. Lütfen tekrar deneyin.', 500);
     }
 }
 
@@ -112,7 +111,16 @@ if (!empty($rows) && isset($dbh)) {
     if (!empty($cariIdler)) {
         $ph = implode(',', array_fill(0, count($cariIdler), '?'));
         try {
-            $csSql = "
+            // Aynı kolonlar iki modda: DOC 1 çek / 2 senet, CURRSTAT 1 portföy / 2 ciro / diğer kapandı.
+            $csSql = lumen_bagimsiz_mi() ? "
+                SELECT K.ALINAN_CARI_ID AS ALAN_CARI,
+                       CASE WHEN K.TUR IN (3, 4) THEN 2 ELSE 1 END AS DOC,
+                       K.DURUM AS CURRSTAT,
+                       K.TUTAR AS TUTAR,
+                       H.UNVAN AS CIRO_HEDEF
+                FROM dbo.LM_CEK K
+                LEFT JOIN dbo.LM_CARI H ON H.ID = K.VERILEN_CARI_ID AND K.DURUM = 2
+                WHERE K.TUR IN (1, 3) AND K.ALINAN_CARI_ID IN ({$ph})" : "
                 SELECT
                     G.CARDREF AS ALAN_CARI,
                     C.DOC AS DOC,

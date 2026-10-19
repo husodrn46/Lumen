@@ -96,6 +96,58 @@ akis('geçiş koruması: taşınmamış modül 501 kartı / JSON verir, menüde 
     bekle(!str_contains($yonetici->istek('index.php')['govde'], 'href="cek/'), 'menüde taşınmamış modül var');
 });
 
+// ---------------------------------------------------------------- cari (Faz 1)
+
+akis('cari arama: LM_CARI\'den, Türkçe duyarsız; bakiye listesi ve ekstre aynı bakiyeyi verir', function () use ($yonetici): void {
+    $g = $yonetici->istek('cari/cari.php?cari=' . rawurlencode('IC ANADOLU'))['govde'];
+    bekle(str_contains($g, 'İç Anadolu Züccaciye'), '"IC ANADOLU" araması "İç Anadolu Züccaciye"yi bulmadı');
+    // Anadolu Ev Eşyası (id 5): borç 28.050, alacak 6.500 → bakiye 21.550
+    $b = $yonetici->istek('cari/lg_bakiye.php?q=' . rawurlencode('anadolu ev'))['govde'];
+    bekle(str_contains($b, 'Anadolu Ev Eşyası') && str_contains($b, '21.550,00'), 'bakiye listesinde beklenen bakiye (21.550,00) yok');
+    $e = $yonetici->istek('cari/lg_hareket.php?cariid=5')['govde'];
+    bekle(str_contains($e, '21.550,00'), 'ekstrede genel bakiye yok');
+    bekle(substr_count($e, 'Açılış Fişi') === 4, 'ekstrede 4 açılış hareketi bekleniyordu');
+    $d = $yonetici->istek('cari/lg_bakiyex.php', ['userid' => 5]);
+    bekle($d['kod'] === 200 && str_contains($d['govde'], 'Finansal'), "bakiye detayı açılmadı (HTTP {$d['kod']})");
+});
+
+akis('ekstre PDF ve Excel bağımsız modda üretilir', function () use ($yonetici): void {
+    foreach (['cari/lg_hareket_ekstre_pdf.php?cariid=5' => '%PDF', 'cari/lg_hareket_ekstre_excel.php?cariid=5' => "PK\x03\x04"] as $yol => $imza) {
+        $r = $yonetici->istek($yol);
+        bekle($r['kod'] === 200 && str_starts_with($r['govde'], $imza), "{$yol}: dosya üretilmedi (HTTP {$r['kod']}, " . substr($r['govde'], 0, 60) . ')');
+    }
+});
+
+akis('yeni cari: LM_CARI\'ye önekli kodla yazılır ve aramada çıkar', function () use ($yonetici, $pdo): void {
+    $unvan = 'Akış Testi Cari ' . strtoupper(bin2hex(random_bytes(2)));
+    $t = $yonetici->belirtec('cari/cariyeni.php');
+    $yonetici->istek('cari/cariyeni.php', ['csrf_token' => $t, 'cari_ekle' => 1, 'unvan' => $unvan, 'telefon' => '0 555 000 00 00',
+        'sehir' => 'Eskişehir', 'ilce' => 'Odunpazarı']);
+    $r = $pdo->prepare("SELECT ID, KOD FROM LM_CARI WHERE UNVAN = :u");
+    $r->execute([':u' => $unvan]);
+    $c = $r->fetch(PDO::FETCH_ASSOC);
+    bekle($c !== false, 'cari LM_CARI\'ye yazılmadı');
+    bekle(preg_match('/^[A-Za-z0-9._-]+\d{4}$/', (string) $c['KOD']) === 1, 'kod önek + 4 hane değil: ' . $c['KOD']);
+    bekle(str_contains($yonetici->istek('cari/cari.php?cari=' . rawurlencode($unvan))['govde'], $unvan), 'yeni cari aramada yok');
+});
+
+akis('özel cari kısıtı: gizlenen cari liste, otomatik tamamlama ve ekstrede görünmez', function () use ($URL, $pdo): void {
+    $pdo->exec("DELETE FROM M_OZEL_CARI_KISIT WHERE CARIREF = 5");
+    $pdo->exec("INSERT INTO M_OZEL_CARI_KISIT (CARIREF, OLUSTURAN, OLUSTURMA_TARIHI, YETKI_KODU, PERSONEL_ID)
+                VALUES (5, 1, GETDATE(), 'M19', 2), (5, 1, GETDATE(), 'M4', 2)");
+    try {
+        $s = (new Tarayici($URL))->giris('SATIS1');
+        bekle(!str_contains($s->istek('cari/cari.php?cari=anadolu')['govde'], 'Anadolu Ev Eşyası'), 'gizli cari listede');
+        bekle(str_contains($s->istek('cari/cari.php?cari=anadolu')['govde'], 'İç Anadolu'), 'kısıtsız cari de kayboldu');
+        bekle(!str_contains($s->istek('cari/ajax_cari_search.php?term=anadolu')['govde'], 'Anadolu Ev'), 'gizli cari otomatik tamamlamada');
+        bekle(!str_contains($s->istek('cari/cari_arama.php?q=anadolu')['govde'], 'Anadolu Ev'), 'gizli cari hızlı aramada');
+        $e = $s->istek('cari/lg_hareket.php?cariid=5');
+        bekle($e['kod'] !== 200 || !str_contains($e['govde'], '21.550,00'), 'gizli carinin ekstresi açıldı');
+    } finally {
+        $pdo->exec("DELETE FROM M_OZEL_CARI_KISIT WHERE CARIREF = 5");
+    }
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);
