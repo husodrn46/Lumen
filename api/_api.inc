@@ -85,6 +85,15 @@ function api_ensure_token_table(PDO $dbh): void
 function api_token_olustur(PDO $dbh, int $personel, string $kullaniciAdi): string
 {
     api_ensure_token_table($dbh);
+    // Hesap başına tek canlı belirteç: yeni giriş öncekileri pasifleştirir; süresi
+    // dolmuş ve pasif belirteçler temizlenir (tablo sınırsız büyüyordu; unutulan
+    // cihazlardaki belirteçler 30 gün geçerli kalıyordu).
+    try {
+        $dbh->prepare("UPDATE M_API_TOKEN SET AKTIF = 0 WHERE PERSONEL = :p AND AKTIF = 1")->execute([':p' => $personel]);
+        $dbh->exec("DELETE FROM M_API_TOKEN WHERE OLUSTURMA < DATEADD(DAY, -30, GETDATE())");
+    } catch (Throwable $e) {
+        error_log('api_token_olustur temizlik: ' . $e->getMessage());
+    }
     $token = bin2hex(random_bytes(32));
     // Veritabanında belirtecin kendisi değil SHA-256 özeti saklanır: tablo okunursa
     // (yedek, log, SQL erişimi) belirteçler doğrudan kullanılamaz.
