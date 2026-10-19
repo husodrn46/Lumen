@@ -61,3 +61,31 @@ if (!function_exists('kurulum_sema_uygula')) {
         return ['basarili' => count($dosyalar) - count($bekleyen), 'toplam' => count($dosyalar), 'hatalar' => $hatalar];
     }
 }
+
+if (!function_exists('lumen_sema_eksikleri')) {
+    /**
+     * Bu Lumen sürümünün beklediği ama veritabanında olmayan tablo/kolonlar.
+     * Boş değilse yönetici scripts/sema_guncelle.php çalıştırmalıdır.
+     *
+     * @return string[]
+     */
+    function lumen_sema_eksikleri(PDO $dbh): array
+    {
+        $beklenen = [
+            'M_P_YETKI' => null, 'M_GIRIS_LOG' => null, 'M_REMEMBER_TOKEN' => 'PREV_HASH', 'M_API_TOKEN' => null,
+            'M_BILDIRIM' => null, 'M_USER_SETTINGS' => null, 'M_FIS_LOG' => null, 'M_CEK_EK' => 'FIRMADONEM',
+            'M_OTURUM_KAPAT' => null, 'M_SATIR_DEGISIKLIK_LOG' => null,
+        ];
+        $parcalar = [];
+        foreach ($beklenen as $tablo => $kolon) {
+            $parcalar[] = $kolon === null
+                ? "SELECT '{$tablo}' AS AD WHERE OBJECT_ID('dbo.{$tablo}', 'U') IS NULL"
+                : "SELECT '{$tablo}.{$kolon}' AS AD WHERE COL_LENGTH('dbo.{$tablo}', '{$kolon}') IS NULL";
+        }
+        try {
+            return $dbh->query(implode(' UNION ALL ', $parcalar))->fetchAll(PDO::FETCH_COLUMN);
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+}

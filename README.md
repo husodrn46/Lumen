@@ -116,6 +116,18 @@ Kurulum bitince sihirbaz kilitlenir (`.installed`). Artık `giris.php` üzerinde
 
 > Elle kurulum: `.env.example` → `.env` ve `_baglanti_.inc.example` → `_baglanti_.inc` kopyalayıp değerleri doldurun.
 
+### Güncelleme
+
+Yeni bir Lumen sürümüne geçtikten sonra (dosyaları güncelleyip `composer install`),
+Lumen'e özel tabloları ve kolonları güncellemek için bir kez çalıştırın:
+
+```bash
+php scripts/sema_guncelle.php
+```
+
+Betikler idempotenttir (tekrar çalıştırmak güvenlidir) ve LOGO tablolarına dokunmaz.
+Şema geride kalırsa yönetici ana sayfada uyarı görür.
+
 ## Demo Veritabanı
 
 LOGO lisansınız olmadan denemek için Docker tabanlı hazır bir demo ortamı vardır:

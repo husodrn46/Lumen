@@ -1307,6 +1307,24 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
         </div>
     </header>
 
+    <?php
+    // Şema geride mi? (yalnız yönetici; oturum başına 10 dk önbellek)
+    if ((int) ($yetkidurum ?? 1) === 0) {
+        if (!isset($_SESSION['sema_eksik_ts']) || time() - (int) $_SESSION['sema_eksik_ts'] > 600) {
+            require_once __DIR__ . '/includes/kurulum_sema.php';
+            $_SESSION['sema_eksik'] = lumen_sema_eksikleri($dbh);
+            $_SESSION['sema_eksik_ts'] = time();
+        }
+        if (!empty($_SESSION['sema_eksik'])): ?>
+    <div role="alert" style="max-width:1200px;margin:12px auto 0;padding:12px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:13.5px;">
+        <i class="fa-solid fa-database"></i>
+        <strong>Veritabanı şeması güncel değil.</strong>
+        Bazı özellikler çalışmayabilir. Sunucuda <code>php scripts/sema_guncelle.php</code> çalıştırın.
+        <span style="opacity:.75;">(Eksik: <?php echo e(implode(', ', (array) $_SESSION['sema_eksik'])); ?>)</span>
+    </div>
+    <?php endif;
+    } ?>
+
     <!-- ═══════════ HERO ═══════════ -->
     <section class="hero">
         <h1 class="hero-greeting">
