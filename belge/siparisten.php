@@ -12,6 +12,9 @@ include_once __DIR__ . '/../ayr.php';
 require_once __DIR__ . '/../kontrol.php';
 require_once __DIR__ . '/_ortak.php';
 
+if (!$belgeTam) {
+    lumen_hata_sayfasi('Fatura yetkiniz yok', 'Siparişten belge için M31 (Faturalama) yetkisi gerekir.', 403, 'fa-lock');
+}
 $sid = (int) ($_GET['siparis'] ?? 0);
 $st = $dbh->prepare("SELECT B.ID, B.NO, B.YON, B.TARIH, B.CARI_ID, B.DEPO_ID, B.PARA_BIRIMI, C.KOD, C.UNVAN
                      FROM dbo.LM_BELGE B LEFT JOIN dbo.LM_CARI C ON C.ID = B.CARI_ID

@@ -23,12 +23,21 @@ $git = static function (string $yol, array $q): never {
 
 if ($islem === 'iptal') {
     $id = (int) ($_POST['id'] ?? 0);
+    $tb = $dbh->prepare('SELECT TUR, YON FROM dbo.LM_BELGE WHERE ID = :id');
+    $tb->execute([':id' => $id]);
+    $tr = $tb->fetch(PDO::FETCH_ASSOC);
+    if (!$tr || !isset($belgeTurleri[(string) lumen_belge_tur_kodu((int) $tr['TUR'], (int) $tr['YON'])])) {
+        lumen_hata_sayfasi('Belge bulunamadı', 'Bu numarada bir belge yok.', 404);
+    }
     $r = lumen_belge_iptal($dbh, $id, (int) $terminalkullanici);
     $git('goster.php', ['id' => $id, $r['ok'] ? 'ok' : 'hata' => $r['mesaj']]);
 }
 
 if ($islem === 'kaydet') {
     $tur = (string) ($_POST['tur'] ?? '');
+    if (!isset($belgeTurleri[$tur]) || (!$belgeTam && (int) ($_POST['kaynak_belge_id'] ?? 0) > 0)) {
+        lumen_hata_sayfasi('Yetkiniz yok', 'Bu belge türü için M31 (Faturalama) yetkisi gerekir.', 403, 'fa-lock');
+    }
     $cari = (int) ($_POST['cari_id'] ?? 0);
     // Özel cari kısıtı: gizlenen cariye belge kesilemez.
     if ($cari > 0 && !m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, $cari)) {

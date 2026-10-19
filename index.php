@@ -203,13 +203,21 @@ foreach ($menu_items as $item) {
 //     ];
 // }
 
-// Bağımsız mod: Lumen'in kendi faturaları ve belgeleri (belge modülü), M31 yetkisiyle.
+// Bağımsız mod: Lumen'in kendi faturaları ve belgeleri (belge modülü), M31 yetkisiyle;
+// yalnız M15 (depo) yetkilisi üretim ve sayım girer.
 if (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M31') == 1) {
     $visible_menu_items[] = [
         'label' => 'Faturalar',
         'icon' => 'fa-file-invoice',
         'href' => 'belge/index.php',
         'theme' => 't-red',
+    ];
+} elseif (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M15') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Üretim ve Sayım',
+        'icon' => 'fa-industry',
+        'href' => 'belge/index.php',
+        'theme' => 't-amber',
     ];
 }
 

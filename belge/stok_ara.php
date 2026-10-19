@@ -12,7 +12,9 @@ include_once __DIR__ . '/../ayr.php';
 require_once __DIR__ . '/../kontrol.php';
 
 header('Content-Type: application/json; charset=utf-8');
-if ((int) m_p_yetki($terminalkullanici, 'M31') !== 1) {
+// Fiyatlar yalnız fatura yetkilisine; depo personeli (M15) üretim/sayım için ürün arar.
+$fiyatGorur = (int) m_p_yetki($terminalkullanici, 'M31') === 1;
+if (!$fiyatGorur && (int) m_p_yetki($terminalkullanici, 'M15') !== 1) {
     http_response_code(403);
     echo json_encode([]);
     exit;
@@ -42,7 +44,7 @@ foreach ($urunler as $u) {
     $birimSt->execute([':s' => (int) $u['ID'], ':ana' => (int) $u['ANA_BIRIM_ID']]);
     $cikti[] = [
         'id' => (int) $u['ID'], 'kod' => (string) $u['KOD'], 'ad' => (string) $u['AD'],
-        'kdv' => (float) $u['KDV_ORANI'], 'fiyat' => (float) ($u['FIYAT'] ?? 0), 'eldeki' => (float) $u['ELDEKI'],
+        'kdv' => (float) $u['KDV_ORANI'], 'fiyat' => $fiyatGorur ? (float) ($u['FIYAT'] ?? 0) : 0.0, 'eldeki' => (float) $u['ELDEKI'],
         'birimler' => array_map(static fn(array $b): array => ['id' => (int) $b['BIRIM_ID'], 'kod' => (string) $b['KOD'],
             'carpan' => (float) $b['CARPAN']], $birimSt->fetchAll(PDO::FETCH_ASSOC)),
     ];

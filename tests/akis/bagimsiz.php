@@ -272,6 +272,29 @@ akis('serbest alış faturası ve üretimden giriş: stok girer, alış cariyi a
     bekle(str_contains($yonetici->istek('belge/index.php?bas=' . date('Y-m-01'))['govde'], (string) tek($pdo, "SELECT NO FROM LM_BELGE WHERE ID = :i", [':i' => $a['id']])), 'listede yok');
 });
 
+akis('depo personeli (yalnız M15): üretim ve sayım girer; fatura göremez, kesemez, fiyat görmez', function () use ($URL, $pdo): void {
+    $depo = (new Tarayici($URL))->giris('DEPO1');
+    bekle(str_contains($depo->istek('index.php')['govde'], 'Üretim ve Sayım'), 'menüde Üretim ve Sayım yok');
+    $once = (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 4");
+    $u = belge_kes($depo, 'belge/yeni.php', ['tur' => 'uretim', 'tarih' => date('Y-m-d'),
+        'satir' => ['stok_id' => [4], 'birim_id' => [0], 'miktar' => ['6'], 'fiyat' => ['0'], 'iskonto' => ['0'], 'kdv' => ['0']]]);
+    bekle($u['id'] > 0, 'depo personeli üretim giremedi: ' . ($u['hata'] ?? '?'));
+    yakin($once + 6, (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 4"), 'üretim sonrası stok');
+    $f = $depo->istek('belge/islem.php', ['csrf_token' => $depo->belirtec('belge/yeni.php'), 'islem' => 'kaydet', 'tur' => 'satis_fatura', 'cari_id' => 3,
+        'tarih' => date('Y-m-d'), 'satir' => ['stok_id' => [4], 'birim_id' => [0], 'miktar' => ['1'], 'fiyat' => ['10'], 'iskonto' => ['0'], 'kdv' => ['20']]]);
+    bekle($f['kod'] === 403, "depo personeli fatura kesebildi (HTTP {$f['kod']})");
+    $fatura = (int) tek($pdo, "SELECT TOP 1 ID FROM LM_BELGE WHERE TUR = 3 ORDER BY ID");
+    if ($fatura > 0) {
+        bekle($depo->istek("belge/goster.php?id={$fatura}")['kod'] === 404, 'depo personeli faturayı açtı');
+    }
+    $liste = $depo->istek('belge/index.php?bas=2020-01-01')['govde'];
+    bekle(!str_contains($liste, 'FTR0'), 'depo personelinin listesinde fatura var');
+    $ara = json_decode($depo->istek('belge/stok_ara.php?yon=1&q=DM-0004')['govde'], true);
+    bekle(($ara[0]['fiyat'] ?? null) === 0 || ($ara[0]['fiyat'] ?? null) === 0.0, 'depo personeli fiyat görüyor');
+    $depo->istek('belge/islem.php', ['csrf_token' => $depo->belirtec("belge/goster.php?id={$u['id']}"), 'islem' => 'iptal', 'id' => $u['id']]);
+    yakin($once, (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 4"), 'iptal sonrası stok');
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */

@@ -23,6 +23,9 @@ if (!$b || ((int) $b['CARI_ID'] > 0 && !m_p_cariid_goruntulebilir_mi($dbh, $firm
     lumen_hata_sayfasi('Belge bulunamadı', 'Bu numarada bir belge yok.', 404);
 }
 $kod = lumen_belge_tur_kodu((int) $b['TUR'], (int) $b['YON']);
+if ($kod === null || !isset($belgeTurleri[$kod])) {
+    lumen_hata_sayfasi('Belge bulunamadı', 'Bu numarada bir belge yok.', 404);
+}
 $turAd = $kod !== null ? lumen_belge_turleri()[$kod]['ad'] : 'Belge';
 $s = $dbh->prepare("SELECT S.*, ST.KOD, ST.AD, BR.KOD AS BIRIM FROM dbo.LM_BELGE_SATIR S
                     LEFT JOIN dbo.LM_STOK ST ON ST.ID = S.STOK_ID LEFT JOIN dbo.LM_BIRIM BR ON BR.ID = S.BIRIM_ID

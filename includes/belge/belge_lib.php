@@ -39,6 +39,15 @@ if (!function_exists('lumen_belge_turleri')) {
     }
 }
 
+if (!function_exists('lumen_belge_izinli_turler')) {
+    /** Kullanıcının kesip görebildiği türler: M31 hepsi; yalnız M15 (depo) üretim ve sayım. */
+    function lumen_belge_izinli_turler(bool $faturaYetkisi): array
+    {
+        $t = lumen_belge_turleri();
+        return $faturaYetkisi ? $t : array_intersect_key($t, array_flip(['uretim', 'sayim_fazla', 'sayim_eksik']));
+    }
+}
+
 if (!function_exists('lumen_belge_tur_kodu')) {
     /** LM_BELGE (TUR, YON) → tür kodu ('satis_fatura' …); bilinmiyorsa null. */
     function lumen_belge_tur_kodu(int $tur, int $yon): ?string

@@ -8,8 +8,8 @@ include_once __DIR__ . '/../ayr.php';
 require_once __DIR__ . '/../kontrol.php';
 require_once __DIR__ . '/_ortak.php';
 
-$turler = lumen_belge_turleri();
-$tur = isset($turler[(string) ($_GET['tur'] ?? '')]) ? (string) $_GET['tur'] : 'satis_fatura';
+$turler = $belgeTurleri;
+$tur = isset($turler[(string) ($_GET['tur'] ?? '')]) ? (string) $_GET['tur'] : (string) array_key_first($turler);
 $depolar = $dbh->query('SELECT ID, AD FROM dbo.LM_DEPO WHERE AKTIF = 1 ORDER BY NO')->fetchAll(PDO::FETCH_ASSOC);
 $vadeGun = 0;
 

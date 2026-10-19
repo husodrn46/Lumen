@@ -8,13 +8,16 @@ include_once __DIR__ . '/../ayr.php';
 require_once __DIR__ . '/../kontrol.php';
 require_once __DIR__ . '/_ortak.php';
 
-$turler = lumen_belge_turleri();
+$turler = $belgeTurleri;
 $secTur = (string) ($_GET['tur'] ?? '');
 $bas = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['bas'] ?? '')) ? (string) $_GET['bas'] : date('Y-m-01');
 $bit = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['bit'] ?? '')) ? (string) $_GET['bit'] : date('Y-m-d');
 $ara = trim((string) ($_GET['ara'] ?? ''));
 
 $kosul = 'B.TUR <> 1 AND B.TARIH BETWEEN :bas AND :bit';
+if (!$belgeTam) {
+    $kosul .= ' AND B.TUR IN (5, 6)'; // depo personeli: üretim ve sayım
+}
 $p = [':bas' => $bas, ':bit' => $bit];
 if (isset($turler[$secTur])) {
     $kosul .= ' AND B.TUR = :tur AND B.YON = :yon';
@@ -37,8 +40,8 @@ $st = $dbh->prepare("SELECT TOP 300 B.ID, B.TUR, B.YON, B.NO, B.TARIH, B.NET, B.
 $st->execute($p);
 $belgeler = $st->fetchAll(PDO::FETCH_ASSOC);
 
-belge_sayfa_basla('Faturalar ve Belgeler', 'fa-file-invoice', '../index.php',
-    '<a href="yeni.php?tur=satis_fatura" class="btn btn-birincil"><i class="fa-solid fa-plus"></i><span class="metin">Yeni Belge</span></a>');
+belge_sayfa_basla($belgeTam ? 'Faturalar ve Belgeler' : 'Üretim ve Sayım', 'fa-file-invoice', '../index.php',
+    '<a href="yeni.php?tur=' . bh(array_key_first($turler)) . '" class="btn btn-birincil"><i class="fa-solid fa-plus"></i><span class="metin">Yeni Belge</span></a>');
 ?>
 <form method="get" class="kart kart-ic izgara" style="align-items:end">
     <label class="alan">Tür
