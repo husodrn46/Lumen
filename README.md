@@ -134,6 +134,7 @@ yapın. Ayrıntılar, diğer demo kullanıcıları ve testler: [demo/README.md](
 | `.env` | DB bağlantısı, firma/dönem önekleri, mağaza carisi, log kökü (gizli — git'e girmez) |
 | `_baglanti_.inc` | `.env`'i okuyan bağlantı katmanı |
 | `_bilgi_.inc` | Özellik bayrakları ve varsayılanlar (döviz, çoklu depo, çek, mağaza satışı…) |
+| `database/ayarlar.json` | Ayarlar ekranından kaydedilen değerler (`_bilgi_.inc` varsayılanlarının üzerine uygulanır; uygulama `_bilgi_.inc`'e yazmaz — gizli, git'e girmez, web'e kapalı) |
 
 SQL Server bağlantısı Microsoft ODBC Driver 18 ile varsayılan olarak `TrustServerCertificate=1` kullanır (LOGO kurulumlarının çoğu kendinden imzalı sertifika kullanır); geçerli bir sertifikanız varsa `.env`'de `AKL_DB_TRUST_CERT=0`, şifrelemeyi açıkça yönetmek için `AKL_DB_ENCRYPT=0|1` verin.
 

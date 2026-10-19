@@ -169,3 +169,11 @@ $urun_kodu_haric_onekleri = [];
 // YETKİ AYARLARI
 // ============================================================================
 $toplusipfaturalama = '1';      // Toplu sipariş faturalama yetkisi (0: Hayır, 1: Evet)
+
+// ============================================================================
+// EKRANDAN DEĞİŞTİRİLEN AYARLAR
+// Ayarlar ekranı bu dosyaya YAZMAZ; değerler database/ayarlar.json'da tutulur ve
+// burada varsayılanların üzerine uygulanır (includes/ayar_deposu.php).
+// ============================================================================
+require_once __DIR__ . '/includes/ayar_deposu.php';
+lumen_ayar_uygula();

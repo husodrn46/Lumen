@@ -10,133 +10,34 @@ require_once __DIR__ . '/admin_guard.php';
 // Yetki kontrolü - M16 (Ayarlar) yetkisi gerekli
 ayar_require_m16($terminalkullanici);
 
-// _bilgi_.inc dosyasını oku
-$bilgi_file = __DIR__ . '/../_bilgi_.inc';
-$bilgi_content = file_get_contents($bilgi_file);
+// Düzenlenebilir ayarlar ve türleri tek yerde: includes/ayar_deposu.php
+$ayar_tipleri = array_filter(lumen_ayar_semasi(), static fn(string $t): bool => $t !== 'iskonto_listesi');
 
-// Düzenlenebilir ayarların tipleri (key => tip). Tipler:
-//   'bool' (0/1) · 'boolyn' (evet/hayir) · 'int' (sayı) · 'text' (metin)
-$ayar_tipleri = [
-    'fisyazici' => 'text', 'fisyazici2' => 'text', 'fisyazici3' => 'text', 'fisyazici4' => 'text',
-    'barkodyazici' => 'text', 'barkodyazici2' => 'text',
-    'adetkusurat' => 'int', 'parakusurat' => 'int',
-    'dovizlicalis' => 'bool', 'dovizfirma' => 'int', 'doviztipleri' => 'text', 'tlkodu' => 'int',
-    'kullanicigirisli' => 'bool', 'benihatirla' => 'bool',
-    'bakiyegorunsun' => 'bool', 'extregorunsun' => 'bool', 'carilistesayisi' => 'int',
-    'yenicariac' => 'bool', 'carikoduontaki' => 'text', 'hizlicari' => 'int', 'iletisim' => 'bool',
-    'stoklistesayisi' => 'int', 'stoksonalisfiyati' => 'bool', 'stoksonsatisfiyati' => 'bool',
-    'stokekle' => 'boolyn', 'yenistokac' => 'bool', 'stokkoduontaki' => 'text',
-    'resimlistoklistesi' => 'bool', 'coklustokgiris' => 'boolyn',
-    'sonsiparis_aktif' => 'bool', 'favoriler_aktif' => 'bool',
-    'iskontolu' => 'int', 'iskontolu2' => 'int', 'iskontolu3' => 'int', 'topluiskonto' => 'bool', 'iskontoartir' => 'bool',
-    'sipno' => 'text', 'siparistefiyatduzenle' => 'bool', 'yenialissiparisi' => 'bool', 'reserve' => 'bool',
-    'exceleaktar' => 'bool', 'koliyazdir' => 'bool', 'resimliyazdir' => 'bool', 'barkodyazdir' => 'bool',
-    'depo' => 'int', 'cokludepo' => 'bool',
-    'fiyatgruplu' => 'bool', 'odemekodu' => 'text', 'tanimlialantoplam' => 'bool', 'tanimlialan' => 'bool',
-    'yenifiyatduzenle' => 'bool', 'toplukdv' => 'bool', 'eksik' => 'bool', 'maliyetkontrol' => 'bool',
-    'cokluekledeayniurun' => 'bool', 'dil' => 'int',
-];
-
-/** Değeri tipine göre GÜVENLİ iç-değere (tırnaksız) dönüştür — PHP literalini bozacak karakterler elenir. */
-function sa_temiz(string $tip, $ham): string
-{
-    if ($tip === 'int') {
-        $n = (int) preg_replace('/[^0-9-]/', '', (string) $ham);
-        return (string) max(0, min(999999, $n));
-    }
-    // text: yalnız izin verilen karakterler kalır (harf, rakam, boşluk ve . _ - , / : @ # ( )).
-    // Değer _bilgi_.inc'e PHP literali olarak yazıldığından kara liste yetmez: çift
-    // tırnaklı ayarlarda `$`, `{` gibi karakterler değişken/ifade çözümlemesiyle kod
-    // çalıştırmaya yol açar ({${system(...)}}). Beyaz liste bunu tümden kapatır.
-    $s = preg_replace('/[^\p{L}\p{N} ._\-,\/:@#()]/u', '', (string) $ham) ?? '';
-    return mb_substr(trim($s), 0, 60);
-}
-
-/**
- * Yazıcı adları: paylaşılan Windows yazıcıları ters bölü içerir (\\sunucu\yazici).
- * Beyaz liste ters bölüyü siliyordu; her ayar kaydında yazıcı adı bozuluyordu.
- * Ters bölüye yalnız bu alanlarda izin verilir ve değer sa_yaz_literal() ile
- * var_export() (tek tırnaklı, kaçışlı) olarak yazılır.
- */
-function sa_yazici_temiz($ham): string
-{
-    $s = preg_replace('/[^\p{L}\p{N} ._\-,\/:@#()\\\\]/u', '', (string) $ham) ?? '';
-    return mb_substr(trim($s), 0, 80);
-}
-
-/** `$var = ...;` değerini var_export() ile (tırnak stilinden bağımsız) güvenle yazar. */
-function sa_yaz_literal(string $content, string $var, string $deger): string
-{
-    $pattern = '/(\$' . preg_quote($var, '/') . '\s*=\s*)([\'"]?)(.*?)(\2)(\s*;)/s';
-    $yeni = preg_replace_callback($pattern, static function (array $m) use ($deger): string {
-        return $m[1] . var_export($deger, true) . $m[5];
-    }, $content, 1);
-    return $yeni ?? $content;
-}
-
-/** _bilgi_.inc içinde `$var = ...;` değerini, MEVCUT tırnak stilini koruyarak değiştir. */
-function sa_yaz(string $content, string $var, string $ic): string
-{
-    $pattern = '/(\$' . preg_quote($var, '/') . '\s*=\s*)([\'"]?)(.*?)(\2)(\s*;)/s';
-    $yeni = preg_replace_callback($pattern, static function (array $m) use ($ic): string {
-        return $m[1] . $m[2] . $ic . $m[2] . $m[5];
-    }, $content, 1);
-    return $yeni ?? $content;
-}
-
-// Form gönderildiğinde ayarları güncelle
+// Form gönderildiğinde ayarları kaydet. Değerler artık _bilgi_.inc'e (PHP kaynak
+// dosyası) yazılmaz; database/ayarlar.json'a veri olarak, şemaya göre doğrulanıp
+// yazılır. Eskiden süzgeçteki her eksik kod çalıştırmaya, her hatalı yazım tüm
+// sitenin çökmesine yol açabiliyordu.
 $guncelleme_mesaji = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guncelle'])) {
     ayar_require_csrf();
 
-    $icerik = (string) file_get_contents($bilgi_file);
-    $orijinal = $icerik;
-
+    $degisiklikler = [];
     foreach ($ayar_tipleri as $key => $tip) {
-        if ($tip === 'bool') {
-            $ic = isset($_POST[$key]) ? '1' : '0';
-        } elseif ($tip === 'boolyn') {
-            $ic = isset($_POST[$key]) ? 'evet' : 'hayir';
-        } elseif (isset($_POST[$key]) && str_contains($key, 'yazici')) {
-            $icerik = sa_yaz_literal($icerik, $key, sa_yazici_temiz($_POST[$key]));
-            continue;
+        if ($tip === 'bool' || $tip === 'boolyn') {
+            $degisiklikler[$key] = isset($_POST[$key]) ? '1' : '0';
         } elseif (isset($_POST[$key])) {
-            $ic = sa_temiz($tip, $_POST[$key]);
-        } else {
-            continue;
+            $degisiklikler[$key] = $_POST[$key];
         }
-        $icerik = sa_yaz($icerik, $key, $ic);
     }
 
-    // GÜVENLİK: yeni içerik geçerli PHP mi? (bozuk yazma önlenir)
-    $gecerli = true;
-    try {
-        token_get_all($icerik, TOKEN_PARSE);
-    } catch (\ParseError $e) {
-        $gecerli = false;
-    }
-
-    if (!$gecerli || strlen($icerik) < strlen($orijinal) * 0.7) {
-        $guncelleme_mesaji = 'error';
+    if (lumen_ayar_kaydet($degisiklikler, (int) $terminalkullanici)) {
+        $guncelleme_mesaji = 'success';
+        lumen_ayar_uygula();
+        foreach (array_keys($ayar_tipleri) as $key) {
+            ${$key} = $GLOBALS[$key] ?? (${$key} ?? null);
+        }
     } else {
-        @copy($bilgi_file, $bilgi_file . '.bak'); // yedek
-        if (file_put_contents($bilgi_file, $icerik) !== false) {
-            $guncelleme_mesaji = 'success';
-            // Bu istek için güncel değerleri belleğe yükle (form güncel görünsün)
-            foreach ($ayar_tipleri as $key => $tip) {
-                if ($tip === 'bool') {
-                    ${$key} = isset($_POST[$key]) ? '1' : '0';
-                } elseif ($tip === 'boolyn') {
-                    ${$key} = isset($_POST[$key]) ? 'evet' : 'hayir';
-                } elseif (isset($_POST[$key]) && str_contains($key, 'yazici')) {
-                    ${$key} = sa_yazici_temiz($_POST[$key]);
-                } elseif (isset($_POST[$key])) {
-                    ${$key} = sa_temiz($tip, $_POST[$key]);
-                }
-            }
-        } else {
-            $guncelleme_mesaji = 'error';
-        }
+        $guncelleme_mesaji = 'error';
     }
 }
 
@@ -528,7 +429,7 @@ function sa_render_value($deger): string
             <i class="fa-solid fa-circle-check"></i>
             <div>
                 <div class="a-title">Ayarlar kaydedildi.</div>
-                <div class="a-body">Tum ayarlar _bilgi_.inc dosyasina yazildi.</div>
+                <div class="a-body">Tum ayarlar kaydedildi.</div>
             </div>
         </div>
     <?php elseif ($guncelleme_mesaji === 'error'): ?>
@@ -587,14 +488,14 @@ function sa_render_value($deger): string
         <?php endforeach; ?>
 
         <div class="sa-kaydet-bar">
-            <span class="sa-not"><i class="fa-solid fa-circle-info"></i> Değişiklikler <code>_bilgi_.inc</code> dosyasına yazılır.</span>
+            <span class="sa-not"><i class="fa-solid fa-circle-info"></i> Değişiklikler <code>database/ayarlar.json</code> dosyasına kaydedilir; varsayılanlar <code>_bilgi_.inc</code>'tedir.</span>
             <button type="submit" name="guncelle" class="btn-submit"><i class="fa-solid fa-floppy-disk"></i> Tümünü Kaydet</button>
         </div>
     </form>
 
     <div class="file-note">
         <i class="fa-solid fa-file-code"></i>
-        <span>Ayar dosyasi: <code>_bilgi_.inc</code></span>
+        <span>Ayar dosyasi: <code>database/ayarlar.json</code></span>
     </div>
 
 </main>

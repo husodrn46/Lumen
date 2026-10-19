@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * hizli_iskonto.php — Sipariş ekranı hızlı iskonto kısayollarını yönet.
- * Her kısayol: etiket + yüzde. Değerler _bilgi_.inc içindeki $hizli_iskontolar
+ * Her kısayol: etiket + yüzde. Değerler database/ayarlar.json'daki hizli_iskontolar
  * dizisine yazılır (tek satır; regex ile güncellenir). Admin-only + CSRF.
  */
 
@@ -15,54 +15,28 @@ require_once __DIR__ . '/admin_guard.php';
 
 ayar_require_m16($terminalkullanici);
 
-$bilgi_file = __DIR__ . '/../_bilgi_.inc';
 $mesaj = '';
 $mesajTip = '';
 
-/** Etiketten tehlikeli karakterleri temizle (tırnak/köşeli parantez/; olmaz). */
-function hi_temiz_ad(string $ad): string
-{
-    $ad = trim($ad);
-    $ad = preg_replace('/[^\p{L}\p{N} .\-\/]/u', '', $ad) ?? '';
-    return mb_substr(trim($ad), 0, 24);
-}
-
+// Kısayollar _bilgi_.inc'e PHP literali olarak yazılıyordu; artık
+// database/ayarlar.json'a doğrulanmış veri olarak kaydedilir (includes/ayar_deposu.php).
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kaydet'])) {
     ayar_require_csrf();
 
     $adlar   = (array) ($_POST['ad'] ?? []);
     $oranlar = (array) ($_POST['oran'] ?? []);
-    $yeni = [];
+    $liste = [];
     foreach ($adlar as $i => $ad) {
-        $ad = hi_temiz_ad((string) $ad);
-        $oran = (float) str_replace(',', '.', (string) ($oranlar[$i] ?? ''));
-        if ($ad !== '' && $oran > 0 && $oran <= 100) {
-            $yeni[] = ['ad' => $ad, 'oran' => $oran];
-        }
+        $liste[] = ['ad' => (string) $ad, 'oran' => str_replace(',', '.', (string) ($oranlar[$i] ?? ''))];
     }
 
-    // Array literalini kur (tek satır, güvenli — ad temizlendi, oran sayı)
-    $parcalar = [];
-    foreach ($yeni as $r) {
-        $oranYaz = rtrim(rtrim(number_format((float) $r['oran'], 2, '.', ''), '0'), '.');
-        $parcalar[] = "['ad' => '" . $r['ad'] . "', 'oran' => " . $oranYaz . "]";
-    }
-    $literal = '$hizli_iskontolar = [' . implode(', ', $parcalar) . '];';
-
-    $icerik = (string) file_get_contents($bilgi_file);
-    if (preg_match('/\$hizli_iskontolar\s*=\s*\[.*?\];/s', $icerik)) {
-        $icerik = preg_replace('/\$hizli_iskontolar\s*=\s*\[.*?\];/s', $literal, $icerik, 1);
-    } else {
-        // değişken yoksa dosya sonuna ekle
-        $icerik = rtrim($icerik) . "\n" . $literal . "\n";
-    }
-
-    if (file_put_contents($bilgi_file, $icerik) !== false) {
+    if (lumen_ayar_kaydet(['hizli_iskontolar' => $liste], (int) $terminalkullanici)) {
         $mesaj = 'Hızlı iskonto kısayolları kaydedildi.';
         $mesajTip = 'ok';
-        $hizli_iskontolar = $yeni; // güncel değerleri göster
+        lumen_ayar_uygula();
+        $hizli_iskontolar = $GLOBALS['hizli_iskontolar'] ?? [];
     } else {
-        $mesaj = 'Kaydedilemedi — _bilgi_.inc yazma izinlerini kontrol edin.';
+        $mesaj = 'Kaydedilemedi — database/ klasörü yazma izinlerini kontrol edin.';
         $mesajTip = 'error';
     }
 }
