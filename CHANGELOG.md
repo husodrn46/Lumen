@@ -1,6 +1,6 @@
 # Değişiklik Günlüğü
 
-## [Yayımlanmadı] — v1.2.0 adayı
+## [1.2.0] — 2026-10-19
 
 Bu sürüm, v1.0.0 üzerine kapsamlı bir güvenlik ve doğruluk denetiminin sonucudur ve
 v1.1.0-beta.1 ön sürümünün (Faturalama BETA) yerini alır.
