@@ -11,7 +11,7 @@ migrateUrlToSession(['stokhareket', 'sipariskaydet']);
 // stokhareket parametresini al (session bazlı)
 $stokhareket = getPageParamInt('stokhareket');
 if ($stokhareket === 0) {
-    die("Geçersiz fiş numarası.");
+    lumen_hata_sayfasi('Sipariş seçilmedi', 'Sipariş numarası eksik veya geçersiz. Sipariş listesinden tekrar açın.');
 }
 if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
     header('Location: ' . APP_ROOT_URL . '/403.html');
@@ -124,7 +124,8 @@ try {
         $eyne = ['GENEXP1' => '', 'GENEXP2' => ''];
     }
 } catch (PDOException $e) {
-    die("Fiş bilgileri çekilirken hata oluştu: " . $e->getMessage());
+    error_log('lg_siparis: ' . $e->getMessage());
+    lumen_hata_sayfasi('Sipariş açılamadı', 'Fiş bilgileri okunurken bir hata oluştu. Lütfen tekrar deneyin.', 500);
 }
 
 // Döviz modu

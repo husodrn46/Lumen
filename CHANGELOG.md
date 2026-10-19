@@ -20,6 +20,10 @@ Yükseltme sonrası **mutlaka** `php scripts/sema_guncelle.php` çalıştırın.
 - Dövizli siparişte döviz fiyatı/toplamı eski kurdan gösteriliyordu; toplu satır
   ekleme dövizli fişi TL yazıyordu.
 - API fiyat listesi alış maliyetini satış fiyatı olarak döndürüyordu.
+- Yazdırılan siparişte satır "Genel Toplam" iskontosuz tutara KDV ekliyordu
+  (satırlar toplamı fişin net toplamını tutmuyordu); dövizli çıktılarda da aynı.
+- "Dövizli Fiyat Listesi" çıktısı para birimini fişten değil oturumdan alıyordu
+  ("₺ 0", "1 0 = 48 TL"); TL siparişte anlamsız tutar basıyordu.
 - "Yeni cari oluştur ve aktar" başarılı işlemi hata olarak bildiriyordu (mükerrer cari).
 - Sekmeler arası sızıntı: bir sekmede açılan sipariş, diğer sekmedeki ekleme
   işlemini kendine çekebiliyordu.
@@ -54,6 +58,15 @@ Yükseltme sonrası **mutlaka** `php scripts/sema_guncelle.php` çalıştırın.
   `scripts/bildirim_hatirlatici.php`, `scripts/sema_guncelle.php`.
 - Parola en az 8 karakter; ODBC Driver 18 desteği (`AKL_DB_TRUST_CERT`,
   `AKL_DB_ENCRYPT`); `TRUSTED_PROXIES`, `PAZARLAMACI_CARI_ONEKI` ayarları.
+
+### 🎨 Görünüm
+
+- Parametresiz/kaydı olmayan sayfalar düz metin veya boş beyaz sayfa yerine ortak
+  hata kartı gösterir (`lumen_hata_sayfasi`); veritabanı hata ayrıntısı artık
+  ekrana basılmaz.
+- Sipariş ekranları ve rapor/ayar sayfalarındaki birincil düğmeler ortak bordo
+  palete çekildi; bildirimler sayfası ve zil rozeti ortak tasarıma uyarlandı;
+  pazarlamacı performans kartları ve üretim ekranı mobilde düzeltildi.
 
 ### 🧪 Geliştirme
 

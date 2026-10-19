@@ -114,12 +114,12 @@ if ($stokhareket > 0) {
         $fis = $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         error_log('doviz_degistir fis sorgu hata: ' . $e->getMessage());
-        die("Fis bulunamadi.");
+        lumen_hata_sayfasi('Sipariş bulunamadı', 'Döviz değiştirilecek sipariş bulunamadı.', 404);
     }
 }
 
 if (!$fis) {
-    die("Fiş bulunamadı!");
+    lumen_hata_sayfasi('Sipariş seçilmedi', 'Döviz değiştirmek için siparişten bu ekrana gelin.');
 }
 
 $mevcut_trcode = (int)$fis['TRCURR'];

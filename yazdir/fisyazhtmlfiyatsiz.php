@@ -7,7 +7,7 @@ require_once __DIR__ . '/../kontrol.php';
 include_once(__DIR__ . "/../donem_helper.php");
 
 if (!isset($_GET['stokhareket'])) {
-	    echo '<div class="notification msgerror">Lütfen bir fiş numarası belirtin.</div>';
+	    lumen_hata_sayfasi('Sipariş seçilmedi', 'Yazdırılacak sipariş numarası eksik. Sipariş listesinden tekrar deneyin.');
 	    exit;
 	}
 

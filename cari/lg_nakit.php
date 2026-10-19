@@ -16,7 +16,7 @@ if (isset($_GET['cari_id']) && isset($_GET['REF'])) {
     $CARIID = (int)$_GET['cari_id'];
     $REF    = (int)$_GET['REF'];
 } else {
-    die("Parametre eksik.");
+    lumen_hata_sayfasi('Kayıt seçilmedi', 'Kasa hareketi bilgisi eksik. Cari hareket dökümünden tekrar açın.');
 }
 if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4')) {
     header('Location: ' . APP_ROOT_URL . '/403.html');
@@ -45,7 +45,7 @@ try {
     exit('Veritabani islem hatasi.');
 }
 if (!$ks) {
-    die("Bu LOGICALREF için kasa hareketi bulunamadı.");
+    lumen_hata_sayfasi('Kasa hareketi bulunamadı', 'Kayıt silinmiş veya başka döneme ait olabilir.', 404);
 }
 
 // 4) KASA KARTI (sende sadece CARDREF var)

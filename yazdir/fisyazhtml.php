@@ -7,7 +7,7 @@ require_once __DIR__ . '/../kontrol.php';
 include_once(__DIR__ . "/../donem_helper.php");
 
 if (!isset($_GET['stokhareket'])) {
-	  echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">Lütfen bir fiş numarası belirtin.</div>';
+	  lumen_hata_sayfasi('Sipariş seçilmedi', 'Yazdırılacak sipariş numarası eksik. Sipariş listesinden tekrar deneyin.');
 	  exit;
 	}
 
@@ -687,6 +687,7 @@ function esc(mixed $v): string
               (TOTAL-DISTDISC)/(AMOUNT*(UINFO2/UINFO1)) AS FIYAT,
               ORFLINE.PRICE,
               ORFLINE.TOTAL,
+              ORFLINE.DISTDISC,
               ORFLINE.VATAMNT,
               ITEMS.CODE AS SKODU,
               ITEMS.NAME AS SADI,
@@ -710,7 +711,7 @@ function esc(mixed $v): string
 	          $list = $stmtList;
 
           while ($row = $list->fetch(PDO::FETCH_ASSOC)) {
-            $toplam   = (float)$row['TOTAL'] + (float)$row['VATAMNT'];
+            $toplam   = (float)$row['TOTAL'] - (float)$row['DISTDISC'] + (float)$row['VATAMNT'];   // iskontolu tutar + KDV
             $koli_ici = (float)($row['koli_ici'] ?: 1);
             $koli_say = $koli_ici > 0 ? ceil($row['AMOUNT'] / $koli_ici) : 0;
           ?>

@@ -416,6 +416,10 @@ function sa_render_value($deger): string
         .sa-kaydet-bar .sa-not { margin-right:auto; font-size:12.5px; color:var(--text-3); display:flex; align-items:center; gap:7px; }
         .sa-kaydet-bar code { background:var(--red-soft); color:var(--red); padding:1px 6px; border-radius:5px; font-size:12px; }
         @media (max-width:520px){ .sa-field .sa-in { width:130px; } .sa-kaydet-bar { margin:16px -12px -40px; padding:12px 14px; } .sa-kaydet-bar .sa-not { display:none; } }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-submit { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-submit:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
     </style>
 </head>
 <body>

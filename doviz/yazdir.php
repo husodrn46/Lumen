@@ -13,7 +13,7 @@ require_once __DIR__ . '/doviz_guard.php';
 doviz_require_m21($terminalkullanici);
 
 if (!isset($_GET['id'])) {
-    echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">Please specify an order number.</div>';
+    lumen_hata_sayfasi('Sipariş seçilmedi', 'Yazdırılacak sipariş numarası eksik. Dövizli siparişler listesinden tekrar deneyin.');
     exit;
 }
 
@@ -30,7 +30,7 @@ $stmtFis->execute([':stokhareket' => $stokhareket]);
 $listfis = $stmtFis->fetch(PDO::FETCH_ASSOC);
 
 if (!$listfis) {
-    echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">Order not found.</div>';
+    lumen_hata_sayfasi('Sipariş bulunamadı', 'Bu numarada bir sipariş yok veya başka döneme ait.', 404);
     exit;
 }
 
@@ -39,7 +39,7 @@ $trcurr = (int)$listfis['TRCURR'];
 $trrate = (float)$listfis['TRRATE'];
 
 if ($trcurr == 0 || $trrate <= 0) {
-    echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">This is not a foreign currency order.</div>';
+    lumen_hata_sayfasi('Dövizli sipariş değil', 'Bu sipariş TL olarak kayıtlı; normal fiş yazdırmayı kullanın.', 422);
     exit;
 }
 
@@ -538,6 +538,10 @@ $autoPrint = isset($_GET['yazdir']);
             .sign-col .s-lbl { margin-bottom: 22px; font-size: 8px; }
             .footer-note { padding: 8px 14px; font-size: 10px; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-print { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-print:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
     </style>
 </head>
 <body>
@@ -656,6 +660,7 @@ $autoPrint = isset($_GET['yazdir']);
                         CASE WHEN O.AMOUNT<>0 THEN O.VATMATRAH/O.AMOUNT ELSE 0 END AS NETFIYAT,
                         O.TOTAL,
                         O.VATAMNT,
+                        O.DISTDISC,
                         I.CODE AS SKODU,
                         I.NAME AS SADI,
                         U.CODE AS BIRIM
@@ -667,7 +672,7 @@ $autoPrint = isset($_GET['yazdir']);
                     ");
                     $stmtList->execute([':stokhareket' => $stokhareket]);
                     while ($row = $stmtList->fetch(PDO::FETCH_ASSOC)) {
-                        $total_with_vat = (float)$row['TOTAL'] + (float)$row['VATAMNT'];
+                        $total_with_vat = (float)$row['TOTAL'] - (float)$row['DISTDISC'] + (float)$row['VATAMNT'];   // iskontolu tutar + KDV
                         // Döviz fiyatı PRPRICE alanından al (varsa), yoksa TL fiyatı kura böl
                         $dovizBirimFiyat = (float)$row['PRICE'] / $dovizfiyat; // TL fiyat / kur (PRPRICE kur değişince eskir)
                         $dovizNetFiyat   = (float)$row['NETFIYAT'] / $dovizfiyat; // net fiyat PRPRICE ile karşılanamaz (iskontolu)

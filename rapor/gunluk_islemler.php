@@ -609,6 +609,12 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
             .gd-table tbody tr:hover { background: transparent !important; }
             main { padding: 0 !important; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-apply { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-apply:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
+        .btn-print { background: #fff; color: #1f2937; border: 1px solid #e5e7eb; box-shadow: none; }
+        .btn-print:hover { background: #fff; color: var(--red, #6F1022); border-color: rgba(111, 16, 34, 0.35); box-shadow: none; }
     </style>
 </head>
 <body>

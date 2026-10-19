@@ -16,7 +16,7 @@ $CARIID = getPageParamInt('cari_id');
 $REF = getPageParamInt('REF');
 
 if ($CARIID <= 0 || $REF <= 0) {
-    exit;
+    lumen_hata_sayfasi('Fatura seçilmedi', 'Görüntülenecek fatura bilgisi eksik. Cari hareket dökümünden tekrar açın.');
 }
 function paraformat(float|int|string|null $kusurat): string
 {

@@ -296,7 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Sayfa ilk yüklendiğinde (session bazlı parametre sistemi)
 $stokhareket = getPageParamInt('stokhareket');
 if ($stokhareket == 0) {
-    die("Geçersiz fiş numarası.");
+    lumen_hata_sayfasi('Sipariş seçilmedi', 'Yazdırılacak sipariş numarası eksik veya geçersiz.');
 }
 
 // Mevcut açıklamaları çek (önce ORFICHE, sonra STFICHE)

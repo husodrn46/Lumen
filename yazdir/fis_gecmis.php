@@ -19,7 +19,7 @@ if (m_p_yetki($terminalkullanici, 'M18') != 1) {
 $fisRef = isset($_GET['fis']) ? intval($_GET['fis']) : 0;
 
 if ($fisRef <= 0) {
-    die("Geçersiz fiş referansı");
+    lumen_hata_sayfasi('Fiş seçilmedi', 'Geçmişi görüntülenecek fiş bilgisi eksik.');
 }
 
 $fisGecmisBackUrl = safeLocalReturnUrl(
@@ -40,7 +40,7 @@ $stmtFisInfo = $dbh->prepare("SELECT FICHENO, DATE_ FROM ".$firmadonem."ORFICHE 
 $stmtFisInfo->execute([':fisRef' => $fisRef]);
 $fisInfo = $stmtFisInfo->fetch(PDO::FETCH_ASSOC);
 if (!$fisInfo) {
-    die("Fiş bulunamadı");
+    lumen_hata_sayfasi('Fiş bulunamadı', 'Kayıt silinmiş veya başka döneme ait olabilir.', 404);
 }
 
 // ============================================================================

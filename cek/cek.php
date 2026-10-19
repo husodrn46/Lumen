@@ -17,7 +17,7 @@ $CARIID = isset($_GET['cari_id']) ? (int) $_GET['cari_id'] : 0;
 $CSREF  = isset($_GET['CSREF']) ? (int) $_GET['CSREF'] : (isset($_GET['REF']) ? (int) $_GET['REF'] : 0);
 $ROLLREF = isset($_GET['ROLLREF']) ? (int) $_GET['ROLLREF'] : 0;
 if ($CARIID <= 0 || ($CSREF <= 0 && $ROLLREF <= 0)) {
-    exit('Parametre eksik.');
+    lumen_hata_sayfasi('Çek seçilmedi', 'Çek/senet bilgisi eksik. Cari hareket dökümünden tekrar açın.');
 }
 $mod = $ROLLREF > 0 ? 'bordro' : 'tekcek';
 
@@ -148,7 +148,7 @@ if ($mod === 'bordro') {
     $stmtHeader->execute([':csref' => $CSREF]);
     $sqlHeader = $stmtHeader->fetch(PDO::FETCH_ASSOC);
     if (!$sqlHeader) {
-        exit('Çek/Senet bulunamadı.');
+        lumen_hata_sayfasi('Çek/senet bulunamadı', 'Kayıt silinmiş veya başka döneme ait olabilir.', 404);
     }
 
     $sonTrcode = (int) ($sqlHeader['LastTrCode'] ?? 0);

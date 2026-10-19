@@ -78,7 +78,7 @@ if ($stokid > 0 && $fisid > 0) {
     exit;
   }
 } else {
-  exit;
+  lumen_hata_sayfasi('Ürün seçilmedi', 'Siparişe eklenecek ürün veya sipariş bilgisi eksik. Siparişten tekrar deneyin.');
 }
 
 $stmt = $dbh->prepare("SELECT CLIENTREF FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :fisid");
@@ -108,7 +108,7 @@ ORDER BY URUN.CODE");
 $stmt->execute([':stokid' => $stokid]);
 $stokara = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!is_array($stokara) || $stokara === []) {
-  header('Location: ' . APP_ROOT_URL . '/lg_fis.php?stokhareket=' . $fisid . '&hata=stok_bulunamadi', true, 303);
+  header('Location: ' . APP_ROOT_URL . '/siparis/lg_fis.php?stokhareket=' . $fisid . '&hata=stok_bulunamadi', true, 303);
   exit;
 }
 

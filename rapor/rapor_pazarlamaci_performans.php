@@ -448,6 +448,9 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             gap: 14px;
             margin-bottom: 18px;
         }
+        /* 7 kart: sığmazsa alt satıra geçer (sabit 7 sütun kartları eziyordu) */
+        .stat-row.stat-row-7 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+        .stat-row-7 .stat-value { white-space: nowrap; font-size: clamp(15px, 1.6vw, 20px); }
         .stat-card {
             position: relative;
             background: #fff;
@@ -746,7 +749,8 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             .header-form input { width: 160px; }
 
             main.page { padding: 14px 12px 40px; }
-            .stat-row { grid-template-columns: 1fr; gap: 10px; }
+            .stat-row, .stat-row.stat-row-7 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .stat-row-7 .stat-value { font-size: 15px; }
             .stat-card { padding: 14px 14px 14px 18px; }
             .stat-value { font-size: 17px; }
             .card-head { padding: 14px 16px 12px; }
@@ -810,7 +814,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
 
     <!-- KPI Kartlari – 2026 yili ozet gostergeler -->
     <?php $tahsilEdilmeyen = $yearlyTotal - $yearlyTahsilat; ?>
-    <div class="stat-row" style="grid-template-columns: repeat(7, 1fr);">
+    <div class="stat-row stat-row-7">
         <div class="stat-card tone-sky">
             <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
             <div class="stat-body">

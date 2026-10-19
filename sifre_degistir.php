@@ -359,7 +359,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="yeni_sifre" class="field-label">Yeni Sifre</label>
                     <div class="input-wrap">
                         <input type="password" id="yeni_sifre" name="yeni_sifre" required
-                               class="field-control" placeholder="En az 6 karakter"
+                               class="field-control" placeholder="En az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter"
                                autocomplete="new-password" minlength="<?php echo (int) LUMEN_PAROLA_MIN; ?>">
                         <i class="fa-solid fa-lock input-icon"></i>
                     </div>

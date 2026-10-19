@@ -168,8 +168,27 @@ akis('sipariş ekranı yazdırma düğmeleri doğru fişi açar', function () us
         $r = $yonetici->istek("siparis/lg_siparis.php?stokhareket={$fis}", ['csrf_token' => $t, 'action' => $a, 'aciklama1' => 'a', 'aciklama2' => 'b']);
         bekle(str_contains($r['yer'], "stokhareket={$fis}"), "{$a}: yönlendirme fiş kimliği taşımıyor ({$r['yer']})");
         $g = $yonetici->istek($r['yer']);
+        if ($a === 'print_dovizli') {
+            // TL siparişin dövizli çıktısı yoktur (TRRATE=0): açıklayıcı hata sayfası beklenir.
+            bekle($g['kod'] === 422 && str_contains($g['govde'], 'Dövizli sipariş değil'), "{$a}: TL fişte beklenen uyarı yok (HTTP {$g['kod']})");
+            continue;
+        }
         bekle($g['kod'] === 200 && !str_contains($g['govde'], 'fiş numarası belirtin'), "{$a}: sayfa fişi açmadı (HTTP {$g['kod']})");
     }
+});
+
+akis('yazdırılan satır toplamları fişin net toplamını verir; dövizli çıktı fişin dövizini kullanır', function () use ($yonetici, $pdo, &$fis): void {
+    $net = (float) tek($pdo, "SELECT NETTOTAL FROM LG_001_02_ORFICHE WHERE LOGICALREF = :f", [':f' => $fis]);
+    $g = $yonetici->istek("yazdir/fisyazhtml.php?stokhareket={$fis}")['govde'];
+    preg_match_all('/<td class="cell-total">[^\d-]*([\d.,]+)/u', $g, $m);
+    bekle($m[1] !== [], 'satır toplamı bulunamadı');
+    $toplam = array_sum(array_map(static fn(string $v): float => (float) str_replace(['.', ','], ['', '.'], $v), $m[1]));
+    yakin($net, $toplam, 'satır toplamları');
+
+    $dfis = (int) tek($pdo, "SELECT TOP 1 LOGICALREF FROM LG_001_02_ORFICHE WHERE TRCURR = 20 AND TRRATE > 0 ORDER BY LOGICALREF DESC");
+    bekle($dfis > 0, 'EUR sipariş yok');
+    $d = $yonetici->istek("yazdir/fisyazdoviz.php?stokhareket={$dfis}");
+    bekle($d['kod'] === 200 && str_contains($d['govde'], '1 EUR =') && !str_contains($d['govde'], '1 0 ='), 'dövizli çıktı fişin dövizini (EUR) göstermiyor');
 });
 
 akis('yazdırılan genel toplam KDV\'yi iki kez eklemez', function () use ($yonetici, $pdo, &$fis): void {

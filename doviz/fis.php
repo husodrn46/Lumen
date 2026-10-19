@@ -329,7 +329,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             --text-3: #94a3b8;
             --border: #e2e8f0;
             /* Ana tema kirmizi: --sky* degisken degerleri kirmiziya cevrildi (ad korundu) */
-            --sky: var(--red,#ef4444);
+            --sky: var(--red);
             --sky-600: var(--red,#6F1022);
             --sky-700: #b91c1c;
             --sky-soft: #fef2f2;
@@ -338,7 +338,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             --emerald-600: #059669;
             --amber: #f59e0b;
             --purple: #8b5cf6;
-            --red: #ef4444;
+            --red: #6F1022;
         }
 
         * { box-sizing: border-box; margin: 0; }
@@ -698,7 +698,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
         .btn-emerald { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25); }
         .btn-emerald:hover { box-shadow: 0 8px 22px rgba(16, 185, 129, 0.35); color: #fff; }
 
-        .btn-sky { background: linear-gradient(135deg, var(--red,#ef4444), var(--red,#6F1022)); color: #fff; box-shadow: 0 4px 14px rgba(111, 16, 34, 0.25); }
+        .btn-sky { background: linear-gradient(135deg, var(--red), var(--red,#6F1022)); color: #fff; box-shadow: 0 4px 14px rgba(111, 16, 34, 0.25); }
         .btn-sky:hover { box-shadow: 0 8px 22px rgba(111, 16, 34, 0.35); color: #fff; }
 
         .btn-amber { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25); }
@@ -816,7 +816,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             border-radius: 10px;
             background: #fef2f2;
             color: var(--red);
-            border: 1px solid rgba(239,68,68,0.2);
+            border: 1px solid rgba(111, 16, 34,0.2);
             display: inline-flex; align-items: center; justify-content: center;
             text-decoration: none;
             cursor: pointer; padding: 0; font: inherit;
@@ -916,7 +916,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             animation: fadeUp .35s ease both;
         }
         .alert.success { background: #ecfdf5; color: #065f46; border: 1px solid rgba(16,185,129,0.22); }
-        .alert.error { background: #fef2f2; color: #991b1b; border: 1px solid rgba(239,68,68,0.22); }
+        .alert.error { background: #fef2f2; color: #991b1b; border: 1px solid rgba(111, 16, 34,0.22); }
 
         /* ═══════════ MOBILE CARDS ═══════════ */
         .lines-mobile { display: none; }

@@ -12,7 +12,7 @@ if (isset($_GET['cari_id'], $_GET['REF'])) {
     $CARIID = (int)$_GET['cari_id'];
     $REF    = (int)$_GET['REF'];
 } else {
-    exit;
+    lumen_hata_sayfasi('Fatura seçilmedi', 'Görüntülenecek fatura bilgisi eksik. Cari hareket dökümünden tekrar açın.');
 }
 if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4')) {
     header('Location: ' . APP_ROOT_URL . '/403.html');

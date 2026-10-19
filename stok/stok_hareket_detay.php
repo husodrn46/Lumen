@@ -7,7 +7,7 @@ include_once __DIR__ . "/../log_ip.php";
 
 // Stok hareket ID kontrolü
 if (!isset($_GET['stokhareket']) || empty($_GET['stokhareket'])) {
-    die("Stok hareket ID eksik!");
+    lumen_hata_sayfasi('Kayıt seçilmedi', 'Stok hareket numarası eksik.');
 }
 $stokhareket = $_GET['stokhareket'];
 
@@ -53,7 +53,7 @@ try {
     $fisBilgisi = $fisSorgu->fetch(PDO::FETCH_ASSOC);
 
     if (!$fisBilgisi) {
-        die("Fiş bulunamadı!");
+        lumen_hata_sayfasi('Fiş bulunamadı', 'Kayıt silinmiş veya başka döneme ait olabilir.', 404);
     }
 
     // Dosya adını oluştur
@@ -99,7 +99,8 @@ try {
     $iskontolar = $iskontolarSorgu->fetchAll(PDO::FETCH_COLUMN);
 
 } catch (PDOException $e) {
-    die("Veritabanı hatası: " . $e->getMessage());
+    error_log('stok_hareket_detay: ' . $e->getMessage());
+    lumen_hata_sayfasi('Bir hata oluştu', 'Kayıt okunurken bir hata oluştu. Lütfen tekrar deneyin.', 500);
 }
 
 // İstatistikler için değişkenler

@@ -1078,6 +1078,10 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             main.page { padding: 16px 12px 40px; }
             .selected-strip { align-items: flex-start; flex-direction: column; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-primary { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-primary:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
     </style>
 </head>
 <body>

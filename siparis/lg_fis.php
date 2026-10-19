@@ -236,7 +236,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          --text-2: #6b7280;
          --text-3: #9ca3af;
          --border: #e5e7eb;
-         --red: #ef4444;
+         --red: #6F1022;
          --red-soft: #fef2f2;
          --red-border: rgba(248, 113, 113, 0.25);
          --amber: #f59e0b;
@@ -320,7 +320,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          transform: translateY(0);
       }
 
-      .btn-red { background: var(--red,#ef4444); color: #fff; }
+      .btn-red { background: var(--red); color: #fff; }
       .btn-red:hover { background: var(--red,#6F1022); color: #fff; }
 
       .btn-amber { background: #f59e0b; color: #fff; }
@@ -404,8 +404,8 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
       .search-input::placeholder { color: var(--text-3); }
 
       .search-input:focus {
-         border-color: rgba(239, 68, 68, 0.5);
-         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+         border-color: rgba(111, 16, 34, 0.5);
+         box-shadow: 0 0 0 3px rgba(111, 16, 34, 0.1);
       }
 
       .search-form {
@@ -474,7 +474,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
       }
 
       .beta-table thead th {
-         background: var(--red,#ef4444);
+         background: var(--red);
          color: #fff;
          font-size: 11px;
          font-weight: 700;
@@ -503,7 +503,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
       .beta-table tbody tr:hover {
          background: rgba(254, 242, 242, 0.5);
          transform: translateY(-1px);
-         box-shadow: 0 4px 12px rgba(239, 68, 68, 0.06);
+         box-shadow: 0 4px 12px rgba(111, 16, 34, 0.06);
       }
 
       .beta-table tbody tr:last-child td {
@@ -527,7 +527,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          height: 26px;
          border-radius: 8px;
          background: #fef2f2;
-         color: var(--red,#ef4444);
+         color: var(--red);
          font-size: 11px;
          font-weight: 700;
          border: 1px solid rgba(248, 113, 113, 0.2);
@@ -846,7 +846,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                            <i class="fa fa-file-excel" style="color:#059669;"></i> Excel'e Aktar
                         </a>
                         <a href="../stok/stok_hareket_pdf.php?stokhareket=<?php echo $stokhareket; ?>">
-                           <i class="fa fa-file-pdf" style="color:var(--red,#ef4444);"></i> PDF'e Aktar
+                           <i class="fa fa-file-pdf" style="color:var(--red);"></i> PDF'e Aktar
                         </a>
                         <div class="dropdown-divider"></div>
                         <a href="../stok/stok_hareket_aktar.php?stokhareket=<?php echo $stokhareket; ?>">
@@ -1070,7 +1070,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
             ' . csrf_field() . '
             <input type="hidden" name="hareketsil" value="' . $stokhareketid . '">
             <input type="hidden" name="stokhareket" value="' . $stokhareket . '">
-            <button type="submit" style="background:none;border:none;cursor:pointer;padding:0;font-family:Montserrat,sans-serif;font-size:12.5px;font-weight:600;color:var(--red,#ef4444);display:inline-flex;align-items:center;gap:4px;">
+            <button type="submit" style="background:none;border:none;cursor:pointer;padding:0;font-family:Montserrat,sans-serif;font-size:12.5px;font-weight:600;color:var(--red);display:inline-flex;align-items:center;gap:4px;">
               <i class="fa fa-trash-alt" style="font-size:11px;"></i>' . e_tr($liste['KODU']) . '
             </button>
           </form>
@@ -1149,7 +1149,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                <div class="glass-card-body">
                   <!-- Title -->
                   <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6;">
-                     <i class="fa-solid fa-calculator" style="color: var(--red,#ef4444); font-size: 18px;"></i>
+                     <i class="fa-solid fa-calculator" style="color: var(--red); font-size: 18px;"></i>
                      <h5 style="font-size: 16px; font-weight: 700; color: var(--text-1); margin: 0;">Sipariş Özeti</h5>
                   </div>
 
@@ -1193,7 +1193,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                   <!-- İskonto -->
                   <div class="metric-row">
                      <span class="metric-label">
-                        <i class="fa-solid fa-percent" style="color: var(--red,#ef4444);"></i>İskonto
+                        <i class="fa-solid fa-percent" style="color: var(--red);"></i>İskonto
                         <?php
                         // Iskonto satirlarindaki gercek oranlari (DISCPER) goster - kademeli iskonto icin
                         $isk1Oran = (float)($iskvarmic1['DISCPER'] ?? 0);
@@ -1257,7 +1257,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
 
                         <div class="metric-row">
                            <span class="metric-label">
-                              <i class="fa-solid fa-percent" style="color: var(--red,#ef4444);"></i>İskonto (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
+                              <i class="fa-solid fa-percent" style="color: var(--red);"></i>İskonto (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
                            </span>
                            <span class="metric-value" style="color: var(--red,#6F1022);">-<?php echo paraformat_doviz_lg_fis($bakiskoto / $dovizKuru, $dovizSembol); ?></span>
                         </div>

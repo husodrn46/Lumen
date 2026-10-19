@@ -11,7 +11,7 @@ $stokhareket = filter_input(INPUT_GET, 'stokhareket', FILTER_SANITIZE_NUMBER_INT
 if (!$stokhareket || $stokhareket <= 0) { // Sıfır veya geçersizse durdur
     ob_end_clean();
     header("Content-Type: text/plain; charset=utf-8"); // Hata mesajı için düz metin
-    die("Hata: Gecersiz veya eksik stok hareket numarasi.");
+    lumen_hata_sayfasi('Kayıt seçilmedi', 'Stok hareket numarası eksik veya geçersiz.');
 }
 
 // YETKI: siparisin carisi kullaniciya gorunur olmali. Bu cikti fiyat/tutar gosterir;

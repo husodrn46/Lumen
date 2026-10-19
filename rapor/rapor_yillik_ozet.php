@@ -540,6 +540,10 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
             .glass-card, .stat-card { box-shadow: none !important; border-radius: 0 !important; border: 1px solid #ddd !important; }
             .chart-wrap { height: 240px !important; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-ghost-print { background: #fff; color: #1f2937; border: 1px solid #e5e7eb; box-shadow: none; }
+        .btn-ghost-print:hover { background: #fff; color: var(--red, #6F1022); border-color: rgba(111, 16, 34, 0.35); box-shadow: none; }
     </style>
 </head>
 <body>

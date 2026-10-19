@@ -24,7 +24,7 @@ $stkStmt = $dbh->prepare("
 $stkStmt->execute(['ref' => $stockref]);
 $stok = $stkStmt->fetch(PDO::FETCH_ASSOC);
 if (!$stok) {
-    die('Stok bulunamadı.');
+    lumen_hata_sayfasi('Stok bulunamadı', 'Stok kartı seçilmedi veya silinmiş.', 404);
 }
 
 // 3) Hareket verilerini çek

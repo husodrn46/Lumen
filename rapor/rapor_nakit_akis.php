@@ -577,6 +577,12 @@ foreach ($cek_vade_data as $row) {
             .chart-grid { grid-template-columns: 2fr 1fr; }
             .gd-table { font-size: 10pt; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-excel { background: #059669; color: #fff; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2); }
+        .btn-excel:hover { background: #047857; color: #fff; }
+        .btn-print { background: #fff; color: #1f2937; border: 1px solid #e5e7eb; box-shadow: none; }
+        .btn-print:hover { background: #fff; color: var(--red, #6F1022); border-color: rgba(111, 16, 34, 0.35); box-shadow: none; }
     </style>
 </head>
 <body>

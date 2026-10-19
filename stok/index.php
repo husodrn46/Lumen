@@ -382,6 +382,9 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
             .header-inner { padding: 12px 14px; gap: 10px; }
             .header-title { font-size: 15px; }
             .header-subtitle { font-size: 11px; }
+            /* Başlık ezilmesin: üst düğmeler mobilde yalnız simge */
+            .header-inner .btn-primary { padding: 10px 12px; }
+            .header-inner .btn-primary span { display: none; }
             .filter-grid { grid-template-columns: 1fr 1fr; }
             .filter-grid .field-actions { grid-column: 1 / -1; display: flex; gap: 10px; }
             .filter-grid .btn-filter, .filter-grid .btn-reset { flex: 1; }
@@ -429,14 +432,14 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
             <!-- WhatsApp Liste ozelligi KALDIRILDI (2026-07-07, kullanici karari: kullanilmiyor).
                  Dosyalar git gecmisinde: stok/whatsapp_listeler.php, whatsapp_liste_detay.php,
                  whatsapp_sync_worker.php, whatsapp_uretim_lib.php. M_WA_URETIM_* tablolari duruyor. -->
-            <a href="uretim_miktar_onar.php" class="btn-primary" style="background:#f97316;">
+            <a href="uretim_miktar_onar.php" class="btn-primary" style="background:#f97316;" title="Miktar Onar" aria-label="Miktar Onar">
                 <i class="fa-solid fa-wrench"></i>
                 <span>Miktar Onar</span>
             </a>
             <form method="post" action="uretim_giris.php" style="display:inline;margin:0;">
                 <?php echo csrf_field(); ?>
                 <input type="hidden" name="yeni" value="1">
-                <button type="submit" class="btn-primary" style="border:0;cursor:pointer;font:inherit;">
+                <button type="submit" class="btn-primary" style="border:0;cursor:pointer;font-family:inherit;" title="Yeni Üretim" aria-label="Yeni Üretim">
                     <i class="fas fa-plus-circle"></i>
                     <span>Yeni Üretim</span>
                 </button>
