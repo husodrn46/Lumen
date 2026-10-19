@@ -1010,47 +1010,7 @@ function dovizsembol_bul(int|string $doviz): string
   return $semboller[(int)$doviz] ?? '₺';
 }
 
-if (!function_exists('lumen_insert_kimlik')) {
-  /**
-   * Tek satırlık "INSERT INTO T (...) VALUES (...)" çalıştırır ve eklenen satırın
-   * LOGICALREF'ini döndürür. Kimlik OUTPUT INSERTED ... INTO tablo değişkeni ile
-   * alınır: LOGO tablolarındaki trigger'larla uyumludur (OUTPUT'u doğrudan kullanmak
-   * trigger'lı tabloda hata verir) ve eşzamanlı kayıtlarda yanlış satırı döndüren
-   * "SELECT MAX(LOGICALREF)" yönteminin yerine geçer.
-   */
-  function lumen_insert_kimlik(PDO $dbh, string $insertSql, array $parametreler, string $kimlikKolonu = 'LOGICALREF'): int
-  {
-    // Kimlik kolonu: LOGO tablolarında LOGICALREF, Lumen (LM_) tablolarında ID.
-    if (preg_match('/^[A-Z_]{2,30}$/', $kimlikKolonu) !== 1) {
-      throw new InvalidArgumentException('lumen_insert_kimlik: geçersiz kimlik kolonu');
-    }
-    // Bağımsız modda LOGO uyumlu görünüme (dbo.LMV_…) ekleme INSTEAD OF tetikleyicisiyle LM_
-    // tablosuna gider; OUTPUT görünümün (boş) kimliğini verir. Tetikleyicinin eklediği satırın
-    // kimliği aynı oturumda @@IDENTITY'dedir (tetikleyici yalnız tek bir kimlikli tabloya yazar).
-    if (str_contains($insertSql, 'dbo.LMV_') && function_exists('lumen_bagimsiz_mi') && lumen_bagimsiz_mi()) {
-      $stmt = $dbh->prepare("SET NOCOUNT ON;\n{$insertSql};\nSELECT CAST(@@IDENTITY AS INT);");
-      $stmt->execute($parametreler);
-      $id = (int) $stmt->fetchColumn();
-      $stmt->closeCursor();
-      if ($id <= 0) {
-        throw new RuntimeException('lumen_insert_kimlik: yeni kayıt kimliği alınamadı (görünüm)');
-      }
-      return $id;
-    }
-    $sql = preg_replace('/\)\s*VALUES\s*\(/i', ") OUTPUT INSERTED.{$kimlikKolonu} INTO @lumen_yeni VALUES (", $insertSql, 1, $adet);
-    if ($sql === null || $adet !== 1) {
-      throw new InvalidArgumentException('lumen_insert_kimlik: INSERT ... VALUES (...) bekleniyor');
-    }
-    $stmt = $dbh->prepare("SET NOCOUNT ON; DECLARE @lumen_yeni TABLE (ID INT);\n{$sql};\nSELECT ID FROM @lumen_yeni;");
-    $stmt->execute($parametreler);
-    $id = (int) $stmt->fetchColumn();
-    $stmt->closeCursor();
-    if ($id <= 0) {
-      throw new RuntimeException('lumen_insert_kimlik: yeni kayıt kimliği alınamadı');
-    }
-    return $id;
-  }
-}
+// lumen_insert_kimlik: includes/veri/veri.php (CLI testleri ve kütüphaneler de kullanır).
 
 // guid - birden fazla dosyada kullanılıyor
 function guid(): string
@@ -1428,7 +1388,7 @@ if (!function_exists('m_p_yetki_tum_sutunlar')) {
   {
     return [
       'YETKI', 'SIFRE', 'PERSONEL',
-      'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19', 'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31',
+      'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19', 'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31', 'M32',
       'ST1', 'ST2', 'ST3',
       'CR1', 'CR2', 'CR3', 'CR4',
       'SP1', 'SP2', 'SP3', 'SP4',
@@ -1445,7 +1405,7 @@ if (!function_exists('m_p_menu_yetki_kodlari')) {
     return [
       'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10',
       'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19',
-      'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31',
+      'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31', 'M32',
     ];
   }
 }
@@ -1524,7 +1484,8 @@ if (!function_exists('m_p_yetki_etiketleri')) {
       'M28' => 'Görevler',
       'M29' => 'Görev Atama',
       'M30' => 'Çek İşlemleri',
-      'M31' => 'Faturalama (beta)',
+      'M31' => 'Faturalama',
+      'M32' => 'Kasa ve Banka İşlemleri',
       'ST1' => 'Miktar Görme',
       'ST2' => 'Fiyat Görme',
       'ST3' => 'Stok Extre',

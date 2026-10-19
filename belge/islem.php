@@ -38,7 +38,7 @@ if ($islem === 'kaydet') {
     $s = $_POST['satir'] ?? [];
     $sayi = is_array($s['stok_id'] ?? null) ? count($s['stok_id']) : 0;
     for ($i = 0; $i < $sayi; $i++) {
-        $sayi_ = static fn(string $alan): float => (float) str_replace(',', '.', (string) ($s[$alan][$i] ?? '0'));
+        $sayi_ = static fn(string $alan): float => lumen_tutar_coz($s[$alan][$i] ?? '0');
         $satirlar[] = [
             'stok_id' => (int) ($s['stok_id'][$i] ?? 0), 'birim_id' => (int) ($s['birim_id'][$i] ?? 0),
             'miktar' => $sayi_('miktar'), 'fiyat' => $sayi_('fiyat'), 'iskonto' => $sayi_('iskonto'), 'kdv' => $sayi_('kdv'),

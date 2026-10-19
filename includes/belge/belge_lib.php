@@ -16,6 +16,8 @@ declare(strict_types=1);
  * LOGO modunda kullanılmaz: orada fatura/irsaliye LOGO'da kesilir.
  */
 
+require_once __DIR__ . '/../veri/veri.php';
+
 if (!function_exists('lumen_belge_turleri')) {
     /**
      * Belge türleri. stok: +1 giriş, -1 çıkış, 0 yok; cari: +1 borç, -1 alacak, 0 yok.

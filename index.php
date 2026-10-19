@@ -213,6 +213,16 @@ if (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M31') == 1) 
     ];
 }
 
+// Bağımsız mod: kasa ve banka fişleri (finans modülü), M32 yetkisiyle.
+if (lumen_modul_hazir_mi('finans') && m_p_yetki($terminalkullanici, 'M32') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Kasa ve Banka',
+        'icon' => 'fa-building-columns',
+        'href' => 'finans/index.php',
+        'theme' => 't-emerald',
+    ];
+}
+
 // Faturalama (BETA) — hem kill-switch açık hem M31 yetkisi gerekir.
 // Kapalıysa kutucuk hiç görünmez; ayar: _bilgi_.inc > $faturalama_aktif
 if (!empty($faturalama_aktif) && m_p_yetki($terminalkullanici, 'M31') == 1) {

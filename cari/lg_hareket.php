@@ -21,6 +21,7 @@ $donemSecim = isset($_GET['donem']) ? $_GET['donem'] : 'tumu';
 
 // CARİ BİLGİLERİNİ ÇEKME (BAŞLIKTA KULLANMAK İÇİN)
 require_once __DIR__ . '/cari_ekstre_lib.php';
+$bagimsiz = lumen_bagimsiz_mi();
 $cari_info = cari_ekstre_cari($dbh, (int) $CARIID);
 $cari_unvan = $cari_info ? $cari_info['DEFINITION_'] : 'Bilinmeyen Cari';
 $cari_kod = $cari_info ? $cari_info['CODE'] : '';
@@ -630,7 +631,18 @@ function paraformat(float|int|string|null $kusurat): string
                                 echo '<td class="date">' . tarihcevir($rowx['DATE_']) . '</td>';
                                 echo '<td class="tr-type">';
 
-                                if ($isNakit && !empty($rowx['SOURCEFREF'])) {
+                                $trnoBag = (int) ($rowx['TRCODE_NO'] ?? 0);
+                                if ($bagimsiz && in_array($trnoBag, [1, 2], true) && !empty($rowx['SOURCEFREF'])) {
+                                    // Bağımsız mod: tahsilat/ödeme Lumen kasa/banka fişidir.
+                                    echo '<a href="../finans/goster.php?id=' . (int) $rowx['SOURCEFREF'] .
+                                        '" target="_blank" data-fis-link="1" class="tr-nakit">' .
+                                        $icon . htmlspecialchars((string) $rowx['TRCODE']) . '</a>';
+                                } elseif ($bagimsiz && $isInvoice && !empty($rowx['INVOICE_REF'])) {
+                                    // Bağımsız mod: fatura Lumen belgesidir.
+                                    echo '<a href="../belge/goster.php?id=' . (int) $rowx['INVOICE_REF'] .
+                                        '" target="_blank" data-fis-link="1" class="tr-fatura">' .
+                                        $icon . htmlspecialchars((string) $rowx['TRCODE']) . '</a>';
+                                } elseif ($isNakit && !empty($rowx['SOURCEFREF'])) {
                                     $nakitSayfa = $eskiDonem ? 'lg_nakit_2025.php' : 'lg_nakit.php';
                                     echo '<a href="' . $nakitSayfa . '?cari_id=' . $CARIID . '&REF=' . (int)$rowx['SOURCEFREF'] .
                                         '" target="_blank" data-fis-link="1" class="tr-nakit">' .

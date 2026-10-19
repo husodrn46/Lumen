@@ -54,7 +54,8 @@ if (!function_exists('yetki_gruplari')) {
                     'M26' => ['name' => 'Fiyat Listesi (Eski)',        'icon' => 'fa-tags',           'color' => 'orange',  'desc' => 'Kullanılmıyor — fiyat listesi M7 ile açılır',             'aktif' => false],
                     'M27' => ['name' => 'İthalat Modülü',              'icon' => 'fa-ship',           'color' => 'sky',     'desc' => 'İthalat takip modülü',                                    'aktif' => true],
                     'M30' => ['name' => 'Çek İşlemleri',               'icon' => 'fa-money-check-dollar', 'color' => 'emerald', 'desc' => 'Çek giriş/çıkış: portföy, ciro, kendi çekimiz (bakiye ekranından)', 'aktif' => true],
-                    'M31' => ['name' => 'Faturalama (beta)',           'icon' => 'fa-file-invoice-dollar', 'color' => 'amber', 'desc' => 'Siparişi satış faturasına çevirme. BETA: KDV yazmaz, muhasebe fişi/e-fatura oluşturmaz', 'aktif' => true],
+                    'M31' => ['name' => 'Faturalama',                  'icon' => 'fa-file-invoice-dollar', 'color' => 'amber', 'desc' => 'Fatura, irsaliye, iade kesme. LOGO modunda: siparişi LOGO faturasına çevirme (BETA, KDV\'siz); bağımsız modda: Lumen\'in KDV\'li belge modülü', 'aktif' => true],
+                    'M32' => ['name' => 'Kasa ve Banka İşlemleri',     'icon' => 'fa-cash-register',       'color' => 'emerald', 'desc' => 'Bağımsız modda tahsilat, ödeme, virman ve masraf fişi', 'aktif' => true],
                 ],
             ],
             'gorev' => [

@@ -72,13 +72,17 @@ Hareket tabloları (fatura, kasa, çek) LOGO kodlarına göre sınıflandığın
 Modül koruması her zaman belirleyicidir: bir sayfa görünüm sayesinde "çalışıyor gibi"
 olsa bile modülü bağımsız modda açılmadan kullanıcıya gösterilmez.
 
-### Durum (2026-10-19)
+### Durum (2026-10-19, Faz 5 sonu)
 
 | Faz | Durum |
 |---|---|
 | 0 — altyapı | ✅ veri katmanı, mod seçimi, çekirdek şema, modül koruması, `kur.sh --bagimsiz`, CI'da iki mod |
 | 1 — kullanıcı + cari | ✅ giriş/beni hatırla, kullanıcı ve yetki yönetimi, görevler, loglar, bildirimler; cari liste/arama, yeni cari, bakiye, ekstre (ekran/PDF/Excel), özel cari kısıtı |
-| 2 — stok | sırada |
+| 2 — stok | ✅ stok kartı/arama, birim ve koli ölçüsü, barkod, fiyat, depo miktarları (LOGO uyumlu `LMV_` görünümleri + INSTEAD OF tetikleyicileri) |
+| 3 — sipariş | ✅ TL ve dövizli sipariş, satır işlemleri, yazdırma, API (`LMV_ORFICHE/ORFLINE`, üretilmiş: `scripts/gelistirme/logo_uyum_uret.py`) |
+| 4 — belge | ✅ `belge/`: satış/alış faturası, irsaliye, iade, üretimden giriş, sayım; siparişten kısmi fatura; iptal; M31 |
+| 5 — kasa/banka/çek | ✅ `finans/`: tahsilat, ödeme, virman, masraf, iptal, mükerrer gönderim koruması (M32); çek giriş/ciro/kendi çek/geri alma `LM_CEK` üzerinde (`cek/cek_lumen_lib.php`); cari ekstresi fişlere bağlanır |
+| 6 — raporlar, kurulum, içe aktarma | sırada |
 
 ## 3. Lumen şeması (`sql/lumen_cekirdek/`)
 

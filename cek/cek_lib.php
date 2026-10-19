@@ -291,6 +291,10 @@ if (!function_exists('cek_giris_core')) {
      */
     function cek_giris_core(PDO $dbh, string $firma, string $fd, int $cariRef, array $cek, int $personel, string $requestId, array $opt = []): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_giris_lumen($dbh, $fd, $cariRef, $cek, $personel, $requestId, $opt);
+        }
         global $kayitsaat, $saat, $dakika, $saniye;
         $ip  = (string) ($opt['ip'] ?? '');
         $ts  = (int) $kayitsaat;
@@ -489,6 +493,10 @@ if (!function_exists('cek_geri_al_core')) {
      */
     function cek_geri_al_core(PDO $dbh, string $fd, int $logId, int $personel, string $not = ''): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_geri_al_lumen($dbh, $fd, $logId, $personel, $not, 'giris');
+        }
         try {
             $dbh->beginTransaction();
             [$log, $hata] = cek_log_kilitle($dbh, $fd, $logId, 'giris', 'çek');
@@ -550,6 +558,10 @@ if (!function_exists('cek_ciro_core')) {
      */
     function cek_ciro_core(PDO $dbh, string $firma, string $fd, int $hedefCariRef, array $cekRefleri, string $aciklama, int $personel, string $requestId, array $opt = []): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_ciro_lumen($dbh, $fd, $hedefCariRef, $cekRefleri, $aciklama, $personel, $requestId, $opt);
+        }
         global $kayitsaat, $saat, $dakika, $saniye;
         $ip = (string) ($opt['ip'] ?? '');
         $ts = (int) $kayitsaat; $hh = (int) $saat; $mm = (int) $dakika; $ss = (int) $saniye;
@@ -692,6 +704,10 @@ if (!function_exists('cek_ciro_geri_al')) {
      */
     function cek_ciro_geri_al(PDO $dbh, string $fd, int $logId, int $personel, string $not = ''): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_geri_al_lumen($dbh, $fd, $logId, $personel, $not, 'ciro');
+        }
         try {
             $dbh->beginTransaction();
             [$log, $hata] = cek_log_kilitle($dbh, $fd, $logId, 'ciro', 'ciro');
@@ -741,6 +757,10 @@ if (!function_exists('cek_kendi_bankalar')) {
     /** Kendi çekimiz için seçilebilir banka hesapları (LG_XXX_BNCARD, aktif). @return array<int,array{ref:int,kod:string,ad:string}> */
     function cek_kendi_bankalar(PDO $dbh, string $firma): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_kendi_bankalar_lumen($dbh);
+        }
         $out = [];
         try {
             foreach ($dbh->query("SELECT LOGICALREF, CODE, DEFINITION_ FROM {$firma}BNCARD WHERE ACTIVE=0 ORDER BY LOGICALREF")->fetchAll(PDO::FETCH_ASSOC) as $r) {
@@ -761,6 +781,10 @@ if (!function_exists('cek_kendi_core')) {
      */
     function cek_kendi_core(PDO $dbh, string $firma, string $fd, int $hedefCariRef, int $bankaRef, array $kalemler, string $aciklama, int $personel, string $requestId, array $opt = []): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_kendi_lumen($dbh, $fd, $hedefCariRef, $bankaRef, $kalemler, $aciklama, $personel, $requestId, $opt);
+        }
         global $kayitsaat, $saat, $dakika, $saniye;
         $ip = (string) ($opt['ip'] ?? '');
         $ts = (int) $kayitsaat; $hh = (int) $saat; $mm = (int) $dakika; $ss = (int) $saniye;
@@ -921,6 +945,10 @@ if (!function_exists('cek_kendi_geri_al')) {
      */
     function cek_kendi_geri_al(PDO $dbh, string $fd, int $logId, int $personel, string $not = ''): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_geri_al_lumen($dbh, $fd, $logId, $personel, $not, 'kendi_cek');
+        }
         try {
             $dbh->beginTransaction();
             [$log, $hata] = cek_log_kilitle($dbh, $fd, $logId, 'kendi_cek', 'işlem');

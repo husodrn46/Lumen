@@ -192,3 +192,65 @@ if (!function_exists('lumen_personel_sil')) {
         return $st->rowCount() > 0;
     }
 }
+
+if (!function_exists('lumen_insert_kimlik')) {
+    /**
+     * Tek satırlık "INSERT INTO T (...) VALUES (...)" çalıştırır ve eklenen satırın
+     * LOGICALREF'ini döndürür. Kimlik OUTPUT INSERTED ... INTO tablo değişkeni ile
+     * alınır: LOGO tablolarındaki trigger'larla uyumludur (OUTPUT'u doğrudan kullanmak
+     * trigger'lı tabloda hata verir) ve eşzamanlı kayıtlarda yanlış satırı döndüren
+     * "SELECT MAX(LOGICALREF)" yönteminin yerine geçer.
+     */
+    function lumen_insert_kimlik(PDO $dbh, string $insertSql, array $parametreler, string $kimlikKolonu = 'LOGICALREF'): int
+    {
+        // Kimlik kolonu: LOGO tablolarında LOGICALREF, Lumen (LM_) tablolarında ID.
+        if (preg_match('/^[A-Z_]{2,30}$/', $kimlikKolonu) !== 1) {
+            throw new InvalidArgumentException('lumen_insert_kimlik: geçersiz kimlik kolonu');
+        }
+        // Bağımsız modda LOGO uyumlu görünüme (dbo.LMV_…) ekleme INSTEAD OF tetikleyicisiyle LM_
+        // tablosuna gider; OUTPUT görünümün (boş) kimliğini verir. Tetikleyicinin eklediği satırın
+        // kimliği aynı oturumda @@IDENTITY'dedir (tetikleyici yalnız tek bir kimlikli tabloya yazar).
+        if (str_contains($insertSql, 'dbo.LMV_') && function_exists('lumen_bagimsiz_mi') && lumen_bagimsiz_mi()) {
+            $stmt = $dbh->prepare("SET NOCOUNT ON;\n{$insertSql};\nSELECT CAST(@@IDENTITY AS INT);");
+            $stmt->execute($parametreler);
+            $id = (int) $stmt->fetchColumn();
+            $stmt->closeCursor();
+            if ($id <= 0) {
+                throw new RuntimeException('lumen_insert_kimlik: yeni kayıt kimliği alınamadı (görünüm)');
+            }
+            return $id;
+        }
+        $sql = preg_replace('/\)\s*VALUES\s*\(/i', ") OUTPUT INSERTED.{$kimlikKolonu} INTO @lumen_yeni VALUES (", $insertSql, 1, $adet);
+        if ($sql === null || $adet !== 1) {
+            throw new InvalidArgumentException('lumen_insert_kimlik: INSERT ... VALUES (...) bekleniyor');
+        }
+        $stmt = $dbh->prepare("SET NOCOUNT ON; DECLARE @lumen_yeni TABLE (ID INT);\n{$sql};\nSELECT ID FROM @lumen_yeni;");
+        $stmt->execute($parametreler);
+        $id = (int) $stmt->fetchColumn();
+        $stmt->closeCursor();
+        if ($id <= 0) {
+            throw new RuntimeException('lumen_insert_kimlik: yeni kayıt kimliği alınamadı');
+        }
+        return $id;
+    }
+}
+
+if (!function_exists('lumen_tutar_coz')) {
+    /**
+     * Formdan gelen tutarı float'a çevirir: TR (1.234,56) ve EN (1234.56) biçimleri;
+     * yalnız binlik gruplu "1.234" TR binlik okunur (cek_tutar_coz ile aynı kural).
+     */
+    function lumen_tutar_coz(mixed $deger): float
+    {
+        if (is_int($deger) || is_float($deger)) {
+            return (float) $deger;
+        }
+        $s = str_replace([' ', "\u{00A0}"], '', trim((string) $deger));
+        if (str_contains($s, ',')) {
+            $s = str_replace(['.', ','], ['', '.'], $s);
+        } elseif (preg_match('/^-?\d{1,3}(\.\d{3})+$/', $s)) {
+            $s = str_replace('.', '', $s);
+        }
+        return is_numeric($s) ? (float) $s : 0.0;
+    }
+}

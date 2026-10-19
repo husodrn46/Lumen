@@ -19,3 +19,12 @@ test('belge türleri: TUR/YON eşlemesi tek anlamlı, stok/cari yönleri tutarl�
     esit(1, lumen_belge_turleri()['satis_fatura']['cari']);
     esit(1, lumen_belge_turleri()['satis_iade']['stok']);
 });
+
+test('form tutarı: TR ve EN biçimleri, binlik gruplu tamsayı, geçersiz girdi', function (): void {
+    esit(1234.56, lumen_tutar_coz('1.234,56'));
+    esit(1234.56, lumen_tutar_coz('1234.56'));
+    esit(1234.0, lumen_tutar_coz('1.234'));
+    esit(12.5, lumen_tutar_coz('12,5'));
+    esit(0.0, lumen_tutar_coz('abc'));
+    esit(7.25, lumen_tutar_coz(7.25));
+});

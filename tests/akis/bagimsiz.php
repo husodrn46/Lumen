@@ -90,11 +90,11 @@ akis('görev ve bildirim: kullanıcı adları LM_PERSONEL\'den gelir', function 
 });
 
 akis('geçiş koruması: taşınmamış modül 501 kartı / JSON verir, menüde görünmez', function () use ($yonetici): void {
-    $r = $yonetici->istek('cek/cek_panel.php');
-    bekle($r['kod'] === 501 && str_contains($r['govde'], 'henüz hazır değil'), "çek modülü korunmuyor (HTTP {$r['kod']})");
-    $j = $yonetici->istek('cek/cek_panel.php', null, ['X-Requested-With: XMLHttpRequest']);
+    $r = $yonetici->istek('rapor/dashboard.php');
+    bekle($r['kod'] === 501 && str_contains($r['govde'], 'henüz hazır değil'), "rapor modülü korunmuyor (HTTP {$r['kod']})");
+    $j = $yonetici->istek('rapor/dashboard.php', null, ['X-Requested-With: XMLHttpRequest']);
     bekle($j['kod'] === 501 && (json_decode($j['govde'], true)['ok'] ?? null) === false, 'AJAX isteğine JSON dönmedi');
-    bekle(!str_contains($yonetici->istek('index.php')['govde'], 'href="cek/'), 'menüde taşınmamış modül var');
+    bekle(!str_contains($yonetici->istek('index.php')['govde'], 'href="rapor/dashboard.php'), 'menüde taşınmamış modül var');
 });
 
 // ---------------------------------------------------------------- cari (Faz 1)
@@ -107,7 +107,9 @@ akis('cari arama: LM_CARI\'den, Türkçe duyarsız; bakiye listesi ve ekstre ayn
     bekle(str_contains($b, 'Anadolu Ev Eşyası') && str_contains($b, '21.550,00'), 'bakiye listesinde beklenen bakiye (21.550,00) yok');
     $e = $yonetici->istek('cari/lg_hareket.php?cariid=5')['govde'];
     bekle(str_contains($e, '21.550,00'), 'ekstrede genel bakiye yok');
-    bekle(substr_count($e, 'Açılış Fişi') === 4, 'ekstrede 4 açılış hareketi bekleniyordu');
+    // Üç açılış borcu + bir kasa tahsilatı (gerçek kasa fişi, fişe bağlı)
+    bekle(substr_count($e, 'Açılış Fişi') === 3, 'ekstrede 3 açılış hareketi bekleniyordu');
+    bekle(substr_count($e, 'finans/goster.php?id=') === 1, 'ekstrede kasa fişine bağlı bir tahsilat bekleniyordu');
     $d = $yonetici->istek('cari/lg_bakiyex.php', ['userid' => 5]);
     bekle($d['kod'] === 200 && str_contains($d['govde'], 'Finansal'), "bakiye detayı açılmadı (HTTP {$d['kod']})");
 });
@@ -268,6 +270,77 @@ akis('serbest alış faturası ve üretimden giriş: stok girer, alış cariyi a
     yakin($stokOnce + 2 * $carpan + 10, (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 7"), 'üretim sonrası stok');
     bekle((int) tek($pdo, "SELECT COUNT(*) FROM LM_CARI_HAREKET WHERE BELGE_ID = :i", [':i' => $u['id']]) === 0, 'üretim cari hareketi yazdı');
     bekle(str_contains($yonetici->istek('belge/index.php?bas=' . date('Y-m-01'))['govde'], (string) tek($pdo, "SELECT NO FROM LM_BELGE WHERE ID = :i", [':i' => $a['id']])), 'listede yok');
+});
+
+// ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
+
+/** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */
+function fis_kes(Tarayici $t, array $alanlar, ?string $istek = null): array
+{
+    $alanlar = ['csrf_token' => $t->belirtec('finans/yeni.php'), 'islem' => 'kaydet', 'tarih' => date('Y-m-d'),
+                'istek_id' => $istek ?? bin2hex(random_bytes(16))] + $alanlar;
+    $r = $t->istek('finans/islem.php', $alanlar);
+    parse_str((string) parse_url($r['yer'], PHP_URL_QUERY), $q);
+    return ['id' => (int) ($q['id'] ?? 0), 'ok' => $q['ok'] ?? null, 'hata' => $q['hata'] ?? null];
+}
+
+akis('kasa/banka: tahsilat kasayı artırır cariyi alacaklandırır; mükerrer gönderim tek fiş; virman; iptal geri alır', function () use ($yonetici, $pdo, $URL): void {
+    $kasa = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'KASA.01'");
+    $banka = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'BNK.01.TL'");
+    $bakiye = static fn(int $h): float => (float) tek($pdo, "SELECT BAKIYE FROM LMV_FINANS_BAKIYE WHERE HESAP_ID = {$h}");
+    $cariBakiye = static fn(): float => (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 2");
+    $kasaOnce = $bakiye($kasa);
+    $bankaOnce = $bakiye($banka);
+    $cariOnce = $cariBakiye();
+
+    $istek = bin2hex(random_bytes(16));
+    $t = fis_kes($yonetici, ['tur' => 1, 'hesap_id' => $kasa, 'cari_id' => 2, 'tutar' => '1.234,56', 'aciklama' => 'Akış tahsilat'], $istek);
+    bekle($t['id'] > 0 && $t['ok'] !== null, 'tahsilat kesilmedi: ' . ($t['hata'] ?? '?'));
+    yakin($kasaOnce + 1234.56, $bakiye($kasa), 'tahsilat sonrası kasa');
+    yakin($cariOnce - 1234.56, $cariBakiye(), 'tahsilat sonrası cari bakiye');
+    $tekrar = fis_kes($yonetici, ['tur' => 1, 'hesap_id' => $kasa, 'cari_id' => 2, 'tutar' => '1.234,56'], $istek);
+    bekle($tekrar['id'] === $t['id'] && $tekrar['hata'] !== null, 'mükerrer gönderim yeni fiş açtı');
+    yakin($kasaOnce + 1234.56, $bakiye($kasa), 'mükerrer sonrası kasa');
+    bekle(str_starts_with((string) tek($pdo, "SELECT NO FROM LM_FINANS_FIS WHERE ID = :i", [':i' => $t['id']]), 'THS'), 'tahsilat numarası seriden değil');
+    // Cari ekstresinde tahsilat kasa fişine bağlanır
+    bekle(str_contains($yonetici->istek('cari/lg_hareket.php?cariid=2')['govde'], 'finans/goster.php?id=' . $t['id']), 'ekstre fişe bağlanmıyor');
+
+    $v = fis_kes($yonetici, ['tur' => 3, 'hesap_id' => $kasa, 'karsi_hesap_id' => $banka, 'tutar' => '1000']);
+    bekle($v['id'] > 0, 'virman kesilmedi: ' . ($v['hata'] ?? '?'));
+    yakin($kasaOnce + 234.56, $bakiye($kasa), 'virman sonrası kasa');
+    yakin($bankaOnce + 1000, $bakiye($banka), 'virman sonrası banka');
+    $ayni = fis_kes($yonetici, ['tur' => 3, 'hesap_id' => $kasa, 'karsi_hesap_id' => $kasa, 'tutar' => '5']);
+    bekle($ayni['id'] === 0 && $ayni['hata'] !== null, 'aynı hesaba virman kabul edildi');
+    $sifir = fis_kes($yonetici, ['tur' => 4, 'hesap_id' => $kasa, 'tutar' => '0']);
+    bekle($sifir['id'] === 0, 'sıfır tutarlı masraf kabul edildi');
+
+    foreach ([$t['id'], $v['id']] as $id) {
+        $b = $yonetici->belirtec("finans/goster.php?id={$id}");
+        $yonetici->istek('finans/islem.php', ['csrf_token' => $b, 'islem' => 'iptal', 'id' => $id]);
+        bekle((int) tek($pdo, "SELECT DURUM FROM LM_FINANS_FIS WHERE ID = :i", [':i' => $id]) === 9, "fiş {$id} iptal edilmedi");
+    }
+    yakin($kasaOnce, $bakiye($kasa), 'iptal sonrası kasa');
+    yakin($bankaOnce, $bakiye($banka), 'iptal sonrası banka');
+    yakin($cariOnce, $cariBakiye(), 'iptal sonrası cari');
+
+    // Yetki: M32 olmayan kullanıcı kasa ekranına giremez, menüde görmez
+    $depo = (new Tarayici($URL))->giris('DEPO1');
+    bekle($depo->istek('finans/index.php')['kod'] === 403, 'yetkisiz kullanıcı kasa ekranını açtı');
+    bekle(!str_contains($depo->istek('index.php')['govde'], 'href="finans/'), 'yetkisiz kullanıcı menüde kasa görüyor');
+    bekle(str_contains($yonetici->istek('index.php')['govde'], 'href="finans/index.php'), 'yönetici menüsünde kasa yok');
+});
+
+akis('çek: portföy LM_CEK\'ten; ciro hedef cariyi borçlandırır, çeki portföyden çıkarır', function () use ($yonetici, $pdo): void {
+    bekle(str_contains($yonetici->istek('cek/cek_panel.php')['govde'], 'P00001') || (int) tek($pdo, "SELECT COUNT(*) FROM LMV_CSCARD WHERE CURRSTAT = 1") >= 1,
+        'portföy boş görünüyor');
+    $cek = $pdo->query("SELECT TOP 1 ID, TUTAR FROM LM_CEK WHERE TUR = 1 AND DURUM = 1 ORDER BY ID DESC")->fetch(PDO::FETCH_ASSOC);
+    bekle($cek !== false, 'portföyde çek yok');
+    $once = (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 10");
+    require_once dirname(__DIR__, 2) . '/cek/cek_lib.php';
+    $r = cek_ciro_core($pdo, 'dbo.LMV_', 'dbo.LMV_', 10, [(int) $cek['ID']], 'Akış cirosu', 1, bin2hex(random_bytes(16)));
+    bekle(($r['ok'] ?? false) === true, 'ciro başarısız: ' . json_encode($r, JSON_UNESCAPED_UNICODE));
+    bekle((int) tek($pdo, "SELECT DURUM FROM LM_CEK WHERE ID = :i", [':i' => $cek['ID']]) === 2, 'çek ciro durumuna geçmedi');
+    yakin($once + (float) $cek['TUTAR'], (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 10"), 'ciro sonrası hedef cari');
 });
 
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
