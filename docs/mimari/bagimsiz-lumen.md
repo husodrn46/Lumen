@@ -57,6 +57,29 @@ Kararlar (2026-10-19):
   henüz yok" kartı gösterir ve menüde görünmez; böylece taşınmamış bir sayfa LOGO
   tablosu arayıp çökmez.
 
+### Geçiş teknikleri (uygulamada)
+
+| Teknik | Ne zaman | Örnek |
+|---|---|---|
+| **Ortak tablolar** `lumen_tablo('cari')` | Yeni/taşınan okuma sorguları; kolon adları iki modda aynı (LM_ adları) | `cari/cari.php`, `cari/lg_bakiye.php` |
+| **LOGO uyumlu görünümler** `LMV_SLSMAN`, `LMV_CLCARD` | Ana veriyi LOGO kolon adlarıyla okuyan çok sayıda sorgu; bağımsız modda `$firma = 'dbo.LMV_'`, kişi için `{$GLOBALS['LUMEN_SLSMAN']}` | `loglar.php`, `ayar/ozel_cari_kisitlari.php` |
+| **Depolar** (yazma) | Kayıt oluşturma/güncelleme; modlara göre dallanır | `lumen_personel_ekle()`, `cari_olustur_yeni()` |
+| **Ortak alan kütüphanesi** | Aynı verinin birden çok kopyası (ekran/PDF/Excel) | `cari/cari_ekstre_lib.php` |
+| **Mod dalı** | LOGO sınıflandırma kodlarına (TRCODE) dayanan özetler | `cari/lg_bakiyex.php` |
+
+LOGO uyumlu görünümler yalnız **ana veri** içindir (kişi, cari; Faz 2'de stok kartı).
+Hareket tabloları (fatura, kasa, çek) LOGO kodlarına göre sınıflandığından açıkça taşınır.
+Modül koruması her zaman belirleyicidir: bir sayfa görünüm sayesinde "çalışıyor gibi"
+olsa bile modülü bağımsız modda açılmadan kullanıcıya gösterilmez.
+
+### Durum (2026-10-19)
+
+| Faz | Durum |
+|---|---|
+| 0 — altyapı | ✅ veri katmanı, mod seçimi, çekirdek şema, modül koruması, `kur.sh --bagimsiz`, CI'da iki mod |
+| 1 — kullanıcı + cari | ✅ giriş/beni hatırla, kullanıcı ve yetki yönetimi, görevler, loglar, bildirimler; cari liste/arama, yeni cari, bakiye, ekstre (ekran/PDF/Excel), özel cari kısıtı |
+| 2 — stok | sırada |
+
 ## 3. Lumen şeması (`sql/lumen_cekirdek/`)
 
 Tek firma = tek veritabanı; dönem kilidi tarihle. Bakiyeler hareketlerden hesaplanır.
