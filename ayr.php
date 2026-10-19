@@ -1026,6 +1026,31 @@ function turkce(string|int|float|null $text): string
   $replace = ['c', 'c', 'g', 'g', 'i', 'i', 'o', 'o', 's', 's', 'u', 'u'];
   return str_replace($search, $replace, (string)$text);
 }
+if (!function_exists('lumen_arama_sql')) {
+  /**
+   * Türkçe harf ve büyük/küçük harf duyarsız arama için SQL ifadesi.
+   *
+   * Turkish_CI_AS sıralamasında büyük I'nın küçüğü ı'dır (i değil); aramalar
+   * "TABAĞI" → "Tabağı" gibi büyük harfli yazımları bulamıyordu. Kolon NVARCHAR'a
+   * çevrilip Latin1_General_CI_AI ile (aksan ve harf duyarsız: ç=c, ğ=g, ş=s, ö=o,
+   * ü=u, İ=I=i) karşılaştırılır; ı ayrıca i yapılır. Terim lumen_arama_terimi()
+   * ile hazırlanmalıdır.
+   */
+  function lumen_arama_sql(string $ifade): string
+  {
+    return "REPLACE(CAST({$ifade} AS NVARCHAR(4000)) COLLATE Latin1_General_CI_AI, N'ı', N'i')";
+  }
+}
+
+if (!function_exists('lumen_arama_terimi')) {
+  /** Arama terimini lumen_arama_sql() ile karşılaştırmaya hazırlar (ı→i, LIKE kaçışı). */
+  function lumen_arama_terimi(string $q): string
+  {
+    $q = str_replace(['ı'], ['i'], trim($q));
+    return str_replace(['[', '%', '_'], ['[[]', '[%]', '[_]'], $q);
+  }
+}
+
 function turkcearama(string|int|float|null $text): string
 {
 

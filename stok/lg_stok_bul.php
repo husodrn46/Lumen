@@ -561,10 +561,9 @@ $where_clause = "";
 $order_clause = "URUN.CODE";
 $params = [];
 $a_barkod_normalized = "";
-$normalizedCodeSql = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-  URUN.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')";
-$normalizedNameSql = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-  URUN.NAME, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')";
+// Türkçe harf/büyük-küçük harf duyarsız arama (TABAĞI = tabagi = Tabağı)
+$normalizedCodeSql = lumen_arama_sql('URUN.CODE');
+$normalizedNameSql = lumen_arama_sql('URUN.NAME');
 if (str_contains($a_barkod, ',')) {
   $codes = array_filter(array_map('trim', explode(',', $a_barkod)));
   if ($codes !== []) {
@@ -576,7 +575,7 @@ if (str_contains($a_barkod, ',')) {
   }
 } else {
   // Türkçe karakterleri ASCII'ye çevir (mağaza -> magaza)
-  $a_barkod_normalized = turkce($a_barkod);
+  $a_barkod_normalized = lumen_arama_terimi($a_barkod);
   if (preg_match('/^\d+$/', $a_barkod_normalized) === 1) {
     $where_clause = " (
       URUN.CODE = ?
