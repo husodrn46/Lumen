@@ -13,7 +13,7 @@ ayar_require_m16($terminalkullanici);
 $menuItems = [
     ['kullanici_yetki.php',    'fa-users-gear',        'red',     'Kullanıcı & Yetki',    'Kullanıcılar, izin matrisi ve denetim tek ekranda'],
     ['guvenlik.php',           'fa-shield-halved',     'rose',    'Guvenlik',             'Hesap kilidi acma ve acil saldiri modu'],
-    ['sistem_ayarlari.php',    'fa-gear',              'sky',     'Sistem Ayarları',      'Genel parametreler, hızlı iskonto ve marka/logo tek ekranda'],
+    ['sistem_ayarlari.php',    'fa-gear',              'sky',     'Sistem Ayarları',      'Genel parametreler, hızlı iskonto, marka/logo, çalışma modu ve yedekleme'],
 ];
 ?>
 <!DOCTYPE html>

@@ -229,6 +229,10 @@ if ($yetkidurum === 3) {
 // Bağımsız modda henüz taşınmamış modülün sayfası durdurulur (501 + açıklama).
 lumen_modul_korumasi();
 
+// Günlük otomatik yedek (ayarlardan kapatılabilir): günün ilk oturumlu isteğinde, yanıttan sonra.
+require_once __DIR__ . '/includes/yedek/yedek_lib.php';
+lumen_otomatik_yedek($dbh);
+
 require_once __DIR__ . '/log_ip.php';
 require_once __DIR__ . '/includes/page_visit_shortcuts.php';
 

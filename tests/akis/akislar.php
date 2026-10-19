@@ -350,6 +350,23 @@ akis('koli ölçüsü: ondalıklı ağırlık kaydedilir (eskiden tamsayı dön�
     yakin(2.5, (float) tek($pdo, "SELECT WEIGHT FROM LG_001_ITMUNITA WHERE ITEMREF = 4 AND LINENR = 1"), 'ağırlık');
 });
 
+akis('sistem ve yedek: mod görünür; yönetici yedek alır, listeler, indirir; yetkisiz giremez', function () use ($yonetici, $URL): void {
+    $g = $yonetici->istek('ayar/sistem_yedek.php')['govde'];
+    $bagimsiz = strtolower((string) getenv('LUMEN_VERI_KAYNAGI')) === 'lumen';
+    bekle(str_contains($g, $bagimsiz ? 'Bağımsız' : "LOGO'ya bağlı") && str_contains($g, 'LUMEN_VERI_KAYNAGI'), 'çalışma modu görünmüyor');
+    $t = $yonetici->belirtec('ayar/sistem_yedek.php');
+    $r = $yonetici->istek('ayar/sistem_yedek.php', ['csrf_token' => $t, 'islem' => 'yedek_al']);
+    bekle(str_contains($r['govde'], 'Yedek alındı'), 'yedek alınamadı');
+    bekle(preg_match('/\?indir=(lumen_[0-9_]+_elle_[a-f0-9]{6}\.lumen\.gz)/', $r['govde'], $m) === 1, 'yedek listede yok');
+    $d = $yonetici->istek('ayar/sistem_yedek.php?indir=' . $m[1]);
+    bekle($d['kod'] === 200 && str_starts_with($d['govde'], "\x1f\x8b"), 'yedek indirilemedi');
+    bekle(str_contains((string) gzdecode($d['govde']), '"lumen_yedek":1'), 'indirilen dosya Lumen yedeği değil');
+    bekle($yonetici->istek('ayar/sistem_yedek.php?indir=..%2F..%2F.env')['kod'] !== 200, 'klasör dışı dosya indirildi');
+    @unlink(dirname(__DIR__, 2) . '/database/yedekler/' . $m[1]);
+    $satis = (new Tarayici($URL))->giris('SATIS1');
+    bekle($satis->istek('ayar/sistem_yedek.php?indir=' . $m[1])['kod'] !== 200, 'yetkisiz kullanıcı yedek indirdi');
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

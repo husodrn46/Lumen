@@ -1,5 +1,19 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı] — 1.3.0-beta.2 adayı
+
+### Yeni
+
+- **Sistem ve Yedek** (Ayarlar → Sistem Ayarları): çalışma modu (LOGO'ya bağlı /
+  bağımsız) ve veritabanı görünür. **Uygulama içi yedekleme** — ek program
+  gerekmez: tek tıkla yedek, her gün otomatik yedek (günün ilk kullanımında, arka
+  planda), indirme, yedek dosyası yükleme, geri yükleme (öncesinde mevcut durumun
+  yedeği otomatik alınır; tek işlem, hata olursa hiçbir şey değişmez). Bağımsız
+  modda tüm veritabanı, LOGO modunda Lumen'in kendi tabloları yedeklenir. Yedek
+  klasörü (ör. başka disk) ve saklama sayısı ayarlanabilir. Yalnız yönetici.
+- Bağımsız modda **depo personeli** (yalnız M15) üretimden giriş ve sayım girer;
+  fatura göremez, fiyat görmez.
+
 ## [1.3.0-beta.1] — 2026-10-19 (ÖN SÜRÜM — Bağımsız Lumen BETA)
 
 > ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.0**'ı kullanın. LOGO'ya bağlı

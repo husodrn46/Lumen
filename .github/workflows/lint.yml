@@ -121,6 +121,9 @@ jobs:
       - name: Akış testleri (sipariş, iskonto, yazdırma, çek, döviz, ayarlar, yetki, API)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
 
+      - name: Yedekleme gidiş-dönüş (LOGO modu, Lumen tabloları)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/yedek/yedek_test.php
+
       - name: LOGO'dan bağımsız Lumen'e içe aktarma (toplamlar, kimlikler, parolalar)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/aktarim/logo_aktar_test.php
 
@@ -135,6 +138,9 @@ jobs:
 
       - name: Bağımsız modda LOGO akışları (aynı akışlar LMV_ görünümleri üzerinden)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
+
+      - name: Yedekleme gidiş-dönüş (bağımsız mod, tüm veritabanı)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/yedek/yedek_test.php
 
       - name: Kurulum sihirbazı uçtan uca (bağımsız mod, boş veritabanı)
         run: docker compose -f demo/docker-compose.yml exec -T app bash tests/kurulum/sihirbaz_bagimsiz.sh
