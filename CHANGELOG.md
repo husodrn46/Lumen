@@ -23,6 +23,10 @@
   denetimi; bakiyeli hesap pasifleştirilemez); depolar (stoklu depo ve merkez
   pasifleştirilemez); birimler (kullanılan silinemez); döviz kurları — elle ya da tek
   tıkla TCMB'den.
+- **Excel'den aktar** (Tanımlar): cari ve stok kartları için şablon indir → yükle
+  (.xlsx, .xls, .csv) → önizleme ve satır satır hata listesi → onay. İsteğe bağlı
+  açılış bakiyesi, açılış stoku (merkez depo), satış/alış fiyatı, barkod, koli içi
+  adet; var olan kodlar atlanır ya da kart bilgileri güncellenir. Tek işlemde yazılır.
 - Bağımsız modda **depo personeli** (yalnız M15) üretimden giriş ve sayım girer;
   fatura göremez, fiyat görmez.
 

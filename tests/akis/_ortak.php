@@ -75,6 +75,22 @@ final class Tarayici
         return $this->istek($yol, null, ['Content-Type: application/json'], (string) json_encode($govde));
     }
 
+    /** Dosya yükleyen form (multipart). */
+    public function istekDosya(string $yol, array $alanlar, string $dosyaAlani, string $dosyaYolu, string $dosyaAdi): array
+    {
+        $ch = curl_init($this->url . '/' . ltrim($yol, '/'));
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_TIMEOUT => 120, CURLOPT_POST => true,
+            CURLOPT_COOKIEFILE => $this->cerez, CURLOPT_COOKIEJAR => $this->cerez,
+            CURLOPT_POSTFIELDS => $alanlar + [$dosyaAlani => new CURLFile($dosyaYolu, 'application/octet-stream', $dosyaAdi)],
+        ]);
+        $yanit = (string) curl_exec($ch);
+        $bas = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $sonuc = ['kod' => (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE), 'govde' => substr($yanit, $bas)];
+        curl_close($ch);
+        return $sonuc;
+    }
+
     public function istek(string $yol, ?array $post = null, array $basliklar = [], ?string $hamGovde = null): array
     {
         $ch = curl_init(str_starts_with($yol, 'http') ? $yol : $this->url . '/' . ltrim($yol, '/'));

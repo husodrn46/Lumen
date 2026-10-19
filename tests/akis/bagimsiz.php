@@ -404,6 +404,64 @@ akis('tanımlar: firma, kasa/banka (IBAN, bakiyeli pasif engeli), depo, birim, k
     bekle($satis->istek('tanimlar/index.php')['kod'] === 403, 'M16 olmayan kullanıcı tanımları açtı');
 });
 
+akis('Excel\'den aktar: şablon, önizleme ve satır hataları, onay; açılış bakiyesi/stok, fiyat, barkod, koli', function () use ($yonetici, $pdo): void {
+    require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
+    $sablon = $yonetici->istek('tanimlar/ice_aktar.php?sablon=stok');
+    bekle($sablon['kod'] === 200 && str_starts_with($sablon['govde'], 'PK'), 'şablon indirilemedi');
+    $ek = (string) random_int(1000, 9999);
+    // Cari dosyası: 2 geçerli, 1 hatalı (vergi no), 1 dosya içi tekrar, 1 mevcut (atlanır)
+    $x = new PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $x->getActiveSheet()->fromArray([
+        ['Kod *', 'Unvan *', 'Tür', 'Vergi dairesi', 'Vergi no / TCKN', 'İl', 'İlçe', 'Adres', 'Telefon', 'E-posta', 'Vade (gün)', 'Açılış bakiyesi'],
+        ["XL{$ek}A", 'Excel Cari A', 'Alıcı', 'Kadıköy', '1234567890', 'İstanbul', '', '', '', 'a@ornek.test', 30, '1.250,50'],
+        ["XL{$ek}B", 'Excel Cari B', 'Satıcı', '', '', 'Ankara', '', '', '', '', '', -400],
+        ["XL{$ek}C", 'Hatalı Cari', '', '', '12', '', '', '', '', '', '', ''],
+        ["XL{$ek}A", 'Tekrar', '', '', '', '', '', '', '', '', '', ''],
+        ['120.DM.001', 'Mevcut', '', '', '', '', '', '', '', '', '', ''],
+    ], null, 'A1', true);
+    $dosya = tempnam(sys_get_temp_dir(), 'xl') . '.xlsx';
+    (new PhpOffice\PhpSpreadsheet\Writer\Xlsx($x))->save($dosya);
+    $once = (float) tek($pdo, 'SELECT ISNULL(SUM(BAKIYE), 0) FROM LMV_CARI_BAKIYE');
+    $g = $yonetici->istekDosya('tanimlar/ice_aktar.php', ['csrf_token' => $yonetici->belirtec('tanimlar/ice_aktar.php'), 'islem' => 'yukle',
+        'tur' => 'cari', 'tarih' => date('Y-m-d')], 'dosya', $dosya, 'cariler.xlsx')['govde'];
+    bekle(str_contains($g, 'Önizleme') && str_contains($g, 'Vergi no 10') && str_contains($g, 'dosyada 2. satırda'), 'önizleme/satır hataları görünmüyor');
+    preg_match('/name="anahtar" value="([a-f0-9]+)"/', $g, $m);
+    bekle(isset($m[1]), 'önizleme anahtarı yok');
+    $t = $yonetici->belirtec('tanimlar/ice_aktar.php');
+    $r = $yonetici->istek('tanimlar/ice_aktar.php', ['csrf_token' => $t, 'islem' => 'onayla', 'anahtar' => $m[1]])['govde'];
+    bekle(str_contains($r, 'Hatalı satırlar var'), 'hatalı satırlar onaysız yazıldı');
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LM_CARI WHERE KOD LIKE 'XL{$ek}%'") === 0, 'hata varken kayıt yazıldı');
+    // Yeniden yükle, hatalıları atlayarak aktar
+    $g = $yonetici->istekDosya('tanimlar/ice_aktar.php', ['csrf_token' => $yonetici->belirtec('tanimlar/ice_aktar.php'), 'islem' => 'yukle',
+        'tur' => 'cari', 'tarih' => date('Y-m-d')], 'dosya', $dosya, 'cariler.xlsx')['govde'];
+    preg_match('/name="anahtar" value="([a-f0-9]+)"/', $g, $m);
+    $r = $yonetici->istek('tanimlar/ice_aktar.php', ['csrf_token' => $yonetici->belirtec('tanimlar/ice_aktar.php'), 'islem' => 'onayla',
+        'anahtar' => $m[1], 'hatalari_atla' => 1])['govde'];
+    bekle(str_contains($r, '2 yeni cari eklendi'), 'cariler aktarılmadı: ' . (preg_match('/bildirim[^>]*>.{0,200}/su', $r, $mm) ? strip_tags($mm[0]) : '?'));
+    bekle((string) tek($pdo, "SELECT VERGI_NO FROM LM_CARI WHERE KOD = 'XL{$ek}A'") === '1234567890', 'vergi no yazılmadı');
+    yakin($once + 1250.50 - 400, (float) tek($pdo, 'SELECT SUM(BAKIYE) FROM LMV_CARI_BAKIYE'), 'açılış bakiyeleri');
+    bekle((string) tek($pdo, "SELECT UNVAN FROM LM_CARI WHERE KOD = '120.DM.001'") !== 'Mevcut', 'mevcut cari güncellenmeden değişti');
+
+    // Stok dosyası (CSV, noktalı virgül): yeni birim, koli, fiyat, barkod, açılış miktarı
+    $csv = tempnam(sys_get_temp_dir(), 'xs') . '.csv';
+    file_put_contents($csv, "Kod;Ad;Birim;KDV %;Grup;Satış fiyatı;Alış fiyatı;Barkod;Koli içi adet;Açılış miktarı\n"
+        . "XS{$ek};Excel Ürün;ŞİŞE;10;Test;12,50;7,25;869{$ek}000001;12;36\n");
+    $g = $yonetici->istekDosya('tanimlar/ice_aktar.php', ['csrf_token' => $yonetici->belirtec('tanimlar/ice_aktar.php'), 'islem' => 'yukle',
+        'tur' => 'stok', 'tarih' => date('Y-m-d')], 'dosya', $csv, 'stok.csv')['govde'];
+    preg_match('/name="anahtar" value="([a-f0-9]+)"/', $g, $m);
+    $r = $yonetici->istek('tanimlar/ice_aktar.php', ['csrf_token' => $yonetici->belirtec('tanimlar/ice_aktar.php'), 'islem' => 'onayla', 'anahtar' => $m[1] ?? ''])['govde'];
+    bekle(str_contains($r, '1 yeni ürün eklendi'), 'ürün aktarılmadı');
+    $stok = (int) tek($pdo, "SELECT ID FROM LM_STOK WHERE KOD = 'XS{$ek}'");
+    bekle((string) tek($pdo, "SELECT B.KOD FROM LM_STOK S JOIN LM_BIRIM B ON B.ID = S.ANA_BIRIM_ID WHERE S.ID = {$stok}") === 'ŞİŞE', 'yeni ana birim yok');
+    yakin(12.0, (float) tek($pdo, "SELECT SB.CARPAN FROM LM_STOK_BIRIM SB JOIN LM_BIRIM B ON B.ID = SB.BIRIM_ID WHERE SB.STOK_ID = {$stok} AND B.KOD = 'KOLI'"), 'koli çarpanı');
+    yakin(12.5, (float) tek($pdo, "SELECT FIYAT FROM LM_FIYAT WHERE STOK_ID = {$stok} AND TUR = 1"), 'satış fiyatı');
+    yakin(7.25, (float) tek($pdo, "SELECT FIYAT FROM LM_FIYAT WHERE STOK_ID = {$stok} AND TUR = 2"), 'alış fiyatı');
+    yakin(36.0, (float) tek($pdo, "SELECT SUM(MIKTAR) FROM LMV_STOK_MIKTAR WHERE STOK_ID = {$stok}"), 'açılış miktarı');
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LM_BARKOD WHERE BARKOD = '869{$ek}000001'") === 1, 'barkod yok');
+    @unlink($dosya);
+    @unlink($csv);
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */
