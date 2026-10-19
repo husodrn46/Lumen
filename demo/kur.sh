@@ -55,6 +55,20 @@ docker compose exec -T app php demo/araclar/sql_uygula.php "$DB_ADI" --sema
 echo "==> Demo verisi"
 uygula demo/sql/02_demo_veri.sql
 
+echo "==> Uygulama bekleniyor (konteyner ilk açılışta composer install çalıştırır)"
+# 'docker compose exec' adımları PHP-FPM'i beklemez; web istekleri bekler. Hazır
+# olmadan dönülürse ilk HTTP istekleri 502 alır (CI'daki duman testi gibi).
+hazir=""
+for _ in $(seq 1 90); do
+  kod=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/giris.php" || true)
+  if [ "$kod" = "200" ]; then hazir=1; break; fi
+  sleep 2
+done
+if [ -z "$hazir" ]; then
+  echo "HATA: uygulama 180 sn içinde yanıt vermedi (son HTTP kodu: ${kod:-yok})" >&2
+  docker compose logs --tail=50 app web >&2
+  exit 1
+fi
 echo
 echo "Hazır: http://localhost:$PORT/giris.php"
 echo "Kullanıcılar: YONETICI / SATIS1 / DEPO1 — parola: demo1234"
