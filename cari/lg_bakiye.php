@@ -997,6 +997,11 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
                         <a href="lg_hareket.php?cariid=<?php echo (int)$rowx['CARIID']; ?>" class="action-pill pill-red" title="Hareketler">
                             <i class="fa-solid fa-list-ul"></i> Hareket
                         </a>
+                        <?php if (lumen_modul_hazir_mi('kart')): ?>
+                        <a href="../kart/cari.php?id=<?php echo (int)$rowx['CARIID']; ?>" class="action-pill pill-red" title="Cari kartı: belgeler, tahsilatlar, çekler">
+                            <i class="fa-solid fa-address-card"></i> Kart
+                        </a>
+                        <?php endif; ?>
                         <?php if ($duranaHub): ?>
                         <a href="cari_islemleri.php?cari=<?php echo (int)$rowx['CARIID']; ?>" class="action-pill pill-emerald" title="Cari İşlemleri: çek giriş / çıkış / ciro">
                             <i class="fa-solid fa-right-left"></i> İşlemler

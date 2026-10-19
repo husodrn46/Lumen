@@ -27,6 +27,12 @@
   (.xlsx, .xls, .csv) → önizleme ve satır satır hata listesi → onay. İsteğe bağlı
   açılış bakiyesi, açılış stoku (merkez depo), satış/alış fiyatı, barkod, koli içi
   adet; var olan kodlar atlanır ya da kart bilgileri güncellenir. Tek işlemde yazılır.
+- **Cari kartı ve stok kartı** (bağımsız mod): cari için bilgiler, borç/alacak/bakiye,
+  belgeler, tahsilat/ödemeler, çekler ve hızlı işlemler (ekstre, fatura kes, tahsilat,
+  ödeme — cari önceden seçili). Stok için eldeki/bekleyen/kullanılabilir miktar,
+  birimler, barkodlar, fiyatlar, depolar ve belge bağlantılı hareketler (yürüyen
+  bakiye; maliyet yalnız M31). Cari listesinden, bakiye listesinden, stok aramasından
+  ve belge ekranından açılır.
 - Bağımsız modda **depo personeli** (yalnız M15) üretimden giriş ve sayım girer;
   fatura göremez, fiyat görmez.
 

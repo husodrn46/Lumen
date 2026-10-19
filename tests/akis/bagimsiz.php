@@ -146,6 +146,8 @@ akis('özel cari kısıtı: gizlenen cari liste, otomatik tamamlama ve ekstrede 
         bekle(!str_contains($s->istek('cari/cari_arama.php?q=anadolu')['govde'], 'Anadolu Ev'), 'gizli cari hızlı aramada');
         $e = $s->istek('cari/lg_hareket.php?cariid=5');
         bekle($e['kod'] !== 200 || !str_contains($e['govde'], '21.550,00'), 'gizli carinin ekstresi açıldı');
+        bekle($s->istek('kart/cari.php?id=5')['kod'] === 404, 'gizli carinin kartı açıldı');
+        bekle(!str_contains($s->istek('finans/yeni.php?tur=1&cari=5')['govde'], 'Anadolu Ev'), 'gizli cari formda önceden seçildi');
     } finally {
         $pdo->exec("DELETE FROM M_OZEL_CARI_KISIT WHERE CARIREF = 5");
     }
@@ -462,6 +464,28 @@ akis('Excel\'den aktar: şablon, önizleme ve satır hataları, onay; açılış
     @unlink($csv);
 });
 
+akis('cari ve stok kartı: bakiye, belgeler, tahsilatlar, çekler; stok hareketleri ve yürüyen bakiye; yetki', function () use ($yonetici, $pdo, $URL): void {
+    $c = $yonetici->istek('kart/cari.php?id=2')['govde'];
+    $bakiye = (float) tek($pdo, 'SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 2');
+    bekle(str_contains($c, number_format(abs($bakiye), 2, ',', '.')), 'cari kartında bakiye yok');
+    bekle(str_contains($c, (string) tek($pdo, 'SELECT TOP 1 NO FROM LM_BELGE WHERE CARI_ID = 2 ORDER BY TARIH DESC, ID DESC')), 'cari kartında son belge yok');
+    bekle(str_contains($yonetici->istek('kart/cari.php?id=2&sekme=fis')['govde'], 'THS'), 'cari kartında tahsilat yok');
+    bekle(str_contains($yonetici->istek('kart/cari.php?id=2&sekme=cek')['govde'], 'P00002'), 'cari kartında çek yok');
+    bekle(str_contains($c, 'belge/yeni.php?tur=satis_fatura&amp;cari=2') || str_contains($c, 'belge/yeni.php?tur=satis_fatura&cari=2'), 'fatura kes bağlantısı yok');
+    bekle(str_contains($yonetici->istek('belge/yeni.php?tur=satis_fatura&cari=2')['govde'], 'name="cari_id" id="cariId" value="2"'), 'fatura formunda cari önceden seçili değil');
+
+    $s = $yonetici->istek('kart/stok.php?id=5')['govde'];
+    $eldeki = (float) tek($pdo, 'SELECT SUM(MIKTAR) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 5');
+    bekle(preg_match('/id="eldeki"[^>]*>([^<]+)</', $s, $m) === 1 && str_starts_with(trim($m[1]), rtrim(rtrim(number_format($eldeki, 3, ',', '.'), '0'), ',')), 'stok kartında eldeki miktar yanlış');
+    bekle(str_contains($s, 'SYM000001') && str_contains($s, 'Açılış') === false || str_contains($s, 'Sayım Fazlası'), 'açılış sayım hareketi görünmüyor');
+    // En yeni satırın yürüyen bakiyesi eldeki miktara eşit
+    bekle(preg_match_all('/<td class="sag koyu">([0-9.,-]+)<\/td>/', $s, $b) > 0 && str_replace(['.', ','], ['', '.'], $b[1][0]) == $eldeki, 'yürüyen bakiye eldeki miktarla tutmuyor');
+    $depo = (new Tarayici($URL))->giris('DEPO1');   // M15 + ST1, M7 yok
+    bekle($depo->istek('kart/stok.php?id=5')['kod'] === 403, 'M7 olmayan kullanıcı stok kartını açtı');
+    $ara = json_decode($yonetici->istek('stok/urun_arama_ajax.php', ['barkod' => 'DM-0005'])['govde'], true);
+    bekle(str_contains((string) ($ara['html'] ?? ''), 'kart/stok.php?id=5'), 'stok aramasında kart bağlantısı yok');
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */
@@ -521,8 +545,12 @@ akis('kasa/banka: tahsilat kasayı artırır cariyi alacaklandırır; mükerrer 
 });
 
 akis('çek: portföy LM_CEK\'ten; ciro hedef cariyi borçlandırır, çeki portföyden çıkarır', function () use ($yonetici, $pdo): void {
-    bekle(str_contains($yonetici->istek('cek/cek_panel.php')['govde'], 'P00001') || (int) tek($pdo, "SELECT COUNT(*) FROM LMV_CSCARD WHERE CURRSTAT = 1") >= 1,
-        'portföy boş görünüyor');
+    // Akış aynı veritabanında tekrar koşunca portföy cirolarla tükenebilir: gerekirse bir test çeki ekle.
+    if ((int) tek($pdo, 'SELECT COUNT(*) FROM LM_CEK WHERE TUR = 1 AND DURUM = 1') === 0) {
+        $pdo->exec("INSERT INTO LM_CEK (TUR, PORTFOY_NO, SERI_NO, BANKA, BORCLU, VADE, TUTAR, DURUM, ALINAN_CARI_ID)
+                    VALUES (1, 'T" . random_int(100000, 999999) . "', 'CKTEST', N'Demo Bankası', N'Test', DATEADD(DAY, 30, GETDATE()), 1500, 1, 1)");
+    }
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LMV_CSCARD WHERE CURRSTAT = 1") >= 1, 'portföy LOGO uyumlu görünümde boş');
     $cek = $pdo->query("SELECT TOP 1 ID, TUTAR FROM LM_CEK WHERE TUR = 1 AND DURUM = 1 ORDER BY ID DESC")->fetch(PDO::FETCH_ASSOC);
     bekle($cek !== false, 'portföyde çek yok');
     $once = (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 10");

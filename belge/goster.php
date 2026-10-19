@@ -45,7 +45,7 @@ belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
         <?php if ($iptal): ?><span class="rozet iptal">İptal</span><?php endif; ?></div></div>
     <div><div class="soluk">Tarih</div><div class="koyu"><?= bh(date('d.m.Y', strtotime((string) $b['TARIH']))) ?>
         <?php if ($b['VADE']): ?><span class="soluk"> · vade <?= bh(date('d.m.Y', strtotime((string) $b['VADE']))) ?></span><?php endif; ?></div></div>
-    <div><div class="soluk">Cari</div><div class="koyu"><?= bh(trim(($b['CARI_KOD'] ?? '') . ' ' . ($b['UNVAN'] ?? ''))) ?: '—' ?></div>
+    <div><div class="soluk">Cari</div><div class="koyu"><?= $b['CARI_ID'] ? '<a style="color:inherit" href="../kart/cari.php?id=' . (int) $b['CARI_ID'] . '">' . bh(trim($b['CARI_KOD'] . ' ' . $b['UNVAN'])) . '</a>' : '—' ?></div>
         <?php if ($b['VERGI_NO']): ?><div class="soluk"><?= bh($b['VERGI_DAIRESI'] . ' / ' . $b['VERGI_NO']) ?></div><?php endif; ?></div>
     <div><div class="soluk">Depo</div><div class="koyu"><?= bh($b['DEPO_AD'] ?? '—') ?></div>
         <?php if ($b['KAYNAK_NO']): ?><div class="soluk">Kaynak: <?= bh($b['KAYNAK_NO']) ?></div><?php endif; ?></div>
@@ -62,7 +62,7 @@ belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
         <?php foreach ($satirlar as $r): ?>
             <tr>
                 <td><?= (int) $r['SIRA'] ?></td>
-                <td><span class="koyu"><?= bh($r['KOD']) ?></span> <?= bh($r['AD']) ?>
+                <td><a class="koyu" style="color:inherit" href="../kart/stok.php?id=<?= (int) $r['STOK_ID'] ?>"><?= bh($r['KOD']) ?></a> <?= bh($r['AD']) ?>
                     <?php if ($r['ACIKLAMA']): ?><div class="soluk"><?= bh($r['ACIKLAMA']) ?></div><?php endif; ?></td>
                 <td class="sag"><?= bmiktar($r['MIKTAR']) ?> <?= bh($r['BIRIM'] ?? '') ?></td>
                 <td class="sag"><?= $dovizli && $r['DOVIZ_FIYAT'] !== null ? bh($dv($r['DOVIZ_FIYAT'])) . '<div class="soluk">' . btl($r['FIYAT']) . '</div>' : btl($r['FIYAT']) ?></td>

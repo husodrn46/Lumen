@@ -16,6 +16,16 @@ if (!isset($turler[$secTur])) {
 }
 $hesaplar = finans_hesaplar($dbh);
 $istek = bin2hex(random_bytes(16));
+// Cari kartından gelindiyse cari önceden seçili (özel cari kısıtına uyar).
+$onCari = ['id' => 0, 'metin' => ''];
+if ((int) ($_GET['cari'] ?? 0) > 0 && m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, (int) $_GET['cari'])) {
+    $oc = $dbh->prepare('SELECT ID, KOD, UNVAN FROM dbo.LM_CARI WHERE ID = :id AND AKTIF = 1');
+    $oc->execute([':id' => (int) $_GET['cari']]);
+    if ($r = $oc->fetch(PDO::FETCH_ASSOC)) {
+        $onCari = ['id' => (int) $r['ID'], 'metin' => $r['KOD'] . ' - ' . $r['UNVAN']];
+    }
+}
+
 
 belge_sayfa_basla('Yeni Kasa/Banka Fişi', 'fa-money-bill-transfer', 'index.php');
 ?>
@@ -47,8 +57,8 @@ belge_sayfa_basla('Yeni Kasa/Banka Fişi', 'fa-money-bill-transfer', 'index.php'
                 <?php foreach ($hesaplar as $i => $h): ?><option value="<?= (int) $h['ID'] ?>" <?= $i === 1 ? 'selected' : '' ?>><?= bh($h['KOD'] . ' ' . $h['AD']) ?></option><?php endforeach; ?>
             </select></label>
         <label class="alan" id="cariAlan" style="position:relative">Cari
-            <input type="text" id="cariAra" placeholder="Cari kodu veya unvan…" autocomplete="off">
-            <input type="hidden" name="cari_id" id="cariId">
+            <input type="text" id="cariAra" placeholder="Cari kodu veya unvan…" autocomplete="off" value="<?= bh($onCari['metin']) ?>">
+            <input type="hidden" name="cari_id" id="cariId" value="<?= $onCari['id'] ?: '' ?>">
             <div id="cariSonuc" class="oneriler"></div></label>
         <label class="alan">Tutar (₺) <input name="tutar" id="tutar" inputmode="decimal" required placeholder="0,00"></label>
     </div>

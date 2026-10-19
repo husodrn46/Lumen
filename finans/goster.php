@@ -38,7 +38,7 @@ belge_sayfa_basla(($turler[$tur]['ad'] ?? 'Fiş') . ' · ' . $f['NO'], 'fa-money
         <div><div class="soluk">Giriş hesabı</div><div class="koyu"><?= bh($f['KARSI_KOD'] . ' ' . $f['KARSI']) ?></div></div>
     <?php endif; ?>
     <?php if ($f['CARI_KOD']): ?>
-        <div><div class="soluk">Cari</div><div class="koyu"><a href="../cari/lg_hareket.php?cariid=<?= (int) $f['CARI_ID'] ?>" style="color:inherit"><?= bh($f['CARI_KOD'] . ' ' . $f['UNVAN']) ?></a></div></div>
+        <div><div class="soluk">Cari</div><div class="koyu"><a href="../kart/cari.php?id=<?= (int) $f['CARI_ID'] ?>" style="color:inherit"><?= bh($f['CARI_KOD'] . ' ' . $f['UNVAN']) ?></a></div></div>
     <?php endif; ?>
     <div><div class="soluk">Tutar</div><div class="koyu" style="font-size:20px;color:var(--red)" id="fisTutar"><?= btl($f['TUTAR']) ?></div></div>
 </div>

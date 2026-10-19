@@ -700,6 +700,11 @@ if (!$hasSearch) {
                             <a href="<?php echo htmlspecialchars($cariOrderUrl, ENT_QUOTES, 'UTF-8'); ?>?cariid=<?php echo (int) $rowx['CARIID']; ?>&stokhareket=0" class="btn-order">
                                 <i class="fa-solid fa-pen-to-square"></i> Siparis Yaz
                             </a>
+                            <?php if (lumen_modul_hazir_mi('kart')): ?>
+                            <a href="../kart/cari.php?id=<?php echo (int) $rowx['CARIID']; ?>" class="btn-order" title="Cari kartı">
+                                <i class="fa-solid fa-address-card"></i> Kart
+                            </a>
+                            <?php endif; ?>
                         </div>
                     </article>
                 <?php endforeach; ?>

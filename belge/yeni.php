@@ -12,6 +12,16 @@ $turler = $belgeTurleri;
 $tur = isset($turler[(string) ($_GET['tur'] ?? '')]) ? (string) $_GET['tur'] : (string) array_key_first($turler);
 $depolar = $dbh->query('SELECT ID, AD FROM dbo.LM_DEPO WHERE AKTIF = 1 ORDER BY NO')->fetchAll(PDO::FETCH_ASSOC);
 $vadeGun = 0;
+// Cari kartından gelindiyse cari önceden seçili (özel cari kısıtına uyar).
+$onCari = ['id' => 0, 'metin' => ''];
+if ((int) ($_GET['cari'] ?? 0) > 0 && m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, (int) $_GET['cari'])) {
+    $oc = $dbh->prepare('SELECT ID, KOD, UNVAN FROM dbo.LM_CARI WHERE ID = :id AND AKTIF = 1');
+    $oc->execute([':id' => (int) $_GET['cari']]);
+    if ($r = $oc->fetch(PDO::FETCH_ASSOC)) {
+        $onCari = ['id' => (int) $r['ID'], 'metin' => $r['KOD'] . ' - ' . $r['UNVAN']];
+    }
+}
+
 // Döviz: etkin para birimleri ve bugünkü (yoksa en son) döviz alış kurları
 $pbler = $dbh->query("SELECT KOD FROM dbo.LM_PARA_BIRIMI WHERE AKTIF = 1 ORDER BY CASE WHEN KOD = 'TRY' THEN 0 ELSE 1 END, KOD")->fetchAll(PDO::FETCH_COLUMN);
 $kurlar = [];
@@ -34,8 +44,8 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
             </select>
         </label>
         <label class="alan" id="cariAlan" style="position:relative">Cari
-            <input type="text" id="cariAra" placeholder="Cari kodu veya unvan…">
-            <input type="hidden" name="cari_id" id="cariId">
+            <input type="text" id="cariAra" placeholder="Cari kodu veya unvan…" value="<?= bh($onCari['metin']) ?>">
+            <input type="hidden" name="cari_id" id="cariId" value="<?= $onCari['id'] ?: '' ?>">
             <div id="cariSonuc" class="oneriler"></div>
         </label>
         <label class="alan">Tarih <input type="date" name="tarih" value="<?= date('Y-m-d') ?>" required></label>
