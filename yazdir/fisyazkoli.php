@@ -148,6 +148,14 @@ if (!function_exists('printer_draw_roundrect')) {
 }
 
 require_once __DIR__ . '/../kontrol.php';
+
+// Sunucudan doğrudan yazdırma Windows php_printer eklentisi ister; yoksa ölümcül
+// hata yerine anlaşılır mesaj (diğer yazdırma seçenekleri tarayıcıdan basar).
+if (!extension_loaded('printer')) {
+    http_response_code(501);
+    echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">Bu sunucuda doğrudan yazıcı desteği (php_printer) yok. HTML yazdır veya yazdırma kuyruğunu kullanın.</div>';
+    exit;
+}
 // Güvenlik ve veritabanı bağlantısı, özel fonksiyonlar burada:
 include_once(__DIR__ . "/../ayr.php");
 
