@@ -461,8 +461,6 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
         .h-btn i { font-size: 15px; }
 
         .h-btn-badge {
-            position: absolute;
-            top: 3px; right: 4px;
             min-width: 18px;
             height: 18px;
             border-radius: 9px;
@@ -474,6 +472,7 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
             align-items: center;
             justify-content: center;
             padding: 0 5px;
+            line-height: 1;
         }
 
         .h-btn-badge-amber { background: var(--amber); }
@@ -1212,6 +1211,7 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
         @media (max-width: 768px) {
             .top-header { height: 56px; }
             .h-btn-text { display: none; }
+            .h-btn-badge { position: absolute; top: 4px; right: 2px; }
             .h-btn { padding: 10px 12px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
             .header-date, .header-divider { display: none; }
             .h-hamburger { display: block; }
@@ -1283,7 +1283,7 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
             </div>
 
             <div class="header-right">
-                <a href="bildirimler.php" class="h-btn" title="Bildirimler" style="position:relative;" aria-label="Bildirimler<?php echo $okunmamis_bildirim > 0 ? ' (' . $okunmamis_bildirim . ' okunmamış)' : ''; ?>">
+                <a href="bildirimler.php" class="h-btn" title="Bildirimler" aria-label="Bildirimler<?php echo $okunmamis_bildirim > 0 ? ' (' . $okunmamis_bildirim . ' okunmamış)' : ''; ?>">
                     <i class="fa-solid fa-bell"></i><span class="h-btn-text">Bildirimler</span>
                     <?php if ($okunmamis_bildirim > 0): ?><span class="h-btn-badge"><?php echo $okunmamis_bildirim > 99 ? '99+' : $okunmamis_bildirim; ?></span><?php endif; ?>
                 </a>
