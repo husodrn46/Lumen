@@ -296,8 +296,8 @@ foreach ($satirlar as $satir) {
     // Net birim fiyat (TL)
     $netBirimTl = $miktar > 0 ? ($satirNetTl / $miktar) : $birimFiyatTl;
 
-    // Döviz birim fiyatı (PRPRICE varsa kullan)
-    if ($birimFiyatDoviz <= 0 && $trrate > 0) {
+    // Döviz birim fiyatı = TL fiyat / kur (PRPRICE kur değişince eskir)
+    if ($trrate > 0) {
         $birimFiyatDoviz = $birimFiyatTl / $trrate;
     }
 

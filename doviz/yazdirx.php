@@ -343,7 +343,7 @@ while($liste = $stmtList->fetch(PDO::FETCH_ASSOC)) {
     $adetmiktar += $liste['AMOUNT'];
 
     // Döviz fiyatları
-    $dovizBirimFiyat = $liste['PRPRICE'] > 0 ? $liste['PRPRICE'] : ($liste['PRICE'] / $dovizfiyat);
+    $dovizBirimFiyat = (float) $liste['PRICE'] / $dovizfiyat; // TL fiyat / kur (PRPRICE kur değişince eskir)
     $dovizToplam = $liste['TOTAL'] / $dovizfiyat;
 
     // Çoklu sayfa döngüsü

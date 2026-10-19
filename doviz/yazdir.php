@@ -669,8 +669,8 @@ $autoPrint = isset($_GET['yazdir']);
                     while ($row = $stmtList->fetch(PDO::FETCH_ASSOC)) {
                         $total_with_vat = (float)$row['TOTAL'] + (float)$row['VATAMNT'];
                         // Döviz fiyatı PRPRICE alanından al (varsa), yoksa TL fiyatı kura böl
-                        $dovizBirimFiyat = ((float)$row['PRPRICE']) > 0 ? (float)$row['PRPRICE'] : ((float)$row['PRICE'] / $dovizfiyat);
-                        $dovizNetFiyat   = ((float)$row['PRPRICE']) > 0 ? (float)$row['PRPRICE'] : ((float)$row['NETFIYAT'] / $dovizfiyat);
+                        $dovizBirimFiyat = (float)$row['PRICE'] / $dovizfiyat; // TL fiyat / kur (PRPRICE kur değişince eskir)
+                        $dovizNetFiyat   = (float)$row['NETFIYAT'] / $dovizfiyat; // net fiyat PRPRICE ile karşılanamaz (iskontolu)
                         $dovizToplam     = $total_with_vat / $dovizfiyat;
                         $iskPct          = ($dovizBirimFiyat > 0) ? (1 - ($dovizNetFiyat / $dovizBirimFiyat)) * 100 : 0;
                         if ($iskPct < 0) { $iskPct = 0; }

@@ -50,7 +50,7 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
     $aramaMetni = trim($_GET['q']);
     $aramaParam = '%' . turkce($aramaMetni) . '%';
     $bakiyeSql = $canSeeBalance
-        ? "ISNULL((SELECT SUM(DEBIT - CREDIT) FROM {$firmadonemx}GNTOTCL WHERE CARDREF = C.LOGICALREF), 0)"
+        ? "ISNULL((SELECT SUM(DEBIT - CREDIT) FROM {$firmadonemx}GNTOTCL WHERE CARDREF = C.LOGICALREF AND TOTTYP = 1), 0)"
         : "0";
     // Kısıtlı (özel) cariler listeden çıkarılır
     $ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'doviz_cari');

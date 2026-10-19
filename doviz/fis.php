@@ -95,7 +95,10 @@ function doviz_fis_toplam_guncelle(PDO $dbh, string $firmadonem, int $siparisId)
         SET NETTOTAL = (SELECT ISNULL(SUM(LINENET + VATAMNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id1 AND LINETYPE = 0),
             GROSSTOTAL = (SELECT ISNULL(SUM(TOTAL), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id2 AND LINETYPE = 0),
             TOTALVAT = (SELECT ISNULL(SUM(VATAMNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id3 AND LINETYPE = 0),
-            TRNET = (SELECT ISNULL(SUM(PRPRICE * AMOUNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id4 AND LINETYPE = 0)
+            -- Döviz net toplam = TL genel toplam / fiş kuru (TL tutarlar esastır; PRPRICE
+            -- satır eklenirken yazılan anlık kopyadır, kur değişince eskir).
+            TRNET = (SELECT ISNULL(SUM(LINENET + VATAMNT), 0) FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :id4 AND LINETYPE = 0)
+                    / CASE WHEN ISNULL(TRRATE, 0) > 0 THEN TRRATE ELSE 1 END
         WHERE LOGICALREF = :id5
     ");
     $stmtGuncelle->execute([':id1' => $siparisId, ':id2' => $siparisId, ':id3' => $siparisId, ':id4' => $siparisId, ':id5' => $siparisId]);
@@ -1142,7 +1145,8 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
                         </thead>
                         <tbody>
                             <?php foreach ($satirlar as $satir):
-                                $dovizFiyat = (float)$satir['PRPRICE'];
+                                // Döviz birim fiyatı = TL fiyat / fiş kuru (PRPRICE kur değişince eskir)
+                                $dovizFiyat = $trrate > 0 ? (float)$satir['PRICE'] / $trrate : (float)$satir['PRPRICE'];
                                 $dovizToplam = $dovizFiyat * (float)$satir['AMOUNT'];
                             ?>
                             <tr>
@@ -1181,7 +1185,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
                 <!-- mobile cards -->
                 <div class="lines-mobile">
                     <?php foreach ($satirlar as $satir):
-                        $dovizFiyat = (float)$satir['PRPRICE'];
+                        $dovizFiyat = $trrate > 0 ? (float)$satir['PRICE'] / $trrate : (float)$satir['PRPRICE'];
                         $dovizToplam = $dovizFiyat * (float)$satir['AMOUNT'];
                     ?>
                     <div class="line-card">

@@ -50,12 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $dbh->prepare("
                 UPDATE {$firmadonem}ORFICHE
                 SET TRCURR = :trcurr,
-                    TRRATE = :trrate
+                    TRRATE = :trrate,
+                    TRNET = NETTOTAL / :trrate2
                 WHERE LOGICALREF = :stokhareket AND TRCODE = 1
             ");
             $stmt->execute([
                 ':trcurr' => $yeni_trcurr,
                 ':trrate' => $yeni_trrate,
+                ':trrate2' => $yeni_trrate,
                 ':stokhareket' => $stokhareket
             ]);
             if ($stmt->rowCount() !== 1) {
