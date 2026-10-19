@@ -2135,6 +2135,23 @@ if (!function_exists('m_p_siparis_goruntulebilir_mi')) {
   }
 }
 
+if (!defined('LUMEN_YETKI_ENTEGRASYON')) {
+  /**
+   * Kullanıcı türü 3: entegrasyon (bot) hesabı. Yalnız API'den, yalnız okuma
+   * uçlarıyla çalışır; web arayüzüne giremez, hiçbir şey yazamaz. İzin
+   * kolonları (M17, CR1 …) ve özel cari kısıtları diğer kullanıcılar gibi uygulanır.
+   */
+  define('LUMEN_YETKI_ENTEGRASYON', 3);
+}
+
+if (!function_exists('lumen_kullanici_turleri')) {
+  /** @return array<int,string> YETKI değeri → ad */
+  function lumen_kullanici_turleri(): array
+  {
+    return [0 => 'Yönetici', 1 => 'Personel', 2 => 'Müşteri', LUMEN_YETKI_ENTEGRASYON => 'Entegrasyon (salt okunur API)'];
+  }
+}
+
 if (!function_exists('lumen_satir_surumu')) {
   /**
    * Sipariş satırının düzenleme anındaki sürüm damgası (iyimser kilit). Form bu

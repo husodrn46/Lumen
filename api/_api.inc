@@ -129,10 +129,10 @@ function api_token_dogrula(PDO $dbh): ?array
     api_ensure_token_table($dbh);
     // Token 30 günlük mutlak ömre sahip; süresi geçmişse geçersiz sayılır.
     // (DATEADD'in 2. argümanı sabit INT — sqlsrv nvarchar tuzağına düşmez.)
-    $stmt = $dbh->prepare("SELECT TOP 1 T.ID, T.PERSONEL, T.KULLANICI_ADI, T.OLUSTURMA
+    $stmt = $dbh->prepare("SELECT TOP 1 T.ID, T.PERSONEL, T.KULLANICI_ADI, T.OLUSTURMA, Y.YETKI
                            FROM M_API_TOKEN T
                            INNER JOIN LG_SLSMAN S ON S.LOGICALREF = T.PERSONEL AND S.ACTIVE = 0
-                           INNER JOIN M_P_YETKI Y ON Y.PERSONEL = T.PERSONEL AND Y.YETKI IN (0, 1)
+                           INNER JOIN M_P_YETKI Y ON Y.PERSONEL = T.PERSONEL AND Y.YETKI IN (0, 1, 3)
                            WHERE T.TOKEN IN (:ozet, :duz) AND T.AKTIF = 1
                              AND T.OLUSTURMA > DATEADD(DAY, -30, GETDATE())");
     $stmt->execute([':ozet' => hash('sha256', $token), ':duz' => $token]);
@@ -152,7 +152,28 @@ function api_token_dogrula(PDO $dbh): ?array
     }
     $upd = $dbh->prepare("UPDATE M_API_TOKEN SET SON_KULLANIM = GETDATE() WHERE ID = :id");
     $upd->execute([':id' => (int) $row['ID']]);
-    return ['personel' => (int) $row['PERSONEL'], 'kullanici' => (string) ($row['KULLANICI_ADI'] ?? '')];
+    return ['personel' => (int) $row['PERSONEL'], 'kullanici' => (string) ($row['KULLANICI_ADI'] ?? ''),
+            'salt_okunur' => (int) $row['YETKI'] === LUMEN_YETKI_ENTEGRASYON];
+}
+
+/**
+ * Entegrasyon (salt okunur) hesabının çağırabildiği uçlar. Liste "izin verilen"
+ * mantığıyla tutulur: buraya eklenmeyen her uç — sonradan eklenenler dahil —
+ * bu hesaba kapalıdır (yazma uçları yanlışlıkla açılmaz).
+ *
+ * @return string[]
+ */
+function api_okuma_uclari(): array
+{
+    return [
+        'bekleyen_siparis.php', 'cari_ara.php', 'cari_detay.php', 'cari_hareket.php', 'cari_hareket_detay.php',
+        'cek_listesi.php', 'fatura_listesi.php', 'fiyat_listesi.php',
+        'rapor_borc_alacak.php', 'rapor_cek_vade.php', 'rapor_karsilastirmali.php', 'rapor_kasa.php',
+        'rapor_musteriler_top.php', 'rapor_nakit_akis.php', 'rapor_pazarlamaci.php', 'rapor_satis_aylik.php',
+        'rapor_top_satis.php', 'rapor_yaslandirma.php',
+        'siparis_detay_getir.php', 'siparis_listesi.php', 'siparis_onizle.php',
+        'stok_ara.php', 'stok_birimleri.php',
+    ];
 }
 
 /** Token zorunlu uçlar için: geçersizse 401 döndürüp çıkar, geçerliyse oturum dizisi döner. */
@@ -161,6 +182,10 @@ function api_oturum_gerekli(PDO $dbh): array
     $oturum = api_token_dogrula($dbh);
     if ($oturum === null) {
         api_json(['ok' => false, 'mesaj' => 'Oturum gecersiz veya suresi dolmus.'], 401);
+    }
+    if (!empty($oturum['salt_okunur'])
+        && !in_array(basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')), api_okuma_uclari(), true)) {
+        api_json(['ok' => false, 'mesaj' => 'Entegrasyon hesabi yalniz okuma yapabilir.'], 403);
     }
     return $oturum;
 }

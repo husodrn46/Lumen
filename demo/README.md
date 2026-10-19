@@ -16,6 +16,7 @@ Açılış: <http://localhost:8088/giris.php> — port `LUMEN_DEMO_PORT` ile de�
 | `YONETICI` | `demo1234` | Yönetici (tüm yetkiler) |
 | `SATIS1` | `demo1234` | Personel: sipariş, cari, stok, çek |
 | `DEPO1` | `demo1234` | Personel: yalnız stok |
+| `ENTEGRASYON` | `demo1234` | Entegrasyon (bot): yalnız API, yalnız okuma; web'e giremez |
 
 Gereksinim: Docker ve `docker compose` (Docker Desktop, Colima veya OrbStack). Microsoft'un
 SQL Server ve ODBC sürücüsü yalnız amd64 için dağıtıldığından konteynerler amd64 çalışır;

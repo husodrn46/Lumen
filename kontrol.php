@@ -194,6 +194,9 @@ switch ($yetkiKoduInt ?? -1) {
     case 2: // Müşteri
         $yetkidurum = 2;
         break;
+    case 3: // Entegrasyon (salt okunur API) — web arayüzüne giremez (aşağıda)
+        $yetkidurum = 3;
+        break;
     default:
         // Beklenmedik veya geçersiz bir yetki kodu dönerse, bu bir güvenlik riskidir.
         // Güvenli bir varsayılan olarak, oturumu sonlandırıp kullanıcıyı dışarı at.
@@ -214,6 +217,17 @@ if ($yetkidurum === 2) {
     lumen_kontrol_yonlendir_veya_json(
         APP_ROOT_URL . '/musteri/giris.php?hata=musteri_erisim',
         'Musteri kullanicisi bu ekrana erisemez.',
+        403
+    );
+}
+
+// 6. Entegrasyon (bot) hesabı yalnız API içindir; web oturumu açamaz.
+if ($yetkidurum === 3) {
+    session_unset();
+    session_destroy();
+    lumen_kontrol_yonlendir_veya_json(
+        APP_ROOT_URL . '/giris.php?hata=entegrasyon',
+        'Entegrasyon hesabi web arayuzune giris yapamaz.',
         403
     );
 }

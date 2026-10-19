@@ -299,6 +299,34 @@ akis('API: fiyat override SP1 ister; pasif kullanıcının belirteci geçersiz',
     }
 });
 
+akis('entegrasyon hesabı: API okur, yazamaz, web\'e giremez', function () use ($URL): void {
+    $ch = curl_init("{$URL}/api/login.php");
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode(['kullanici' => 'ENTEGRASYON', 'sifre' => 'demo1234'])]);
+    $tok = (string) (json_decode((string) curl_exec($ch), true)['token'] ?? '');
+    curl_close($ch);
+    bekle($tok !== '', 'entegrasyon hesabı API girişi yapamadı');
+    $kod = static function (string $uc, bool $post) use ($URL, $tok): int {
+        $ch = curl_init("{$URL}/api/{$uc}");
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ["Authorization: Bearer {$tok}", 'Content-Type: application/json']]);
+        if ($post) {
+            curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode(['cari_id' => 4, 'kalemler' => [['stok_id' => 1, 'miktar' => 1]]])]);
+        }
+        curl_exec($ch);
+        $k = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+        return $k;
+    };
+    bekle($kod('rapor_kasa.php', false) === 200, 'okuma ucu kapalı');
+    foreach (['siparis_olustur.php', 'stok_guncelle.php', 'kullanici_listesi.php'] as $uc) {
+        bekle($kod($uc, true) === 403, "yazma/yönetim ucu açık: {$uc}");
+    }
+    $web = (new Tarayici($URL));
+    $web->istek('giris.php');
+    $web->istek('giris.php', ['kullaniciadi' => 'ENTEGRASYON', 'kullanicisifre' => 'demo1234']);
+    bekle(str_contains($web->istek('index.php')['yer'], 'hata=entegrasyon'), 'entegrasyon hesabı web\'e girdi');
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

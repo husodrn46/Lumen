@@ -7,6 +7,7 @@
 --   YONETICI  — yönetici (tüm yetkiler)
 --   SATIS1    — personel (sipariş, cari, stok, çek; ayar yok)
 --   DEPO1     — personel (yalnız stok)
+--   ENTEGRASYON — entegrasyon/bot (YETKI=3): yalnız API, yalnız okuma
 -- ============================================================================
 SET NOCOUNT ON;
 SET DATEFORMAT ymd;
@@ -216,4 +217,14 @@ INSERT INTO L_CAPIFIRM (NR, NAME) VALUES (1, N'Lumen Demo Firması');
 -- Uydurma kurlar (USD=1, EUR=20)
 INSERT INTO L_DAILYEXCHANGES (CRTYPE, EDATE, RATES1, RATES2, RATES3, RATES4)
 VALUES (1, '2026-10-15', 41.10, 41.25, 41.10, 41.25), (20, '2026-10-15', 47.80, 48.00, 47.80, 48.00);
+GO
+
+-- ---------------------------------------------------------------- entegrasyon (bot) hesabı
+-- YETKI=3: yalnız API, yalnız okuma uçları; web'e giremez. Rapor + bakiye izinleri.
+SET IDENTITY_INSERT LG_SLSMAN ON;
+INSERT INTO LG_SLSMAN (LOGICALREF, CODE, DEFINITION_, ACTIVE, FIRMNR, CYPHCODE, SPECODE, TYP, CARDTYPE, USERID, CAPIBLOCK_CREADEDDATE)
+VALUES (5, 'ENTEGRASYON', N'Raporlama entegrasyonu (demo)', 0, 1, '', '0', 0, 0, 5, '2026-01-02');
+SET IDENTITY_INSERT LG_SLSMAN OFF;
+INSERT INTO M_P_YETKI (PERSONEL, SIFRE, YETKI) VALUES (5, N'$2y$10$SunKM5b7dCQna2VUK8vFTuuY.LVzKikqg8DOSVLOJdTgjVFQh3ZXG', 3);
+UPDATE M_P_YETKI SET M5 = 1, M17 = 1, CR1 = 1, ST1 = 1, ST2 = 1 WHERE PERSONEL = 5;
 GO

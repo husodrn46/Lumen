@@ -47,7 +47,7 @@ if ($kod === '' || strlen($kod) > 30) {
 if ($ad === '' || strlen($ad) > 50) {
     api_json(['ok' => false, 'mesaj' => 'Ad boş olamaz ve 50 karakterden uzun olamaz.'], 422);
 }
-if (!in_array($yetki, [0, 1, 2], true)) {
+if (!array_key_exists($yetki, lumen_kullanici_turleri())) {
     api_json(['ok' => false, 'mesaj' => 'Geçersiz yetki tipi.'], 422);
 }
 

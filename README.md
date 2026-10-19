@@ -75,7 +75,7 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
 - ✅ **Görev takibi**
 - 📱 **Mobil uyumlu + PWA** — telefona kısayol olarak eklenebilir
 - 🎨 **Kişiselleştirme** — kullanıcı bazlı vurgu rengi, yazı boyutu, "müşteri yanında" gizli mod
-- 🔐 **Rol bazlı yetki** — yönetici / personel / müşteri; kod bazlı ekran izinleri
+- 🔐 **Rol bazlı yetki** — yönetici / personel / müşteri / entegrasyon (salt okunur API hesabı); kod bazlı ekran izinleri
 - 🧙 **Kurulum sihirbazı** — tarayıcıdan DB bağlantısı + ilk yönetici
 - 🖼️ **Kendi logonuz** — ayarlardan yükleyin
 

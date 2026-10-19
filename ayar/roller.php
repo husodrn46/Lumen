@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $ozelRoller = rol_ozel_yukle();
 $aktifSekme = 'roller';
 $formAcik = ($hataMsj !== '');
-$yetkiTuruAd = [1 => 'Personel', 2 => 'Müşteri'];
+$yetkiTuruAd = array_diff_key(lumen_kullanici_turleri(), [0 => true]);
 $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 
 $bildirim = ''; $bildirimTip = 'ok';

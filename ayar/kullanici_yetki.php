@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hataMsj = 'Personel kodu boş olamaz ve en fazla 30 karakter olmalıdır.';
         } elseif ($adi === '' || mb_strlen($adi) > 50) {
             $hataMsj = 'Personel adı boş olamaz ve en fazla 50 karakter olmalıdır.';
-        } elseif (!in_array($tip, [0, 1, 2], true)) {
+        } elseif (!array_key_exists($tip, lumen_kullanici_turleri())) {
             $hataMsj = 'Geçersiz yetki tipi.';
         } elseif ($sifre !== '' && mb_strlen($sifre) < LUMEN_PAROLA_MIN) {
             $hataMsj = 'Parola en az ' . LUMEN_PAROLA_MIN . ' karakter olmalıdır.';
@@ -238,7 +238,7 @@ if (isset($_GET['duzenle']) && (int) $_GET['duzenle'] > 0) {
     $duzenleUser = $ds->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
-$yetkiAd = [0 => 'Yönetici', 1 => 'Personel', 2 => 'Müşteri'];
+$yetkiAd = lumen_kullanici_turleri();
 $formAcik = ($hataMsj !== '');
 $aktifSekme = 'kullanicilar';
 $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
@@ -463,6 +463,7 @@ if ($hataMsj !== '') {
                             <option value="0">Yönetici — tüm yetkiler</option>
                             <option value="1" selected>Personel — kısıtlı (matristen ayarlanır)</option>
                             <option value="2">Müşteri — salt okunur</option>
+                            <option value="3">Entegrasyon — yalnız API, salt okunur (rapor/muhasebe yazılımları için)</option>
                         </select>
                     </div>
                     <div class="alan">

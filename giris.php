@@ -35,6 +35,8 @@ if (isset($_GET['hata'])) {
         $error_message = 'Oturum gerekli: Lütfen giriş yapın.';
     } elseif ($_GET['hata'] === 'gecersiz_yetki') {
         $error_message = 'Geçersiz yetki: Erişim reddedildi.';
+    } elseif ($_GET['hata'] === 'entegrasyon') {
+        $error_message = 'Entegrasyon hesapları yalnız API ile kullanılır; web arayüzüne giriş yapamaz.';
     }
 }
 
