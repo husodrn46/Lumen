@@ -26,9 +26,17 @@ if (isset($_POST['cstok_miktari'])) {
     exit;
   }
 
-  $stmtCari = $dbh->prepare("SELECT CLIENTREF FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :stokhareket");
+  $stmtCari = $dbh->prepare("SELECT CLIENTREF, TRCURR FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :stokhareket");
   $stmtCari->execute([':stokhareket' => $stokhareket]);
   $listcari = $stmtCari->fetch(PDO::FETCH_ASSOC);
+
+  // Toplu ekleme satırları TL (TRCURR=0) yazar; dövizli fişte kur/döviz bilgisi
+  // kaybolur ve fiş karışık para birimli olur. Dövizli fişe satırlar döviz
+  // ekranından (doviz/fis.php) eklenir.
+  if ($listcari && (int) $listcari['TRCURR'] !== 0) {
+    echo '<script>if (window.toast) { toast("Dövizli fişe toplu ekleme yapılamaz; döviz ekranını kullanın.", "error"); } else { alert("Dövizli fişe toplu ekleme yapılamaz; döviz ekranını kullanın."); } window.location="../doviz/fis.php?id=' . (int) $stokhareket . '";</script>';
+    exit;
+  }
   $cariid = $listcari ? intcevir($listcari['CLIENTREF']) : 0;
 
   $stmtSipvar = $dbh->prepare("SELECT TOP 1 O.LOGICALREF, S.NAME
