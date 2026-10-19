@@ -39,6 +39,20 @@ if (!function_exists('lumen_belge_turleri')) {
     }
 }
 
+if (!function_exists('lumen_kur')) {
+    /** Tarihteki (yoksa önceki en yakın) döviz alış kuru; tanımsızsa null. Faturada TCMB döviz alışı esas alınır. */
+    function lumen_kur(PDO $dbh, string $pb, string $tarih): ?float
+    {
+        if ($pb === 'TRY') {
+            return 1.0;
+        }
+        $st = $dbh->prepare('SELECT TOP 1 ALIS FROM dbo.LM_KUR WHERE PARA_BIRIMI = :p AND TARIH <= :t ORDER BY TARIH DESC');
+        $st->execute([':p' => $pb, ':t' => $tarih]);
+        $v = $st->fetchColumn();
+        return $v === false ? null : (float) $v;
+    }
+}
+
 if (!function_exists('lumen_belge_izinli_turler')) {
     /** Kullanıcının kesip görebildiği türler: M31 hepsi; yalnız M15 (depo) üretim ve sayım. */
     function lumen_belge_izinli_turler(bool $faturaYetkisi): array
@@ -123,6 +137,20 @@ if (!function_exists('lumen_belge_kaydet')) {
         if ($satirlar === []) {
             return ['ok' => false, 'mesaj' => 'En az bir satır girin (miktarı 0\'dan büyük).'];
         }
+        // Dövizli belge: satır fiyatları döviz cinsinden girilir; TL tutarlar kurla çevrilir
+        // (stok, cari bakiye ve KDV TL'dir). Döviz tutarları ayrıca saklanır.
+        $pb = strtoupper(trim((string) ($baslik['para_birimi'] ?? 'TRY'))) ?: 'TRY';
+        $kur = $pb === 'TRY' ? 1.0 : round((float) ($baslik['kur'] ?? 0), 6);
+        if ($pb !== 'TRY') {
+            $q = $dbh->prepare('SELECT COUNT(*) FROM dbo.LM_PARA_BIRIMI WHERE KOD = :k AND AKTIF = 1');
+            $q->execute([':k' => $pb]);
+            if ((int) $q->fetchColumn() === 0) {
+                return ['ok' => false, 'mesaj' => 'Para birimi tanımlı değil.'];
+            }
+            if ($kur <= 0) {
+                return ['ok' => false, 'mesaj' => 'Dövizli belge için kur girin.'];
+            }
+        }
 
         try {
             $dbh->beginTransaction();
@@ -145,7 +173,7 @@ if (!function_exists('lumen_belge_kaydet')) {
 
             // Satırları doğrula ve hesapla
             $hazir = [];
-            $toplam = ['brut' => 0.0, 'iskonto' => 0.0, 'kdv' => 0.0, 'net' => 0.0];
+            $toplam = ['brut' => 0.0, 'iskonto' => 0.0, 'kdv' => 0.0, 'net' => 0.0, 'doviz' => 0.0];
             $stokSt = $dbh->prepare('SELECT S.ID, S.ANA_BIRIM_ID, S.STOK_TAKIPLI, S.AD FROM dbo.LM_STOK S WHERE S.ID = :s AND S.AKTIF = 1');
             $birimSt = $dbh->prepare('SELECT CARPAN FROM dbo.LM_STOK_BIRIM WHERE STOK_ID = :s AND BIRIM_ID = :b');
             $kaynakSt = $dbh->prepare('SELECT S.ID, S.MIKTAR, S.TESLIM_MIKTAR, S.STOK_ID, S.BIRIM_ID, B.CARI_ID, B.TUR, B.YON, B.DURUM
@@ -165,7 +193,8 @@ if (!function_exists('lumen_belge_kaydet')) {
                     return ['ok' => false, 'mesaj' => 'Satır ' . ($i + 1) . ': birim bu ürün için tanımlı değil.'];
                 }
                 $miktar = round((float) $s['miktar'], 6);
-                $fiyat = max(0.0, (float) ($s['fiyat'] ?? 0));
+                $dovizFiyat = $pb !== 'TRY' ? max(0.0, (float) ($s['fiyat'] ?? 0)) : null;
+                $fiyat = $dovizFiyat !== null ? round($dovizFiyat * $kur, 6) : max(0.0, (float) ($s['fiyat'] ?? 0));
                 $isk = min(100.0, max(0.0, (float) ($s['iskonto'] ?? 0)));
                 $kdvOran = min(100.0, max(0.0, (float) ($s['kdv'] ?? 0)));
                 $kaynak = (int) ($s['kaynak_satir_id'] ?? 0);
@@ -184,7 +213,11 @@ if (!function_exists('lumen_belge_kaydet')) {
                     }
                 }
                 $h = lumen_belge_satir_hesapla($miktar, $fiyat, $isk, $kdvOran);
-                $hazir[] = ['stok' => $stok, 'birim' => $birimId, 'carpan' => $carpan, 'miktar' => $miktar, 'fiyat' => $fiyat,
+                if ($dovizFiyat !== null) {
+                    $dh = lumen_belge_satir_hesapla($miktar, $dovizFiyat, $isk, $kdvOran);
+                    $toplam['doviz'] += $dh['net'] + $dh['kdv'];
+                }
+                $hazir[] = ['stok' => $stok, 'birim' => $birimId, 'carpan' => $carpan, 'miktar' => $miktar, 'fiyat' => $fiyat, 'doviz_fiyat' => $dovizFiyat,
                             'isk' => $isk, 'kdv_oran' => $kdvOran, 'h' => $h, 'kaynak' => $kaynak,
                             'aciklama' => mb_substr(trim((string) ($s['aciklama'] ?? '')), 0, 250)];
                 $toplam['brut'] += $h['tutar'];
@@ -196,26 +229,27 @@ if (!function_exists('lumen_belge_kaydet')) {
 
             $no = lumen_belge_seri_no($dbh, $t['seri']);
             $belgeId = lumen_insert_kimlik($dbh,
-                'INSERT INTO dbo.LM_BELGE (TUR, YON, NO, TARIH, VADE, CARI_ID, DEPO_ID, PERSONEL_ID, BRUT, ISKONTO, KDV, NET,
+                'INSERT INTO dbo.LM_BELGE (TUR, YON, NO, TARIH, VADE, CARI_ID, DEPO_ID, PERSONEL_ID, PARA_BIRIMI, KUR, BRUT, ISKONTO, KDV, NET, DOVIZ_NET,
                                             ACIKLAMA, DOKUMAN_NO, DURUM, KAYNAK_BELGE_ID, OLUSTURAN_ID, GUID)
-                 VALUES (:tur, :yon, :no, :tarih, :vade, :cari, :depo, :per, :brut, :isk, :kdv, :net, :ack, :dok, 1, :kaynak, :olu, NEWID())',
+                 VALUES (:tur, :yon, :no, :tarih, :vade, :cari, :depo, :per, :pb, :kur, :brut, :isk, :kdv, :net, :dnet, :ack, :dok, 1, :kaynak, :olu, NEWID())',
                 [':tur' => $t['tur'], ':yon' => $t['yon'], ':no' => $no, ':tarih' => $tarih, ':vade' => $vade,
                  ':cari' => $cariId > 0 ? $cariId : null, ':depo' => $depoId, ':per' => $kullanici ?: null,
+                 ':pb' => $pb, ':kur' => $kur, ':dnet' => $pb !== 'TRY' ? round($toplam['doviz'], 2) : null,
                  ':brut' => round($toplam['brut'], 2), ':isk' => round($toplam['iskonto'], 2), ':kdv' => round($toplam['kdv'], 2),
                  ':net' => $genelToplam, ':ack' => mb_substr(trim((string) ($baslik['aciklama'] ?? '')), 0, 500) ?: null,
                  ':dok' => mb_substr(trim((string) ($baslik['dokuman_no'] ?? '')), 0, 40) ?: null,
                  ':kaynak' => ((int) ($baslik['kaynak_belge_id'] ?? 0)) ?: null, ':olu' => $kullanici ?: null], 'ID');
 
-            $satirEkle = $dbh->prepare('INSERT INTO dbo.LM_BELGE_SATIR (BELGE_ID, SIRA, SATIR_TURU, STOK_ID, BIRIM_ID, CARPAN, MIKTAR, FIYAT,
+            $satirEkle = $dbh->prepare('INSERT INTO dbo.LM_BELGE_SATIR (BELGE_ID, SIRA, SATIR_TURU, STOK_ID, BIRIM_ID, CARPAN, MIKTAR, FIYAT, DOVIZ_FIYAT,
                     ISKONTO_ORANI, TUTAR, ISKONTO_TUTAR, KDV_ORANI, KDV_MATRAH, KDV_TUTAR, NET, VADE, KAYNAK_SATIR_ID, ACIKLAMA)
-                OUTPUT INSERTED.ID VALUES (:b, :sira, 0, :stok, :birim, :carpan, :miktar, :fiyat, :isk, :tutar, :iskt, :ko, :km, :kt, :net, :vade, :kay, :ack)');
+                OUTPUT INSERTED.ID VALUES (:b, :sira, 0, :stok, :birim, :carpan, :miktar, :fiyat, :dfiyat, :isk, :tutar, :iskt, :ko, :km, :kt, :net, :vade, :kay, :ack)');
             $stokHar = $dbh->prepare('INSERT INTO dbo.LM_STOK_HAREKET (STOK_ID, DEPO_ID, TARIH, BELGE_ID, SATIR_ID, GIRIS, CIKIS, BIRIM_MALIYET)
                                       VALUES (:s, :d, :t, :b, :sat, :g, :c, :m)');
             $teslim = $dbh->prepare('UPDATE dbo.LM_BELGE_SATIR SET TESLIM_MIKTAR = TESLIM_MIKTAR + :m,
                                       KAPALI = CASE WHEN TESLIM_MIKTAR + :m2 >= MIKTAR - 0.000001 THEN 1 ELSE KAPALI END WHERE ID = :k');
             foreach ($hazir as $sira => $r) {
                 $satirEkle->execute([':b' => $belgeId, ':sira' => $sira + 1, ':stok' => (int) $r['stok']['ID'], ':birim' => $r['birim'],
-                    ':carpan' => $r['carpan'], ':miktar' => $r['miktar'], ':fiyat' => $r['fiyat'], ':isk' => $r['isk'],
+                    ':carpan' => $r['carpan'], ':miktar' => $r['miktar'], ':fiyat' => $r['fiyat'], ':dfiyat' => $r['doviz_fiyat'], ':isk' => $r['isk'],
                     ':tutar' => $r['h']['tutar'], ':iskt' => $r['h']['iskonto'], ':ko' => $r['kdv_oran'], ':km' => $r['h']['net'],
                     ':kt' => $r['h']['kdv'], ':net' => $r['h']['net'], ':vade' => $vade, ':kay' => $r['kaynak'] ?: null,
                     ':ack' => $r['aciklama'] !== '' ? $r['aciklama'] : null]);
@@ -234,15 +268,17 @@ if (!function_exists('lumen_belge_kaydet')) {
             }
 
             if ($t['cari'] !== 0 && $cariId > 0 && $genelToplam > 0) {
-                $dbh->prepare('INSERT INTO dbo.LM_CARI_HAREKET (CARI_ID, TARIH, VADE, KAYNAK, BELGE_ID, BELGE_NO, BORC, ALACAK, ACIKLAMA)
-                               VALUES (:c, :t, :v, 1, :b, :no, :borc, :alacak, :ack)')
+                $dbh->prepare('INSERT INTO dbo.LM_CARI_HAREKET (CARI_ID, TARIH, VADE, KAYNAK, BELGE_ID, BELGE_NO, BORC, ALACAK, PARA_BIRIMI, KUR, DOVIZ_TUTAR, ACIKLAMA)
+                               VALUES (:c, :t, :v, 1, :b, :no, :borc, :alacak, :pb, :kur, :dt, :ack)')
                     ->execute([':c' => $cariId, ':t' => $tarih, ':v' => $vade, ':b' => $belgeId, ':no' => $no,
+                               ':pb' => $pb, ':kur' => $kur, ':dt' => $pb !== 'TRY' ? round($toplam['doviz'], 2) : null,
                                ':borc' => $t['cari'] > 0 ? $genelToplam : 0, ':alacak' => $t['cari'] < 0 ? $genelToplam : 0,
                                ':ack' => $t['ad'] . ' ' . $no]);
             }
 
             $dbh->commit();
-            return ['ok' => true, 'mesaj' => $t['ad'] . ' ' . $no . ' kesildi.', 'id' => $belgeId, 'no' => $no, 'net' => $genelToplam];
+            return ['ok' => true, 'mesaj' => $t['ad'] . ' ' . $no . ' kesildi.', 'id' => $belgeId, 'no' => $no, 'net' => $genelToplam,
+                    'doviz_net' => $pb !== 'TRY' ? round($toplam['doviz'], 2) : null];
         } catch (Throwable $e) {
             if ($dbh->inTransaction()) {
                 $dbh->rollBack();
@@ -308,7 +344,7 @@ if (!function_exists('lumen_siparis_kalan_satirlar')) {
     function lumen_siparis_kalan_satirlar(PDO $dbh, int $siparisId): array
     {
         $st = $dbh->prepare("SELECT S.ID, S.SIRA, S.STOK_ID, S.BIRIM_ID, ST.KOD, ST.AD, BR.KOD AS BIRIM, S.MIKTAR, S.TESLIM_MIKTAR,
-                    S.MIKTAR - S.TESLIM_MIKTAR AS KALAN, S.FIYAT, S.KDV_ORANI,
+                    S.MIKTAR - S.TESLIM_MIKTAR AS KALAN, S.FIYAT, S.DOVIZ_FIYAT, S.KDV_ORANI,
                     -- Satır + dağıtılmış iskonto (iskonto satırları dahil) → etkin iskonto oranı
                     CASE WHEN S.TUTAR > 0 THEN ROUND((S.TUTAR - S.NET) * 100.0 / S.TUTAR, 4) ELSE 0 END AS ISKONTO
              FROM dbo.LM_BELGE_SATIR S

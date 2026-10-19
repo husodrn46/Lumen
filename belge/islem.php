@@ -58,6 +58,7 @@ if ($islem === 'kaydet') {
         'cari_id' => $cari, 'tarih' => (string) ($_POST['tarih'] ?? date('Y-m-d')), 'vade' => (string) ($_POST['vade'] ?? ''),
         'depo_id' => (int) ($_POST['depo_id'] ?? 0), 'aciklama' => (string) ($_POST['aciklama'] ?? ''),
         'dokuman_no' => (string) ($_POST['dokuman_no'] ?? ''), 'kaynak_belge_id' => (int) ($_POST['kaynak_belge_id'] ?? 0),
+        'para_birimi' => (string) ($_POST['para_birimi'] ?? 'TRY'), 'kur' => lumen_tutar_coz($_POST['kur'] ?? '1'),
     ], $satirlar, (int) $terminalkullanici);
     if ($r['ok']) {
         $git('goster.php', ['id' => $r['id'], 'ok' => $r['mesaj']]);

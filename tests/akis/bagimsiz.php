@@ -295,6 +295,53 @@ akis('depo personeli (yalnız M15): üretim ve sayım girer; fatura göremez, ke
     yakin($once, (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 4"), 'iptal sonrası stok');
 });
 
+akis('dövizli fatura: fiyat dövizle girilir, stok/cari/KDV TL; döviz tutarı ve kur saklanır; siparişten kısmi', function () use ($yonetici, $pdo): void {
+    $once = (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 6");
+    // 5 × 10 USD, KDV %20, kur 41,10 → döviz 60 USD; TL 5 × 411 = 2.055 + 411 KDV = 2.466
+    $f = belge_kes($yonetici, 'belge/yeni.php?tur=satis_fatura', ['tur' => 'satis_fatura', 'cari_id' => 6, 'tarih' => date('Y-m-d'),
+        'para_birimi' => 'USD', 'kur' => '41,10',
+        'satir' => ['stok_id' => [8], 'birim_id' => [0], 'miktar' => ['5'], 'fiyat' => ['10'], 'iskonto' => ['0'], 'kdv' => ['20']]]);
+    bekle($f['id'] > 0, 'dövizli fatura kesilmedi: ' . ($f['hata'] ?? '?'));
+    $b = $pdo->query("SELECT PARA_BIRIMI, KUR, NET, DOVIZ_NET FROM LM_BELGE WHERE ID = {$f['id']}")->fetch(PDO::FETCH_ASSOC);
+    bekle($b['PARA_BIRIMI'] === 'USD', 'para birimi yazılmadı');
+    yakin(41.10, (float) $b['KUR'], 'kur');
+    yakin(2466.0, (float) $b['NET'], 'TL genel toplam');
+    yakin(60.0, (float) $b['DOVIZ_NET'], 'döviz genel toplam');
+    yakin(10.0, (float) tek($pdo, "SELECT DOVIZ_FIYAT FROM LM_BELGE_SATIR WHERE BELGE_ID = {$f['id']}"), 'satır döviz fiyatı');
+    yakin(60.0, (float) tek($pdo, "SELECT DOVIZ_TUTAR FROM LM_CARI_HAREKET WHERE BELGE_ID = {$f['id']}"), 'cari hareket döviz tutarı');
+    yakin($once + 2466.0, (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 6"), 'cari bakiye (TL)');
+    $g = $yonetici->istek("belge/goster.php?id={$f['id']}")['govde'];
+    bekle(str_contains($g, '60,00 USD') && str_contains($g, '41,1000'), 'belge ekranında döviz toplamı/kur yok');
+    $kur = belge_kes($yonetici, 'belge/yeni.php', ['tur' => 'satis_fatura', 'cari_id' => 6, 'tarih' => date('Y-m-d'), 'para_birimi' => 'USD', 'kur' => '0',
+        'satir' => ['stok_id' => [8], 'birim_id' => [0], 'miktar' => ['1'], 'fiyat' => ['10'], 'iskonto' => ['0'], 'kdv' => ['20']]]);
+    bekle($kur['id'] === 0 && str_contains((string) $kur['hata'], 'kur'), 'kursuz dövizli fatura kabul edildi');
+
+    // Dövizli sipariş (EUR, kur 47) → siparişten kısmi fatura, kur 48: TL yeni kurla, döviz fiyatı siparişten
+    $pdo->exec("INSERT INTO LM_BELGE (TUR, YON, NO, TARIH, CARI_ID, DEPO_ID, PARA_BIRIMI, KUR, DURUM)
+                VALUES (1, 1, 'DVZTEST" . random_int(1000, 9999) . "', CAST(GETDATE() AS DATE), 6, (SELECT ID FROM LM_DEPO WHERE NO = 0), 'EUR', 47, 1)");
+    $sip = (int) tek($pdo, 'SELECT MAX(ID) FROM LM_BELGE WHERE TUR = 1');
+    $birim = (int) tek($pdo, 'SELECT ANA_BIRIM_ID FROM LM_STOK WHERE ID = 8');
+    $pdo->exec("INSERT INTO LM_BELGE_SATIR (BELGE_ID, SIRA, SATIR_TURU, STOK_ID, BIRIM_ID, CARPAN, MIKTAR, FIYAT, DOVIZ_FIYAT, KDV_ORANI, TUTAR, NET)
+                VALUES ({$sip}, 1, 0, 8, {$birim}, 1, 4, 470, 10, 20, 1880, 1880)");
+    $satir = (int) tek($pdo, "SELECT ID FROM LM_BELGE_SATIR WHERE BELGE_ID = {$sip}");
+    $sp = $yonetici->istek("belge/siparisten.php?siparis={$sip}")['govde'];
+    bekle(str_contains($sp, 'name="kur"') && str_contains($sp, '10,00 EUR'), 'siparişten ekranında kur/döviz fiyatı yok');
+    $r = belge_kes($yonetici, "belge/siparisten.php?siparis={$sip}", ['tur' => 'satis_fatura', 'kaynak_belge_id' => $sip, 'cari_id' => 6,
+        'tarih' => date('Y-m-d'), 'para_birimi' => 'EUR', 'kur' => '48',
+        'satir' => ['stok_id' => [8], 'birim_id' => [$birim], 'kaynak_satir_id' => [$satir], 'miktar' => ['2'], 'fiyat' => ['10'], 'iskonto' => [0], 'kdv' => [20]]]);
+    bekle($r['id'] > 0, 'dövizli siparişten fatura kesilmedi: ' . ($r['hata'] ?? '?'));
+    // 2 × 10 EUR = 20 + %20 = 24 EUR; TL 2 × 480 = 960 + 192 = 1.152
+    yakin(24.0, (float) tek($pdo, "SELECT DOVIZ_NET FROM LM_BELGE WHERE ID = {$r['id']}"), 'siparişten döviz toplamı');
+    yakin(1152.0, (float) tek($pdo, "SELECT NET FROM LM_BELGE WHERE ID = {$r['id']}"), 'siparişten TL toplamı (fatura kuru)');
+    yakin(2.0, (float) tek($pdo, "SELECT TESLIM_MIKTAR FROM LM_BELGE_SATIR WHERE ID = {$satir}"), 'sipariş teslim miktarı');
+
+    foreach ([$r['id'], $f['id']] as $id) {
+        $yonetici->istek('belge/islem.php', ['csrf_token' => $yonetici->belirtec("belge/goster.php?id={$id}"), 'islem' => 'iptal', 'id' => $id]);
+    }
+    $pdo->exec("UPDATE LM_BELGE SET DURUM = 9 WHERE ID = {$sip}"); // test siparişi: iptal (faturalar ona bağlı kalır)
+    yakin($once, (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 6"), 'iptal sonrası cari bakiye');
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */

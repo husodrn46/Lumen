@@ -12,6 +12,12 @@ $turler = $belgeTurleri;
 $tur = isset($turler[(string) ($_GET['tur'] ?? '')]) ? (string) $_GET['tur'] : (string) array_key_first($turler);
 $depolar = $dbh->query('SELECT ID, AD FROM dbo.LM_DEPO WHERE AKTIF = 1 ORDER BY NO')->fetchAll(PDO::FETCH_ASSOC);
 $vadeGun = 0;
+// Döviz: etkin para birimleri ve bugünkü (yoksa en son) döviz alış kurları
+$pbler = $dbh->query("SELECT KOD FROM dbo.LM_PARA_BIRIMI WHERE AKTIF = 1 ORDER BY CASE WHEN KOD = 'TRY' THEN 0 ELSE 1 END, KOD")->fetchAll(PDO::FETCH_COLUMN);
+$kurlar = [];
+foreach ($pbler as $k) {
+    $kurlar[$k] = lumen_kur($dbh, (string) $k, date('Y-m-d')) ?? 0;
+}
 
 belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
 ?>
@@ -38,6 +44,14 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
             <select name="depo_id"><?php foreach ($depolar as $d): ?><option value="<?= (int) $d['ID'] ?>"><?= bh($d['AD']) ?></option><?php endforeach; ?></select>
         </label>
         <label class="alan">Belge / dış no <input type="text" name="dokuman_no" maxlength="40"></label>
+        <?php if (count($pbler) > 1): ?>
+            <label class="alan dovizAlan">Para birimi
+                <select name="para_birimi" id="pb"><?php foreach ($pbler as $k): ?><option value="<?= bh($k) ?>"><?= bh($k === 'TRY' ? 'TL' : $k) ?></option><?php endforeach; ?></select>
+            </label>
+            <label class="alan dovizAlan" id="kurAlan" style="display:none">Kur (1 <span id="kurPb"></span> = ? TL)
+                <input name="kur" id="kur" inputmode="decimal" placeholder="Döviz alış kuru">
+            </label>
+        <?php endif; ?>
     </div>
 
     <div class="kart">
@@ -58,6 +72,7 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
             <span>İskonto</span><span class="sag" id="tIsk">0,00 ₺</span>
             <span>KDV</span><span class="sag" id="tKdv">0,00 ₺</span>
             <span class="genel">Genel toplam</span><span class="sag genel" id="tGenel">0,00 ₺</span>
+            <span class="soluk" id="tTlEt" style="display:none">TL karşılığı</span><span class="sag soluk" id="tTl" style="display:none"></span>
         </div>
     </div>
 
@@ -78,9 +93,24 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
 </style>
 <script>
 (function () {
-    var tl = function (n) { return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺'; };
+    var kurlar = <?= json_encode($kurlar, JSON_HEX_TAG) ?>;
+    var pbSec = document.getElementById('pb'), kurGir = document.getElementById('kur');
+    var pb = function () { return pbSec ? pbSec.value : 'TRY'; };
+    var bicim = function (n) { return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    var tl = function (n) { return bicim(n) + (pb() === 'TRY' ? ' ₺' : ' ' + pb()); };
     var r2 = function (n) { return Math.round((n + Number.EPSILON) * 100) / 100; };
-    var sayi = function (v) { var n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; };
+    // TR (1.234,56) ve EN (1234.56) biçimleri; sunucudaki lumen_tutar_coz ile aynı kural
+    var sayi = function (v) {
+        var s = String(v).replace(/\s/g, '');
+        if (s.indexOf(',') >= 0) { s = s.replace(/\./g, '').replace(',', '.'); } else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) { s = s.replace(/\./g, ''); }
+        var n = parseFloat(s); return isNaN(n) ? 0 : n;
+    };
+    var kur = function () { return pb() === 'TRY' ? 1 : sayi(kurGir.value); };
+    // Ürünün liste fiyatını (kendi para biriminde) belgenin para birimine çevirir.
+    var cevir = function (fiyat, kaynakPb) {
+        var tlFiyat = kaynakPb === 'TRY' ? fiyat : fiyat * (kurlar[kaynakPb] || 0);
+        return pb() === 'TRY' ? tlFiyat : (kur() > 0 ? tlFiyat / kur() : 0);
+    };
     var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
     var tur = document.getElementById('tur'), tbody = document.querySelector('#satirlar tbody');
     var yon = function () { return tur.options[tur.selectedIndex].dataset.yon; };
@@ -93,6 +123,24 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
     }
     tur.addEventListener('change', cariGorunurluk);
 
+    // Para birimi: değişince kur önerilir ve mevcut satır fiyatları yeni para birimine çevrilir.
+    if (pbSec) {
+        var oncekiKur = 1;
+        pbSec.addEventListener('change', function () {
+            var yeni = pb();
+            document.getElementById('kurAlan').style.display = yeni === 'TRY' ? 'none' : '';
+            document.getElementById('kurPb').textContent = yeni;
+            if (yeni !== 'TRY') { kurGir.value = kurlar[yeni] ? String(kurlar[yeni]).replace('.', ',') : ''; kurGir.required = true; } else { kurGir.required = false; }
+            tbody.querySelectorAll('[name="satir[fiyat][]"]').forEach(function (g) {
+                var tlFiyat = sayi(g.value) * oncekiKur;
+                g.value = String(Math.round((yeni === 'TRY' ? tlFiyat : (kur() > 0 ? tlFiyat / kur() : 0)) * 10000) / 10000).replace('.', ',');
+            });
+            oncekiKur = kur();
+            hesapla();
+        });
+        kurGir.addEventListener('input', function () { oncekiKur = kur(); hesapla(); });
+    }
+
     function hesapla() {
         var b = 0, i = 0, k = 0, n = 0, satir = 0;
         tbody.querySelectorAll('tr.satir').forEach(function (tr) {
@@ -104,8 +152,11 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
         });
         document.getElementById('tBrut').textContent = tl(b); document.getElementById('tIsk').textContent = tl(i);
         document.getElementById('tKdv').textContent = tl(k); document.getElementById('tGenel').textContent = tl(r2(n + k));
+        var dovizli = pb() !== 'TRY';
+        document.getElementById('tTlEt').style.display = document.getElementById('tTl').style.display = dovizli ? '' : 'none';
+        if (dovizli) { document.getElementById('tTl').textContent = bicim(r2((n + k) * kur())) + ' ₺'; }
         var cariTamam = tur.options[tur.selectedIndex].dataset.cari !== '1' || document.getElementById('cariId').value !== '';
-        document.getElementById('kaydet').disabled = !(satir > 0 && cariTamam);
+        document.getElementById('kaydet').disabled = !(satir > 0 && cariTamam && (!dovizli || kur() > 0));
     }
 
     function satirEkle(u) {
@@ -116,7 +167,7 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
             + '<div class="soluk">Eldeki: ' + u.eldeki.toLocaleString('tr-TR') + '</div></td>'
             + '<td><input name="satir[miktar][]" inputmode="decimal" value="1"></td>'
             + '<td><select name="satir[birim_id][]">' + birimler + '</select></td>'
-            + '<td><input name="satir[fiyat][]" inputmode="decimal" value="' + u.fiyat.toFixed(2).replace('.', ',') + '"></td>'
+            + '<td><input name="satir[fiyat][]" inputmode="decimal" value="' + String(Math.round(cevir(u.fiyat, u.pb || 'TRY') * 10000) / 10000).replace('.', ',') + '"></td>'
             + '<td><input name="satir[iskonto][]" inputmode="decimal" value="0"></td>'
             + '<td><input name="satir[kdv][]" inputmode="decimal" value="' + u.kdv + '"></td>'
             + '<td class="sag koyu tutar"></td>'
@@ -157,7 +208,7 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
         function (o) { document.getElementById('cariId').value = o.id; document.getElementById('cariAra').value = o.text; hesapla(); });
     aramaKur(document.getElementById('urunAra'), document.getElementById('urunSonuc'),
         function (q) { return 'stok_ara.php?yon=' + yon() + '&q=' + encodeURIComponent(q); },
-        function (u) { return '<span class="koyu">' + esc(u.kod) + '</span> ' + esc(u.ad) + ' <span class="soluk">· ' + tl(u.fiyat) + ' · eldeki ' + u.eldeki.toLocaleString('tr-TR') + '</span>'; },
+        function (u) { return '<span class="koyu">' + esc(u.kod) + '</span> ' + esc(u.ad) + ' <span class="soluk">· ' + bicim(u.fiyat) + ((u.pb || 'TRY') === 'TRY' ? ' ₺' : ' ' + u.pb) + ' · eldeki ' + u.eldeki.toLocaleString('tr-TR') + '</span>'; },
         function (u) { satirEkle(u); document.getElementById('urunAra').value = ''; });
 
     document.getElementById('cariAra').addEventListener('input', function () { document.getElementById('cariId').value = ''; hesapla(); });

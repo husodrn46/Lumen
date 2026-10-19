@@ -28,10 +28,11 @@ if ($q === '') {
 $like = '%' . lumen_arama_terimi($q) . '%';
 $st = $dbh->prepare("
     SELECT TOP 15 S.ID, S.KOD, S.AD, S.KDV_ORANI, S.ANA_BIRIM_ID,
-           (SELECT TOP 1 F.FIYAT FROM dbo.LM_FIYAT F WHERE F.STOK_ID = S.ID AND F.TUR = :tur AND F.BASLANGIC <= CAST(GETDATE() AS DATE)
-            ORDER BY F.BASLANGIC DESC, F.ID DESC) AS FIYAT,
+           FY.FIYAT, FY.PARA_BIRIMI AS FIYAT_PB,
            ISNULL((SELECT SUM(M.MIKTAR) FROM dbo.LMV_STOK_MIKTAR M WHERE M.STOK_ID = S.ID), 0) AS ELDEKI
     FROM dbo.LM_STOK S
+    OUTER APPLY (SELECT TOP 1 F.FIYAT, F.PARA_BIRIMI FROM dbo.LM_FIYAT F WHERE F.STOK_ID = S.ID AND F.TUR = :tur
+                 AND F.BIRIM_ID = S.ANA_BIRIM_ID AND F.BASLANGIC <= CAST(GETDATE() AS DATE) ORDER BY F.BASLANGIC DESC, F.ID DESC) FY
     WHERE S.AKTIF = 1 AND (" . lumen_arama_sql('S.KOD') . " LIKE :q1 OR " . lumen_arama_sql('S.AD') . " LIKE :q2
           OR EXISTS (SELECT 1 FROM dbo.LM_BARKOD BK WHERE BK.STOK_ID = S.ID AND BK.BARKOD = :barkod))
     ORDER BY S.KOD");
@@ -44,7 +45,7 @@ foreach ($urunler as $u) {
     $birimSt->execute([':s' => (int) $u['ID'], ':ana' => (int) $u['ANA_BIRIM_ID']]);
     $cikti[] = [
         'id' => (int) $u['ID'], 'kod' => (string) $u['KOD'], 'ad' => (string) $u['AD'],
-        'kdv' => (float) $u['KDV_ORANI'], 'fiyat' => $fiyatGorur ? (float) ($u['FIYAT'] ?? 0) : 0.0, 'eldeki' => (float) $u['ELDEKI'],
+        'kdv' => (float) $u['KDV_ORANI'], 'fiyat' => $fiyatGorur ? (float) ($u['FIYAT'] ?? 0) : 0.0, 'pb' => (string) ($u['FIYAT_PB'] ?? 'TRY'), 'eldeki' => (float) $u['ELDEKI'],
         'birimler' => array_map(static fn(array $b): array => ['id' => (int) $b['BIRIM_ID'], 'kod' => (string) $b['KOD'],
             'carpan' => (float) $b['CARPAN']], $birimSt->fetchAll(PDO::FETCH_ASSOC)),
     ];

@@ -33,6 +33,8 @@ $s = $dbh->prepare("SELECT S.*, ST.KOD, ST.AD, BR.KOD AS BIRIM FROM dbo.LM_BELGE
 $s->execute([':id' => $id]);
 $satirlar = $s->fetchAll(PDO::FETCH_ASSOC);
 $iptal = (int) $b['DURUM'] === 9;
+$dovizli = (string) $b['PARA_BIRIMI'] !== 'TRY';
+$dv = static fn(mixed $v): string => number_format((float) $v, 2, ',', '.') . ' ' . $b['PARA_BIRIMI'];
 
 belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
     '<button type="button" class="btn btn-ikincil yazdirma-gizle" onclick="window.print()"><i class="fa-solid fa-print"></i><span class="metin">Yazdır</span></button>');
@@ -46,6 +48,9 @@ belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
         <?php if ($b['VERGI_NO']): ?><div class="soluk"><?= bh($b['VERGI_DAIRESI'] . ' / ' . $b['VERGI_NO']) ?></div><?php endif; ?></div>
     <div><div class="soluk">Depo</div><div class="koyu"><?= bh($b['DEPO_AD'] ?? '—') ?></div>
         <?php if ($b['KAYNAK_NO']): ?><div class="soluk">Kaynak: <?= bh($b['KAYNAK_NO']) ?></div><?php endif; ?></div>
+    <?php if ($dovizli): ?>
+        <div><div class="soluk">Para birimi / kur</div><div class="koyu"><?= bh($b['PARA_BIRIMI']) ?> · <?= bh(number_format((float) $b['KUR'], 4, ',', '.')) ?> ₺</div></div>
+    <?php endif; ?>
 </div>
 
 <div class="kart tablo-sar">
@@ -59,7 +64,7 @@ belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
                 <td><span class="koyu"><?= bh($r['KOD']) ?></span> <?= bh($r['AD']) ?>
                     <?php if ($r['ACIKLAMA']): ?><div class="soluk"><?= bh($r['ACIKLAMA']) ?></div><?php endif; ?></td>
                 <td class="sag"><?= bmiktar($r['MIKTAR']) ?> <?= bh($r['BIRIM'] ?? '') ?></td>
-                <td class="sag"><?= btl($r['FIYAT']) ?></td>
+                <td class="sag"><?= $dovizli && $r['DOVIZ_FIYAT'] !== null ? bh($dv($r['DOVIZ_FIYAT'])) . '<div class="soluk">' . btl($r['FIYAT']) . '</div>' : btl($r['FIYAT']) ?></td>
                 <td class="sag"><?= bmiktar($r['ISKONTO_ORANI']) ?></td>
                 <td class="sag"><?= bmiktar($r['KDV_ORANI']) ?></td>
                 <td class="sag koyu"><?= btl($r['NET']) ?></td>
@@ -72,6 +77,9 @@ belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
         <span>İskonto</span><span class="sag">- <?= btl($b['ISKONTO']) ?></span>
         <span>KDV</span><span class="sag"><?= btl($b['KDV']) ?></span>
         <span class="genel">Genel toplam</span><span class="sag genel"><?= btl($b['NET']) ?></span>
+        <?php if ($dovizli && $b['DOVIZ_NET'] !== null): ?>
+            <span class="koyu">Döviz toplamı</span><span class="sag koyu"><?= bh($dv($b['DOVIZ_NET'])) ?></span>
+        <?php endif; ?>
     </div>
 </div>
 <?php if ($b['ACIKLAMA']): ?><div class="kart kart-ic"><span class="soluk">Açıklama:</span> <?= bh($b['ACIKLAMA']) ?></div><?php endif; ?>

@@ -11,6 +11,10 @@
   yedeği otomatik alınır; tek işlem, hata olursa hiçbir şey değişmez). Bağımsız
   modda tüm veritabanı, LOGO modunda Lumen'in kendi tabloları yedeklenir. Yedek
   klasörü (ör. başka disk) ve saklama sayısı ayarlanabilir. Yalnız yönetici.
+- **Dövizli fatura** (bağımsız mod): para birimi ve kur seçilir, fiyatlar dövizle
+  girilir; stok, cari bakiye ve KDV TL'dir, döviz tutarı ve kur belgede, satırda ve
+  cari harekette saklanır. Dövizli siparişten faturada kur, fatura gününün döviz alış
+  kuru ile önerilir. Belge formunda "1.234,56" biçimli tutarlar doğru okunur.
 - Bağımsız modda **depo personeli** (yalnız M15) üretimden giriş ve sayım girer;
   fatura göremez, fiyat görmez.
 
