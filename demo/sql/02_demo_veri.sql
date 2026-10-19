@@ -23,6 +23,8 @@ DELETE FROM LV_001_02_GNTOTCL;   DELETE FROM LV_001_02_STINVTOT;
 DELETE FROM LG_001_PRCLIST;      DELETE FROM LG_001_UNITBARCODE;  DELETE FROM LG_001_ITMUNITA;
 DELETE FROM LG_001_ITEMS;        DELETE FROM LG_001_UNITSETL;     DELETE FROM LG_001_CLCARD;
 DELETE FROM LG_001_BNCARD;       DELETE FROM LG_001_BANKACC;      DELETE FROM LG_001_SRVCARD;
+IF OBJECT_ID('dbo.M_FATURA_LOG_DETAY', 'U') IS NOT NULL DELETE FROM M_FATURA_LOG_DETAY;
+IF OBJECT_ID('dbo.M_FATURA_LOG', 'U') IS NOT NULL DELETE FROM M_FATURA_LOG;
 GO
 
 -- ---------------------------------------------------------------- kullanıcılar
@@ -146,6 +148,34 @@ BEGIN
     WHERE F.LOGICALREF = @fis;
     SET @i += 1;
 END;
+GO
+
+-- ---------------------------------------------------------------- şablon fatura
+-- Faturalama (BETA) yeni faturayı LOGO'da kesilmiş mevcut bir TL satış faturasını
+-- şablon alarak klonlar (fatura/fatura_lib.php → fatura_klonla). Demo için tek bir
+-- "LOGO'da kesilmiş" fatura: başlık + irsaliye + mal satırı + genel iskonto satırı
+-- + cari borç. Seri FTR (LOGO'nun kendi serisi); Lumen LMF/LMI serisi kullanır.
+DECLARE @inv INT, @stf INT;
+INSERT INTO LG_001_02_INVOICE (TRCODE, GRPCODE, FICHENO, DATE_, DOCDATE, CLIENTREF, SOURCEINDEX, GROSSTOTAL, TOTALDISCOUNTS,
+                               TOTALDISCOUNTED, TOTALVAT, NETTOTAL, TRNET, REPORTNET, REPORTRATE, TRCURR, TRRATE, CANCELLED,
+                               GENEXP1, GUID, CAPIBLOCK_CREADEDDATE)
+VALUES (8, 2, 'FTR000001', '2026-10-01', '2026-10-01', 1, 0, 1000, 50, 1000, 0, 950, 950, 950, 1, 0, 0, 0,
+        N'Demo LOGO faturası (şablon)', 'DEMO-INV-0001', '2026-10-01');
+SET @inv = SCOPE_IDENTITY();
+INSERT INTO LG_001_02_STFICHE (TRCODE, GRPCODE, IOCODE, FICHENO, INVNO, INVOICEREF, DATE_, DOCDATE, SHIPDATE, CLIENTREF,
+                               SOURCEINDEX, BILLED, GROSSTOTAL, TOTALDISCOUNTS, NETTOTAL, TRCURR, CANCELLED, GUID, CAPIBLOCK_CREADEDDATE)
+VALUES (8, 2, 3, 'IRS000000001', 'FTR000001', @inv, '2026-10-01', '2026-10-01', '2026-10-01', 1, 0, 1, 1000, 50, 950, 0, 0,
+        'DEMO-STF-0001', '2026-10-01');
+SET @stf = SCOPE_IDENTITY();
+INSERT INTO LG_001_02_STLINE (TRCODE, LINETYPE, IOCODE, STOCKREF, DATE_, STFICHEREF, STFICHELNNO, INVOICEREF, INVOICELNNO,
+                              CLIENTREF, SOURCEINDEX, AMOUNT, PRICE, TOTAL, LINENET, VATMATRAH, VAT, VATAMNT, DISTDISC,
+                              UOMREF, USREF, UINFO1, UINFO2, BILLED, CANCELLED, TRCURR, LINEEXP, GUID)
+VALUES (8, 0, 4, 1, '2026-10-01', @stf, 1, @inv, 1, 1, 0, 40, 25, 1000, 950, 950, 0, 0, 50, 1, 1, 1, 1, 1, 0, 0, N'', 'DEMO-STL-0001'),
+       (8, 2, 0, 0, '2026-10-01', 0, 0, @inv, 2, 1, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, N'Genel iskonto', 'DEMO-STL-0002');
+INSERT INTO LG_001_02_CLFLINE (CLIENTREF, DATE_, DOCDATE, MODULENR, TRCODE, SIGN, AMOUNT, TRNET, REPORTNET, TRCURR, LINEEXP,
+                               TRANNO, SOURCEFREF, CANCELLED, GUID)
+VALUES (1, '2026-10-01', '2026-10-01', 4, 38, 0, 950, 950, 950, 0, N'Demo LOGO faturası (şablon)', 'FTR000001', @inv, 0,
+        'DEMO-CLF-0001');
 GO
 
 -- ---------------------------------------------------------------- cari hareketler + bakiye

@@ -366,6 +366,63 @@ akis('bildirim: görev atanınca alıcının zilinde görünür, tıklayınca ok
     bekle((int) tek($pdo, "SELECT OKUNDU FROM M_BILDIRIM WHERE ID = :i", [':i' => $diger]) === 0, 'başkasının bildirimi değiştirildi');
 });
 
+akis('faturalama (BETA): kapalıyken kapalı; sipariş faturalanır, ikinci kez kesilmez, geri alınınca iz kalmaz', function () use ($yonetici, $URL, $pdo): void {
+    require_once dirname(__DIR__, 2) . '/includes/ayar_deposu.php';
+    $ayarla = static function (string $deger): void {
+        bekle(lumen_ayar_kaydet(['faturalama_aktif' => $deger], 0), 'ayar yazılamadı');
+        // Test konteynerde root olarak çalışır; uygulama (www-data) sonra yazabilsin.
+        foreach (glob(dirname(__DIR__, 2) . '/database/{ayarlar.json,.ayarlar.lock}', GLOB_BRACE) ?: [] as $d) {
+            @chown($d, 'www-data');
+        }
+    };
+    bekle($yonetici->istek('fatura/fatura_panel.php')['kod'] === 403, 'kapalıyken panel açıldı');
+    $ayarla('1');
+    try {
+        $satis = (new Tarayici($URL))->giris('SATIS1');
+        bekle($satis->istek('fatura/fatura_panel.php')['kod'] === 403, 'M31 yetkisi olmadan panel açıldı');
+
+        $sip = (int) tek($pdo, "SELECT TOP 1 o.LOGICALREF FROM LG_001_02_ORFICHE o
+            WHERE o.TRCODE = 1 AND ISNULL(o.TRCURR, 0) = 0 AND ISNULL(o.CANCELLED, 0) = 0 AND o.NETTOTAL > 0
+              AND EXISTS (SELECT 1 FROM LG_001_02_ORFLINE l WHERE l.ORDFICHEREF = o.LOGICALREF AND l.LINETYPE = 0)
+              AND NOT EXISTS (SELECT 1 FROM LG_001_02_STLINE s WHERE s.ORDFICHEREF = o.LOGICALREF AND s.INVOICEREF > 0)
+            ORDER BY o.LOGICALREF");
+        bekle($sip > 0, 'faturalanabilir sipariş yok');
+        $net = (float) tek($pdo, "SELECT SUM(LINENET) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :s AND LINETYPE = 0", [':s' => $sip]);
+        $satirSay = (int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :s AND LINETYPE = 0", [':s' => $sip]);
+        $cari = (int) tek($pdo, "SELECT CLIENTREF FROM LG_001_02_ORFICHE WHERE LOGICALREF = :s", [':s' => $sip]);
+
+        $j = json_decode($yonetici->istek('fatura/fatura.php', ['csrf_token' => $yonetici->belirtec('fatura/fatura_panel.php'),
+            'siparis_ref' => $sip])['govde'], true);
+        bekle(($j['ok'] ?? false) === true, 'fatura kesilemedi: ' . json_encode($j, JSON_UNESCAPED_UNICODE));
+        $inv = (int) $j['invoice_ref'];
+        $f = $pdo->query("SELECT FICHENO, CLIENTREF, NETTOTAL, TOTALVAT FROM LG_001_02_INVOICE WHERE LOGICALREF = {$inv}")->fetch(PDO::FETCH_ASSOC);
+        bekle(str_starts_with((string) $f['FICHENO'], 'LMF'), 'fatura LOGO serisinden ayrı (LMF) numaralanmadı: ' . $f['FICHENO']);
+        bekle((int) $f['CLIENTREF'] === $cari && (float) $f['TOTALVAT'] == 0.0, 'fatura başlığı yanlış');
+        yakin($net, (float) $f['NETTOTAL'], 'fatura net');
+        bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_STLINE WHERE INVOICEREF = :i AND LINETYPE = 0 AND ORDFICHEREF = :s",
+            [':i' => $inv, ':s' => $sip]) === $satirSay, 'stok çıkış satırı sayısı sipariş satırlarını tutmuyor');
+        bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_STFICHE WHERE INVOICEREF = :i AND IOCODE = 3", [':i' => $inv]) === 1, 'irsaliye yok');
+        yakin($net, (float) tek($pdo, "SELECT AMOUNT FROM LG_001_02_CLFLINE WHERE SOURCEFREF = :i AND TRCODE = 38 AND MODULENR = 4 AND CLIENTREF = :c",
+            [':i' => $inv, ':c' => $cari]), 'cari borç');
+
+        $r2 = $yonetici->istek('fatura/fatura.php', ['csrf_token' => $yonetici->belirtec('fatura/fatura_panel.php'), 'siparis_ref' => $sip]);
+        bekle($r2['kod'] === 409, "aynı sipariş ikinci kez faturalandı (HTTP {$r2['kod']})");
+
+        $log = (int) $j['log_id'];
+        $g = json_decode($yonetici->istek('fatura/fatura_geri_al.php', ['csrf_token' => $yonetici->belirtec('fatura/fatura_panel.php'),
+            'log_id' => $log])['govde'], true);
+        bekle(($g['ok'] ?? false) === true, 'geri alınamadı: ' . json_encode($g, JSON_UNESCAPED_UNICODE));
+        $kalan = (int) tek($pdo, "SELECT (SELECT COUNT(*) FROM LG_001_02_INVOICE WHERE LOGICALREF = :a) + (SELECT COUNT(*) FROM LG_001_02_STLINE WHERE INVOICEREF = :b)
+            + (SELECT COUNT(*) FROM LG_001_02_STFICHE WHERE INVOICEREF = :c) + (SELECT COUNT(*) FROM LG_001_02_CLFLINE WHERE SOURCEFREF = :d AND MODULENR = 4)",
+            [':a' => $inv, ':b' => $inv, ':c' => $inv, ':d' => $inv]);
+        bekle($kalan === 0, "geri almadan sonra {$kalan} kayıt kaldı");
+        bekle(tek($pdo, "SELECT DURUM FROM M_FATURA_LOG WHERE ID = :l", [':l' => $log]) === 'GERIALINDI', 'log geri alındı işaretlenmedi');
+        bekle(str_contains($yonetici->istek('fatura/fatura_panel.php')['govde'], 'data-ref="' . $sip . '"'), 'geri alınan sipariş yeniden faturalanabilir değil');
+    } finally {
+        $ayarla('0');
+    }
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

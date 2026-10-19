@@ -46,6 +46,7 @@ if (!function_exists('lumen_ayar_semasi')) {
             'sonsiparis_aktif' => 'bool', 'favoriler_aktif' => 'bool',
             'iskontolu' => 'int', 'iskontolu2' => 'int', 'iskontolu3' => 'int', 'topluiskonto' => 'bool', 'iskontoartir' => 'bool',
             'sipno' => 'text', 'siparistefiyatduzenle' => 'bool', 'yenialissiparisi' => 'bool', 'reserve' => 'bool',
+            'faturalama_aktif' => 'bool', 'fatura_prefix' => 'seri_oneki', 'fatura_irsaliye_prefix' => 'seri_oneki',
             'exceleaktar' => 'bool', 'koliyazdir' => 'bool', 'resimliyazdir' => 'bool', 'barkodyazdir' => 'bool',
             'depo' => 'int', 'cokludepo' => 'bool',
             'fiyatgruplu' => 'bool', 'odemekodu' => 'text', 'tanimlialantoplam' => 'bool', 'tanimlialan' => 'bool',
@@ -81,6 +82,13 @@ if (!function_exists('lumen_ayar_dogrula')) {
                 $desen = $tur === 'yazici' ? '/[^\p{L}\p{N} ._\-,\/:@#()\\\\]/u' : '/[^\p{L}\p{N} ._\-,\/:@#()]/u';
                 $s = preg_replace($desen, '', (string) $deger) ?? '';
                 return mb_substr(trim($s), 0, $tur === 'yazici' ? 80 : 60);
+            case 'seri_oneki':
+                // Fatura/irsaliye seri ön eki: LOGO serileriyle çakışmasın diye boş olamaz.
+                if (!is_scalar($deger)) {
+                    return null;
+                }
+                $s = strtoupper(trim((string) $deger));
+                return preg_match('/^[A-Z0-9]{2,6}$/', $s) === 1 ? $s : null;
             case 'iskonto_listesi':
                 if (!is_array($deger)) {
                     return null;

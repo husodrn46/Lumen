@@ -32,7 +32,7 @@ Lumen, LOGO Tiger için bir yardımcı arayüzdür. **PHP 8.2+**, `pdo_sqlsrv` v
 
 **[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.0.0](https://github.com/husodrn46/Lumen/releases/tag/v1.0.0) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.0.0.zip)
 
-`v1.1.0-beta.1` (Faturalama BETA) deneysel bir ön sürümdür ve v1.0.0 tabanlıdır; v1.2.0'daki güvenlik düzeltmelerini **içermez**. Sınırları için [beta sürüm notlarını](https://github.com/husodrn46/Lumen/releases/tag/v1.1.0-beta.1) okuyun. v1.0.0'dan yükseltme: [CHANGELOG.md](CHANGELOG.md).
+`v1.1.0-beta.1` (Faturalama BETA) ön sürümünün yerini v1.2.0 alır: Faturalama modülü bu sürümde de BETA ve varsayılan kapalıdır. Yükseltme: [CHANGELOG.md](CHANGELOG.md).
 
 Hızlı deneme için `bash demo/kur.sh` Docker üzerinde SQL Server + sentetik LOGO verisi + uygulamayı kurar ([demo/README.md](demo/README.md)). Canlı şirket veritabanını deneme ortamı olarak kullanmayın.
 
@@ -45,6 +45,7 @@ Hızlı deneme için `bash demo/kur.sh` Docker üzerinde SQL Server + sentetik L
 - [Kurulum](#kurulum)
 - [Demo Veritabanı](#demo-veritabanı)
 - [Yapılandırma](#yapılandırma)
+- [Faturalama (BETA)](#faturalama-beta)
 - [Kendi Markanız](#kendi-markanız)
 - [Güvenlik](#güvenlik)
 - [Katkıda Bulunma](#katkıda-bulunma)
@@ -69,7 +70,8 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
 - 📦 **Stok** — anlık miktar (LOGO view'larından), fiyat, birim/koli, barkod
 - 💳 **Çek yönetimi** — giriş/çıkış/ciro, portföy takibi, çeke görsel ek
 - 💱 **Döviz işlemleri** — çoklu kur, dövizli sipariş
-- 💰 **Kasa & tahsilat**, **fatura** akışları
+- 💰 **Kasa** ve fatura yazdırma akışları
+- 🧪 **Faturalama (BETA, varsayılan kapalı)** — sipariş → satış faturası, geri alınabilir · **KDV'siz çalışır; KDV mükellefi firmada kullanmayın** ([ayrıntı](#faturalama-beta))
 - 📊 **Raporlar** — satış, cari yaşlandırma, kâr-zarar, çek, KDV, pazarlamacı performansı
 - 🏷️ **Barkod / etiket** üretimi
 - ✅ **Görev takibi**
@@ -159,6 +161,27 @@ yapın. Ayrıntılar, diğer demo kullanıcıları ve testler: [demo/README.md](
 SQL Server bağlantısı Microsoft ODBC Driver 18 ile varsayılan olarak `TrustServerCertificate=1` kullanır (LOGO kurulumlarının çoğu kendinden imzalı sertifika kullanır); geçerli bir sertifikanız varsa `.env`'de `AKL_DB_TRUST_CERT=0`, şifrelemeyi açıkça yönetmek için `AKL_DB_ENCRYPT=0|1` verin.
 
 Öne çıkan ayarlar: `MAGAZA_CARI` (mağaza hızlı satış carisi, 0 = kapalı), `$dovizlicalis`, `$cokludepo`, `$urun_kodu_oneki` (raporları belirli bir ürün kodu ön ekiyle sınırlar; boş = tüm ürünler). Loglar `.env` `LOG_ROOT` verilmezse `logs/` klasörüne yazılır.
+
+## Faturalama (BETA)
+
+Bir satış siparişini tek adımda LOGO satış faturasına çevirir: fatura + irsaliye +
+stok çıkışı + cari borç tek transaction'da yazılır. Panelden **"Geri Al"** ile tamamen
+iptal edilebilir (yalnız Lumen'in kestiği, muhasebeleştirilmemiş faturalar).
+
+> ⛔ **KDV'siz çalışır** (`TOTALVAT = 0`); muhasebe fişi (ACCFICHE), e-fatura/e-arşiv ve
+> satılan malın maliyeti oluşturulmaz. **KDV mükellefi bir firmada kullanmayın.**
+> Fatura tutarı siparişin KDV'siz satır netleridir. Dövizli siparişler faturalanamaz.
+
+Varsayılan olarak **kapalıdır**. Açmak için:
+
+1. `php scripts/sema_guncelle.php` (M31 yetki kolonu ve `M_FATURA_LOG` tabloları).
+2. Sistem Ayarları → Faturalama: **Faturalama Aktif**; seri ön eklerini (`LMF` / `LMI`)
+   LOGO'nun kendi fatura/irsaliye serilerinden **farklı** olacak şekilde ayarlayın.
+3. İlgili kullanıcılara **M31 (Faturalama)** yetkisi verin (yönetici otomatik alır).
+4. Modül, LOGO'da kesilmiş geçerli bir TL satış faturasını şablon olarak kopyalar;
+   veritabanında en az bir tane bulunmalıdır.
+
+Önce bir test veritabanında deneyin.
 
 ## Zamanlanmış Görevler
 

@@ -711,6 +711,10 @@ if (!defined('LUMEN_AYAR_UYGULANDI')) {
   lumen_ayar_uygula();
 }
 $pazarlamaci_cari_oneki ??= (string) (getenv('PAZARLAMACI_CARI_ONEKI') ?: '');
+// Faturalama (BETA) varsayılanları — eski _bilgi_.inc'te bu bölüm yoktur.
+$faturalama_aktif ??= '0';
+$fatura_prefix ??= 'LMF';
+$fatura_irsaliye_prefix ??= 'LMI';
 
 // ================================================================
 // GÜVENLIK: Veritabanı Bağlantısı (İyileştirilmiş Error Handling)
@@ -1398,7 +1402,7 @@ if (!function_exists('m_p_yetki_tum_sutunlar')) {
   {
     return [
       'YETKI', 'SIFRE', 'PERSONEL',
-      'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19', 'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30',
+      'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19', 'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31',
       'ST1', 'ST2', 'ST3',
       'CR1', 'CR2', 'CR3', 'CR4',
       'SP1', 'SP2', 'SP3', 'SP4',
@@ -1415,7 +1419,7 @@ if (!function_exists('m_p_menu_yetki_kodlari')) {
     return [
       'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10',
       'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19',
-      'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30',
+      'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31',
     ];
   }
 }
@@ -1494,6 +1498,7 @@ if (!function_exists('m_p_yetki_etiketleri')) {
       'M28' => 'Görevler',
       'M29' => 'Görev Atama',
       'M30' => 'Çek İşlemleri',
+      'M31' => 'Faturalama (beta)',
       'ST1' => 'Miktar Görme',
       'ST2' => 'Fiyat Görme',
       'ST3' => 'Stok Extre',

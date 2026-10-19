@@ -2,7 +2,8 @@
 
 ## [Yayımlanmadı] — v1.2.0 adayı
 
-Bu sürüm, v1.0.0 üzerine kapsamlı bir güvenlik ve doğruluk denetiminin sonucudur.
+Bu sürüm, v1.0.0 üzerine kapsamlı bir güvenlik ve doğruluk denetiminin sonucudur ve
+v1.1.0-beta.1 ön sürümünün (Faturalama BETA) yerini alır.
 Yükseltme sonrası **mutlaka** `php scripts/sema_guncelle.php` çalıştırın.
 
 ### ⚠️ Para / veri hataları (önemli)
@@ -49,6 +50,13 @@ Yükseltme sonrası **mutlaka** `php scripts/sema_guncelle.php` çalıştırın.
 
 ### ✨ Yeni
 
+- **Faturalama (BETA, varsayılan kapalı)** — v1.1.0-beta.1'deki modül bu sürüme
+  taşındı ve sertleştirildi: eşzamanlı istekte çift fatura / aynı numara kesilmez
+  (uygulama kilidi), iptal edilmiş sipariş faturalanmaz, başka dönemin ya da
+  LOGO'da muhasebeleştirilmiş/değiştirilmiş faturası geri alınmaz, özel cari kısıtı
+  panelde ve geri almada da uygulanır, panel kesilecek KDV'siz tutarı gösterir
+  (betada KDV dahil sipariş toplamı görünüyordu). **KDV'siz çalışır** — README →
+  Faturalama (BETA).
 - **Bildirim kutusu** (ana sayfa zili): görev olayları, vadesi yaklaşan görev ve
   çekler, güvenlik ve ayar olayları.
 - **Entegrasyon hesabı** (YETKI=3): yalnız API, yalnız okuma.
@@ -100,10 +108,10 @@ kurulmuş veritabanı + `sema_guncelle.php` → tüm sayfa ve akış testleri te
 
 ### v1.1.0-beta.1 (Faturalama BETA) kullananlar
 
-v1.2.0 **v1.0.0 üzerine** kuruludur ve deneysel Faturalama modülünü **içermez**.
-Beta, v1.0.0 kodunu taşıdığı için bu sürümde kapatılan güvenlik açıklarını da
-taşır; üretimde beta yerine v1.2.0 kullanın. Faturalama ileride bu sürümün üzerine
-yeniden eklenecektir.
+v1.2.0 betanın yerini alır; Faturalama modülü bu sürümde de BETA ve varsayılan
+kapalıdır. Kendi `_bilgi_.inc`'inizi koruyun (faturalama ayarlarınız oradadır) ve
+`php scripts/sema_guncelle.php` çalıştırın. Mevcut fatura kayıtları (`M_FATURA_LOG`)
+olduğu gibi geri alınabilir kalır.
 
 ### Bilinen sınırlar
 
