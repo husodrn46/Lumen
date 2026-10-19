@@ -57,6 +57,8 @@ if (!function_exists('lumen_moduller')) {
             'cek' => ['ad' => 'Çek / senet', 'bagimsiz' => true, 'yollar' => ['cek/']],
             // Lumen'in kendi kasa/banka fişleri: yalnız bağımsız modda (LOGO'da kasa/banka LOGO'dadır).
             'finans' => ['ad' => 'Kasa ve banka', 'bagimsiz' => true, 'logo' => false, 'yollar' => ['finans/']],
+            // Firma, kasa/banka hesabı, depo, birim ve kur tanımları: LOGO modunda bunlar LOGO'da tanımlanır.
+            'tanimlar' => ['ad' => 'Tanımlar', 'bagimsiz' => true, 'logo' => false, 'yollar' => ['tanimlar/']],
             'rapor' => ['ad' => 'Raporlar', 'bagimsiz' => true, 'yollar' => ['rapor/', 'dashboard_kullanici.php']],
             'api' => ['ad' => 'API', 'bagimsiz' => true, 'yollar' => ['api/']],
             // Rapor, çek ve fatura uçları kendi modülleriyle birlikte açılır.

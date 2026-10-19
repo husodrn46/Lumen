@@ -231,6 +231,16 @@ if (lumen_modul_hazir_mi('finans') && m_p_yetki($terminalkullanici, 'M32') == 1)
     ];
 }
 
+// Bağımsız mod: firma, kasa/banka, depo, birim ve kur tanımları (M16).
+if (lumen_modul_hazir_mi('tanimlar') && m_p_yetki($terminalkullanici, 'M16') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Tanımlar',
+        'icon' => 'fa-sliders',
+        'href' => 'tanimlar/index.php',
+        'theme' => 't-slate',
+    ];
+}
+
 // Faturalama (BETA) — hem kill-switch açık hem M31 yetkisi gerekir.
 // Kapalıysa kutucuk hiç görünmez; ayar: _bilgi_.inc > $faturalama_aktif
 if (!empty($faturalama_aktif) && m_p_yetki($terminalkullanici, 'M31') == 1) {

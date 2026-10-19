@@ -19,6 +19,10 @@
   KDV oranına göre döküm, toplamlar, yazıyla tutar, dövizde kur ve döviz toplamı,
   irsaliye/faturada imza alanları. Firma bilgileri: unvan, adres, vergi dairesi/no,
   telefon, e-posta. Çıktı e-Fatura/e-Arşiv değildir (belgede yazar).
+- **Tanımlar** (bağımsız mod, M16): firma bilgileri; kasa/banka hesapları (IBAN
+  denetimi; bakiyeli hesap pasifleştirilemez); depolar (stoklu depo ve merkez
+  pasifleştirilemez); birimler (kullanılan silinemez); döviz kurları — elle ya da tek
+  tıkla TCMB'den.
 - Bağımsız modda **depo personeli** (yalnız M15) üretimden giriş ve sayım girer;
   fatura göremez, fiyat görmez.
 

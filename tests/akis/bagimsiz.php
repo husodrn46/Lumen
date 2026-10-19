@@ -361,6 +361,49 @@ akis('fatura çıktısı: yazdırma sayfası ve PDF; KDV dökümü, yazıyla tut
     }
 });
 
+/** Tanım formu gönderir; yönlendirmedeki ok/hata metnini döndürür. */
+function tanim(Tarayici $t, array $alanlar): array
+{
+    $r = $t->istek('tanimlar/islem.php', ['csrf_token' => $t->belirtec('tanimlar/index.php')] + $alanlar);
+    parse_str((string) parse_url($r['yer'], PHP_URL_QUERY), $q);
+    return ['ok' => $q['ok'] ?? null, 'hata' => $q['hata'] ?? null];
+}
+
+akis('tanımlar: firma, kasa/banka (IBAN, bakiyeli pasif engeli), depo, birim, kur; yetkisiz giremez', function () use ($yonetici, $pdo, $URL): void {
+    $ek = (string) random_int(100, 999);
+    bekle(tanim($yonetici, ['islem' => 'firma_kaydet', 'unvan' => 'Lumen Demo Firması', 'vergi_dairesi' => 'Demo', 'vergi_no' => '1234567890',
+        'adres' => 'Örnek Mah. Deneme Cad. No: 1 Kadıköy / İstanbul', 'telefon' => '0 216 000 00 00', 'eposta' => 'info@ornek.test'])['ok'] !== null, 'firma kaydedilmedi');
+    bekle(tanim($yonetici, ['islem' => 'firma_kaydet', 'unvan' => 'X', 'vergi_no' => '12'])['hata'] !== null, 'geçersiz vergi no kabul edildi');
+    bekle(str_contains((string) tanim($yonetici, ['islem' => 'hesap_kaydet', 'tur' => 2, 'kod' => "BNK.T{$ek}", 'ad' => 'Test', 'iban' => 'TR70 0006 1000 0000 1234 5678 90'])['hata'], 'IBAN'), 'geçersiz IBAN kabul edildi');
+    bekle(tanim($yonetici, ['islem' => 'hesap_kaydet', 'tur' => 2, 'kod' => "BNK.T{$ek}", 'ad' => 'Test Bankası Hesabı', 'banka_adi' => 'Test', 'iban' => 'TR69 0006 1000 0000 1234 5678 90'])['ok'] !== null, 'banka hesabı eklenmedi');
+    bekle((string) tek($pdo, "SELECT IBAN FROM LM_FINANS_HESAP WHERE KOD = 'BNK.T{$ek}'") === 'TR690006100000001234567890', 'IBAN boşluksuz saklanmadı');
+    $kasa = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'KASA.01'");
+    bekle(str_contains((string) tanim($yonetici, ['islem' => 'hesap_pasif', 'id' => $kasa])['hata'], 'Bakiyesi'), 'bakiyeli kasa pasifleştirildi');
+    $yeni = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'BNK.T{$ek}'");
+    bekle(tanim($yonetici, ['islem' => 'hesap_pasif', 'id' => $yeni])['ok'] !== null, 'bakiyesiz hesap pasifleştirilemedi');
+
+    $merkez = (int) tek($pdo, 'SELECT ID FROM LM_DEPO WHERE NO = 0');
+    bekle(tanim($yonetici, ['islem' => 'depo_pasif', 'id' => $merkez])['hata'] !== null, 'merkez depo pasifleştirildi');
+    $no = (int) tek($pdo, 'SELECT MAX(NO) FROM LM_DEPO') + 1;
+    bekle(tanim($yonetici, ['islem' => 'depo_kaydet', 'kod' => "SUBE{$ek}", 'ad' => 'Şube deposu', 'no' => $no])['ok'] !== null, 'depo eklenmedi');
+    bekle(tanim($yonetici, ['islem' => 'depo_kaydet', 'kod' => "X{$ek}", 'ad' => 'Çakışan', 'no' => $no])['hata'] !== null, 'aynı ambar no kabul edildi');
+    bekle(str_contains($yonetici->istek('belge/yeni.php')['govde'], 'Şube deposu'), 'yeni depo belge formunda yok');
+
+    bekle(tanim($yonetici, ['islem' => 'birim_kaydet', 'kod' => "DST{$ek}", 'ad' => 'Deste'])['ok'] !== null, 'birim eklenmedi');
+    $birim = (int) tek($pdo, "SELECT ID FROM LM_BIRIM WHERE KOD = 'DST{$ek}'");
+    $adet = (int) tek($pdo, "SELECT ID FROM LM_BIRIM WHERE KOD = 'ADET'");
+    bekle(tanim($yonetici, ['islem' => 'birim_sil', 'id' => $adet])['hata'] !== null, 'kullanılan birim silindi');
+    bekle(tanim($yonetici, ['islem' => 'birim_sil', 'id' => $birim])['ok'] !== null, 'kullanılmayan birim silinemedi');
+
+    $tarih = date('Y-m-d');
+    bekle(tanim($yonetici, ['islem' => 'kur_kaydet', 'tarih' => $tarih, 'pb' => 'EUR', 'alis' => '48,1234', 'satis' => '48,3000'])['ok'] !== null, 'kur kaydedilmedi');
+    yakin(48.1234, (float) tek($pdo, "SELECT ALIS FROM LM_KUR WHERE TARIH = :t AND PARA_BIRIMI = 'EUR'", [':t' => $tarih]), 'kur');
+    bekle(str_contains($yonetici->istek('belge/yeni.php')['govde'], '48.1234'), 'yeni belge kur önerisi güncel değil');
+
+    $satis = (new Tarayici($URL))->giris('SATIS1');
+    bekle($satis->istek('tanimlar/index.php')['kod'] === 403, 'M16 olmayan kullanıcı tanımları açtı');
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */

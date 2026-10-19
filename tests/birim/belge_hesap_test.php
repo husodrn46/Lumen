@@ -39,3 +39,20 @@ test('tutar yazıyla: Türkçe fatura biçimi (bin, kuruş, döviz)', function (
     esit('Altmış ABD Doları', lumen_tutar_yaziyla(60, 'USD'));
     esit('Onbin Türk Lirası', lumen_tutar_yaziyla(9999.999));
 });
+
+test('IBAN denetimi ve TCMB kur XML çözümleme', function (): void {
+    require_once dirname(__DIR__, 2) . '/includes/tanim/tanim_lib.php';
+    dogru(lumen_iban_gecerli('TR69 0006 1000 0000 1234 5678 90'), 'geçerli IBAN');
+    dogru(!lumen_iban_gecerli('TR70 0006 1000 0000 1234 5678 90'), 'kontrol hanesi yanlış');
+    dogru(!lumen_iban_gecerli('DE89370400440532013000'), 'TR dışı');
+    $xml = '<?xml version="1.0" encoding="UTF-8"?><Tarih_Date Tarih="17.10.2026" Date="10/17/2026">'
+        . '<Currency CurrencyCode="USD"><Unit>1</Unit><ForexBuying>41.1023</ForexBuying><ForexSelling>41.1764</ForexSelling></Currency>'
+        . '<Currency CurrencyCode="JPY"><Unit>100</Unit><ForexBuying>27.50</ForexBuying><ForexSelling>27.70</ForexSelling></Currency>'
+        . '<Currency CurrencyCode="XDR"><Unit>1</Unit><ForexBuying></ForexBuying><ForexSelling></ForexSelling></Currency></Tarih_Date>';
+    $c = lumen_tcmb_kurlari_cozumle($xml);
+    esit('2026-10-17', $c['tarih']);
+    esit([41.1023, 41.1764], $c['kurlar']['USD']);
+    esit(0.275, $c['kurlar']['JPY'][0]);
+    dogru(!isset($c['kurlar']['XDR']), 'boş kur atlanır');
+    esit(null, lumen_tcmb_kurlari_cozumle('bozuk'));
+});

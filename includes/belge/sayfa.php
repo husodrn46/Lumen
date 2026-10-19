@@ -65,6 +65,7 @@ function belge_sayfa_basla(string $baslik, string $ikon, string $geri = '../inde
         table.liste td { padding: 10px 12px; border-bottom: 1px solid #f1f3f5; vertical-align: middle; }
         table.liste tr:last-child td { border-bottom: none; }
         table.liste td.sag { white-space: nowrap; }
+        table.liste th.sag { text-align: right; }
         .sag { text-align: right; } .koyu { font-weight: 700; } .soluk { color: var(--text-3); font-size: 12px; }
         .tablo-sar { overflow-x: auto; }
         .rozet { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: #f3f4f6; color: var(--text-2); }
