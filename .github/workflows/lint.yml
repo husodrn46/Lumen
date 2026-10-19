@@ -107,6 +107,11 @@ jobs:
       - name: Demo ortamını kur (SQL Server + sentetik LOGO verisi + sql/ şemaları)
         run: bash demo/kur.sh
 
+      - name: Şema güncelleme tekrar çalıştırılabilir (mevcut kurulum senaryosu)
+        run: |
+          docker compose -f demo/docker-compose.yml exec -T app php scripts/sema_guncelle.php
+          docker compose -f demo/docker-compose.yml exec -T app php scripts/sema_guncelle.php
+
       - name: Birim testleri (uygulama konteynerinde, PhpSpreadsheet dahil)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/birim/calistir.php
 
