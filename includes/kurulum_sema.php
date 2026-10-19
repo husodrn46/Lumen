@@ -23,6 +23,36 @@ if (!function_exists('kurulum_sql_batchleri')) {
     }
 }
 
+require_once __DIR__ . '/veri/kaynak.php';
+
+if (!function_exists('kurulum_sema_dosyalari')) {
+    /**
+     * Moda göre uygulanacak şema betikleri.
+     * Bağlı mod (LOGO): sql/*.sql.
+     * Bağımsız mod: önce sql/lumen_cekirdek/*.sql (Lumen'in iş tabloları), sonra
+     * sql/*.sql — ilk satırında "lumen:yalniz-logo" işareti olanlar hariç (LOGO
+     * tablolarına başvuran view'lar vb.).
+     *
+     * @return string[]
+     */
+    function kurulum_sema_dosyalari(string $dir, bool $bagimsiz): array
+    {
+        $dir = rtrim($dir, '/\\');
+        $ortak = glob($dir . DIRECTORY_SEPARATOR . '*.sql') ?: [];
+        sort($ortak, SORT_NATURAL | SORT_FLAG_CASE);
+        if (!$bagimsiz) {
+            return $ortak;
+        }
+        $cekirdek = glob($dir . DIRECTORY_SEPARATOR . 'lumen_cekirdek' . DIRECTORY_SEPARATOR . '*.sql') ?: [];
+        sort($cekirdek, SORT_NATURAL | SORT_FLAG_CASE);
+        $ortak = array_values(array_filter($ortak, static function (string $yol): bool {
+            $ilk = strtok((string) file_get_contents($yol, false, null, 0, 300), "\n");
+            return !str_contains((string) $ilk, 'lumen:yalniz-logo');
+        }));
+        return array_merge($cekirdek, $ortak);
+    }
+}
+
 if (!function_exists('kurulum_sema_uygula')) {
     /**
      * sql/ klasöründeki tüm şema betiklerini uygular (Lumen'e özel M_* tabloları).
@@ -34,10 +64,9 @@ if (!function_exists('kurulum_sema_uygula')) {
      *
      * @return array{basarili:int, toplam:int, hatalar:array<string,string>}
      */
-    function kurulum_sema_uygula(PDO $pdo, string $dir): array
+    function kurulum_sema_uygula(PDO $pdo, string $dir, ?bool $bagimsiz = null): array
     {
-        $dosyalar = glob(rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . '*.sql') ?: [];
-        sort($dosyalar, SORT_NATURAL | SORT_FLAG_CASE);
+        $dosyalar = kurulum_sema_dosyalari($dir, $bagimsiz ?? lumen_bagimsiz_mi());
 
         $bekleyen = $dosyalar;
         $hatalar  = [];

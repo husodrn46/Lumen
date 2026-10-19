@@ -232,6 +232,10 @@ if (m_p_yetki($terminalkullanici, 'M18') == 1 || m_p_yetki($terminalkullanici, '
     ];
 }
 
+// Bağımsız modda henüz taşınmamış modüllerin kutucukları gösterilmez (includes/veri/moduller.php).
+$visible_menu_items = array_values(array_filter($visible_menu_items,
+    static fn(array $i): bool => lumen_yol_hazir_mi((string) strtok((string) $i['href'], '?'))));
+
 $kisisel_kisayollar = function_exists('lumen_page_visit_shortcuts')
     ? lumen_page_visit_shortcuts($dbh, $terminalkullanici, $visible_menu_items, 5)
     : [];

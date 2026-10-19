@@ -1,0 +1,128 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Modül kayıt defteri — geçiş dönemi koruması.
+ *
+ * Bağımsız moda (Lumen veritabanı) alan alan geçiliyor (docs/mimari/bagimsiz-lumen.md).
+ * Bir modül bağımsız modda henüz hazır değilse sayfaları LOGO tablolarını arayıp
+ * çökmek yerine "bu modül henüz hazır değil" kartı gösterir; menüde de görünmez.
+ * Bir alan taşındığında yalnız burada 'bagimsiz' => true yapılır.
+ *
+ * Bağlı (LOGO) modda her şey açıktır; bu dosya davranışı değiştirmez.
+ */
+
+require_once __DIR__ . '/kaynak.php';
+
+if (!function_exists('lumen_moduller')) {
+    /**
+     * Modül → ad, yol önekleri (uygulama köküne göre) ve bağımsız modda hazır olup olmadığı.
+     * Önek eşleşmesinde en uzun önek kazanır (ör. 'stok/uretim' 'stok/'tan önce).
+     *
+     * @return array<string, array{ad:string, yollar:string[], bagimsiz:bool}>
+     */
+    function lumen_moduller(): array
+    {
+        return [
+            'cekirdek' => ['ad' => 'Çekirdek', 'bagimsiz' => true, 'yollar' => [
+                'index.php', 'giris.php', 'bildirimler.php', 'sifre_degistir.php', 'ayar/gorunum.php',
+                'ayar/kart_favori_kaydet.php', 'js_hata_log.php', 'ajax_hava.php', 'kurulum.php',
+            ]],
+            'gorev' => ['ad' => 'Görevler', 'bagimsiz' => false, 'yollar' => ['gorev/']],
+            'yonetim' => ['ad' => 'Kullanıcı ve yetki yönetimi', 'bagimsiz' => false, 'yollar' => ['ayar/', 'loglar.php', 'dashboard_kullanici.php']],
+            'cari' => ['ad' => 'Cari', 'bagimsiz' => false, 'yollar' => ['cari/']],
+            'stok' => ['ad' => 'Stok', 'bagimsiz' => false, 'yollar' => ['stok/', 'barkod/', 'fiyat/']],
+            'siparis' => ['ad' => 'Sipariş', 'bagimsiz' => false, 'yollar' => ['siparis/', 'yazdir/']],
+            'doviz' => ['ad' => 'Dövizli sipariş', 'bagimsiz' => false, 'yollar' => ['doviz/']],
+            'cek' => ['ad' => 'Çek / senet', 'bagimsiz' => false, 'yollar' => ['cek/']],
+            'rapor' => ['ad' => 'Raporlar', 'bagimsiz' => false, 'yollar' => ['rapor/']],
+            'api' => ['ad' => 'API', 'bagimsiz' => false, 'yollar' => ['api/']],
+            // LOGO'ya özgü: siparişi LOGO faturasına çevirir. Bağımsız modda fatura,
+            // Lumen'in kendi belge modülüdür (Faz 4).
+            'logo_fatura' => ['ad' => 'Faturalama (LOGO, BETA)', 'bagimsiz' => false, 'yollar' => ['fatura/']],
+        ];
+    }
+}
+
+if (!function_exists('lumen_yolun_modulu')) {
+    /** Uygulama köküne göre yolun (ör. 'cari/cari.php') modülü; bilinmiyorsa null. */
+    function lumen_yolun_modulu(string $yol): ?string
+    {
+        $yol = ltrim(str_replace('\\', '/', $yol), '/');
+        $bulunan = null;
+        $uzunluk = -1;
+        foreach (lumen_moduller() as $ad => $m) {
+            foreach ($m['yollar'] as $onek) {
+                $eslesir = str_ends_with($onek, '/') ? str_starts_with($yol, $onek) : $yol === $onek;
+                if ($eslesir && strlen($onek) > $uzunluk) {
+                    $bulunan = $ad;
+                    $uzunluk = strlen($onek);
+                }
+            }
+        }
+        return $bulunan;
+    }
+}
+
+if (!function_exists('lumen_modul_hazir_mi')) {
+    /** Modül bu çalışma modunda kullanılabilir mi? (LOGO modunda her zaman evet.) */
+    function lumen_modul_hazir_mi(?string $modul): bool
+    {
+        if (!lumen_bagimsiz_mi()) {
+            return true;
+        }
+        $m = $modul !== null ? (lumen_moduller()[$modul] ?? null) : null;
+        // Kayıt defterinde olmayan sayfa bağımsız modda kapalıdır (güvenli varsayılan).
+        return $m !== null && $m['bagimsiz'];
+    }
+}
+
+if (!function_exists('lumen_yol_hazir_mi')) {
+    function lumen_yol_hazir_mi(string $yol): bool
+    {
+        return lumen_modul_hazir_mi(lumen_yolun_modulu($yol));
+    }
+}
+
+if (!function_exists('lumen_istek_yolu')) {
+    /** Bu isteğin uygulama köküne göre betik yolu (ör. 'cari/cari.php'). */
+    function lumen_istek_yolu(): string
+    {
+        $kok = str_replace('\\', '/', dirname(__DIR__, 2));
+        $betik = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_FILENAME'] ?? ''));
+        if ($betik !== '' && str_starts_with($betik, $kok . '/')) {
+            return substr($betik, strlen($kok) + 1);
+        }
+        return ltrim((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '/');
+    }
+}
+
+if (!function_exists('lumen_modul_korumasi')) {
+    /**
+     * Bağımsız modda hazır olmayan modülün sayfasını durdurur (501 + açıklama).
+     * kontrol.php oturum doğrulamasından sonra çağırır.
+     */
+    function lumen_modul_korumasi(): void
+    {
+        if (!lumen_bagimsiz_mi() || PHP_SAPI === 'cli') {
+            return;
+        }
+        $yol = lumen_istek_yolu();
+        $modul = lumen_yolun_modulu($yol);
+        if (lumen_modul_hazir_mi($modul)) {
+            return;
+        }
+        $ad = $modul !== null ? lumen_moduller()[$modul]['ad'] : 'Bu sayfa';
+        $mesaj = "{$ad} modülü bağımsız modda (Lumen veritabanı) henüz hazır değil; geçiş sürüyor.";
+        $ajax = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest'
+            || str_contains(strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? '')), 'application/json');
+        if ($ajax || str_starts_with($yol, 'api/')) {
+            http_response_code(501);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => false, 'success' => false, 'mesaj' => $mesaj], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        lumen_hata_sayfasi('Modül henüz hazır değil', $mesaj, 501, 'fa-person-digging');
+    }
+}

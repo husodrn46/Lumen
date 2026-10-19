@@ -1,0 +1,93 @@
+# Bağımsız Lumen — mimari ve yol haritası
+
+**Hedef:** Lumen tek başına çalışan bir ön muhasebe programı olur (kendi veritabanı,
+cari, stok, sipariş, irsaliye, KDV'li fatura, kasa/banka, çek/senet, raporlar) ve
+**ek olarak** hazır veritabanlarına (önce LOGO Tiger; ileride Netsis, Mikro, ETA)
+bağlanabilir.
+
+Kararlar (2026-10-19):
+
+| Konu | Karar |
+|---|---|
+| Bağlı mod | **İki mod ayrı.** Bağımsız modda asıl kayıt Lumen veritabanında; bağlı modda bugünkü gibi doğrudan LOGO'da (Lumen ön yüz). Senkronizasyon yok. |
+| Muhasebe kapsamı | **Önce ön muhasebe.** Resmi muhasebe (hesap planı, yevmiye, mizan, KDV beyannamesi, e-defter) sonraki aşama. |
+| e-Belge | **Sonraki aşama.** Mimari hazır tasarlanır; GİB/özel entegratör ilk sürümde yok. |
+
+## 1. Bugünkü durum (ölçüm, 2026-10-19)
+
+- 256 PHP dosyasının **181'i** LOGO tablolarına doğrudan SQL yazar (`{$firma}CLCARD`,
+  `{$firmadonem}ORFICHE` …); `$firma` ≈606, `$firmadonem` ≈761 kullanım.
+- 88 farklı LOGO tablosu/view'ı; 27+ dosya LOGO'ya yazar.
+- **Kimlik LOGO'dadır:** giriş `LG_SLSMAN` + `M_P_YETKI` ile yapılır; oturumdaki
+  `plasiyer_id` siparişlerin `SALESMANREF`'idir. Tüm `M_` tablolarının kullanıcı
+  kolonları `LG_SLSMAN.LOGICALREF`'e bakar.
+- LOGO'ya özgü mekanikler: `LV_..._GNTOTCL` (cari bakiye), `LV_..._STINVTOT` (stok
+  miktarı) view'ları; tetikleyiciler (STLINE → ORFLINE.SHIPPEDAMOUNT); "şablon satırı
+  klonla" yöntemi (fatura, çek, cari, üretim); `L_DAILYEXCHANGES` kurları.
+- Servis benzeri katmanlar yalnız birkaç yerde: `api/_siparis.inc`, `cek/cek_lib.php`,
+  `fatura/fatura_lib.php`, `cari/cari_olustur_lib.php`, `ayr.php`'deki `cari_bul`,
+  `stok_miktar_bul`, `doviz_bul`, `m_p_*`. Web sipariş ekranları SQL'i satır içinde yazar.
+- Muhasebe yoktur (ACCFICHE yalnız 0 yazmak için geçer).
+
+## 2. Mimari
+
+```
+ ekranlar / API
+      │   lumen_veri()->cari()->ara(...)        ← alan arayüzleri (CariDeposu, …)
+      ▼
+ ┌──────────────┐   ┌──────────────┐   (ileride) ┌──────────────┐
+ │ Lumen sürücü │   │ LOGO sürücü  │ ··········· │ Netsis/Mikro │
+ │ LM_ tabloları│   │ LG_/LV_ SQL  │             │   sürücü     │
+ └──────────────┘   └──────────────┘             └──────────────┘
+```
+
+- **Mod seçimi:** `.env` → `LUMEN_VERI_KAYNAGI=logo` (varsayılan, bugünkü davranış) veya
+  `lumen` (bağımsız). Uygulama çalışırken değişmez; bir kurulum bir moddadır.
+- **Alan arayüzleri** (`includes/veri/`): her alan için bir PHP arayüzü
+  (`PersonelDeposu`, `CariDeposu`, `StokDeposu`, `BelgeDeposu`, `FinansDeposu`,
+  `CekDeposu`, `KurDeposu`). Dönen veri sürücüden bağımsız dizilerdir
+  (`['id','kod','unvan','bakiye', …]`); LOGO kolon adları ekranlara sızmaz.
+- **LOGO sürücüsü** bugünkü SQL'i taşır (davranış değişmez); **Lumen sürücüsü** `LM_`
+  tablolarını kullanır.
+- **Kimlikler:** her iki modda da tamsayı kimlik (LOGO'da LOGICALREF, Lumen'de ID).
+  `M_` tabloları (görev, log, bildirim, yetki) iki modda ortaktır; kullanıcı kolonları
+  bağımsız modda `LM_PERSONEL.ID`'ye bakar.
+- **Geçiş dönemi koruması:** `includes/veri/moduller.php` hangi alanın bağımsız modda
+  hazır olduğunu tutar. Hazır olmayan modüllerin sayfaları bağımsız modda "bu modül
+  henüz yok" kartı gösterir ve menüde görünmez; böylece taşınmamış bir sayfa LOGO
+  tablosu arayıp çökmez.
+
+## 3. Lumen şeması (`sql/lumen_cekirdek/`)
+
+Tek firma = tek veritabanı; dönem kilidi tarihle. Bakiyeler hareketlerden hesaplanır.
+
+| Lumen | LOGO karşılığı | Not |
+|---|---|---|
+| LM_PERSONEL | LG_SLSMAN | kullanıcılar; parola/yetki M_P_YETKI'de kalır |
+| LM_CARI | CLCARD | |
+| LM_CARI_HAREKET + LMV_CARI_BAKIYE | CLFLINE + LV_GNTOTCL | borç/alacak TL, döviz tutarı ayrıca |
+| LM_STOK, LM_BIRIM, LM_STOK_BIRIM, LM_BARKOD | ITEMS, UNITSETL, ITMUNITA, UNITBARCODE | birim çevrimi CARPAN |
+| LM_FIYAT | PRCLIST | TUR 1 satış, 2 alış; tarihli |
+| LM_DEPO | L_CAPIWHOUSE | |
+| LM_BELGE + LM_BELGE_SATIR | ORFICHE/ORFLINE, STFICHE/STLINE, INVOICE | tek tablo; TUR sipariş/irsaliye/fatura/iade/üretim/sayım; KAYNAK_BELGE_ID zinciri |
+| LM_STOK_HAREKET + LMV_STOK_MIKTAR | STLINE + LV_STINVTOT | ana birimde giriş/çıkış |
+| LM_FINANS_HESAP/FIS/HAREKET | KSCARD/KSLINES, BANKACC/BNFLINE | kasa ve banka tek modelde |
+| LM_CEK + LM_CEK_HAREKET | CSCARD, CSROLL, CSTRANS | geri alma = ters hareket |
+| LM_KUR, LM_PARA_BIRIMI | L_DAILYEXCHANGES, L_CURRENCYLIST | |
+| LM_SERI | (FICHENO üreticileri) | kilitli sayaç; MAX+1 yarışı yok |
+
+## 4. Fazlar
+
+| Faz | Kapsam | Bitti sayılır |
+|---|---|---|
+| **0** | Sürücü altyapısı, mod seçimi, modül kayıt defteri + koruma, bağımsız mod kurulumu (`demo/kur.sh --bagimsiz`), testlerin iki modda çalışması, CI | Bağımsız modda giriş sayfası açılır; LOGO modunda tüm testler eskisi gibi |
+| **1** | Kullanıcı/giriş/yetki, Cari (liste, arama, kart, yeni cari, bakiye, ekstre) | Bağımsız modda giriş + cari ekranları uçtan uca; duman + akış testleri |
+| **2** | Stok kartı, birim, barkod, fiyat, depo, stok miktarı | Stok ekranları iki modda |
+| **3** | Satış/alış siparişi (TL + döviz), yazdırma | Sipariş akış testleri iki modda |
+| **4** | İrsaliye ve **KDV'li fatura** (siparişten/serbest), iade; stok ve cari etkisi | Fatura → stok/cari hareketleri tutarlı |
+| **5** | Kasa/banka: tahsilat, ödeme, virman; çek/senet portföyü | Finans akışları iki modda |
+| **6** | Raporlar, API, kurulum sihirbazı (mod seçimi), LOGO'dan Lumen'e **içe aktarma** aracı | Bağımsız mod ürün olarak kurulabilir |
+| sonra | Resmi muhasebe (TDHP, yevmiye, mizan, KDV), e-Fatura/e-Arşiv, diğer ERP sürücüleri | |
+
+Her faz: önce Lumen şeması/sürücüsü, sonra ekranlar, sonra testler; LOGO modunda
+davranış değişmez (mevcut duman + akış testleri her fazda yeşil kalır).

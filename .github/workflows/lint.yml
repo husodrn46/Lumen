@@ -121,6 +121,12 @@ jobs:
       - name: Akış testleri (sipariş, iskonto, yazdırma, çek, döviz, ayarlar, yetki, API)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
 
+      - name: Bağımsız mod kur (LOGO'suz, Lumen çekirdek şeması)
+        run: bash demo/kur.sh --bagimsiz
+
+      - name: Bağımsız mod duman testi (taşınmamış modüller 501 kartı vermeli, çökmemeli)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/duman/tara.php
+
       - name: Konteyner logları (hata durumunda)
         if: failure()
         run: |

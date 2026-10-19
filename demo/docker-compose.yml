@@ -35,7 +35,9 @@ services:
         condition: service_healthy
     environment:
       AKL_DB_SERVER: db
-      AKL_DB_NAME: LUMEN_DEMO
+      AKL_DB_NAME: "${LUMEN_DEMO_DB:-LUMEN_DEMO}"
+      # logo = bağlı mod (LOGO demo şeması), lumen = bağımsız mod (kur.sh --bagimsiz)
+      LUMEN_VERI_KAYNAGI: "${LUMEN_VERI_KAYNAGI:-logo}"
       AKL_DB_USER: sa
       AKL_DB_PASS: "${LUMEN_DEMO_SA_PASS:-Lumen_Demo_2026!}"
       AKL_DB_TRUST_CERT: "1"

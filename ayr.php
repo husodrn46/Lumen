@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/oturum.php';
 require_once __DIR__ . '/includes/hata_sayfasi.php';
+require_once __DIR__ . '/includes/veri/veri.php';
 
 //header("Content-Type: text/html; charset=utf-8");
 # Set timezone
@@ -211,7 +212,8 @@ function tema_kullanici_kodu(): string
         return '';
     }
     try {
-        $stmt = $dbh->prepare("SELECT CODE FROM LG_SLSMAN WHERE LOGICALREF = :id");
+        $P = lumen_tablo('personel');
+        $stmt = $dbh->prepare("SELECT P.KOD FROM {$P} P WHERE P.ID = :id");
         $stmt->execute([':id' => $personel]);
         $kod = $stmt->fetchColumn();
         if ($kod !== false && $kod !== null && (string) $kod !== '') {

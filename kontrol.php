@@ -87,22 +87,13 @@ if (!isset($_SESSION['plasiyer_id']) || empty($_SESSION['plasiyer_id'])) {
         $personelId = remember_token_dogrula($_COOKIE['remember_selector'], $_COOKIE['remember_token']);
         if ($personelId !== false) {
             try {
-                $stmtRemember = $dbh->prepare("
-                    SELECT L.LOGICALREF, L.CODE, L.CYPHCODE, L.SPECODE
-                    FROM LG_SLSMAN L
-                    WHERE L.LOGICALREF = :personel_id AND L.ACTIVE = 0
-                ");
-                $stmtRemember->execute([':personel_id' => $personelId]);
-                $personelRemember = $stmtRemember->fetch(PDO::FETCH_ASSOC);
+                $personelRemember = lumen_personel_getir($dbh, (int) $personelId);
 
                 if ($personelRemember) {
-                    session_regenerate_id(true);
-                    $_SESSION['plasiyer_id']    = $personelRemember['LOGICALREF'];
-                    $_SESSION['plasiyer_depo']  = $personelRemember['SPECODE'];
-                    $_SESSION['plasiyer_yetki'] = $personelRemember['CYPHCODE'];
-                    $_SESSION['kullanici_adi']  = $personelRemember['CODE'];
+                    lumen_oturum_ac($personelRemember);
+                    $personelRemember['LOGICALREF'] = (int) $personelRemember['ID'];
+                    $personelRemember['CODE'] = (string) $personelRemember['KOD'];
                     $_SESSION['session_regenerated'] = true;
-                    $_SESSION['login_ts']       = time(); // force-logout referansi (oturum baslangici)
 
                     if (function_exists('m_p_yetki_cache_temizle')) {
                         m_p_yetki_cache_temizle($personelRemember['LOGICALREF']);
@@ -235,6 +226,9 @@ if ($yetkidurum === 3) {
 // Bu betik başarıyla çalıştığında, dahil edildiği sayfada
 // $terminalkullanici (kullanıcı ID'si) ve $yetkidurum (0, 1, veya 2)
 // değişkenleri güvenli bir şekilde kullanılabilir.
+// Bağımsız modda henüz taşınmamış modülün sayfası durdurulur (501 + açıklama).
+lumen_modul_korumasi();
+
 require_once __DIR__ . '/log_ip.php';
 require_once __DIR__ . '/includes/page_visit_shortcuts.php';
 
