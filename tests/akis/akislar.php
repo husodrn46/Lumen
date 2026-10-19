@@ -177,7 +177,7 @@ akis('sipariş ekranı yazdırma düğmeleri doğru fişi açar', function () us
     }
 });
 
-akis('yazdırılan satır toplamları fişin net toplamını verir; dövizli çıktı fişin dövizini kullanır', function () use ($yonetici, $pdo, &$fis): void {
+akis('yazdırılan satır toplamları fişin net toplamını verir', function () use ($yonetici, $pdo, &$fis): void {
     $net = (float) tek($pdo, "SELECT NETTOTAL FROM LG_001_02_ORFICHE WHERE LOGICALREF = :f", [':f' => $fis]);
     $g = $yonetici->istek("yazdir/fisyazhtml.php?stokhareket={$fis}")['govde'];
     preg_match_all('/<td class="cell-total">[^\d-]*([\d.,]+)/u', $g, $m);
@@ -185,10 +185,6 @@ akis('yazdırılan satır toplamları fişin net toplamını verir; dövizli ç�
     $toplam = array_sum(array_map(static fn(string $v): float => (float) str_replace(['.', ','], ['', '.'], $v), $m[1]));
     yakin($net, $toplam, 'satır toplamları');
 
-    $dfis = (int) tek($pdo, "SELECT TOP 1 LOGICALREF FROM LG_001_02_ORFICHE WHERE TRCURR = 20 AND TRRATE > 0 ORDER BY LOGICALREF DESC");
-    bekle($dfis > 0, 'EUR sipariş yok');
-    $d = $yonetici->istek("yazdir/fisyazdoviz.php?stokhareket={$dfis}");
-    bekle($d['kod'] === 200 && str_contains($d['govde'], '1 EUR =') && !str_contains($d['govde'], '1 0 ='), 'dövizli çıktı fişin dövizini (EUR) göstermiyor');
 });
 
 akis('yazdırılan genel toplam KDV\'yi iki kez eklemez', function () use ($yonetici, $pdo, &$fis): void {
@@ -250,6 +246,9 @@ akis('dövizli sipariş: döviz kodu TRCURR\'a yazılır, TRNET = NETTOTAL / kur
     bekle((int) $st['TRCURR'] === 20, 'döviz TRCURR\'a yazılmadı');
     bekle((float) $st['NETTOTAL'] > 0, 'satır eklenmedi');
     yakin((float) $st['NETTOTAL'] / 48, (float) $st['TRNET'], 'TRNET');
+    // Dövizli çıktı para birimini oturumdan değil fişin kendisinden (TRCURR) alır.
+    $d = $yonetici->istek("yazdir/fisyazdoviz.php?stokhareket={$df}");
+    bekle($d['kod'] === 200 && str_contains($d['govde'], '1 EUR =') && !str_contains($d['govde'], '1 0 ='), 'dövizli çıktı fişin dövizini (EUR) göstermiyor');
 });
 
 akis('ayarlar JSON\'a yazılır; _bilgi_.inc değişmez; UNC yazıcı adı korunur', function () use ($yonetici): void {
