@@ -1,6 +1,9 @@
 # Değişiklik Günlüğü
 
-## [Yayımlanmadı] — 1.3.0-beta.2 adayı
+## [1.3.0-beta.2] — 2026-10-19 (ÖN SÜRÜM — Bağımsız Lumen BETA)
+
+> ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.0**'ı kullanın.
+> Yükseltme (beta.1'den ya da v1.2.0'dan): `php scripts/sema_guncelle.php`.
 
 ### Yeni
 

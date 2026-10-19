@@ -1,6 +1,6 @@
 # Bağımsız Lumen — mimari ve yol haritası
 
-> **Durum: BETA** — ilk ön sürüm `v1.3.0-beta.1`. Kararlı sürüm (v1.2.0) yalnız LOGO'ya bağlı moddur.
+> **Durum: BETA** — son ön sürüm `v1.3.0-beta.2` (ilki `v1.3.0-beta.1`). Kararlı sürüm (v1.2.0) yalnız LOGO'ya bağlı moddur.
 
 **Hedef:** Lumen tek başına çalışan bir ön muhasebe programı olur (kendi veritabanı,
 cari, stok, sipariş, irsaliye, KDV'li fatura, kasa/banka, çek/senet, raporlar) ve
@@ -117,11 +117,12 @@ kalır), cariye özel fiyatlar, açık siparişler. Banka bakiyesi `BNFLINE` yok
 ### Bilinen sınırlar (bağımsız mod)
 
 - **Üretim fişleri ekranı** (`stok/index.php`, LOGO STFICHE) kapalı: üretim girişi
-  belge modülünden (Faturalar → Üretimden giriş, M31) yapılır. Yalnız M15 yetkili depo
-  personeli bu yüzden bağımsız modda üretim giremez.
+  belge modülünden yapılır (Faturalar → Üretimden giriş; yalnız M15 yetkili depo
+  personeli için menüde "Üretim ve Sayım").
 - **LOGO nakit/fatura detay sayfaları** (`cari_belge`) kapalı; ekstre bağlantıları
   Lumen kasa fişine ve belgesine gider.
-- Dövizli fatura TL tutarıyla kesilir; dövizli çekler TL tutarıyla aktarılır.
+- Kasa/banka hesapları TL'dir; dövizli çekler LOGO'dan TL tutarıyla aktarılır.
+- Fatura çıktısı bilgi/teslim nüshasıdır, e-Fatura/e-Arşiv değildir.
 - Faturalama (BETA, `fatura/`) yalnız LOGO modundadır; e-Fatura/e-Arşiv ve resmi
   muhasebe sonraki aşamadır.
 
