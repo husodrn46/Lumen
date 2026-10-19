@@ -1024,8 +1024,15 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
           REPORTNET=:reportnet,
           TRNET=:trnet
       WHERE LOGICALREF=:stokhareket
+        -- Yalnız toplamlar gerçekten farklıysa ve fiş iptal değilse yaz: eskiden
+        -- her GÖRÜNTÜLEMEDE (iptal/faturalı fişler dahil) LOGO kaydı yeniden
+        -- yazılıyor, gereksiz kilit ve değişiklik damgası oluşuyordu.
+        AND ISNULL(CANCELLED, 0) = 0
+        AND (ABS(ISNULL(GROSSTOTAL, 0) - :k_brut) > 0.004 OR ABS(ISNULL(NETTOTAL, 0) - :k_net) > 0.004
+             OR ABS(ISNULL(TOTALVAT, 0) - :k_kdv) > 0.004 OR ABS(ISNULL(TOTALDISCOUNTS, 0) - :k_isk) > 0.004)
    ");
-               $stmtGuncelleFiche->execute([':adddiscounts' => $bakiskoto, ':totaldiscounts' => $bakiskoto, ':totaldiscounted' => $bakiyebrut, ':totalvat' => $bakiyk, ':grosstotal' => $bakiyebrut, ':nettotal' => $bakiyekdv, ':reportnet' => $bakiyekdv, ':trnet' => $bakiyekdv, ':stokhareket' => $stokhareket]);
+               $stmtGuncelleFiche->execute([':adddiscounts' => $bakiskoto, ':totaldiscounts' => $bakiskoto, ':totaldiscounted' => $bakiyebrut, ':totalvat' => $bakiyk, ':grosstotal' => $bakiyebrut, ':nettotal' => $bakiyekdv, ':reportnet' => $bakiyekdv, ':trnet' => $bakiyekdv, ':stokhareket' => $stokhareket,
+                  ':k_brut' => $bakiyebrut, ':k_net' => $bakiyekdv, ':k_kdv' => $bakiyk, ':k_isk' => $bakiskoto]);
 
                $stmtBakiyex = $dbh->prepare("
       SELECT *
