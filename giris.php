@@ -68,6 +68,8 @@ if (!isset($_SESSION['plasiyer_id']) && (!function_exists('saldiri_modu_aktif_mi
                 $_SESSION['plasiyer_yetki'] = $personel['CYPHCODE'];
                 $_SESSION['kullanici_adi']  = $personel['CODE'];
                 $_SESSION['login_ts']       = time(); // force-logout referansi (oturum baslangici)
+                // Doğrulayıcı her kullanımda yenilenir; kopyalanan eski çerez geçersizleşir.
+                remember_token_yenile($selector);
 
                 // Yetki cache'ini temizle
                 if (function_exists('m_p_yetki_cache_temizle')) {
@@ -217,18 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kullaniciadi'])) {
             $tokenData = remember_token_olustur((int)$sorgu2['LOGICALREF'], 30);
             if ($tokenData) {
                 $cookie_duration = time() + (86400 * 30); // 30 gun
-                setcookie('remember_selector', $tokenData['selector'], [
-                    'expires' => $cookie_duration,
-                    'path' => '/',
-                    'httponly' => true,
-                    'samesite' => 'Strict'
-                ]);
-                setcookie('remember_token', $tokenData['token'], [
-                    'expires' => $cookie_duration,
-                    'path' => '/',
-                    'httponly' => true,
-                    'samesite' => 'Strict'
-                ]);
+                lumen_hatirla_cerezi_yaz($tokenData['selector'], $tokenData['token'], $cookie_duration);
             }
             // Kullanici adini da sakla (form icin)
             setcookie('giriskontroladi', (string) $veri_kullanici, ['expires' => $cookie_duration, 'path' => '/', 'httponly' => true, 'samesite' => 'Strict']);

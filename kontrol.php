@@ -111,6 +111,8 @@ if (!isset($_SESSION['plasiyer_id']) || empty($_SESSION['plasiyer_id'])) {
                         logGiris($personelRemember['LOGICALREF'], $personelRemember['CODE'], true, 'Token ile otomatik oturum kurtarma (kontrol.php)');
                     }
                     $rememberRestored = true;
+                    // Doğrulayıcı her kullanımda yenilenir; kopyalanan eski çerez geçersizleşir.
+                    remember_token_yenile((string) $_COOKIE['remember_selector']);
                 }
             } catch (Exception $e) {
                 error_log("kontrol.php remember me hatası: " . $e->getMessage());

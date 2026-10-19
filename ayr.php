@@ -451,13 +451,23 @@ function remember_token_dogrula(string $selector, string $validator)
     global $dbh;
 
     try {
-        // Selector ile token bul
-        $stmt = $dbh->prepare("
-            SELECT ID, PERSONEL_ID, TOKEN_HASH, EXPIRES_AT
-            FROM M_REMEMBER_TOKEN
-            WHERE SELECTOR = :selector AND EXPIRES_AT > GETDATE()
-        ");
-        $stmt->execute([':selector' => $selector]);
+        // Yenileme kolonları (sql/m_denetim_tablolari.sql) yoksa eski sorguya düş.
+        try {
+            $stmt = $dbh->prepare("
+                SELECT ID, PERSONEL_ID, TOKEN_HASH, PREV_HASH,
+                       DATEDIFF(SECOND, YENILEME, GETDATE()) AS YENILEME_SN
+                FROM M_REMEMBER_TOKEN
+                WHERE SELECTOR = :selector AND EXPIRES_AT > GETDATE()
+            ");
+            $stmt->execute([':selector' => $selector]);
+        } catch (PDOException $e) {
+            $stmt = $dbh->prepare("
+                SELECT ID, PERSONEL_ID, TOKEN_HASH
+                FROM M_REMEMBER_TOKEN
+                WHERE SELECTOR = :selector AND EXPIRES_AT > GETDATE()
+            ");
+            $stmt->execute([':selector' => $selector]);
+        }
         $token = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$token) {
@@ -465,17 +475,71 @@ function remember_token_dogrula(string $selector, string $validator)
         }
 
         // Validator hash'ini kontrol et (timing-safe comparison)
-        $expectedHash = $token['TOKEN_HASH'];
         $actualHash = hash('sha256', $validator);
-
-        if (!hash_equals($expectedHash, $actualHash)) {
-            return false;
+        if (hash_equals((string) $token['TOKEN_HASH'], $actualHash)) {
+            return (int)$token['PERSONEL_ID'];
         }
 
-        return (int)$token['PERSONEL_ID'];
+        // Az önce yenilenmiş belirtecin önceki doğrulayıcısı: eşzamanlı istekler
+        // (aynı anda açılan sekmeler) için kısa tolerans.
+        $prev = (string) ($token['PREV_HASH'] ?? '');
+        if ($prev !== '' && hash_equals($prev, $actualHash)
+            && isset($token['YENILEME_SN']) && (int) $token['YENILEME_SN'] <= 60) {
+            return (int)$token['PERSONEL_ID'];
+        }
+
+        // Selector doğru ama doğrulayıcı eski: çerez kopyalanmış (çalınmış) ve
+        // asıl sahibi ya da saldırgan onu zaten kullanmış. Kullanıcının tüm
+        // hatırlama belirteçleri iptal edilir.
+        if ($prev !== '' && hash_equals($prev, $actualHash)) {
+            remember_token_sil_personel((int) $token['PERSONEL_ID']);
+            error_log('remember_token: eski dogrulayici yeniden kullanildi, personel ' . (int) $token['PERSONEL_ID'] . ' belirtecleri iptal edildi');
+        }
+        return false;
     } catch (Exception $e) {
         return false;
     }
+}
+
+/**
+ * Başarılı otomatik girişten sonra doğrulayıcıyı yeniler (ömür uzamaz) ve
+ * çerezleri günceller. Yenileme kolonları yoksa sessizce hiçbir şey yapmaz.
+ */
+function remember_token_yenile(string $selector): void
+{
+    global $dbh;
+
+    try {
+        $yeni = bin2hex(random_bytes(32));
+        $stmt = $dbh->prepare("
+            UPDATE M_REMEMBER_TOKEN
+               SET PREV_HASH = TOKEN_HASH, TOKEN_HASH = :yeni, YENILEME = GETDATE()
+            OUTPUT DATEDIFF(SECOND, GETDATE(), INSERTED.EXPIRES_AT) AS KALAN_SN
+             WHERE SELECTOR = :selector AND EXPIRES_AT > GETDATE()
+               AND (YENILEME IS NULL OR DATEDIFF(SECOND, YENILEME, GETDATE()) > 60)
+        ");
+        $stmt->execute([':yeni' => hash('sha256', $yeni), ':selector' => $selector]);
+        $kalan = $stmt->fetchColumn();
+        $stmt->closeCursor();
+        if ($kalan !== false && (int) $kalan > 0) {
+            lumen_hatirla_cerezi_yaz($selector, $yeni, time() + (int) $kalan);
+        }
+    } catch (Throwable $e) {
+        // Kolonlar yoksa yenileme yapılmaz (eski davranış).
+    }
+}
+
+/** Hatırlama çerezlerini HttpOnly + SameSite=Strict (+ HTTPS'te Secure) yazar. */
+function lumen_hatirla_cerezi_yaz(string $selector, string $validator, int $bitis): void
+{
+    if (headers_sent()) {
+        return;
+    }
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    $ayar = ['expires' => $bitis, 'path' => '/', 'secure' => $https, 'httponly' => true, 'samesite' => 'Strict'];
+    setcookie('remember_selector', $selector, $ayar);
+    setcookie('remember_token', $validator, $ayar);
 }
 
 /**

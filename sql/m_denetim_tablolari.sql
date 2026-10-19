@@ -254,3 +254,14 @@ BEGIN
     );
 END
 GO
+
+-- M_REMEMBER_TOKEN belirteç yenileme kolonları: her otomatik girişte doğrulayıcı
+-- yenilenir; önceki özet kısa bir süre (eşzamanlı istekler) kabul edilir, sonrasında
+-- eski doğrulayıcıyla gelen istek çalıntı çerez sayılır. Kolonlar yoksa uygulama
+-- yenilemesiz (eski) davranışla çalışmaya devam eder.
+IF COL_LENGTH('dbo.M_REMEMBER_TOKEN', 'PREV_HASH') IS NULL
+    ALTER TABLE dbo.M_REMEMBER_TOKEN ADD PREV_HASH CHAR(64) NULL;
+GO
+IF COL_LENGTH('dbo.M_REMEMBER_TOKEN', 'YENILEME') IS NULL
+    ALTER TABLE dbo.M_REMEMBER_TOKEN ADD YENILEME DATETIME NULL;
+GO
