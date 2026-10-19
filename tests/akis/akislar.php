@@ -339,6 +339,15 @@ akis('cari ekstresi: ekran, bakiye listesi, PDF ve Excel aynı kaynaktan (cari_e
     }
 });
 
+akis('koli ölçüsü: ondalıklı ağırlık kaydedilir (eskiden tamsayı dönüşüm hatası)', function () use ($yonetici, $pdo): void {
+    $t = $yonetici->belirtec('stok/koli_olcu_toplu.php');
+    $eski = (string) tek($pdo, "SELECT NAME FROM LG_001_ITEMS WHERE LOGICALREF = 4");
+    $j = json_decode($yonetici->istekJson('stok/koli_olcu_kaydet.php', ['csrf_token' => $t, 'id' => 4, 'name' => $eski,
+        'width' => 120, 'length' => 300, 'height' => 90, 'weight' => 2.5])['govde'], true);
+    bekle(($j['success'] ?? false) === true, 'kaydedilmedi: ' . json_encode($j, JSON_UNESCAPED_UNICODE));
+    yakin(2.5, (float) tek($pdo, "SELECT WEIGHT FROM LG_001_ITMUNITA WHERE ITEMREF = 4 AND LINENR = 1"), 'ağırlık');
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

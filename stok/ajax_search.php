@@ -17,14 +17,16 @@ $results = ['customers' => [], 'products' => []];
 
 try {
     // Müşteri arama
+    // Yalnız etkin cariler; özel cari kısıtı uygulanır (eskiden ikisi de yoktu).
+    $ozel = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'LOGICALREF', 'stok_ara_cari_gizli');
     $stmt = $dbh->prepare("SELECT TOP 5 LOGICALREF, CODE, DEFINITION_
                           FROM {$firma}CLCARD
-                          WHERE " . lumen_arama_sql('DEFINITION_') . " LIKE :query1 OR " . lumen_arama_sql('CODE') . " LIKE :query2
+                          WHERE ACTIVE = 0
+                            AND (" . lumen_arama_sql('DEFINITION_') . " LIKE :query1 OR " . lumen_arama_sql('CODE') . " LIKE :query2)"
+                          . ($ozel['sql'] !== '' ? " AND {$ozel['sql']}" : '') . "
                           ORDER BY DEFINITION_");
     $searchTerm = '%' . lumen_arama_terimi($query) . '%';
-    $stmt->bindParam(':query1', $searchTerm, PDO::PARAM_STR);
-    $stmt->bindParam(':query2', $searchTerm, PDO::PARAM_STR);
-    $stmt->execute();
+    $stmt->execute([':query1' => $searchTerm, ':query2' => $searchTerm] + $ozel['params']);
     $results['customers'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Ürün arama

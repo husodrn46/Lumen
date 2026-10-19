@@ -36,7 +36,13 @@ final class Tarayici
     }
 
     /** @return array{kod:int, govde:string, yer:string} */
-    public function istek(string $yol, ?array $post = null, array $basliklar = []): array
+    /** JSON gövdeli POST. */
+    public function istekJson(string $yol, array $govde): array
+    {
+        return $this->istek($yol, null, ['Content-Type: application/json'], (string) json_encode($govde));
+    }
+
+    public function istek(string $yol, ?array $post = null, array $basliklar = [], ?string $hamGovde = null): array
     {
         $ch = curl_init(str_starts_with($yol, 'http') ? $yol : $this->url . '/' . ltrim($yol, '/'));
         curl_setopt_array($ch, [
@@ -47,6 +53,10 @@ final class Tarayici
         if ($post !== null) {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
+        }
+        if ($hamGovde !== null) {
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $hamGovde);
         }
         $yanit = (string) curl_exec($ch);
         $bas = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);

@@ -148,6 +148,57 @@ akis('özel cari kısıtı: gizlenen cari liste, otomatik tamamlama ve ekstrede 
     }
 });
 
+// ---------------------------------------------------------------- stok (Faz 2)
+
+akis('stok arama ve miktar: LOGO uyumlu görünümlerden (LMV_ITEMS, LMV_STINVTOT)', function () use ($yonetici): void {
+    $j = json_decode($yonetici->istek('stok/ajax_search.php?q=' . rawurlencode('YEMEK TABAĞI 26 CM BEYAZ'))['govde'], true);
+    $kodlar = array_column($j['products'] ?? [], 'CODE');
+    bekle(in_array('DM-0001', $kodlar, true), 'ürün aramasında DM-0001 yok: ' . json_encode($kodlar));
+    $f = $yonetici->istek('fiyat/fiyat_listesi.php?ara=DM-0001')['govde'];
+    bekle(str_contains($f, '42,50'), 'fiyat listesinde 42,50 yok');
+});
+
+akis('barkod: ekle → LM_BARKOD; sil → kalkar (INSTEAD OF tetikleyicileri)', function () use ($yonetici, $pdo): void {
+    $barkod = '8690' . random_int(100000000, 999999999);
+    $t = $yonetici->belirtec('barkod/barkod_ekle.php?stok=3');
+    $g = $yonetici->istek('barkod/barkod_ekle.php', ['csrf_token' => $t, 'stok' => 3, 'barkod' => $barkod])['govde'];
+    bekle(str_contains($g, 'Barkod eklendi'), 'ekleme mesajı yok');
+    $id = (int) tek($pdo, "SELECT ID FROM LM_BARKOD WHERE BARKOD = :b AND STOK_ID = 3", [':b' => $barkod]);
+    bekle($id > 0, 'barkod LM_BARKOD\'a yazılmadı');
+    $t = $yonetici->belirtec('barkod/barkod_ekle.php?stok=3');
+    $yonetici->istek('barkod/barkod_ekle.php', ['csrf_token' => $t, 'stok' => 3, 'hareketsil' => $id]);
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LM_BARKOD WHERE ID = :i", [':i' => $id]) === 0, 'barkod silinmedi');
+});
+
+akis('koli ölçüsü ve ürün adı: LM_STOK / LM_STOK_BIRIM\'e yazılır', function () use ($yonetici, $pdo): void {
+    $eski = (string) tek($pdo, "SELECT AD FROM LM_STOK WHERE ID = 4");
+    $t = $yonetici->belirtec('stok/koli_olcu_toplu.php');
+    $j = json_decode($yonetici->istekJson('stok/koli_olcu_kaydet.php', ['csrf_token' => $t, 'id' => 4, 'name' => $eski . ' X',
+        'width' => 120, 'length' => 300, 'height' => 90, 'weight' => 2.5])['govde'], true);
+    try {
+        bekle(($j['success'] ?? false) === true, 'kaydedilmedi: ' . json_encode($j, JSON_UNESCAPED_UNICODE));
+        $sb = $pdo->query("SELECT SB.GENISLIK_MM, SB.UZUNLUK_MM, SB.YUKSEKLIK_MM, SB.AGIRLIK_KG FROM LM_STOK_BIRIM SB
+                           JOIN LM_STOK S ON S.ID = SB.STOK_ID AND S.ANA_BIRIM_ID = SB.BIRIM_ID WHERE SB.STOK_ID = 4")->fetch(PDO::FETCH_ASSOC);
+        bekle((float) $sb['GENISLIK_MM'] == 120.0 && (float) $sb['UZUNLUK_MM'] == 300.0 && (float) $sb['AGIRLIK_KG'] == 2.5,
+            'ölçüler yazılmadı: ' . json_encode($sb));
+        bekle(tek($pdo, "SELECT AD FROM LM_STOK WHERE ID = 4") === $eski . ' X', 'ürün adı güncellenmedi');
+    } finally {
+        $pdo->prepare("UPDATE LM_STOK SET AD = :a WHERE ID = 4")->execute([':a' => $eski]);
+    }
+});
+
+akis('fiyat güncelle: LM_FIYAT (satış) güncellenir', function () use ($yonetici, $pdo): void {
+    $id = (int) tek($pdo, "SELECT ID FROM LM_FIYAT WHERE STOK_ID = 2 AND TUR = 1");
+    $eski = (float) tek($pdo, "SELECT FIYAT FROM LM_FIYAT WHERE ID = :i", [':i' => $id]);
+    $t = $yonetici->belirtec('fiyat/fiyat_guncelle.php?fiyatid=' . $id . '&fiyat=1');
+    $yonetici->istek('fiyat/fiyat_guncelle.php', ['csrf_token' => $t, 'yeni_fiyat' => $id, 'stkfyt' => '45,75', 'fgrup' => 0]);
+    try {
+        yakin(45.75, (float) tek($pdo, "SELECT FIYAT FROM LM_FIYAT WHERE ID = :i", [':i' => $id]), 'yeni fiyat');
+    } finally {
+        $pdo->prepare("UPDATE LM_FIYAT SET FIYAT = :f WHERE ID = :i")->execute([':f' => $eski, ':i' => $id]);
+    }
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

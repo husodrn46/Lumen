@@ -29,17 +29,21 @@ if (!function_exists('lumen_tablo')) {
      *               EPOSTA, OZEL_KOD, AKTIF
      * cari_bakiye : CARI_ID, BORC, ALACAK, BAKIYE (+ borçlu)
      * firma       : NR, NAME (LOGO L_CAPIFIRM; bağımsızda tek firma)
+     * depo        : NR (ambar no), NAME, FIRMNR (LOGO L_CAPIWHOUSE; bağımsızda LM_DEPO)
      */
     function lumen_tablo(string $varlik): string
     {
         if (lumen_bagimsiz_mi()) {
             return match ($varlik) {
-                'personel' => '(SELECT ID, KOD, AD, CAST(AKTIF AS INT) AS AKTIF, DEPO_ID AS DEPO, YETKI_KODU FROM dbo.LM_PERSONEL)',
+                // DEPO: ambar numarası (LOGO: SPECODE) — LM_DEPO.NO; tanımsızsa 0 (merkez).
+                'personel' => '(SELECT P.ID, P.KOD, P.AD, CAST(P.AKTIF AS INT) AS AKTIF,'
+                    . ' ISNULL((SELECT D.NO FROM dbo.LM_DEPO D WHERE D.ID = P.DEPO_ID), 0) AS DEPO, P.YETKI_KODU FROM dbo.LM_PERSONEL P)',
                 'cari' => '(SELECT ID, KOD, UNVAN, CAST(NULL AS NVARCHAR(200)) AS UNVAN2, TUR, VERGI_NO, VERGI_DAIRESI, IL, ILCE,'
                     . ' CAST(NULL AS NVARCHAR(60)) AS SEMT, ADRES, CAST(NULL AS NVARCHAR(200)) AS ADRES2, CAST(NULL AS NVARCHAR(60)) AS ULKE,'
                     . ' TELEFON, CAST(NULL AS NVARCHAR(40)) AS TELEFON2, EPOSTA, OZEL_KOD,'
                     . ' CAST(AKTIF AS INT) AS AKTIF FROM dbo.LM_CARI)',
                 'cari_bakiye' => 'dbo.LMV_CARI_BAKIYE',
+                'depo' => 'dbo.LMV_CAPIWHOUSE',
                 // Tek firma = tek veritabanı; numara .env FIRMA_NO, ad LM_AYAR.firma_unvan.
                 'firma' => '(SELECT ' . (int) (getenv('FIRMA_NO') ?: 1) . " AS NR, ISNULL((SELECT DEGER FROM dbo.LM_AYAR WHERE ANAHTAR = 'firma_unvan'), N'Lumen') AS NAME)",
                 default => throw new InvalidArgumentException("Bilinmeyen varlık: {$varlik}"),
@@ -60,6 +64,7 @@ if (!function_exists('lumen_tablo')) {
             'cari_bakiye' => "(SELECT CARDREF AS CARI_ID, DEBIT AS BORC, CREDIT AS ALACAK, DEBIT - CREDIT AS BAKIYE"
                 . " FROM {$firmadonemx}GNTOTCL WHERE TOTTYP = 1)",
             'firma' => 'L_CAPIFIRM',
+            'depo' => 'L_CAPIWHOUSE',
             default => throw new InvalidArgumentException("Bilinmeyen varlık: {$varlik}"),
         };
     }

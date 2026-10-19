@@ -73,6 +73,16 @@ INSERT INTO LM_BARKOD (STOK_ID, BIRIM_ID, BARKOD)
 SELECT n, @adet, '86900000' + RIGHT('00000' + CAST(n AS VARCHAR(5)), 5) FROM @urun;
 INSERT INTO LM_FIYAT (STOK_ID, TUR, BIRIM_ID, FIYAT, BASLANGIC)
 SELECT n, 1, @adet, fiyat, '2026-01-01' FROM @urun UNION ALL SELECT n, 2, @adet, ROUND(fiyat * 0.6, 2), '2026-01-01' FROM @urun;
+UPDATE SB SET AGIRLIK_KG = 0.35 * SB.CARPAN FROM LM_STOK_BIRIM SB;
+
+-- Açılış stoku: LOGO demosundaki miktarlar, bir sayım belgesi (TUR 6, giriş) ile.
+DECLARE @merkez INT = (SELECT ID FROM LM_DEPO WHERE NO = 0);
+DECLARE @acilis TABLE (ID INT);
+INSERT INTO LM_BELGE (TUR, YON, NO, TARIH, DEPO_ID, ACIKLAMA, DURUM) OUTPUT INSERTED.ID INTO @acilis
+VALUES (6, 2, N'SYM000001', '2026-01-01', @merkez, N'Açılış sayımı (demo)', 1);
+INSERT INTO LM_STOK_HAREKET (STOK_ID, DEPO_ID, TARIH, BELGE_ID, GIRIS)
+SELECT n, @merkez, '2026-01-01', (SELECT ID FROM @acilis), (n * 37) % 900 + 40 FROM @urun;
+UPDATE LM_SERI SET SON_NO = 1 WHERE TUR = 'SAYIM';
 GO
 
 -- ---------------------------------------------------------------- cariler

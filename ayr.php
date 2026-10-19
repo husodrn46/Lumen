@@ -2353,7 +2353,7 @@ function cokludepomiktar(int|string $stokref): string
     $stokref = (int)$stokref;
     $stmt = $dbh->prepare("
       SELECT W.NAME, ISNULL(S.ONHAND, 0) AS MIKTAR
-      FROM L_CAPIWHOUSE W
+      FROM " . lumen_tablo('depo') . " W
       LEFT JOIN {$firmadonemx}STINVTOT S ON S.INVENNO = W.NR AND S.STOCKREF = :stokref
       WHERE W.FIRMNR = 1
       ORDER BY W.NR

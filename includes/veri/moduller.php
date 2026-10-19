@@ -41,7 +41,17 @@ if (!function_exists('lumen_moduller')) {
             'cari_siparis' => ['ad' => 'Siparişli cari işlemleri', 'bagimsiz' => false, 'yollar' => [
                 'cari/hizli_erisim.php', 'cari/cari_olustur_ve_aktar.php',
             ]],
-            'stok' => ['ad' => 'Stok', 'bagimsiz' => false, 'yollar' => ['stok/', 'barkod/', 'fiyat/']],
+            'stok' => ['ad' => 'Stok', 'bagimsiz' => true, 'yollar' => ['stok/', 'barkod/', 'fiyat/']],
+            // stok/ altındaki sipariş satırı ve sipariş hareket ekranları sipariş modülündedir.
+            'stok_siparis' => ['ad' => 'Sipariş satırları', 'bagimsiz' => false, 'yollar' => [
+                'stok/lg_stok_ekle.php', 'stok/lg_stok_bul.php', 'stok/lg_stok_duzenle.php', 'stok/lg_stoksonalisx.php',
+                'stok/favori_urunler_yukle.php', 'stok/stok_hareket_aktar.php', 'stok/stok_hareket_detay.php',
+                'stok/stok_hareket_excel.php', 'stok/stok_hareket_excel_xlsx.php', 'stok/stok_hareket_pdf.php',
+                'stok/stok_hareket_tarih_degistir.php',
+            ]],
+            'uretim' => ['ad' => 'Üretim fişleri', 'bagimsiz' => false, 'yollar' => [
+                'stok/index.php', 'stok/uretim_giris.php', 'stok/uretim_miktar_onar.php',
+            ]],
             'siparis' => ['ad' => 'Sipariş', 'bagimsiz' => false, 'yollar' => ['siparis/', 'yazdir/']],
             'doviz' => ['ad' => 'Dövizli sipariş', 'bagimsiz' => false, 'yollar' => ['doviz/']],
             'cek' => ['ad' => 'Çek / senet', 'bagimsiz' => false, 'yollar' => ['cek/']],
