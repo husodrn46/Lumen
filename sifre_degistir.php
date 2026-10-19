@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($eski === '' || $eski === '0' || ($yeni === '' || $yeni === '0') || ($yeni2 === '' || $yeni2 === '0')) {
             $error = "Lütfen tüm alanları doldurunuz.";
-        } elseif (strlen($yeni) < 6) {
-            $error = "Yeni şifre en az 6 karakter olmalıdır.";
+        } elseif (mb_strlen($yeni) < LUMEN_PAROLA_MIN) {
+            $error = "Yeni şifre en az " . LUMEN_PAROLA_MIN . " karakter olmalıdır.";
         } elseif ($yeni !== $yeni2) {
             $error = "Yeni şifreler eşleşmiyor.";
         } else {
@@ -360,7 +360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="input-wrap">
                         <input type="password" id="yeni_sifre" name="yeni_sifre" required
                                class="field-control" placeholder="En az 6 karakter"
-                               autocomplete="new-password" minlength="6">
+                               autocomplete="new-password" minlength="<?php echo (int) LUMEN_PAROLA_MIN; ?>">
                         <i class="fa-solid fa-lock input-icon"></i>
                     </div>
                 </div>
@@ -370,7 +370,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="input-wrap">
                         <input type="password" id="yeni_sifre2" name="yeni_sifre2" required
                                class="field-control" placeholder="Yeni sifreyi tekrar girin"
-                               autocomplete="new-password" minlength="6">
+                               autocomplete="new-password" minlength="<?php echo (int) LUMEN_PAROLA_MIN; ?>">
                         <i class="fa-solid fa-lock input-icon"></i>
                     </div>
                 </div>

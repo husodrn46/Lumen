@@ -78,6 +78,17 @@ if (!$row || !isset($row['SIFRE']) || !sifre_dogrula($parola, (string) $row['SIF
 }
 
 $personel = (int) $row['LOGICALREF'];
+
+// Düz metin (eski) parola hash'e çevrilir (web girişindeki geçişle aynı);
+// eskiden yalnız web girişi çeviriyordu.
+if (function_exists('sifre_yenilenmeli') && sifre_yenilenmeli((string) $row['SIFRE'])) {
+    try {
+        $dbh->prepare("UPDATE M_P_YETKI SET SIFRE = :s WHERE PERSONEL = :p")
+            ->execute([':s' => sifre_hashle($parola), ':p' => $personel]);
+    } catch (Throwable $e) {
+        error_log('api/login parola hash gecisi: ' . $e->getMessage());
+    }
+}
 $yetkiKodu = m_p_yetki($personel, 'YETKI');
 $yetkidurum = is_numeric($yetkiKodu) ? (int) $yetkiKodu : -1;
 

@@ -51,7 +51,7 @@ if (!in_array($yetki, [0, 1, 2], true)) {
     api_json(['ok' => false, 'mesaj' => 'Geçersiz yetki tipi.'], 422);
 }
 
-$sifreGecerli = !($sifre === '' || $sifre === '0' || strlen($sifre) < 4);
+$sifreGecerli = !($sifre === '' || $sifre === '0' || mb_strlen($sifre) < LUMEN_PAROLA_MIN);
 
 $engel = lumen_yetki_degisikligi_engeli($dbh, $personel, $id, $yetki);
 if ($engel !== null) {
@@ -72,7 +72,7 @@ if ($id <= 0) {
 
     // 1) Şifre zorunlu
     if (!$sifreGecerli) {
-        api_json(['ok' => false, 'mesaj' => 'Şifre en az 4 karakter olmalıdır.'], 422);
+        api_json(['ok' => false, 'mesaj' => 'Şifre en az ' . LUMEN_PAROLA_MIN . ' karakter olmalıdır.'], 422);
     }
 
     try {
@@ -126,7 +126,7 @@ try {
 
     // 2) Yeni yetki satırı oluşturulacaksa parola zorunlu
     if ($exists === 0 && !$sifreGecerli) {
-        api_json(['ok' => false, 'mesaj' => 'Bu kullanıcı için şifre belirleyin (en az 4 karakter).'], 422);
+        api_json(['ok' => false, 'mesaj' => 'Bu kullanıcı için şifre belirleyin (en az ' . LUMEN_PAROLA_MIN . ' karakter).'], 422);
     }
 
     // 3) Tüm yazma işlemleri tek transaction içinde

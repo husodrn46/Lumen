@@ -153,8 +153,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hata = 'Kullanıcı kodu ve parola zorunludur.';
         } elseif ($p1 !== $p2) {
             $hata = 'Parolalar eşleşmiyor.';
-        } elseif (strlen($p1) < 6) {
-            $hata = 'Parola en az 6 karakter olmalı.';
+        } elseif (mb_strlen($p1) < 8) {
+            $hata = 'Parola en az 8 karakter olmalı.';
         } else {
             try {
                 $pdo = new PDO($gd_dsn($cfg['srv'], $cfg['db']), $cfg['usr'], $cfg['pss'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);

@@ -126,8 +126,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hataMsj = 'Personel adı boş olamaz ve en fazla 50 karakter olmalıdır.';
         } elseif (!in_array($tip, [0, 1, 2], true)) {
             $hataMsj = 'Geçersiz yetki tipi.';
-        } elseif ($sifre !== '' && mb_strlen($sifre) < 4) {
-            $hataMsj = 'Parola en az 4 karakter olmalıdır.';
+        } elseif ($sifre !== '' && mb_strlen($sifre) < LUMEN_PAROLA_MIN) {
+            $hataMsj = 'Parola en az ' . LUMEN_PAROLA_MIN . ' karakter olmalıdır.';
         } elseif (($engel = lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $id, $tip)) !== null) {
             $hataMsj = $engel;
         }
@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $dbh->prepare($sql)->execute($p);
                 } else {
                     // Yetki satırı yok → parola zorunlu (auth bypass koruması)
-                    if (mb_strlen($sifre) < 4) {
+                    if (mb_strlen($sifre) < LUMEN_PAROLA_MIN) {
                         throw new RuntimeException('sifre_zorunlu');
                     }
                     ky_yetki_insert($dbh, $id, sifre_hashle($sifre), $tip);
@@ -171,13 +171,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $dbh->rollBack();
                 }
                 $hataMsj = ($e->getMessage() === 'sifre_zorunlu')
-                    ? 'Bu kullanıcı için parola belirlemelisiniz (en az 4 karakter).'
+                    ? 'Bu kullanıcı için parola belirlemelisiniz (en az ' . LUMEN_PAROLA_MIN . ' karakter).'
                     : 'Kayıt sırasında hata oluştu. Lütfen tekrar deneyin.';
             }
         } elseif ($hataMsj === '' && $id === 0) {
             // ---------- EKLE ----------
-            if (mb_strlen($sifre) < 4) {
-                $hataMsj = 'Yeni kullanıcı için parola zorunludur (en az 4 karakter).';
+            if (mb_strlen($sifre) < LUMEN_PAROLA_MIN) {
+                $hataMsj = 'Yeni kullanıcı için parola zorunludur (en az ' . LUMEN_PAROLA_MIN . ' karakter).';
             } else {
                 $dup = $dbh->prepare("SELECT 1 FROM LG_SLSMAN WHERE CODE = :c AND FIRMNR = :f");
                 $dup->execute([':c' => $kodu, ':f' => $frm]);
@@ -497,7 +497,7 @@ if ($hataMsj !== '') {
             document.getElementById('ky_tipi').value = '1';
             document.getElementById('ky_sifre').value = '';
             document.getElementById('ky_sifre').setAttribute('placeholder','En az 4 karakter (zorunlu)');
-            document.getElementById('ky_sifre_ipucu').textContent = 'Yeni kullanıcı için parola zorunludur (en az 4 karakter).';
+            document.getElementById('ky_sifre_ipucu').textContent = 'Yeni kullanıcı için parola zorunludur (en az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter).';
             kyModal.classList.add('acik');
             setTimeout(function(){ document.getElementById('ky_kodu').focus(); }, 50);
         }

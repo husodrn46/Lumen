@@ -343,6 +343,11 @@ if (!function_exists('normalize_login_username')) {
   }
 }
 
+if (!defined('LUMEN_PAROLA_MIN')) {
+  /** Yeni/değişen parolalar için en kısa uzunluk (eskiden ekrana göre 4 ya da 6). */
+  define('LUMEN_PAROLA_MIN', 8);
+}
+
 function sifre_dogrula(string $password, string $hash): bool
 {
     // Bos veya sentinel ('0') parola/hash kabul edilmez (auth bypass koruma)
