@@ -3,9 +3,11 @@
 #  php-fpm sorunsuz. Önünde nginx konteyneri çalışır.)
 # Microsoft ODBC sürücüsü yalnız amd64 için paketlendiğinden imaj amd64 derlenir
 # (Apple Silicon'da Rosetta/QEMU ile çalışır).
-# Kritik açık CVE-2026-109618/109619 (Ekim 2026) 8.2.35'te kapandı; resmi imaj güncellenince
-# kur.sh yeniden derlerken (--pull) yamalı sürümü alır. Uygulama yamasız PHP'yi yöneticiye bildirir.
+# Kritik açık CVE-2026-109618/109619 ("PHP2Shell", Ekim 2026) 8.2.35'te kapandı. Etiket
+# 8.2 dalını izler (kur.sh --pull ile her kurulumda en son yama); aşağıdaki denetim yamasız
+# bir taban imajla derlemeyi durdurur.
 FROM php:8.2-fpm-bookworm
+RUN php -r 'if (version_compare(PHP_VERSION, "8.2.35", "<")) { fwrite(STDERR, "PHP " . PHP_VERSION . " yamasız (CVE-2026-109618/109619); en az 8.2.35 gerekir\n"); exit(1); }'
 
 RUN set -eux; \
     apt-get update; \

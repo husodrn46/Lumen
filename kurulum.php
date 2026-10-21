@@ -79,6 +79,8 @@ function kurulum_env_yaz(string $yol, array $kv): bool
 }
 
 require_once __DIR__ . '/includes/kurulum_sema.php';
+require_once __DIR__ . '/includes/guvenlik/php_surum.php';
+$phpSorunlari = lumen_php_guvenlik_sorunlari();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($csrf, (string) ($_POST['csrf'] ?? ''))) {
@@ -291,6 +293,9 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
         <div class="kart">
             <?php if ($hata !== ''): ?>
                 <div class="mesaj err"><i class="fa-solid fa-circle-exclamation"></i><span><?php echo htmlspecialchars($hata, ENT_QUOTES, 'UTF-8'); ?></span></div>
+            <?php endif; ?>
+            <?php if ($phpSorunlari !== []): ?>
+                <div class="mesaj err"><i class="fa-solid fa-shield-halved"></i><span><b>Önce PHP'yi güncelleyin:</b> <?php echo htmlspecialchars(implode(' ', $phpSorunlari), ENT_QUOTES, 'UTF-8'); ?></span></div>
             <?php endif; ?>
             <?php foreach ($notlar as $n): ?>
                 <div class="mesaj ok"><i class="fa-solid fa-circle-check"></i><span><?php echo htmlspecialchars($n, ENT_QUOTES, 'UTF-8'); ?></span></div>
