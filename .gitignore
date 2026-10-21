@@ -8,9 +8,9 @@ _baglanti_.inc
 .user.ini
 .mcp.json
 
-# Yapay zekâ / geliştirme asistanı dosyaları (ürünün parçası değil)
+# Yapay zekâ / geliştirme asistanı kişisel dosyaları (ürünün parçası değil).
+# AGENTS.md depodadır: kabul testini çalıştıran ajanın yönlendirmesidir.
 CLAUDE.md
-AGENTS.md
 .claude/
 
 # Bağımlılıklar (composer install / npm install ile gelir)
