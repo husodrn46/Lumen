@@ -1,15 +1,21 @@
 # Değişiklik Günlüğü
 
-## [Yayımlanmadı]
+## [1.3.0-beta.3] — 2026-10-21 (ÖN SÜRÜM — Bağımsız Lumen BETA)
+
+> ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.1**'i kullanın. Bu ön sürüm
+> v1.2.1'deki güvenlik bakımını içerir.
 
 ### 🔒 Güvenlik
 
-- **PHP2Shell (CVE-2026-109618, CVE-2026-109619)** — PHP'nin kendisinde kimlik
-  doğrulamasız uzaktan kod çalıştırma açıkları (Lumen kodunda değil). Sunucunuzda en az
-  **PHP 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12** olmalı. Lumen artık yamasız PHP'yi yönetici
-  ana sayfasında ve Sistem ve Yedek ekranında uyarır. Güncelleyene kadar `php.ini`'de
-  `session.upload_progress.enabled=0` (Lumen bu özelliği kullanmaz). Demo imajında bu
-  ayar kapalı ve `kur.sh` taban PHP imajını her kurulumda yeniler (`--pull`).
+- **PHP2Shell (CVE-2026-109618, CVE-2026-109619)** — v1.2.1 ile aynı: PHP'nin kendisinde
+  kimlik doğrulamasız uzaktan kod çalıştırma açıkları (Lumen kodunda değil). Sunucunuzda en
+  az **PHP 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12** olmalı; güncelleyene kadar `php.ini`'de
+  `session.upload_progress.enabled=0`.
+- Lumen yamasız PHP'yi **kurulum sihirbazında**, **yönetici ana sayfasında** ve **Sistem ve
+  Yedek** ekranında uyarır (PHP sürümü de görünür).
+- `web.config` (IIS): istek gövdesi 32 MB; URL, sorgu dizesi ve başlık sınırları.
+  `.htaccess` (Apache): `LimitRequestBody` 32 MB; mod_php'de yükleme ilerlemesi kapalı.
+- Demo imajı yamasız PHP ile derlenmez; `kur.sh` taban imajı her kurulumda yeniler.
 
 ## [1.3.0-beta.2] — 2026-10-19 (ÖN SÜRÜM — Bağımsız Lumen BETA)
 
@@ -88,6 +94,22 @@ geçiş aracı geçmiş belgeleri, cariye özel fiyatları ve açık siparişler
 - API fatura listesi satınalma iadelerini (TRCODE 6) satış faturası diye listeliyor,
   türleri yanlış adlandırıyordu (7 perakende, 8 toptan, 9 verilen hizmet).
 - Cari bakiye detayında kullanılmayan 11 sorgu kaldırıldı.
+
+## [1.2.1] — 2026-10-21
+
+Güvenlik bakım sürümü. Uygulama davranışı v1.2.0 ile aynıdır; şema değişikliği yoktur.
+
+### 🔒 Güvenlik
+
+- **PHP2Shell (CVE-2026-109618, CVE-2026-109619)** — PHP'nin kendisinde kimlik
+  doğrulamasız uzaktan kod çalıştırma açıkları (Lumen kodunda değil). Sunucunuzda en az
+  **PHP 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12** olmalı; tam çözüm yalnız PHP güncellemesidir.
+  Güncelleyene kadar `php.ini`'de `session.upload_progress.enabled=0` yapıp web sunucusunu
+  yeniden başlatın (Lumen bu özelliği kullanmaz).
+- Lumen yamasız PHP'yi **kurulum sihirbazında** ve **yönetici ana sayfasında** uyarır.
+- `web.config` (IIS): istek gövdesi 50 MB → 32 MB; URL, sorgu dizesi ve başlık sınırları.
+  `.htaccess` (Apache): `LimitRequestBody` 32 MB; mod_php'de yükleme ilerlemesi kapalı.
+- Demo imajı yamasız PHP ile derlenmez; `kur.sh` taban imajı her kurulumda yeniler.
 
 ## [1.2.0] — 2026-10-19
 

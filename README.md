@@ -30,9 +30,9 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 
 Lumen, LOGO Tiger için bir yardımcı arayüzdür. **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
 
-**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.2.0](https://github.com/husodrn46/Lumen/releases/tag/v1.2.0) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.2.0.zip)
+**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.2.1](https://github.com/husodrn46/Lumen/releases/tag/v1.2.1) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.2.1.zip)
 
-**Ön sürüm:** [v1.3.0-beta.2 — Bağımsız Lumen BETA](https://github.com/husodrn46/Lumen/releases/tag/v1.3.0-beta.2) (LOGO'suz, kendi veritabanıyla ön muhasebe; denemelik).
+**Ön sürüm:** [v1.3.0-beta.3 — Bağımsız Lumen BETA](https://github.com/husodrn46/Lumen/releases/tag/v1.3.0-beta.3) (LOGO'suz, kendi veritabanıyla ön muhasebe; denemelik).
 
 `v1.1.0-beta.1` (Faturalama BETA) ön sürümünün yerini v1.2.0 alır: Faturalama modülü bu sürümde de BETA ve varsayılan kapalıdır. Yükseltme: [CHANGELOG.md](CHANGELOG.md).
 
@@ -92,7 +92,7 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
   > "PHP2Shell", kimlik doğrulamasız uzaktan kod çalıştırma) nedeniyle en az **8.2.35 / 8.3.36 /
   > 8.4.27 / 8.5.12** kullanın. Güncelleyene kadar `php.ini`'de `session.upload_progress.enabled=0`
   > yapıp web sunucusunu yeniden başlatın (Lumen bu özelliği kullanmaz; tam çözüm değildir).
-  > Lumen yamasız PHP'yi yönetici ana sayfasında ve Sistem ve Yedek ekranında uyarır.
+  > Lumen yamasız PHP'yi kurulumda, yönetici ana sayfasında ve Sistem ve Yedek ekranında uyarır.
 - Web sunucusu: IIS (FastCGI) veya Apache/nginx
 - [Composer](https://getcomposer.org/) (bağımlılıklar için)
 
