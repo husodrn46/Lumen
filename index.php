@@ -1334,6 +1334,16 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
         <span style="opacity:.75;">(Eksik: <?php echo e(implode(', ', (array) $_SESSION['sema_eksik'])); ?>)</span>
     </div>
     <?php endif;
+        // Sunucudaki PHP bilinen kritik açıklardan etkileniyor mu? (yalnız yönetici)
+        require_once __DIR__ . '/includes/guvenlik/php_surum.php';
+        $phpSorunlari = lumen_php_guvenlik_sorunlari();
+        if ($phpSorunlari !== []): ?>
+    <div role="alert" style="max-width:1200px;margin:12px auto 0;padding:12px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:13.5px;">
+        <i class="fa-solid fa-shield-halved"></i>
+        <strong>Sunucu PHP'si güncellenmeli (kritik güvenlik açığı).</strong>
+        <?php echo e(implode(' ', $phpSorunlari)); ?>
+    </div>
+    <?php endif;
     } ?>
 
     <!-- ═══════════ HERO ═══════════ -->
