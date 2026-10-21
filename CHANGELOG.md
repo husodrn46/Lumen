@@ -1,5 +1,21 @@
 # Değişiklik Günlüğü
 
+## [1.2.1] — 2026-10-21
+
+Güvenlik bakım sürümü. Uygulama davranışı v1.2.0 ile aynıdır; şema değişikliği yoktur.
+
+### 🔒 Güvenlik
+
+- **PHP2Shell (CVE-2026-109618, CVE-2026-109619)** — PHP'nin kendisinde kimlik
+  doğrulamasız uzaktan kod çalıştırma açıkları (Lumen kodunda değil). Sunucunuzda en az
+  **PHP 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12** olmalı; tam çözüm yalnız PHP güncellemesidir.
+  Güncelleyene kadar `php.ini`'de `session.upload_progress.enabled=0` yapıp web sunucusunu
+  yeniden başlatın (Lumen bu özelliği kullanmaz).
+- Lumen yamasız PHP'yi **kurulum sihirbazında** ve **yönetici ana sayfasında** uyarır.
+- `web.config` (IIS): istek gövdesi 50 MB → 32 MB; URL, sorgu dizesi ve başlık sınırları.
+  `.htaccess` (Apache): `LimitRequestBody` 32 MB; mod_php'de yükleme ilerlemesi kapalı.
+- Demo imajı yamasız PHP ile derlenmez; `kur.sh` taban imajı her kurulumda yeniler.
+
 ## [1.2.0] — 2026-10-19
 
 Bu sürüm, v1.0.0 üzerine kapsamlı bir güvenlik ve doğruluk denetiminin sonucudur ve
