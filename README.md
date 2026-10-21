@@ -30,9 +30,9 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 
 Lumen, LOGO Tiger için bir yardımcı arayüzdür. **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
 
-**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.2.1](https://github.com/husodrn46/Lumen/releases/tag/v1.2.1) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.2.1.zip)
+**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.2.2](https://github.com/husodrn46/Lumen/releases/tag/v1.2.2) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.2.2.zip)
 
-**Ön sürüm:** [v1.3.0-beta.3 — Bağımsız Lumen BETA](https://github.com/husodrn46/Lumen/releases/tag/v1.3.0-beta.3) (LOGO'suz, kendi veritabanıyla ön muhasebe; denemelik).
+**Ön sürüm:** [v1.3.0-beta.4 — Bağımsız Lumen BETA](https://github.com/husodrn46/Lumen/releases/tag/v1.3.0-beta.4) (LOGO'suz, kendi veritabanıyla ön muhasebe; denemelik).
 
 `v1.1.0-beta.1` (Faturalama BETA) ön sürümünün yerini v1.2.0 alır: Faturalama modülü bu sürümde de BETA ve varsayılan kapalıdır. Yükseltme: [CHANGELOG.md](CHANGELOG.md).
 

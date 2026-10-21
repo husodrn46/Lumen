@@ -1,6 +1,9 @@
 # Değişiklik Günlüğü
 
-## [Yayımlanmadı] — 1.3.0-beta.4 adayı
+## [1.3.0-beta.4] — 2026-10-21 (ÖN SÜRÜM — Bağımsız Lumen BETA)
+
+> ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.2**'yi kullanın. Bu ön sürüm v1.2.2'deki
+> güvenlik bakımını içerir.
 
 ### 🔒 Güvenlik denetimi (kararlıya geçiş öncesi)
 
@@ -136,6 +139,24 @@ geçiş aracı geçmiş belgeleri, cariye özel fiyatları ve açık siparişler
 - API fatura listesi satınalma iadelerini (TRCODE 6) satış faturası diye listeliyor,
   türleri yanlış adlandırıyordu (7 perakende, 8 toptan, 9 verilen hizmet).
 - Cari bakiye detayında kullanılmayan 11 sorgu kaldırıldı.
+
+## [1.2.2] — 2026-10-21
+
+Güvenlik bakım sürümü. Uygulama davranışı ve şema v1.2.1 ile aynıdır.
+
+### 🔒 Güvenlik
+
+v1.3.0 öncesi güvenlik denetiminde, kararlı sürümü de etkileyen şu açıklar bulundu ve kapatıldı:
+
+- **Özel cari kısıtı:** çek giriş, ciro ve kendi çekimiz uçları; sipariş/fatura yazdırma
+  görünümü (`yazdir/fis_goruntule.php`) ve API çek listesi, kullanıcının göremediği cariyi
+  süzmüyordu.
+- **Sipariş satırı:** satır ekleme uçları, var olmayan ya da sipariş olmayan bir kimliğe
+  satır yazabiliyordu; sevk edilmiş satırın miktarı sevk edilenin altına düşürülebiliyordu.
+- **Kurulum sihirbazı:** sunucu ve veritabanı adı denetlenir (bağlantı dizesine ek
+  parametre eklenemez).
+- **Sunucu kuralları:** `includes/` klasörü, `web.config` ve `.lumen.gz` dosyaları
+  tarayıcıdan açılmaz (`.htaccess`, `web.config`, README nginx kuralları).
 
 ## [1.2.1] — 2026-10-21
 
