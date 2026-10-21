@@ -34,6 +34,9 @@ $docFiltre = match ($tur) {
 };
 
 try {
+    // Özel cari kısıtı: kullanıcının göremediği carinin çekleri listelenmez.
+    $ozel = m_p_ozel_cari_sql_filtresi($personel, 'ISNULL(TX.CARDREF, 0)', 'cek_api_gizli');
+    $ozelSql = $ozel['sql'] !== '' ? ' AND ' . $ozel['sql'] : '';
     $stmt = $dbh->prepare("
         SELECT
             LGMAIN.DOC AS doc,
@@ -51,10 +54,10 @@ try {
             FROM {$firmadonem}CSTRANS T WITH(NOLOCK)
         ) TX ON TX.CSREF = LGMAIN.LOGICALREF AND TX.RN = 1
         LEFT JOIN {$firma}CLCARD CL WITH(NOLOCK) ON CL.LOGICALREF = TX.CARDREF
-        WHERE LGMAIN.CURRSTAT IN (1) AND LGMAIN.STATUS IN (0, 1) AND {$docFiltre}
+        WHERE LGMAIN.CURRSTAT IN (1) AND LGMAIN.STATUS IN (0, 1) AND {$docFiltre}{$ozelSql}
         ORDER BY CAST(LGMAIN.DUEDATE AS DATE) ASC, LGMAIN.TRNET DESC
     ");
-    $stmt->execute();
+    $stmt->execute($ozel['params']);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     error_log('api/cek_listesi: ' . $e->getMessage());

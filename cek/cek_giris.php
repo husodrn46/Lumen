@@ -39,6 +39,10 @@ if (!csrf_verify($_POST['csrf_token'] ?? null)) {
 }
 
 $cariRef  = (int) ($_POST['cari_ref'] ?? 0);
+// Özel cari kısıtı: kullanıcının göremediği cariye çek işlemi yapılamaz.
+if ($cariRef > 0 && !m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, $cariRef)) {
+    cek_json(['ok' => false, 'mesaj' => 'Cari bulunamadı.'], 404);
+}
 $aciklama = trim((string) ($_POST['aciklama'] ?? ''));
 $resmi    = (($_POST['resmi'] ?? '') === '1');
 
