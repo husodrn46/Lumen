@@ -25,11 +25,28 @@ uyg() { docker compose -f demo/docker-compose.yml exec -T app "$@"; }
 
 ADIMLAR=()      # "durum|ad|süre|günlük dosyası"
 BASARISIZ=0
-adim() {   # adim "Ad" komut...
+SINIR=${KABUL_ADIM_SINIRI:-1200}   # adım başına süre sınırı (sn); takılan adım durdurulur
+# Süre sınırı: GNU timeout her sistemde yok (macOS); perl her ikisinde de var.
+sinirli() { local sn="$1"; shift; perl -e 'my $sn = shift @ARGV; my $pid = fork() // die "fork"; if (!$pid) { exec { $ARGV[0] } @ARGV; exit 127 } local $SIG{ALRM} = sub { kill "TERM", $pid; sleep 2; kill "KILL", $pid; exit 124 }; alarm $sn; waitpid($pid, 0); exit($? & 127 ? 1 : $? >> 8)' "$sn" "$@"; }
+adim() {   # adim "Ad" komut...  (kurulum adımlarında sınır 1800 sn)
   local ad="$1"; shift
-  local gunluk="$GECICI/adim_${#ADIMLAR[@]}.log" bas=$SECONDS durum
+  local gunluk="$GECICI/adim_${#ADIMLAR[@]}.log" bas=$SECONDS durum kod sn="$SINIR"
+  case "$ad" in *kurulumu*) sn=1800 ;; esac
   printf '\n▶ %s\n' "$ad"
-  if "$@" >"$gunluk" 2>&1; then durum=TAMAM; else durum=HATA; BASARISIZ=$((BASARISIZ + 1)); fi
+  if declare -F "$1" >/dev/null; then   # kabuk işlevi (uyg): alt kabukta, işlev dışa aktarılarak
+    export -f "$1"
+    sinirli "$sn" bash -c '"$@"' _ "$@" >"$gunluk" 2>&1; kod=$?
+  else
+    sinirli "$sn" "$@" >"$gunluk" 2>&1; kod=$?
+  fi
+  if [ "$kod" -eq 0 ]; then durum=TAMAM; else durum=HATA; BASARISIZ=$((BASARISIZ + 1)); fi
+  if [ "$kod" -eq 124 ]; then
+    echo "ZAMAN AŞIMI: adım ${sn} sn içinde bitmedi ve durduruldu." >>"$gunluk"
+  fi
+  if [ "$kod" -ne 0 ]; then   # teşhis: konteyner durumu ve veritabanı günlüğünün sonu
+    { echo; echo "--- docker compose ps ---"; docker compose -f demo/docker-compose.yml ps 2>&1
+      echo "--- SQL Server günlüğü (son 15 satır) ---"; docker compose -f demo/docker-compose.yml logs --tail=15 db 2>&1; } >>"$gunluk"
+  fi
   tail -n 25 "$gunluk" | sed 's/^/    /'
   ADIMLAR+=("$durum|$ad|$((SECONDS - bas))|$gunluk")
   printf '  → %s (%ss)\n' "$durum" "$((SECONDS - bas))"

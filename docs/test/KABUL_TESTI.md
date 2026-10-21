@@ -117,6 +117,17 @@ Sonucu, görevi veren kişiye şu biçimde verin:
 Görevi veren kişi isterse sonucu GitHub'da bir *issue* olarak da açın:
 başlık `Kabul testi: <sürüm> — <geçti | N sorun>`, gövde yukarıdaki rapor.
 
+## Geçici hatalar
+
+Bir adım **zaman aşımı** (raporda "ZAMAN AŞIMI") ya da bağlantı hatasıyla düşerse ve
+günlükte uygulamaya ait bir hata (PHP hatası, yanlış rakam, beklenmeyen ekran) yoksa
+bu çoğu zaman ortamdan kaynaklanır (ör. GitHub makinesinde SQL Server'ın takılması).
+Testi **bir kez** yeniden çalıştırın ve raporda iki sonucu da belirtin. İkinci
+çalıştırmada da aynı adım düşüyorsa gerçek bir hata sayın. Başarısız adımın altında
+konteyner durumu ve SQL Server günlüğünün son satırları teşhis için rapora eklenir.
+Adım süre sınırı varsayılan 20 dakikadır (kurulum 30 dakika); `KABUL_ADIM_SINIRI=saniye`
+ile değiştirilebilir.
+
 ## Kabul ölçütü
 
 Bir beta, şu üçü sağlanınca kararlı sürüme aday sayılır:
