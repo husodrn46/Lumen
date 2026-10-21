@@ -9,7 +9,10 @@ require_once __DIR__ . '/../kontrol.php';
 require_once __DIR__ . '/_ortak.php';
 
 $turler = lumen_finans_turleri();
-unset($turler[5]); // Açılış fişi kurulumda / içe aktarmada kesilir.
+// Açılış fişi (yeni kurulumda kasa/banka devir bakiyesi) yalnız yöneticiye açık; iptali de yöneticide.
+if ((int) $yetkidurum !== 0) {
+    unset($turler[5]);
+}
 $secTur = (int) ($_GET['tur'] ?? 1);
 if (!isset($turler[$secTur])) {
     $secTur = 1;

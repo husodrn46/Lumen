@@ -213,6 +213,23 @@ akis('LOGO uyumlu yazma: stokta yalnız KDV güncellemesi uygulanır', function 
     $pdo->exec("UPDATE LM_STOK SET KDV_ORANI = {$once} WHERE ID = 2");
 });
 
+akis('kasa/banka açılış fişi: yönetici keser, diğer kullanıcı kesemez', function () use ($y, $pdo, $URL): void {
+    $hesap = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'BNK.01.TL'");
+    $alan = static fn(Tarayici $t): array => ['csrf_token' => $t->belirtec('finans/yeni.php'), 'islem' => 'kaydet', 'tur' => 5,
+        'hesap_id' => $hesap, 'tutar' => '1234,50', 'istek_id' => bin2hex(random_bytes(16))];
+    $once = (int) tek($pdo, 'SELECT COUNT(*) FROM LM_FINANS_FIS WHERE TUR = 5');
+    $s = (new Tarayici($URL))->giris('SATIS1');
+    bekle(!str_contains($s->istek('finans/yeni.php')['govde'], '>Açılış<'), 'açılış türü yönetici olmayana görünüyor');
+    $s->istek('finans/islem.php', $alan($s));
+    bekle((int) tek($pdo, 'SELECT COUNT(*) FROM LM_FINANS_FIS WHERE TUR = 5') === $once, 'yönetici olmayan açılış fişi kesti');
+    $r = $y->istek('finans/islem.php', $alan($y));
+    parse_str((string) parse_url((string) $r['yer'], PHP_URL_QUERY), $q);
+    $fis = (int) ($q['id'] ?? 0);
+    bekle($fis > 0 && (int) tek($pdo, "SELECT TUR FROM LM_FINANS_FIS WHERE ID = {$fis}") === 5, 'yönetici açılış fişi kesemedi');
+    yakin(1234.5, (float) tek($pdo, "SELECT TUTAR FROM LM_FINANS_FIS WHERE ID = {$fis}"), 'açılış tutarı');
+    $y->istek('finans/islem.php', ['csrf_token' => $y->belirtec("finans/goster.php?id={$fis}"), 'islem' => 'iptal', 'id' => $fis]);
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

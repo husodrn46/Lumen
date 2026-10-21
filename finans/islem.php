@@ -37,8 +37,8 @@ if ($islem === 'iptal') {
 if ($islem === 'kaydet') {
     $tur = (int) ($_POST['tur'] ?? 0);
     $cari = (int) ($_POST['cari_id'] ?? 0);
-    // Açılış fişi yalnız kurulumda / içe aktarmada kesilir.
-    if ($tur === 5) {
+    // Açılış fişini (kasa/banka devir bakiyesi) yalnız yönetici keser.
+    if ($tur === 5 && (int) $yetkidurum !== 0) {
         $git('yeni.php', ['hata' => 'Geçersiz fiş türü.']);
     }
     // Özel cari kısıtı: gizlenen cariye fiş kesilemez.

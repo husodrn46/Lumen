@@ -53,6 +53,8 @@ Hızlı deneme için `bash demo/kur.sh` Docker üzerinde SQL Server + sentetik L
 - [Katkıda Bulunma](#katkıda-bulunma)
 - [Lisans](#lisans)
 
+> 📖 **Kullanım kılavuzu** (personel ve işletme sahibi için, adım adım): [docs/kullanim/KILAVUZ.md](docs/kullanim/KILAVUZ.md)
+
 ## Lumen Nedir?
 
 Lumen, **LOGO Tiger ERP** kullanan firmalar için tasarlanmış, web tabanlı bir **sipariş ve stok yönetim ön yüzüdür**. Verinin kaynağı LOGO'nun kendi SQL Server veritabanıdır; Lumen bu veritabanı üzerine hızlı, sade ve **mobil uyumlu** bir satış terminali arayüzü koyar.

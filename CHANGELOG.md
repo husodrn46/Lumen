@@ -20,7 +20,19 @@ işlemin hepsi sınır içinde (ekranlar 1 sn'nin altında).
 - **Takılan sorgu:** web isteğinde tek sorgu en fazla 100 sn sürer (`LUMEN_SORGU_SINIRI`);
   önceden uzun bir rapor kullanıcının oturumunu dakikalarca kilitleyebiliyordu.
 
+### 📖 Kullanım kılavuzu
+
+- `docs/kullanim/KILAVUZ.md`: giriş ve yetkiler, tanımlar, Excel'den aktarma, faturalar,
+  kasa/banka, çekler, cari ve stok, siparişler, raporlar, yedekleme, sık sorulanlar.
+
+### ✨ Yeni
+
+- **Kasa/banka açılış fişi** artık ekrandan kesilebilir (yalnız yönetici): LOGO'suz yeni
+  kurulumda kasa ve bankadaki devir parası girilir.
+
 ### 🐛 Düzeltmeler
+
+- Kullanıcı formunda parola ipucu "en az 4 karakter" diyordu; kural 8 karakterdir.
 
 - **Ürün ligi (son 30 gün):** veritabanı sunucusunun saat dilimi uygulamadan farklıysa gece
   yarısından sonra bugünün satışları görünmüyordu; artık uygulamanın takvimiyle hesaplanır.
