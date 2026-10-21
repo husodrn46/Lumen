@@ -31,7 +31,12 @@ jobs:
           fetch-depth: 0
 
       - name: Kabul testi (tests/kabul/calistir.sh)
-        run: bash tests/kabul/calistir.sh --rapor kabul-raporu.md
+        run: |
+          if [ ! -f tests/kabul/calistir.sh ]; then
+            echo "Bu sürümde kabul testi paketi yok (v1.3.0-beta.4 ve sonrasında var)." | tee kabul-raporu.md
+            exit 0
+          fi
+          bash tests/kabul/calistir.sh --rapor kabul-raporu.md
 
       - name: Raporu özet sayfasına yaz
         if: always()
