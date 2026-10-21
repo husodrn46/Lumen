@@ -59,3 +59,11 @@ test('ortak tablolar: aynı kolon adları; LOGO öneki doğrulanır', function (
         }
     });
 });
+
+test('modül koruması büyük/küçük harf ve çift eğik çizgiye duyarsız (Windows/IIS)', function (): void {
+    esit('cari_belge', lumen_yolun_modulu('CARI/LG_NAKIT.php'));
+    esit('cari_belge', lumen_yolun_modulu('cari//lg_nakit.php'));
+    esit('uretim', lumen_yolun_modulu('STOK/Index.php'));
+    esit('belge', lumen_yolun_modulu('BELGE/index.php'));
+    esit('cari', lumen_yolun_modulu('Cari/cari.php'));
+});

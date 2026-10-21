@@ -18,7 +18,7 @@ if (!$b || !isset($belgeTurleri[(string) lumen_belge_tur_kodu((int) $b['TUR'], (
     lumen_hata_sayfasi('Belge bulunamadı', 'Bu numarada bir belge yok.', 404);
 }
 $pdf = isset($_GET['pdf']);
-$html = (string) lumen_belge_yazdir_html($dbh, $id, $pdf);
+$html = (string) lumen_belge_yazdir_html($dbh, $id, $pdf, $belgeTam);
 if (!$pdf) {
     echo $html;
     exit;

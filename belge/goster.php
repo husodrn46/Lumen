@@ -56,8 +56,9 @@ belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
 
 <div class="kart tablo-sar">
     <table class="liste">
-        <thead><tr><th>#</th><th>Ürün</th><th class="sag">Miktar</th><th class="sag">Fiyat</th><th class="sag">İsk. %</th>
-            <th class="sag">KDV %</th><th class="sag">Tutar (KDV hariç)</th></tr></thead>
+        <thead><tr><th>#</th><th>Ürün</th><th class="sag">Miktar</th>
+            <?php if ($belgeTam): ?><th class="sag">Fiyat</th><th class="sag">İsk. %</th>
+            <th class="sag">KDV %</th><th class="sag">Tutar (KDV hariç)</th><?php endif; ?></tr></thead>
         <tbody>
         <?php foreach ($satirlar as $r): ?>
             <tr>
@@ -65,14 +66,17 @@ belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
                 <td><a class="koyu" style="color:inherit" href="../kart/stok.php?id=<?= (int) $r['STOK_ID'] ?>"><?= bh($r['KOD']) ?></a> <?= bh($r['AD']) ?>
                     <?php if ($r['ACIKLAMA']): ?><div class="soluk"><?= bh($r['ACIKLAMA']) ?></div><?php endif; ?></td>
                 <td class="sag"><?= bmiktar($r['MIKTAR']) ?> <?= bh($r['BIRIM'] ?? '') ?></td>
+<?php if ($belgeTam): ?>
                 <td class="sag"><?= $dovizli && $r['DOVIZ_FIYAT'] !== null ? bh($dv($r['DOVIZ_FIYAT'])) . '<div class="soluk">' . btl($r['FIYAT']) . '</div>' : btl($r['FIYAT']) ?></td>
                 <td class="sag"><?= bmiktar($r['ISKONTO_ORANI']) ?></td>
                 <td class="sag"><?= bmiktar($r['KDV_ORANI']) ?></td>
                 <td class="sag koyu"><?= btl($r['NET']) ?></td>
+            <?php endif; ?>
             </tr>
         <?php endforeach; ?>
         </tbody>
     </table>
+<?php if ($belgeTam): ?>
     <div class="toplamlar">
         <span>Brüt</span><span class="sag"><?= btl($b['BRUT']) ?></span>
         <span>İskonto</span><span class="sag">- <?= btl($b['ISKONTO']) ?></span>
@@ -82,6 +86,7 @@ belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
             <span class="koyu">Döviz toplamı</span><span class="sag koyu"><?= bh($dv($b['DOVIZ_NET'])) ?></span>
         <?php endif; ?>
     </div>
+    <?php endif; ?>
 </div>
 <?php if ($b['ACIKLAMA']): ?><div class="kart kart-ic"><span class="soluk">Açıklama:</span> <?= bh($b['ACIKLAMA']) ?></div><?php endif; ?>
 

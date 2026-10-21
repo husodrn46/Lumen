@@ -84,11 +84,15 @@ if (!function_exists('lumen_yolun_modulu')) {
     /** Uygulama köküne göre yolun (ör. 'cari/cari.php') modülü; bilinmiyorsa null. */
     function lumen_yolun_modulu(string $yol): ?string
     {
-        $yol = ltrim(str_replace('\\', '/', $yol), '/');
+        // Windows/IIS dosya sistemi büyük/küçük harfe duyarsızdır: karşılaştırma da öyle olmalı
+        // (yoksa "cari/LG_NAKIT.php" kapalı modül yerine üst klasörün modülüne düşerdi).
+        $yol = strtolower(ltrim(str_replace('\\', '/', $yol), '/'));
+        $yol = (string) preg_replace('#/+#', '/', $yol);
         $bulunan = null;
         $uzunluk = -1;
         foreach (lumen_moduller() as $ad => $m) {
             foreach ($m['yollar'] as $onek) {
+                $onek = strtolower($onek);
                 $eslesir = str_ends_with($onek, '/') ? str_starts_with($yol, $onek) : $yol === $onek;
                 if ($eslesir && strlen($onek) > $uzunluk) {
                     $bulunan = $ad;
@@ -125,9 +129,11 @@ if (!function_exists('lumen_istek_yolu')) {
     /** Bu isteğin uygulama köküne göre betik yolu (ör. 'cari/cari.php'). */
     function lumen_istek_yolu(): string
     {
-        $kok = str_replace('\\', '/', dirname(__DIR__, 2));
-        $betik = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_FILENAME'] ?? ''));
-        if ($betik !== '' && str_starts_with($betik, $kok . '/')) {
+        // Gerçek yollar karşılaştırılır (sembolik bağlantı, sürücü harfi büyük/küçük farkı).
+        $kok = str_replace('\\', '/', (string) (realpath(dirname(__DIR__, 2)) ?: dirname(__DIR__, 2)));
+        $ham = (string) ($_SERVER['SCRIPT_FILENAME'] ?? '');
+        $betik = str_replace('\\', '/', (string) (($ham !== '' ? realpath($ham) : false) ?: $ham));
+        if ($betik !== '' && strncasecmp($betik, $kok . '/', strlen($kok) + 1) === 0) {
             return substr($betik, strlen($kok) + 1);
         }
         return ltrim((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '/');

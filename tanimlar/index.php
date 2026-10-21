@@ -49,6 +49,9 @@ if ($sekme === 'firma'):
                         <?= $k === 'vergi_no' ? 'inputmode="numeric"' : '' ?> <?= $k === 'eposta' ? 'type="email"' : '' ?>></label>
             <?php endforeach; ?>
         </div>
+        <label class="alan" style="margin-top:14px; max-width:260px">Dönem kilidi (bu tarih ve öncesi kapalı)
+            <input type="date" name="donem_kilit" max="<?= date('Y-m-d') ?>" value="<?= bh($dbh->query("SELECT DEGER FROM dbo.LM_AYAR WHERE ANAHTAR = 'donem_kilit_tarihi'")->fetchColumn() ?: '') ?>"></label>
+        <p class="ipucu">Kapanan ay/yıl için tarih girin: o tarih ve öncesine fatura veya kasa fişi girilemez, iptal edilemez. Boş: kilit yok.</p>
         <div style="margin-top:14px"><button class="btn btn-birincil" type="submit"><i class="fa-solid fa-check"></i> Kaydet</button></div>
     </form>
 

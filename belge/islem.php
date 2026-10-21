@@ -23,10 +23,12 @@ $git = static function (string $yol, array $q): never {
 
 if ($islem === 'iptal') {
     $id = (int) ($_POST['id'] ?? 0);
-    $tb = $dbh->prepare('SELECT TUR, YON FROM dbo.LM_BELGE WHERE ID = :id');
+    $tb = $dbh->prepare('SELECT TUR, YON, CARI_ID FROM dbo.LM_BELGE WHERE ID = :id');
     $tb->execute([':id' => $id]);
     $tr = $tb->fetch(PDO::FETCH_ASSOC);
-    if (!$tr || !isset($belgeTurleri[(string) lumen_belge_tur_kodu((int) $tr['TUR'], (int) $tr['YON'])])) {
+    // Görme kuralı belge ekranıyla aynı: tür yetkisi + özel cari kısıtı (gizli carinin belgesi iptal edilemez).
+    if (!$tr || !isset($belgeTurleri[(string) lumen_belge_tur_kodu((int) $tr['TUR'], (int) $tr['YON'])])
+        || ((int) $tr['CARI_ID'] > 0 && !m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, (int) $tr['CARI_ID']))) {
         lumen_hata_sayfasi('Belge bulunamadı', 'Bu numarada bir belge yok.', 404);
     }
     $r = lumen_belge_iptal($dbh, $id, (int) $terminalkullanici);
@@ -35,10 +37,20 @@ if ($islem === 'iptal') {
 
 if ($islem === 'kaydet') {
     $tur = (string) ($_POST['tur'] ?? '');
-    if (!isset($belgeTurleri[$tur]) || (!$belgeTam && (int) ($_POST['kaynak_belge_id'] ?? 0) > 0)) {
+    $kaynakBelge = (int) ($_POST['kaynak_belge_id'] ?? 0);
+    if (!isset($belgeTurleri[$tur]) || (!$belgeTam && $kaynakBelge > 0)) {
         lumen_hata_sayfasi('Yetkiniz yok', 'Bu belge türü için M31 (Faturalama) yetkisi gerekir.', 403, 'fa-lock');
     }
+    // Siparişten belge: sipariş kullanıcının görebildiği bir sipariş olmalı.
+    if ($kaynakBelge > 0 && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, (int) $terminalkullanici, $kaynakBelge)) {
+        $git('yeni.php', ['tur' => $tur, 'hata' => 'Sipariş bulunamadı.']);
+    }
     $cari = (int) ($_POST['cari_id'] ?? 0);
+    // Depo personeli (yalnız M15): üretim/sayımda cari, fiyat ve sipariş bağlantısı yok sayılır
+    // (maliyet ve sipariş miktarları fatura yetkilisinindir).
+    if (!$belgeTam) {
+        $cari = 0;
+    }
     // Özel cari kısıtı: gizlenen cariye belge kesilemez.
     if ($cari > 0 && !m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, $cari)) {
         $git('yeni.php', ['tur' => $tur, 'hata' => 'Cari bulunamadı.']);
@@ -53,12 +65,16 @@ if ($islem === 'kaydet') {
             'miktar' => $sayi_('miktar'), 'fiyat' => $sayi_('fiyat'), 'iskonto' => $sayi_('iskonto'), 'kdv' => $sayi_('kdv'),
             'aciklama' => (string) ($s['aciklama'][$i] ?? ''), 'kaynak_satir_id' => (int) ($s['kaynak_satir_id'][$i] ?? 0),
         ];
+        if (!$belgeTam) {
+            $satirlar[$i] = ['fiyat' => 0.0, 'iskonto' => 0.0, 'kdv' => 0.0, 'kaynak_satir_id' => 0] + $satirlar[$i];
+        }
     }
     $r = lumen_belge_kaydet($dbh, $tur, [
         'cari_id' => $cari, 'tarih' => (string) ($_POST['tarih'] ?? date('Y-m-d')), 'vade' => (string) ($_POST['vade'] ?? ''),
         'depo_id' => (int) ($_POST['depo_id'] ?? 0), 'aciklama' => (string) ($_POST['aciklama'] ?? ''),
         'dokuman_no' => (string) ($_POST['dokuman_no'] ?? ''), 'kaynak_belge_id' => (int) ($_POST['kaynak_belge_id'] ?? 0),
         'para_birimi' => (string) ($_POST['para_birimi'] ?? 'TRY'), 'kur' => lumen_tutar_coz($_POST['kur'] ?? '1'),
+        'kur_serbest' => (int) $yetkidurum === 0,   // tanımlı kurdan sapma yalnız yöneticiye
     ], $satirlar, (int) $terminalkullanici);
     if ($r['ok']) {
         $git('goster.php', ['id' => $r['id'], 'ok' => $r['mesaj']]);

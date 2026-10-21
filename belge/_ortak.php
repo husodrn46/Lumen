@@ -15,6 +15,12 @@ if (!isset($terminalkullanici, $dbh)) {
 
 require_once __DIR__ . '/../includes/belge/belge_lib.php';
 
+// İkinci savunma hattı: bu modül yalnız bağımsız modda çalışır (modül korumasından bağımsız).
+if (!lumen_bagimsiz_mi()) {
+    lumen_hata_sayfasi('Modül kullanılamıyor', 'Bu ekran yalnız bağımsız modda (Lumen veritabanı) kullanılır.', 501, 'fa-person-digging');
+}
+
+
 // M31 (Faturalama): tüm belgeler. M15 (Stoklar) yalnız: üretimden giriş ve sayım
 // (depo personeli; fatura, irsaliye ve fiyat görmez).
 $belgeTam = (int) m_p_yetki($terminalkullanici, 'M31') === 1;

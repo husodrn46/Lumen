@@ -101,6 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($srv === '' || $db === '' || $usr === '') {
             $hata = 'Sunucu, veritabanı ve kullanıcı adı zorunludur.';
+        } elseif (preg_match('/^[A-Za-z0-9._\\\\,:()\[\]-]{1,128}$/', $srv) !== 1 || preg_match('/^[A-Za-z0-9_][A-Za-z0-9_ .-]{0,127}$/', $db) !== 1) {
+            // Bağlantı dizesine ";" ile ek parametre eklenemesin (sunucu: ad, IP, ad\örnek, ad,port).
+            $hata = 'Sunucu ya da veritabanı adında geçersiz karakter var.';
         } elseif ($bagimsiz) {
             // ---- Bağımsız mod: LOGO yok; veritabanı yoksa oluşturulur ----
             try {

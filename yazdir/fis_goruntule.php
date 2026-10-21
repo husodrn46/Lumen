@@ -16,6 +16,13 @@ $tip = $_GET['tip'] ?? 'siparis'; // siparis veya fatura
 if ($fisRef <= 0) {
     lumen_hata_sayfasi('Fiş seçilmedi', 'Görüntülenecek fiş bilgisi eksik.');
 }
+// Özel cari kısıtı: kullanıcının göremediği carinin fişi gösterilmez (sipariş ekranıyla aynı kural).
+$kisitCari = $dbh->prepare('SELECT CLIENTREF FROM ' . ($tip === 'siparis' ? $firmadonem . 'ORFICHE' : $firmadonem . 'INVOICE') . ' WHERE LOGICALREF = :f');
+$kisitCari->execute([':f' => $fisRef]);
+$kisitRef = $kisitCari->fetchColumn();
+if ($kisitRef === false || ((int) $kisitRef > 0 && !m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, (int) $kisitRef))) {
+    lumen_hata_sayfasi('Fiş bulunamadı', 'Görüntülenecek fiş bulunamadı.', 404);
+}
 
 // Fiş bilgilerini çek (Sipariş veya Fatura)
 if ($tip == 'siparis') {

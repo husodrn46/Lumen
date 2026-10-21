@@ -136,6 +136,9 @@ jobs:
       - name: Bağımsız mod akış testleri (Lumen'e özgü akışlar)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/bagimsiz.php
 
+      - name: Bağımsız mod güvenlik regresyonları (denetimde bulunan açıklar)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/guvenlik.php
+
       - name: Bağımsız modda LOGO akışları (aynı akışlar LMV_ görünümleri üzerinden)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
 

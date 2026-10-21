@@ -37,10 +37,20 @@ if (!function_exists('lumen_tanim_firma_kaydet')) {
         if ($temiz['eposta'] !== '' && filter_var($temiz['eposta'], FILTER_VALIDATE_EMAIL) === false) {
             return ['ok' => false, 'mesaj' => 'E-posta adresi geçersiz.'];
         }
+        // Dönem kilidi: bu tarih ve öncesine belge/fiş girilmez, iptal edilmez (boş: kilit yok).
+        $kilit = trim((string) ($v['donem_kilit'] ?? ''));
+        if ($kilit !== '' && (DateTime::createFromFormat('!Y-m-d', $kilit) === false || $kilit > date('Y-m-d'))) {
+            return ['ok' => false, 'mesaj' => 'Dönem kilidi geçerli ve bugünden ileri olmayan bir tarih olmalı.'];
+        }
         $st = $dbh->prepare("MERGE dbo.LM_AYAR AS H USING (SELECT :a AS ANAHTAR, :d AS DEGER) AS K ON H.ANAHTAR = K.ANAHTAR
                              WHEN MATCHED THEN UPDATE SET DEGER = K.DEGER WHEN NOT MATCHED THEN INSERT (ANAHTAR, DEGER) VALUES (K.ANAHTAR, K.DEGER);");
         foreach ($temiz as $k => $d) {
             $st->execute([':a' => 'firma_' . $k, ':d' => $d]);
+        }
+        if ($kilit === '') {
+            $dbh->exec("DELETE FROM dbo.LM_AYAR WHERE ANAHTAR = 'donem_kilit_tarihi'");
+        } else {
+            $st->execute([':a' => 'donem_kilit_tarihi', ':d' => $kilit]);
         }
         return ['ok' => true, 'mesaj' => 'Firma bilgileri kaydedildi.'];
     }

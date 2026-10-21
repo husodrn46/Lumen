@@ -34,6 +34,10 @@ echo 'Yedekleme (' . ($bagimsiz ? 'bağımsız' : 'LOGO') . " modu, {$db})\n";
 $ozet = static function () use ($dbh): array {
     $o = [];
     foreach (lumen_yedek_tablolari($dbh) as $t) {
+        // Oturum ve belirteç tabloları geri yüklemeden sonra bilerek sıfırlanır (aşağıda ayrıca denetlenir).
+        if (in_array($t, ['M_REMEMBER_TOKEN', 'M_API_TOKEN', 'M_OTURUM_KAPAT'], true)) {
+            continue;
+        }
         $o[$t] = (int) $dbh->query("SELECT COUNT(*) FROM dbo.[{$t}]")->fetchColumn();
     }
     return $o;
@@ -64,6 +68,12 @@ $bekle($g['ok'], 'geri yüklendi: ' . $g['mesaj']);
 $bekle($ozet() === $once, 'tüm tabloların satır sayıları yedek anıyla aynı');
 $bekle($denetim() === $denetimOnce, 'bakiyeler, stok ve parola yedek anıyla aynı');
 $bekle(isset($g['onceki']) && is_file(lumen_yedek_klasoru() . '/' . $g['onceki']), 'geri yüklemeden önceki durumun yedeği alındı');
+$bekle((int) $dbh->query('SELECT COUNT(*) FROM M_REMEMBER_TOKEN')->fetchColumn() === 0
+    && (int) $dbh->query('SELECT COUNT(*) FROM M_OTURUM_KAPAT')->fetchColumn() === (int) $dbh->query('SELECT COUNT(*) FROM M_P_YETKI')->fetchColumn(),
+    'geri yükleme sonrası bütün oturumlar ve "beni hatırla" belirteçleri geçersiz');
+$bekle(substr(sprintf('%o', fileperms(lumen_yedek_klasoru() . '/' . $y['ad'])), -3) === '600', 'yedek dosyası yalnız sunucu hesabınca okunabilir (0600)');
+$bekle(str_contains((string) lumen_yedek_ayar_kaydet(dirname(__DIR__, 2) . '/yedek_web', true, 30), 'web'), 'yedek klasörü web klasörünün içine ayarlanamaz');
+$bekle(str_contains((string) lumen_yedek_ayar_kaydet(dirname(__DIR__, 2) . '/database/../tests', true, 30), 'tam yol'), 'yedek klasöründe ".." kabul edilmez');
 if ($bagimsiz) {
     // Kimlik sayacı: yeni kayıt mevcut en büyük kimliğin üstüne gelir
     $max = (int) $dbh->query('SELECT MAX(ID) FROM LM_BIRIM')->fetchColumn();

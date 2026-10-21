@@ -126,6 +126,15 @@ if (isset($_POST['stkid'])) {
     exit;
   }
 
+  // Satır yalnız gerçek bir SİPARİŞE eklenir. Görünürlük denetimi irsaliye/fatura kimliğini de
+  // (STFICHE yedeği) kabul ettiğinden, bağımsız modda bir faturaya satır eklenebiliyordu.
+  $siparisVar = $dbh->prepare("SELECT COUNT(*) FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :f");
+  $siparisVar->execute([':f' => $stokhareket]);
+  if ((int) $siparisVar->fetchColumn() === 0) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+  }
+
   hareketekle_trace_log('POST_PARSED', [
     'stokid' => $stokid ?? null,
     'stokhareket' => $stokhareket ?? null,

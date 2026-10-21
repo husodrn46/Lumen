@@ -39,6 +39,33 @@ if (!function_exists('lumen_belge_turleri')) {
     }
 }
 
+if (!function_exists('lumen_donem_kilidi')) {
+    /** Dönem kilidi tarihi (LM_AYAR.donem_kilit_tarihi, Y-m-d): bu tarih ve öncesine kayıt girilmez, iptal edilmez. */
+    function lumen_donem_kilidi(PDO $dbh): ?string
+    {
+        $v = $dbh->query("SELECT DEGER FROM dbo.LM_AYAR WHERE ANAHTAR = 'donem_kilit_tarihi'")->fetchColumn();
+        return is_string($v) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $v) === 1 ? $v : null;
+    }
+}
+
+if (!function_exists('lumen_tarih_hatasi')) {
+    /** Belge/fiş tarihi geçerli mi: biçim, makul aralık (2000 – bugün+1 yıl), dönem kilidi. Hata metni ya da null. */
+    function lumen_tarih_hatasi(PDO $dbh, string $tarih): ?string
+    {
+        $t = DateTime::createFromFormat('!Y-m-d', $tarih);
+        if (!$t || $t->format('Y-m-d') !== $tarih) {
+            return 'Tarih geçersiz.';
+        }
+        if ($tarih < '2000-01-01' || $tarih > date('Y-m-d', strtotime('+1 year'))) {
+            return 'Tarih makul aralıkta değil (2000 ile bir yıl sonrası arası).';
+        }
+        if (($kilit = lumen_donem_kilidi($dbh)) !== null && $tarih <= $kilit) {
+            return 'Bu tarih kilitli dönemde (' . date('d.m.Y', (int) strtotime($kilit)) . ' ve öncesi kapatıldı).';
+        }
+        return null;
+    }
+}
+
 if (!function_exists('lumen_kur')) {
     /** Tarihteki (yoksa önceki en yakın) döviz alış kuru; tanımsızsa null. Faturada TCMB döviz alışı esas alınır. */
     function lumen_kur(PDO $dbh, string $pb, string $tarih): ?float
@@ -129,8 +156,8 @@ if (!function_exists('lumen_belge_kaydet')) {
             return ['ok' => false, 'mesaj' => 'Cari seçilmedi.'];
         }
         $tarih = (string) ($baslik['tarih'] ?? date('Y-m-d'));
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $tarih) !== 1) {
-            return ['ok' => false, 'mesaj' => 'Tarih geçersiz.'];
+        if (($th = lumen_tarih_hatasi($dbh, $tarih)) !== null) {
+            return ['ok' => false, 'mesaj' => $th];
         }
         $vade = isset($baslik['vade']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $baslik['vade']) === 1 ? (string) $baslik['vade'] : null;
         $satirlar = array_values(array_filter($satirlar, static fn($s): bool => is_array($s) && (float) ($s['miktar'] ?? 0) > 0));
@@ -150,6 +177,21 @@ if (!function_exists('lumen_belge_kaydet')) {
             if ($kur <= 0) {
                 return ['ok' => false, 'mesaj' => 'Dövizli belge için kur girin.'];
             }
+            // Kur, belge tarihinin tanımlı kurundan %10'dan fazla sapamaz (yönetici hariç):
+            // yanlış kurla cari alacağı düşük, çıktıdaki döviz tutarı yüksek görünmesin.
+            $ref = lumen_kur($dbh, $pb, $tarih);
+            if ($ref !== null && $ref > 0 && empty($baslik['kur_serbest']) && abs($kur - $ref) / $ref > 0.10) {
+                return ['ok' => false, 'mesaj' => 'Kur, ' . date('d.m.Y', (int) strtotime($tarih)) . ' tarihli tanımlı kurdan ('
+                    . number_format($ref, 4, ',', '.') . ') %10\'dan fazla farklı. Kuru düzeltin ya da yöneticiye kestirin.'];
+            }
+        }
+        $kaynakBelge = (int) ($baslik['kaynak_belge_id'] ?? 0);
+        $kaynakSatirVar = array_filter($satirlar, static fn($s) => (int) ($s['kaynak_satir_id'] ?? 0) > 0) !== [];
+        if (($kaynakBelge > 0 || $kaynakSatirVar) && !in_array($t['tur'], [2, 3], true)) {
+            return ['ok' => false, 'mesaj' => 'Yalnız fatura ve irsaliye siparişe bağlanabilir.'];
+        }
+        if ($kaynakSatirVar && $kaynakBelge <= 0) {
+            return ['ok' => false, 'mesaj' => 'Sipariş satırı, siparişi belirtilmeden kullanılamaz.'];
         }
 
         try {
@@ -166,17 +208,33 @@ if (!function_exists('lumen_belge_kaydet')) {
             $depoId = (int) ($baslik['depo_id'] ?? 0);
             if ($depoId <= 0) {
                 $depoId = (int) $dbh->query('SELECT TOP 1 ID FROM dbo.LM_DEPO WHERE AKTIF = 1 ORDER BY NO')->fetchColumn();
+            } else {
+                $dq = $dbh->prepare('SELECT ID FROM dbo.LM_DEPO WHERE ID = :d AND AKTIF = 1');
+                $dq->execute([':d' => $depoId]);
+                $depoId = (int) $dq->fetchColumn();
             }
             if ($depoId <= 0) {
-                throw new RuntimeException('Depo tanımlı değil.');
+                $dbh->rollBack();
+                return ['ok' => false, 'mesaj' => 'Depo bulunamadı ya da pasif.'];
             }
+            // Siparişten belge: sipariş açık, aynı yönde ve aynı cariye ait olmalı.
+            if ($kaynakBelge > 0) {
+                $kb = $dbh->prepare('SELECT TUR, YON, DURUM, CARI_ID FROM dbo.LM_BELGE WITH (UPDLOCK) WHERE ID = :k');
+                $kb->execute([':k' => $kaynakBelge]);
+                $kbs = $kb->fetch(PDO::FETCH_ASSOC);
+                if (!$kbs || (int) $kbs['TUR'] !== 1 || (int) $kbs['DURUM'] === 9 || (int) $kbs['YON'] !== $t['yon'] || (int) $kbs['CARI_ID'] !== $cariId) {
+                    $dbh->rollBack();
+                    return ['ok' => false, 'mesaj' => 'Kaynak sipariş bulunamadı, iptal edilmiş ya da bu cariye ait değil.'];
+                }
+            }
+            $kullanilan = [];   // sipariş satırı → bu belgede toplam miktar (aynı satır tekrarlanırsa)
 
             // Satırları doğrula ve hesapla
             $hazir = [];
             $toplam = ['brut' => 0.0, 'iskonto' => 0.0, 'kdv' => 0.0, 'net' => 0.0, 'doviz' => 0.0];
             $stokSt = $dbh->prepare('SELECT S.ID, S.ANA_BIRIM_ID, S.STOK_TAKIPLI, S.AD FROM dbo.LM_STOK S WHERE S.ID = :s AND S.AKTIF = 1');
             $birimSt = $dbh->prepare('SELECT CARPAN FROM dbo.LM_STOK_BIRIM WHERE STOK_ID = :s AND BIRIM_ID = :b');
-            $kaynakSt = $dbh->prepare('SELECT S.ID, S.MIKTAR, S.TESLIM_MIKTAR, S.STOK_ID, S.BIRIM_ID, B.CARI_ID, B.TUR, B.YON, B.DURUM
+            $kaynakSt = $dbh->prepare('SELECT S.ID, S.BELGE_ID, S.MIKTAR, S.TESLIM_MIKTAR, S.STOK_ID, S.BIRIM_ID, B.CARI_ID, B.TUR, B.YON, B.DURUM
                                        FROM dbo.LM_BELGE_SATIR S WITH (UPDLOCK) JOIN dbo.LM_BELGE B ON B.ID = S.BELGE_ID WHERE S.ID = :k');
             foreach ($satirlar as $i => $s) {
                 $stokSt->execute([':s' => (int) ($s['stok_id'] ?? 0)]);
@@ -201,12 +259,13 @@ if (!function_exists('lumen_belge_kaydet')) {
                 if ($kaynak > 0) {
                     $kaynakSt->execute([':k' => $kaynak]);
                     $k = $kaynakSt->fetch(PDO::FETCH_ASSOC);
-                    if (!$k || (int) $k['TUR'] !== 1 || (int) $k['DURUM'] === 9 || (int) $k['YON'] !== $t['yon']
-                        || (int) $k['STOK_ID'] !== (int) $stok['ID'] || ($cariId > 0 && (int) $k['CARI_ID'] !== $cariId)) {
+                    if (!$k || (int) $k['BELGE_ID'] !== $kaynakBelge || (int) $k['TUR'] !== 1 || (int) $k['DURUM'] === 9 || (int) $k['YON'] !== $t['yon']
+                        || (int) $k['STOK_ID'] !== (int) $stok['ID'] || (int) $k['CARI_ID'] !== $cariId) {
                         $dbh->rollBack();
                         return ['ok' => false, 'mesaj' => 'Satır ' . ($i + 1) . ': kaynak sipariş satırı uygun değil.'];
                     }
-                    $kalan = (float) $k['MIKTAR'] - (float) $k['TESLIM_MIKTAR'];
+                    $kalan = (float) $k['MIKTAR'] - (float) $k['TESLIM_MIKTAR'] - ($kullanilan[$kaynak] ?? 0.0);
+                    $kullanilan[$kaynak] = ($kullanilan[$kaynak] ?? 0.0) + $miktar;
                     if ($miktar > $kalan + 0.000001) {
                         $dbh->rollBack();
                         return ['ok' => false, 'mesaj' => 'Satır ' . ($i + 1) . ': siparişte kalan miktardan (' . rtrim(rtrim(number_format($kalan, 3, ',', '.'), '0'), ',') . ') fazla.'];
@@ -299,7 +358,7 @@ if (!function_exists('lumen_belge_iptal')) {
     {
         try {
             $dbh->beginTransaction();
-            $st = $dbh->prepare('SELECT ID, TUR, DURUM, NO FROM dbo.LM_BELGE WITH (UPDLOCK, HOLDLOCK) WHERE ID = :id');
+            $st = $dbh->prepare('SELECT ID, TUR, DURUM, NO, TARIH FROM dbo.LM_BELGE WITH (UPDLOCK, HOLDLOCK) WHERE ID = :id');
             $st->execute([':id' => $belgeId]);
             $b = $st->fetch(PDO::FETCH_ASSOC);
             if (!$b || (int) $b['TUR'] === 1) {
@@ -310,6 +369,10 @@ if (!function_exists('lumen_belge_iptal')) {
                 $dbh->rollBack();
                 return ['ok' => false, 'mesaj' => 'Belge zaten iptal edilmiş.'];
             }
+            if (($kilit = lumen_donem_kilidi($dbh)) !== null && substr((string) $b['TARIH'], 0, 10) <= $kilit) {
+                $dbh->rollBack();
+                return ['ok' => false, 'mesaj' => 'Belge kilitli dönemde (' . date('d.m.Y', (int) strtotime($kilit)) . ' ve öncesi); iptal edilemez.'];
+            }
             // Bu belgeden türeyen geçerli bir belge varsa (ör. irsaliyeden fatura) önce o iptal edilmeli.
             $tur = $dbh->prepare('SELECT TOP 1 NO FROM dbo.LM_BELGE WHERE KAYNAK_BELGE_ID = :id AND DURUM <> 9');
             $tur->execute([':id' => $belgeId]);
@@ -317,8 +380,11 @@ if (!function_exists('lumen_belge_iptal')) {
                 $dbh->rollBack();
                 return ['ok' => false, 'mesaj' => "Bu belgeden kesilmiş {$bagli} önce iptal edilmeli."];
             }
-            $dbh->prepare('UPDATE K SET TESLIM_MIKTAR = CASE WHEN K.TESLIM_MIKTAR - S.MIKTAR < 0 THEN 0 ELSE K.TESLIM_MIKTAR - S.MIKTAR END, KAPALI = 0
-                           FROM dbo.LM_BELGE_SATIR K JOIN dbo.LM_BELGE_SATIR S ON S.KAYNAK_SATIR_ID = K.ID WHERE S.BELGE_ID = :id')
+            // Aynı sipariş satırına birden çok belge satırı bağlı olabilir: toplam miktar düşülür.
+            $dbh->prepare('UPDATE K SET TESLIM_MIKTAR = CASE WHEN K.TESLIM_MIKTAR - S.M < 0 THEN 0 ELSE K.TESLIM_MIKTAR - S.M END, KAPALI = 0
+                           FROM dbo.LM_BELGE_SATIR K
+                           JOIN (SELECT KAYNAK_SATIR_ID, SUM(MIKTAR) AS M FROM dbo.LM_BELGE_SATIR WHERE BELGE_ID = :id AND KAYNAK_SATIR_ID IS NOT NULL
+                                 GROUP BY KAYNAK_SATIR_ID) S ON S.KAYNAK_SATIR_ID = K.ID')
                 ->execute([':id' => $belgeId]);
             $dbh->prepare('DELETE FROM dbo.LM_STOK_HAREKET WHERE BELGE_ID = :id')->execute([':id' => $belgeId]);
             $dbh->prepare('DELETE FROM dbo.LM_CARI_HAREKET WHERE BELGE_ID = :id')->execute([':id' => $belgeId]);

@@ -154,7 +154,9 @@ if (!function_exists('logo_aktar')) {
                 : '';
             $personel = [];
             $kodlar = [];
-            foreach ($k->query("SELECT S.LOGICALREF, S.CODE, S.DEFINITION_, S.ACTIVE, " . $kol('LG_SLSMAN', 'S', 'SPECODE', 'NULL') . ' AS SPECODE, '
+            $firmaKolonu = in_array('FIRMNR', $kolonlar('LG_SLSMAN'), true);
+            foreach ($k->query("SELECT S.LOGICALREF, S.CODE, S.DEFINITION_, S.ACTIVE, " . ($firmaKolonu ? 'S.FIRMNR' : $firma) . ' AS FIRMNR, '
+                    . $kol('LG_SLSMAN', 'S', 'SPECODE', 'NULL') . ' AS SPECODE, '
                     . $kol('LG_SLSMAN', 'S', 'CYPHCODE', 'NULL') . " AS CYPHCODE FROM LG_SLSMAN S {$slsKosul} ORDER BY S.LOGICALREF") as $r) {
                 $kod = $metin($r['CODE'], 40) ?? ('P' . $r['LOGICALREF']);
                 if (isset($kodlar[mb_strtoupper($kod)])) {
@@ -164,7 +166,8 @@ if (!function_exists('logo_aktar')) {
                 $kodlar[mb_strtoupper($kod)] = true;
                 $ambar = trim((string) $r['SPECODE']);
                 $personel[] = ['ID' => (int) $r['LOGICALREF'], 'KOD' => $kod, 'AD' => $metin($r['DEFINITION_'], 120) ?? $kod,
-                    'AKTIF' => (int) $r['ACTIVE'] === 0 ? 1 : 0,
+                    // Başka firmanın kullanıcısı (yalnız yetki kaydı için alınır) LOGO'da bu firmaya giremezdi: pasif gelir.
+                    'AKTIF' => (int) $r['ACTIVE'] === 0 && (int) $r['FIRMNR'] === $firma ? 1 : 0,
                     'DEPO_ID' => ctype_digit($ambar) && isset($depolar[(int) $ambar]) ? (int) $depolar[(int) $ambar] : null,
                     'YETKI_KODU' => $metin($r['CYPHCODE'], 20)];
             }

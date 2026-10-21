@@ -212,7 +212,8 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
                                 <td class="sag"><?= $h($boyut($y['boyut'])) ?></td>
                                 <td class="sag" style="white-space:nowrap">
                                     <a class="btn btn-hat btn-kucuk" href="?indir=<?= $h(rawurlencode($y['ad'])) ?>"><i class="fa-solid fa-download"></i> İndir</a>
-                                    <button type="button" class="btn btn-hat btn-kucuk geri-yukle" data-ad="<?= $h($y['ad']) ?>" data-tarih="<?= $h(date('d.m.Y H:i', $y['tarih'])) ?>"><i class="fa-solid fa-clock-rotate-left"></i> Geri yükle</button>
+                                    <button type="button" class="btn btn-hat btn-kucuk geri-yukle" data-ad="<?= $h($y['ad']) ?>" data-tarih="<?= $h(date('d.m.Y H:i', $y['tarih'])) ?>"
+                                        data-vt="<?= $h($y['veritabani']) ?>" data-farkli="<?= $y['veritabani'] !== $veritabani ? '1' : '0' ?>"><i class="fa-solid fa-clock-rotate-left"></i> Geri yükle</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -229,7 +230,12 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
                 <?= csrf_field() ?><input type="hidden" name="islem" value="ayar">
                 <div style="display:grid; gap:14px">
                     <label class="satir" style="font-weight:600"><input type="checkbox" name="otomatik" <?= $ayar['otomatik'] ? 'checked' : '' ?>>
-                        Her gün otomatik yedek al <span class="soluk">(günün ilk kullanımında, arka planda<?= $sonOto !== '' ? ' · son: ' . $h(date('d.m.Y', strtotime(trim($sonOto)))) : '' ?>)</span></label>
+                        Her gün otomatik yedek al <span class="soluk">(günün ilk kullanımında, arka planda<?php
+                        [$sonTarih, $sonDurum] = array_pad(explode(' ', trim($sonOto), 2), 2, '');
+                        if ($sonTarih !== '' && strtotime($sonTarih)): ?> · son: <?= $h(date('d.m.Y', (int) strtotime($sonTarih))) ?><?php endif; ?>)</span>
+                        <?php if ($sonDurum === 'hata'): ?><span class="rozet beta">son otomatik yedek başarısız — klasörü kontrol edin</span><?php endif; ?></label>
+                    <p class="soluk">IIS ve Apache (mod_php) sunucularında yedeği tetikleyen sayfa yedek bitene kadar bekler; büyük veritabanında
+                        bunun yerine Windows Görev Zamanlayıcı ile her gece <code>php scripts/yedek_al.php</code> çalıştırıp otomatik yedeği kapatın.</p>
                     <label class="alan">Yedek klasörü
                         <input type="text" name="klasor" value="<?= $h($ayar['klasor']) ?>" placeholder="<?= $h(dirname(__DIR__) . DIRECTORY_SEPARATOR . 'database' . DIRECTORY_SEPARATOR . 'yedekler') ?>">
                         <span class="soluk">Boş: uygulama klasöründe. Başka bir disk ya da ağ klasörü (ör. <code>D:\Yedekler\Lumen</code>) önerilir.</span></label>
@@ -244,8 +250,11 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
             <form method="post">
                 <?= csrf_field() ?><input type="hidden" name="islem" value="geri_yukle"><input type="hidden" name="ad" id="gyAd">
                 <h3>Yedeği geri yükle</h3>
-                <p class="aciklama" style="margin-bottom:12px"><b id="gyTarih"></b> tarihli yedeğe dönülecek. Bu yedekten sonra girilen
-                    tüm kayıtlar kaybolur. İşlemden önce mevcut durumun yedeği otomatik alınır.</p>
+                <p class="aciklama" style="margin-bottom:12px"><b id="gyTarih"></b> tarihli yedeğe dönülecek (veritabanı: <b id="gyVt"></b>).
+                    Bu yedekten sonra girilen tüm kayıtlar kaybolur; parolalar ve yetkiler de yedek anındaki haline döner, herkes
+                    yeniden giriş yapar. İşlemden önce mevcut durumun yedeği otomatik alınır.</p>
+                <div class="mesaj error" id="gyFarkli" style="display:none; margin-bottom:12px"><i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Bu yedek <b>başka bir veritabanından</b> alınmış. Yalnız ne yaptığınızdan eminseniz devam edin.</span></div>
                 <label class="alan">Onaylamak için <b>GERİ YÜKLE</b> yazın <input type="text" name="onay" autocomplete="off" required></label>
                 <div class="satir" style="justify-content:flex-end; margin-top:16px">
                     <button type="button" class="btn btn-hat" onclick="this.closest('dialog').close()">Vazgeç</button>
@@ -258,6 +267,8 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
                 b.addEventListener('click', function () {
                     document.getElementById('gyAd').value = b.dataset.ad;
                     document.getElementById('gyTarih').textContent = b.dataset.tarih;
+                    document.getElementById('gyVt').textContent = b.dataset.vt;
+                    document.getElementById('gyFarkli').style.display = b.dataset.farkli === '1' ? '' : 'none';
                     document.getElementById('geriYukleDlg').showModal();
                 });
             });

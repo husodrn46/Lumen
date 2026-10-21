@@ -208,15 +208,17 @@ if (!function_exists('lumen_insert_kimlik')) {
             throw new InvalidArgumentException('lumen_insert_kimlik: geçersiz kimlik kolonu');
         }
         // Bağımsız modda LOGO uyumlu görünüme (dbo.LMV_…) ekleme INSTEAD OF tetikleyicisiyle LM_
-        // tablosuna gider; OUTPUT görünümün (boş) kimliğini verir. Tetikleyicinin eklediği satırın
-        // kimliği aynı oturumda @@IDENTITY'dedir (tetikleyici yalnız tek bir kimlikli tabloya yazar).
+        // tablosuna gider; OUTPUT görünümün (boş) kimliğini verir. Tetikleyici eklediği satırın
+        // kimliğini oturum bağlamına (lumen_yeni_id) yazar; önce sıfırlanır ki havuzdaki bağlantıda
+        // kalmış eski değer ya da hiç satır eklenmemesi yanlış kimlik olarak dönmesin.
         if (str_contains($insertSql, 'dbo.LMV_') && function_exists('lumen_bagimsiz_mi') && lumen_bagimsiz_mi()) {
-            $stmt = $dbh->prepare("SET NOCOUNT ON;\n{$insertSql};\nSELECT CAST(@@IDENTITY AS INT);");
+            $stmt = $dbh->prepare("SET NOCOUNT ON;\nEXEC sp_set_session_context N'lumen_yeni_id', NULL;\n{$insertSql};\n"
+                . "SELECT CAST(SESSION_CONTEXT(N'lumen_yeni_id') AS INT);");
             $stmt->execute($parametreler);
             $id = (int) $stmt->fetchColumn();
             $stmt->closeCursor();
             if ($id <= 0) {
-                throw new RuntimeException('lumen_insert_kimlik: yeni kayıt kimliği alınamadı (görünüm)');
+                throw new RuntimeException('lumen_insert_kimlik: kayıt eklenmedi (görünüm)');
             }
             return $id;
         }

@@ -82,7 +82,7 @@ if (!function_exists('lumen_belge_yazdir_html')) {
      * Belgenin yazdırılabilir HTML'i. $pdf: dompdf için (yazı tipi DejaVu, logo gömülü).
      * Belge yoksa null.
      */
-    function lumen_belge_yazdir_html(PDO $dbh, int $id, bool $pdf = false): ?string
+    function lumen_belge_yazdir_html(PDO $dbh, int $id, bool $pdf = false, bool $fiyatGoster = true): ?string
     {
         $st = $dbh->prepare("SELECT B.*, C.KOD AS CARI_KOD, C.UNVAN, C.VERGI_NO, C.VERGI_DAIRESI, C.TC_NO, C.ADRES, C.IL, C.ILCE, C.TELEFON,
                                     D.AD AS DEPO_AD, KB.NO AS KAYNAK_NO, KB.TARIH AS KAYNAK_TARIH
@@ -104,7 +104,8 @@ if (!function_exists('lumen_belge_yazdir_html')) {
         $kod = lumen_belge_tur_kodu((int) $b['TUR'], (int) $b['YON']);
         $tur = $kod !== null ? lumen_belge_turleri()[$kod] : ['ad' => 'Belge', 'cari' => 0];
         $irsaliye = (int) $b['TUR'] === 2;
-        $fiyatli = !$irsaliye && (int) $b['TUR'] !== 6;
+        // Fiyatsız çıktı: irsaliye, sayım ve fiyat görme yetkisi olmayan (depo) kullanıcı
+        $fiyatli = $fiyatGoster && !$irsaliye && (int) $b['TUR'] !== 6;
         $firma = lumen_firma_bilgileri($dbh);
         $pb = (string) $b['PARA_BIRIMI'];
         $dovizli = $pb !== 'TRY';

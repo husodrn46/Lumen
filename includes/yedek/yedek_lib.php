@@ -24,6 +24,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../veri/kaynak.php';
 
 const LUMEN_YEDEK_UZANTI = '.lumen.gz';
+const LUMEN_YEDEK_SATIR_SINIRI = 64 * 1024 * 1024;
 
 if (!function_exists('lumen_yedek_ayar')) {
     /** @return array{klasor:string, otomatik:bool, saklama:int} */
@@ -43,6 +44,25 @@ if (!function_exists('lumen_yedek_ayar_kaydet')) {
     {
         $klasor = trim($klasor);
         if ($klasor !== '') {
+            if (!preg_match('#^(/|[A-Za-z]:[\\\\/]|\\\\\\\\)#', $klasor) || preg_match('#(^|[\\\\/])\.\.([\\\\/]|$)#', $klasor)) {
+                return 'Yedek klasörü tam yol olmalı (ör. D:\\Yedekler\\Lumen ya da /var/yedek/lumen).';
+            }
+            // Yedekler parola özetleri ve bütün iş verisini içerir: web klasörünün içine (veritabanı
+            // klasörü dışında) yazılırsa tarayıcıdan indirilebilir hale gelirdi. Klasör henüz yoksa
+            // var olan en yakın üst klasörün gerçek yolu denetlenir (oluşturmadan önce).
+            $ust = $klasor;
+            $ek = '';
+            while (!is_dir($ust) && dirname($ust) !== $ust) {
+                $ek = DIRECTORY_SEPARATOR . basename($ust) . $ek;
+                $ust = dirname($ust);
+            }
+            $gercek = (string) (realpath($ust) ?: $ust) . $ek;
+            $kok = (string) realpath(dirname(__DIR__, 2));
+            $izinli = $kok . DIRECTORY_SEPARATOR . 'database';
+            $icinde = static fn(string $a, string $b): bool => strncasecmp(rtrim($a, '/\\') . DIRECTORY_SEPARATOR, $b . DIRECTORY_SEPARATOR, strlen($b) + 1) === 0;
+            if ($icinde($gercek, $kok) && !$icinde($gercek, $izinli)) {
+                return 'Yedek klasörü uygulama (web) klasörünün içinde olamaz; başka bir disk ya da klasör seçin.';
+            }
             if (!is_dir($klasor) && !@mkdir($klasor, 0750, true)) {
                 return 'Klasör oluşturulamadı: ' . $klasor;
             }
@@ -87,7 +107,14 @@ if (!function_exists('lumen_yedek_listesi')) {
                 continue;
             }
             preg_match('/^lumen_[0-9]{8}_[0-9]{6}_([a-z_]+)_/', $ad, $m);
-            $liste[] = ['ad' => $ad, 'boyut' => (int) filesize($yol), 'tarih' => (int) filemtime($yol), 'tur' => $m[1] ?? ''];
+            // Başlık satırı (hangi veritabanından, hangi modda alındı) onay ekranında gösterilir.
+            $baslik = [];
+            if (($gz = @gzopen($yol, 'rb')) !== false) {
+                $baslik = json_decode((string) gzgets($gz, 4096), true) ?: [];
+                gzclose($gz);
+            }
+            $liste[] = ['ad' => $ad, 'boyut' => (int) filesize($yol), 'tarih' => (int) filemtime($yol), 'tur' => $m[1] ?? '',
+                        'veritabani' => (string) ($baslik['veritabani'] ?? '?'), 'mod' => (string) ($baslik['mod'] ?? '?')];
         }
         usort($liste, static fn($a, $b) => strcmp($b['ad'], $a['ad']));
         return $liste;
@@ -173,6 +200,7 @@ if (!function_exists('lumen_yedek_al')) {
             if (!@rename($gecici, $klasor . '/' . $ad)) {
                 throw new RuntimeException('dosya adlandırılamadı');
             }
+            @chmod($klasor . '/' . $ad, 0600);   // yalnız sunucu hesabı okuyabilsin
         } catch (Throwable $e) {
             @gzclose($gz);
             @unlink($gecici);
@@ -190,9 +218,16 @@ if (!function_exists('lumen_yedek_temizle')) {
     function lumen_yedek_temizle(?string $klasor = null): void
     {
         $saklama = lumen_yedek_ayar()['saklama'];
+        $klasor ??= lumen_yedek_klasoru();
         $liste = lumen_yedek_listesi();
         foreach (array_slice($liste, $saklama) as $eski) {
-            @unlink(($klasor ?? lumen_yedek_klasoru()) . '/' . $eski['ad']);
+            @unlink($klasor . '/' . $eski['ad']);
+        }
+        // Yarıda kalmış (zaman aşımı, kapanma) geçici yedek dosyaları bir gün sonra silinir.
+        foreach (glob($klasor . '/.lumen_*' . LUMEN_YEDEK_UZANTI . '.yaziliyor') ?: [] as $yarim) {
+            if (filemtime($yarim) < time() - 86400) {
+                @unlink($yarim);
+            }
         }
     }
 }
@@ -208,13 +243,18 @@ if (!function_exists('lumen_yedek_dogrula')) {
         if ($gz === false) {
             return 'Dosya açılamadı.';
         }
-        $baslik = json_decode((string) gzgets($gz), true);
+        $baslik = json_decode((string) gzgets($gz, 4096), true);
         if (!is_array($baslik) || ($baslik['lumen_yedek'] ?? null) !== 1) {
             gzclose($gz);
             return 'Bu bir Lumen yedeği değil.';
         }
         $son = null;
-        while (($l = gzgets($gz)) !== false) {
+        // Satır başına üst sınır: tek dev satırlı (sıkıştırma bombası) dosya belleği tüketmesin.
+        while (($l = gzgets($gz, LUMEN_YEDEK_SATIR_SINIRI)) !== false) {
+            if (strlen($l) >= LUMEN_YEDEK_SATIR_SINIRI - 1 && !str_ends_with($l, "\n")) {
+                gzclose($gz);
+                return 'Yedek dosyası geçersiz (çok uzun satır).';
+            }
             $son = $l;
         }
         gzclose($gz);
@@ -275,7 +315,7 @@ if (!function_exists('lumen_yedek_geri_yukle')) {
                 $tampon = [];
             };
             $secim = [];
-            while (($l = gzgets($gz)) !== false) {
+            while (($l = gzgets($gz, LUMEN_YEDEK_SATIR_SINIRI)) !== false) {
                 $v = json_decode($l, true);
                 if (!is_array($v)) {
                     throw new RuntimeException('bozuk satır');
@@ -343,8 +383,19 @@ if (!function_exists('lumen_yedek_geri_yukle')) {
             return ['ok' => false, 'mesaj' => 'Geri yükleme yapılamadı, hiçbir şey değişmedi: ' . $e->getMessage()];
         }
         gzclose($gz);
-        return ['ok' => true, 'mesaj' => 'Yedek geri yüklendi (' . count($dokunulan) . ' tablo). Önceki durumun yedeği: ' . $once['ad'],
-                'onceki' => $once['ad']];
+        // Yedekle birlikte eski "beni hatırla"/API belirteçleri ve kapatılmış oturumlar da geri
+        // gelmiş olabilir: hepsi geçersiz sayılır, herkes (yedekteki parolasıyla) yeniden girer.
+        foreach (["DELETE FROM dbo.M_REMEMBER_TOKEN", "UPDATE dbo.M_API_TOKEN SET AKTIF = 0 WHERE AKTIF = 1",
+                  "DELETE FROM dbo.M_OTURUM_KAPAT",
+                  "INSERT INTO dbo.M_OTURUM_KAPAT (KULLANICI_ID, KAPATMA_TS) SELECT PERSONEL, GETDATE() FROM dbo.M_P_YETKI"] as $q) {
+            try {
+                $dbh->exec($q);
+            } catch (Throwable $e) {
+                error_log('lumen_yedek_geri_yukle oturumlar: ' . $e->getMessage());
+            }
+        }
+        return ['ok' => true, 'mesaj' => 'Yedek geri yüklendi (' . count($dokunulan) . ' tablo). Bütün oturumlar kapatıldı; herkes yeniden giriş yapmalı '
+                . '(parolalar yedek anındaki haline döndü). Önceki durumun yedeği: ' . $once['ad'], 'onceki' => $once['ad']];
     }
 }
 
@@ -360,7 +411,7 @@ if (!function_exists('lumen_otomatik_yedek')) {
         }
         $damga = dirname(__DIR__, 2) . '/database/yedek_son_otomatik.txt';
         $bugun = date('Y-m-d');
-        if (is_file($damga) && trim((string) @file_get_contents($damga)) === $bugun) {
+        if (is_file($damga) && str_starts_with(trim((string) @file_get_contents($damga)), $bugun)) {
             return;
         }
         register_shutdown_function(static function () use ($dbh, $damga, $bugun): void {
@@ -369,8 +420,14 @@ if (!function_exists('lumen_otomatik_yedek')) {
                 return; // başka istek alıyor
             }
             try {
-                if (is_file($damga) && trim((string) @file_get_contents($damga)) === $bugun) {
+                if (is_file($damga) && str_starts_with(trim((string) @file_get_contents($damga)), $bugun)) {
                     return;
+                }
+                // Gün içinde bir kez denenir: başarısız olsa da (disk dolu, ağ klasörü yok) her
+                // istekte yeniden tam yedek başlamasın. Sonuç damgada ve hata günlüğünde.
+                @file_put_contents($damga, $bugun . ' deneniyor');
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    session_write_close();   // kullanıcının diğer sekmeleri yedek bitene dek kilitlenmesin
                 }
                 if (function_exists('fastcgi_finish_request')) {
                     fastcgi_finish_request();
@@ -378,9 +435,8 @@ if (!function_exists('lumen_otomatik_yedek')) {
                 ignore_user_abort(true);
                 @set_time_limit(600);
                 $r = lumen_yedek_al($dbh, 'otomatik');
-                if ($r['ok']) {
-                    @file_put_contents($damga, $bugun);
-                } else {
+                @file_put_contents($damga, $bugun . ($r['ok'] ? '' : ' hata'));
+                if (!$r['ok']) {
                     error_log('otomatik yedek: ' . $r['mesaj']);
                 }
             } finally {

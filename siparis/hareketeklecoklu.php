@@ -29,6 +29,11 @@ if (isset($_POST['cstok_miktari'])) {
   $stmtCari = $dbh->prepare("SELECT CLIENTREF, TRCURR FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :stokhareket");
   $stmtCari->execute([':stokhareket' => $stokhareket]);
   $listcari = $stmtCari->fetch(PDO::FETCH_ASSOC);
+  // Satır yalnız gerçek bir SİPARİŞE eklenir (görünürlük denetimi irsaliye/fatura kimliğini de kabul eder).
+  if ($listcari === false) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+  }
 
   // Toplu ekleme satırları TL (TRCURR=0) yazar; dövizli fişte kur/döviz bilgisi
   // kaybolur ve fiş karışık para birimli olur. Dövizli fişe satırlar döviz

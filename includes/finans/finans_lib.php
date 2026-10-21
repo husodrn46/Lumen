@@ -58,7 +58,10 @@ if (!function_exists('lumen_finans_fis_kaydet')) {
         if ($t['karsi'] && ($karsi <= 0 || $karsi === $hesap)) {
             return ['ok' => false, 'mesaj' => 'Virman için farklı bir karşı hesap seçin.'];
         }
-        $tarih = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($v['tarih'] ?? '')) === 1 ? (string) $v['tarih'] : date('Y-m-d');
+        $tarih = trim((string) ($v['tarih'] ?? '')) !== '' ? (string) $v['tarih'] : date('Y-m-d');
+        if (($th = lumen_tarih_hatasi($dbh, $tarih)) !== null) {
+            return ['ok' => false, 'mesaj' => $th];
+        }
         $aciklama = mb_substr(trim((string) ($v['aciklama'] ?? '')), 0, 400);
         $istek = preg_match('/^[a-f0-9]{32}$/', (string) ($v['istek_id'] ?? '')) === 1 ? (string) $v['istek_id'] : null;
 
@@ -74,15 +77,22 @@ if (!function_exists('lumen_finans_fis_kaydet')) {
             }
             $h = $dbh->prepare('SELECT ID, TUR, PARA_BIRIMI FROM dbo.LM_FINANS_HESAP WHERE ID = :h AND AKTIF = 1');
             $h->execute([':h' => $hesap]);
-            if (!$h->fetch()) {
+            $hs = $h->fetch(PDO::FETCH_ASSOC);
+            if (!$hs) {
                 $dbh->rollBack();
                 return ['ok' => false, 'mesaj' => 'Kasa/banka hesabı bulunamadı.'];
             }
+            // Fiş tutarları TL'dir: dövizli hesaba TL tutar yazılmasın.
+            if ($hs['PARA_BIRIMI'] !== 'TRY') {
+                $dbh->rollBack();
+                return ['ok' => false, 'mesaj' => 'Dövizli hesaplarla işlem bu sürümde yapılamaz (yalnız TL hesaplar).'];
+            }
             if ($t['karsi']) {
                 $h->execute([':h' => $karsi]);
-                if (!$h->fetch()) {
+                $ks = $h->fetch(PDO::FETCH_ASSOC);
+                if (!$ks || $ks['PARA_BIRIMI'] !== $hs['PARA_BIRIMI']) {
                     $dbh->rollBack();
-                    return ['ok' => false, 'mesaj' => 'Karşı hesap bulunamadı.'];
+                    return ['ok' => false, 'mesaj' => 'Karşı hesap bulunamadı ya da para birimi farklı.'];
                 }
             }
             if ($t['cari']) {
@@ -126,16 +136,25 @@ if (!function_exists('lumen_finans_fis_kaydet')) {
 
 if (!function_exists('lumen_finans_fis_iptal')) {
     /** @return array{ok:bool, mesaj:string} */
-    function lumen_finans_fis_iptal(PDO $dbh, int $fisId, int $kullanici): array
+    function lumen_finans_fis_iptal(PDO $dbh, int $fisId, int $kullanici, bool $yonetici = false): array
     {
         try {
             $dbh->beginTransaction();
-            $st = $dbh->prepare('SELECT NO, DURUM FROM dbo.LM_FINANS_FIS WITH (UPDLOCK, HOLDLOCK) WHERE ID = :id');
+            $st = $dbh->prepare('SELECT NO, DURUM, TUR, TARIH FROM dbo.LM_FINANS_FIS WITH (UPDLOCK, HOLDLOCK) WHERE ID = :id');
             $st->execute([':id' => $fisId]);
             $f = $st->fetch(PDO::FETCH_ASSOC);
             if (!$f || (int) $f['DURUM'] === 9) {
                 $dbh->rollBack();
                 return ['ok' => false, 'mesaj' => $f ? 'Fiş zaten iptal edilmiş.' : 'Fiş bulunamadı.'];
+            }
+            // Açılış fişi ekrandan yeniden kesilemez: iptali yalnız yöneticiye.
+            if ((int) $f['TUR'] === 5 && !$yonetici) {
+                $dbh->rollBack();
+                return ['ok' => false, 'mesaj' => 'Açılış fişini yalnız yönetici iptal edebilir.'];
+            }
+            if (($kilit = lumen_donem_kilidi($dbh)) !== null && substr((string) $f['TARIH'], 0, 10) <= $kilit) {
+                $dbh->rollBack();
+                return ['ok' => false, 'mesaj' => 'Fiş kilitli dönemde; iptal edilemez.'];
             }
             $dbh->prepare('DELETE FROM dbo.LM_FINANS_HAREKET WHERE FIS_ID = :id')->execute([':id' => $fisId]);
             $dbh->prepare('DELETE FROM dbo.LM_CARI_HAREKET WHERE FINANS_FIS_ID = :id')->execute([':id' => $fisId]);

@@ -42,7 +42,9 @@ BEGIN
     SET NOCOUNT ON;
     UPDATE S SET
         KOD = I.CODE, AD = I.NAME, GRUP = I.STGRPCODE, OZEL_KOD = I.SPECODE,
-        KDV_ORANI = COALESCE(I.SELLVAT, I.VAT, S.KDV_ORANI),
+        -- Hangi KDV kolonu güncellendiyse o (yalnız VAT güncellemesi eskiden yok sayılıyordu)
+        KDV_ORANI = CASE WHEN UPDATE(SELLVAT) AND I.SELLVAT IS NOT NULL THEN I.SELLVAT
+                         WHEN UPDATE(VAT) AND I.VAT IS NOT NULL THEN I.VAT ELSE S.KDV_ORANI END,
         AKTIF = CASE WHEN I.ACTIVE = 0 THEN 1 ELSE 0 END,
         GUNCELLEME = SYSDATETIME()
     FROM dbo.LM_STOK S JOIN inserted I ON I.LOGICALREF = S.ID;
@@ -110,6 +112,11 @@ BEGIN
     JOIN dbo.LM_STOK S ON S.ID = I.ITEMREF
     LEFT JOIN dbo.LM_STOK_BIRIM SB ON SB.STOK_ID = I.ITEMREF
          AND SB.ID = COALESCE(NULLIF(I.UNITLINEREF, 0), NULLIF(I.ITMUNITAREF, 0));
+    IF @@ROWCOUNT > 0
+    BEGIN
+        DECLARE @yeni INT = CAST(SCOPE_IDENTITY() AS INT);
+        EXEC sp_set_session_context N'lumen_yeni_id', @yeni;   -- lumen_insert_kimlik okur
+    END;
 END;
 GO
 
@@ -175,6 +182,11 @@ BEGIN
     FROM inserted I
     JOIN dbo.LM_STOK S ON S.ID = I.CARDREF
     LEFT JOIN dbo.LM_STOK_BIRIM SB ON SB.STOK_ID = I.CARDREF AND SB.ID = I.UOMREF;
+    IF @@ROWCOUNT > 0
+    BEGIN
+        DECLARE @yeni INT = CAST(SCOPE_IDENTITY() AS INT);
+        EXEC sp_set_session_context N'lumen_yeni_id', @yeni;   -- lumen_insert_kimlik okur
+    END;
 END;
 GO
 

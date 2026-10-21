@@ -12,8 +12,14 @@ include_once __DIR__ . '/../ayr.php';
 require_once __DIR__ . '/../kontrol.php';
 
 header('Content-Type: application/json; charset=utf-8');
+if (!lumen_bagimsiz_mi()) {   // belge modülü yalnız bağımsız modda
+    http_response_code(501);
+    echo json_encode([]);
+    exit;
+}
 // Fiyatlar yalnız fatura yetkilisine; depo personeli (M15) üretim/sayım için ürün arar.
 $fiyatGorur = (int) m_p_yetki($terminalkullanici, 'M31') === 1;
+$miktarGorur = (int) m_p_yetki($terminalkullanici, 'ST1') === 1 || (int) $yetkidurum === 0;
 if (!$fiyatGorur && (int) m_p_yetki($terminalkullanici, 'M15') !== 1) {
     http_response_code(403);
     echo json_encode([]);
@@ -45,7 +51,7 @@ foreach ($urunler as $u) {
     $birimSt->execute([':s' => (int) $u['ID'], ':ana' => (int) $u['ANA_BIRIM_ID']]);
     $cikti[] = [
         'id' => (int) $u['ID'], 'kod' => (string) $u['KOD'], 'ad' => (string) $u['AD'],
-        'kdv' => (float) $u['KDV_ORANI'], 'fiyat' => $fiyatGorur ? (float) ($u['FIYAT'] ?? 0) : 0.0, 'pb' => (string) ($u['FIYAT_PB'] ?? 'TRY'), 'eldeki' => (float) $u['ELDEKI'],
+        'kdv' => (float) $u['KDV_ORANI'], 'fiyat' => $fiyatGorur ? (float) ($u['FIYAT'] ?? 0) : 0.0, 'pb' => (string) ($u['FIYAT_PB'] ?? 'TRY'), 'eldeki' => $miktarGorur ? (float) $u['ELDEKI'] : null,
         'birimler' => array_map(static fn(array $b): array => ['id' => (int) $b['BIRIM_ID'], 'kod' => (string) $b['KOD'],
             'carpan' => (float) $b['CARPAN']], $birimSt->fetchAll(PDO::FETCH_ASSOC)),
     ];

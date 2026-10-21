@@ -18,6 +18,13 @@ if (!is_dir($klasor)) {
     @mkdir($klasor, 0750, true);
 }
 $turAdi = ['cari' => 'Cari kartları', 'stok' => 'Stok kartları'];
+// Onaylanmadan bırakılmış (oturumu kapanmış, tarayıcısı kapanmış) yüklemeler bir saat sonra silinir:
+// cari ve iletişim bilgileri sunucuda birikmesin.
+foreach (glob($klasor . '/*.{xlsx,xls,csv}', GLOB_BRACE) ?: [] as $eski) {
+    if (filemtime($eski) < time() - 3600) {
+        @unlink($eski);
+    }
+}
 
 if (isset($_GET['sablon']) && isset($turAdi[(string) $_GET['sablon']])) {
     $tur = (string) $_GET['sablon'];
@@ -51,11 +58,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!in_array($uzanti, ['xlsx', 'xls', 'csv'], true)) {
             $hata = 'Yalnız .xlsx, .xls ya da .csv dosyası yükleyin.';
         } else {
+            // Önceki onaylanmamış yükleme varsa silinir (yeni yükleme onun yerini alır).
+            if (is_array($_SESSION['ice_aktar'] ?? null)) {
+                @unlink("{$klasor}/{$_SESSION['ice_aktar']['anahtar']}.{$_SESSION['ice_aktar']['uzanti']}");
+                unset($_SESSION['ice_aktar']);
+            }
             $anahtar = bin2hex(random_bytes(12));
             $yol = "{$klasor}/{$anahtar}.{$uzanti}";
-            move_uploaded_file((string) $f['tmp_name'], $yol);
-            $_SESSION['ice_aktar'] = ['anahtar' => $anahtar, 'uzanti' => $uzanti, 'tur' => $tur, 'ad' => (string) $f['name'],
-                'guncelle' => isset($_POST['guncelle']), 'tarih' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_POST['tarih'] ?? '')) ? (string) $_POST['tarih'] : date('Y-m-d')];
+            if (!move_uploaded_file((string) $f['tmp_name'], $yol)) {
+                $hata = 'Dosya kaydedilemedi.';
+            } else {
+                $_SESSION['ice_aktar'] = ['anahtar' => $anahtar, 'uzanti' => $uzanti, 'tur' => $tur, 'ad' => (string) $f['name'],
+                    'guncelle' => isset($_POST['guncelle']), 'tarih' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_POST['tarih'] ?? '')) ? (string) $_POST['tarih'] : date('Y-m-d')];
+            }
         }
     } elseif ($islem === 'onayla' || $islem === 'vazgec') {
         $o = $_SESSION['ice_aktar'] ?? null;
@@ -86,6 +101,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Bekleyen önizleme (yüklemeden hemen sonra)
 $o = $_SESSION['ice_aktar'] ?? null;
+if (is_array($o) && $sonuc === null && $hata === '') {
+    // Okuma beklenmedik biçimde çökerse (bozuk dosya) önizleme her açılışta tekrar çökmesin:
+    // deneme sayısı oturuma hemen yazılır, iki başarısız denemeden sonra yükleme bırakılır.
+    $_SESSION['ice_aktar']['deneme'] = (int) ($o['deneme'] ?? 0) + 1;
+    if ($_SESSION['ice_aktar']['deneme'] > 2) {
+        @unlink("{$klasor}/{$o['anahtar']}.{$o['uzanti']}");
+        unset($_SESSION['ice_aktar']);
+        $o = null;
+        $hata = 'Dosya okunamadı; şablondaki kolonları kullanarak yeniden kaydedin.';
+    }
+    session_write_close();
+    @session_start();
+}
 if (is_array($o) && $sonuc === null && $hata === '') {
     try {
         $okunan = lumen_excel_oku("{$klasor}/{$o['anahtar']}.{$o['uzanti']}", $o['tur'], $o['ad']);

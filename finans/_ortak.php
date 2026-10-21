@@ -15,6 +15,12 @@ if (!isset($terminalkullanici, $dbh)) {
 
 require_once __DIR__ . '/../includes/finans/finans_lib.php';
 
+// İkinci savunma hattı: bu modül yalnız bağımsız modda çalışır (modül korumasından bağımsız).
+if (!lumen_bagimsiz_mi()) {
+    lumen_hata_sayfasi('Modül kullanılamıyor', 'Bu ekran yalnız bağımsız modda (Lumen veritabanı) kullanılır.', 501, 'fa-person-digging');
+}
+
+
 if ((int) m_p_yetki($terminalkullanici, 'M32') !== 1) {
     lumen_hata_sayfasi('Kasa/banka yetkiniz yok', 'Bu ekran için M32 (Kasa ve Banka İşlemleri) yetkisi gerekir.', 403, 'fa-lock');
 }

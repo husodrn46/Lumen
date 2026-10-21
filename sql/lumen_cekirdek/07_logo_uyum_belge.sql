@@ -145,6 +145,11 @@ BEGIN
         NULLIF(I.CAPIBLOCK_CREATEDBY, 0),
         ISNULL(I.CAPIBLOCK_CREADEDDATE, SYSDATETIME())
     FROM inserted I;
+    IF @@ROWCOUNT > 0
+    BEGIN
+        DECLARE @yeni INT = CAST(SCOPE_IDENTITY() AS INT);
+        EXEC sp_set_session_context N'lumen_yeni_id', @yeni;
+    END;
 END;
 GO
 
@@ -392,15 +397,23 @@ BEGIN
         CAST(I.RESERVEDATE AS DATE),
         I.GUID,
         ISNULL(I.CANCELLED, 0)
-    FROM inserted I;
+    FROM inserted I
+    WHERE EXISTS (SELECT 1 FROM dbo.LM_BELGE BX WHERE BX.ID = I.ORDFICHEREF AND BX.TUR = 1 AND BX.DURUM <> 9);
+    IF @@ROWCOUNT > 0
+    BEGIN
+        DECLARE @yeni INT = CAST(SCOPE_IDENTITY() AS INT);
+        EXEC sp_set_session_context N'lumen_yeni_id', @yeni;
+    END;
 END;
 GO
 
 CREATE OR ALTER TRIGGER dbo.TR_LMV_ORFLINE_GUNCELLE ON dbo.LMV_ORFLINE INSTEAD OF UPDATE AS
 BEGIN
     SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM inserted I JOIN dbo.LM_BELGE_SATIR T ON T.ID = I.LOGICALREF
+               WHERE ISNULL(I.AMOUNT, 0) < T.TESLIM_MIKTAR - 0.000001)
+        THROW 51001, N'Sipariş satırı teslim edilen miktarın altına düşürülemez.', 1;
     UPDATE T SET
-        BELGE_ID = I.ORDFICHEREF,
         SIRA = ISNULL(I.LINENO_, 0),
         SATIR_TURU = ISNULL(I.LINETYPE, 0),
         STOK_ID = NULLIF(I.STOCKREF, 0),
@@ -416,7 +429,6 @@ BEGIN
         KDV_TUTAR = ISNULL(I.VATAMNT, 0),
         KDV_MATRAH = ISNULL(I.VATMATRAH, 0),
         NET = ISNULL(I.LINENET, 0),
-        TESLIM_MIKTAR = ISNULL(I.SHIPPEDAMOUNT, 0),
         ACIKLAMA = I.LINEEXP,
         VADE = CAST(I.DUEDATE AS DATE),
         DOVIZ_FIYAT = NULLIF(I.PRPRICE, 0),

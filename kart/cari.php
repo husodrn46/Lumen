@@ -14,6 +14,12 @@ require_once __DIR__ . '/../includes/belge/belge_lib.php';
 require_once __DIR__ . '/../includes/finans/finans_lib.php';
 require_once __DIR__ . '/../includes/belge/sayfa.php';
 
+// İkinci savunma hattı: bu modül yalnız bağımsız modda çalışır (modül korumasından bağımsız).
+if (!lumen_bagimsiz_mi()) {
+    lumen_hata_sayfasi('Modül kullanılamıyor', 'Bu ekran yalnız bağımsız modda (Lumen veritabanı) kullanılır.', 501, 'fa-person-digging');
+}
+
+
 $id = (int) ($_GET['id'] ?? 0);
 if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, $id, 'M4')) {
     lumen_hata_sayfasi('Cari bulunamadı', 'Bu cari kartı yok ya da görme yetkiniz yok.', 404);

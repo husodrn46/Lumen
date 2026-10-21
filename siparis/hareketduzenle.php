@@ -35,7 +35,7 @@ if(isset($_POST['stkduzenle'])){
 	}
 
 	// Eski değerleri al (loglama için)
-	$stmt = $dbh->prepare("SELECT L.ORDFICHEREF, L.LINETYPE, F.FICHENO, L.AMOUNT, L.PRICE, L.VAT, L.TOTAL, L.LINEEXP, I.CODE, I.NAME
+	$stmt = $dbh->prepare("SELECT L.ORDFICHEREF, L.LINETYPE, F.FICHENO, L.AMOUNT, L.PRICE, L.VAT, L.TOTAL, L.LINEEXP, L.SHIPPEDAMOUNT, I.CODE, I.NAME
 	                       FROM ".$firmadonem."ORFLINE L
 	                       LEFT JOIN ".$firma."ITEMS I ON I.LOGICALREF = L.STOCKREF
 	                       LEFT JOIN ".$firmadonem."ORFICHE F ON F.LOGICALREF = L.ORDFICHEREF
@@ -49,6 +49,10 @@ if(isset($_POST['stkduzenle'])){
 
 	if ((int)$eskiSatir['LINETYPE'] !== 0) {
 		exit('Gecersiz satir tipi.');
+	}
+	// Sevk/fatura edilmiş miktarın altına inilemez (teslim edilen kayıtlar tutarsız kalırdı).
+	if ($stokadet + 0.000001 < (float) ($eskiSatir['SHIPPEDAMOUNT'] ?? 0)) {
+		exit('Bu satırın ' . rtrim(rtrim(number_format((float) $eskiSatir['SHIPPEDAMOUNT'], 3, ',', '.'), '0'), ',') . ' adedi teslim edilmiş; miktar bunun altına düşürülemez.');
 	}
 
 	// Çakışma koruması: form yüklendikten sonra satır başka biri tarafından

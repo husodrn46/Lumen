@@ -13,6 +13,12 @@ require_once __DIR__ . '/../kontrol.php';
 require_once __DIR__ . '/../includes/belge/belge_lib.php';
 require_once __DIR__ . '/../includes/belge/sayfa.php';
 
+// İkinci savunma hattı: bu modül yalnız bağımsız modda çalışır (modül korumasından bağımsız).
+if (!lumen_bagimsiz_mi()) {
+    lumen_hata_sayfasi('Modül kullanılamıyor', 'Bu ekran yalnız bağımsız modda (Lumen veritabanı) kullanılır.', 501, 'fa-person-digging');
+}
+
+
 // Kart miktar gösterir: stok aramadaki kuralla aynı (M7 + ST1 miktar görme) ya da yönetici.
 if ((int) $yetkidurum !== 0 && ((int) m_p_yetki($terminalkullanici, 'M7') !== 1 || (int) m_p_yetki($terminalkullanici, 'ST1') !== 1)) {
     lumen_hata_sayfasi('Yetkiniz yok', 'Stok kartı için M7 (Stok Ara) ve ST1 (miktar görme) yetkisi gerekir.', 403, 'fa-lock');
@@ -40,11 +46,14 @@ $depolar = $sorgu('SELECT D.AD, D.NO, M.MIKTAR FROM dbo.LMV_STOK_MIKTAR M JOIN d
                    WHERE M.STOK_ID = :id AND ABS(M.MIKTAR) > 0.000001 ORDER BY D.NO', [':id' => $id]);
 $toplam = array_sum(array_map(static fn($d) => (float) $d['MIKTAR'], $depolar));
 // Hareketler: en yeni 100; yürüyen bakiye en eski hareketten hesaplanır.
+// Özel cari kısıtı: kullanıcının göremediği carinin adı gösterilmez (hareket ve miktar kalır).
+$ozel = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(B.CARI_ID, 0)', 'stok_kart_gizli');
+$unvanSql = $ozel['sql'] !== '' ? "CASE WHEN {$ozel['sql']} THEN C.UNVAN ELSE N'(gizli cari)' END" : 'C.UNVAN';
 $hareketler = $sorgu('SELECT TOP 100 H.ID, H.TARIH, H.GIRIS, H.CIKIS, H.BIRIM_MALIYET, D.AD AS DEPO, B.ID AS BELGE_ID, B.TUR, B.YON, B.NO, B.DURUM,
-                             C.UNVAN, SUM(H.GIRIS - H.CIKIS) OVER (ORDER BY H.TARIH, H.ID ROWS UNBOUNDED PRECEDING) AS BAKIYE
+                             ' . $unvanSql . ' AS UNVAN, SUM(H.GIRIS - H.CIKIS) OVER (ORDER BY H.TARIH, H.ID ROWS UNBOUNDED PRECEDING) AS BAKIYE
                       FROM dbo.LM_STOK_HAREKET H JOIN dbo.LM_DEPO D ON D.ID = H.DEPO_ID JOIN dbo.LM_BELGE B ON B.ID = H.BELGE_ID
                       LEFT JOIN dbo.LM_CARI C ON C.ID = B.CARI_ID
-                      WHERE H.STOK_ID = :id ORDER BY H.TARIH DESC, H.ID DESC', [':id' => $id]);
+                      WHERE H.STOK_ID = :id ORDER BY H.TARIH DESC, H.ID DESC', [':id' => $id] + $ozel['params']);
 $bekleyen = $sorgu('SELECT ISNULL(SUM(CASE WHEN B.YON = 1 THEN (S.MIKTAR - S.TESLIM_MIKTAR) * S.CARPAN END), 0) AS SATIS,
                            ISNULL(SUM(CASE WHEN B.YON = 2 THEN (S.MIKTAR - S.TESLIM_MIKTAR) * S.CARPAN END), 0) AS ALIS
                     FROM dbo.LM_BELGE_SATIR S JOIN dbo.LM_BELGE B ON B.ID = S.BELGE_ID

@@ -23,7 +23,14 @@ $git = static function (string $yol, array $q): never {
 
 if ($islem === 'iptal') {
     $id = (int) ($_POST['id'] ?? 0);
-    $r = lumen_finans_fis_iptal($dbh, $id, (int) $terminalkullanici);
+    // Görme kuralı fiş ekranıyla aynı: gizli carinin fişi iptal edilemez.
+    $fc = $dbh->prepare('SELECT CARI_ID FROM dbo.LM_FINANS_FIS WHERE ID = :id');
+    $fc->execute([':id' => $id]);
+    $fcari = $fc->fetchColumn();
+    if ($fcari === false || ($fcari !== null && !m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, (int) $fcari))) {
+        lumen_hata_sayfasi('Fiş bulunamadı', 'Kasa/banka fişi bulunamadı.', 404);
+    }
+    $r = lumen_finans_fis_iptal($dbh, $id, (int) $terminalkullanici, (int) $yetkidurum === 0);
     $git('goster.php', ['id' => $id, $r['ok'] ? 'ok' : 'hata' => $r['mesaj']]);
 }
 

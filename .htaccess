@@ -38,6 +38,11 @@ Options -Indexes
 #  .sql  : şema betikleri (tablo yapısını ifşa eder)
 #  .log  : uygulama logları
 #  .bak / .old / .orig / .example : yedek ve örnek dosyalar
+# --- IIS kural dosyası (Apache'de kullanılmaz; güvenlik kurallarını ifşa etmesin) ---
+<Files "web.config">
+    Require all denied
+</Files>
+
 <FilesMatch "\.(inc|ini|sql|log|bak|old|orig|example|db)$">
     Require all denied
 </FilesMatch>
@@ -58,6 +63,8 @@ RedirectMatch 404 (?i)/database(/|$)
 RedirectMatch 404 (?i)/demo(/|$)
 RedirectMatch 404 (?i)/tests(/|$)
 RedirectMatch 404 (?i)/vendor(/|$)
+RedirectMatch 404 (?i)/includes(/|$)
+RedirectMatch 404 (?i)\.lumen\.gz$
 RedirectMatch 404 (?i)/scripts(/|$)
 
 # --- Güvenlik başlıkları -----------------------------------------------------

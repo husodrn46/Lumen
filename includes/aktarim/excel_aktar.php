@@ -104,6 +104,39 @@ if (!function_exists('lumen_excel_oku')) {
         if (method_exists($okuyucu, 'setReadDataOnly')) {
             $okuyucu->setReadDataOnly(true);
         }
+        // Bellek koruması: yalnız ilk 30 kolon ve satır sınırı okunur. Sağda unutulmuş tek bir hücre
+        // (ör. XFD1) eskiden her satırda 16.384 hücre oluşturup PHP belleğini tüketiyordu.
+        $sonKolon = 30;
+        $sonSatir = LUMEN_EXCEL_EN_FAZLA_SATIR + 1;
+        if ($uzanti === 'csv') {
+            $satirSayisi = 0;
+            $fh = fopen($yol, 'rb');
+            while ($fh !== false && fgets($fh) !== false) {
+                if (++$satirSayisi > $sonSatir) {
+                    fclose($fh);
+                    throw new RuntimeException('Dosyada en fazla ' . LUMEN_EXCEL_EN_FAZLA_SATIR . ' satır olabilir.');
+                }
+            }
+            if ($fh !== false) {
+                fclose($fh);
+            }
+        } else {
+            foreach (array_slice($okuyucu->listWorksheetInfo($yol), 0, 1) as $bilgi) {
+                if ((int) ($bilgi['totalRows'] ?? 0) > $sonSatir) {
+                    throw new RuntimeException('Dosyada en fazla ' . LUMEN_EXCEL_EN_FAZLA_SATIR . ' satır olabilir.');
+                }
+            }
+        }
+        $okuyucu->setReadFilter(new class ($sonKolon, $sonSatir) implements PhpOffice\PhpSpreadsheet\Reader\IReadFilter {
+            public function __construct(private int $kolon, private int $satir)
+            {
+            }
+
+            public function readCell(string $columnAddress, int $row, string $worksheetName = ''): bool
+            {
+                return $row <= $this->satir && PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($columnAddress) <= $this->kolon;
+            }
+        });
         $sayfa = $okuyucu->load($yol)->getSheet(0);
         $norm = static fn(string $s): string => preg_replace('/[^a-z0-9]/', '', strtr(mb_strtolower(trim(str_replace('*', '', $s)), 'UTF-8'),
             ['ı' => 'i', 'ğ' => 'g', 'ü' => 'u', 'ş' => 's', 'ö' => 'o', 'ç' => 'c', 'i̇' => 'i']));
@@ -117,7 +150,9 @@ if (!function_exists('lumen_excel_oku')) {
         foreach ($sayfa->getRowIterator() as $satir) {
             $no = $satir->getRowIndex();
             $hucreler = [];
-            foreach ($satir->getCellIterator() as $h) {
+            $hucreIt = $satir->getCellIterator('A', PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($sonKolon));
+            $hucreIt->setIterateOnlyExistingCells(true);
+            foreach ($hucreIt as $h) {
                 $deger = $h->getValue();
                 $hucreler[$h->getColumn()] = is_float($deger) && floor($deger) === $deger && abs($deger) < 1e15 ? (string) (int) $deger : trim((string) $deger);
             }

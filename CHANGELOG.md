@@ -1,5 +1,47 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı] — 1.3.0-beta.4 adayı
+
+### 🔒 Güvenlik denetimi (kararlıya geçiş öncesi)
+
+v1.3.0'dan önce yeni ekranlar üç ayrı inceleyiciyle denetlendi; bulunanların hepsi
+düzeltildi ve `tests/akis/guvenlik.php` ile her biri otomatik olarak yeniden denenir.
+
+- **Özel cari kısıtı:** gizli carinin faturası ve kasa fişi iptal edilebiliyordu; stok
+  kartında gizli carinin adı, API çek listesinde çekleri görünüyordu; çek giriş/ciro/kendi
+  çek ve yazdırma görünümü (`fis_goruntule`) kısıtı uygulamıyordu.
+- **Sipariş bütünlüğü:** depo personeli sayım/üretim belgesiyle siparişi "teslim edildi"
+  gösterebiliyordu; aynı sipariş satırı bir formda iki kez gönderilince siparişten fazlası
+  faturalanabiliyor, iptal siparişi bozuk bırakıyordu; ilgisiz bir belge "kaynak" gösterilerek
+  başka bir belgenin iptali engellenebiliyordu; sipariş satırı ekranından kesilmiş bir
+  faturaya satır eklenebiliyordu; teslim edilmiş satırın miktarı teslim edilenin altına
+  düşürülebiliyordu.
+- **Kur ve tarih:** dövizli belgede kur serbestçe yazılabiliyordu (artık tanımlı kurdan en
+  fazla %10 sapma, yönetici hariç); 1990 gibi makul olmayan tarihler kabul ediliyordu.
+  **Dönem kilidi** (Tanımlar → Firma): kapanan döneme belge/fiş girilmez, iptal edilmez.
+- **Depo personeli:** üretimde fiyat/maliyet görüp girebiliyor, cari bağlayabiliyordu.
+  Miktar görme yetkisi olmayan kullanıcı belge ürün aramasında miktar görüyordu.
+- **Kasa/banka:** açılış fişini yalnız yönetici iptal edebilir; dövizli hesapla TL fiş kesilmez.
+- **Excel'den aktar:** sağda unutulmuş tek bir hücre belleği tüketip ekranı kilitliyordu;
+  onaylanmayan yüklemeler sunucuda kalıyordu.
+- **Yedekleme:** günlük otomatik yedek kullanıcının oturumunu kilitliyor, başarısız olunca her
+  istekte yeniden deneniyordu; geri yükleme eski "beni hatırla"/API belirteçlerini geri
+  getiriyordu (artık herkes yeniden girer); yedek klasörü web klasörüne ayarlanabiliyordu;
+  yedekler herkesçe okunabilir izinle yazılıyordu. Gece görevi için `scripts/yedek_al.php`.
+- **Modül koruması:** büyük/küçük harf farkıyla (Windows/IIS) atlatılabiliyordu; bağımsız
+  moda ait modüller ayrıca kendi içlerinde mod denetimi yapar.
+- **Diğer:** LOGO uyumlu görünümlerde yeni kaydın kimliği oturum bağlamından okunur
+  (`@@IDENTITY` yerine); stok KDV'si yalnız VAT güncellemesinde değişmiyordu; LOGO'dan
+  aktarımda başka firmanın kullanıcıları pasif gelir; kurulumda sunucu/veritabanı adı denetlenir;
+  `includes/`, `web.config` ve `.lumen.gz` dosyaları tarayıcıdan açılmaz.
+
+### Yeni
+
+- **Kabul testi paketi** (yapay zekâ ajanı ya da insan çalıştırır): `bash tests/kabul/calistir.sh`
+  iki modu kurar, bütün testleri, "iş günü" senaryosunu ve sunucu denetimini koşar, rapor yazar.
+  GitHub'da `Kabul testi` iş akışı (her sürüm etiketinde kendiliğinden). Gerçek kurulumu dışarıdan
+  denetleme: `php tests/kabul/sunucu_denetimi.php <adres>`. Rehber: `docs/test/KABUL_TESTI.md`, `AGENTS.md`.
+
 ## [1.3.0-beta.3] — 2026-10-21 (ÖN SÜRÜM — Bağımsız Lumen BETA)
 
 > ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.1**'i kullanın. Bu ön sürüm

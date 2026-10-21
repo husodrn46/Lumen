@@ -174,7 +174,7 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
         var tr = document.createElement('tr'); tr.className = 'satir';
         var birimler = u.birimler.map(function (b) { return '<option value="' + b.id + '">' + esc(b.kod) + (b.carpan !== 1 ? ' (' + b.carpan + ')' : '') + '</option>'; }).join('');
         tr.innerHTML = '<td><input type="hidden" name="satir[stok_id][]" value="' + u.id + '"><span class="koyu">' + esc(u.kod) + '</span> ' + esc(u.ad)
-            + '<div class="soluk">Eldeki: ' + u.eldeki.toLocaleString('tr-TR') + '</div></td>'
+            + (u.eldeki === null ? '' : '<div class="soluk">Eldeki: ' + u.eldeki.toLocaleString('tr-TR') + '</div>') + '</td>'
             + '<td><input name="satir[miktar][]" inputmode="decimal" value="1"></td>'
             + '<td><select name="satir[birim_id][]">' + birimler + '</select></td>'
             + '<td><input name="satir[fiyat][]" inputmode="decimal" value="' + String(Math.round(cevir(u.fiyat, u.pb || 'TRY') * 10000) / 10000).replace('.', ',') + '"></td>'
@@ -218,7 +218,7 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
         function (o) { document.getElementById('cariId').value = o.id; document.getElementById('cariAra').value = o.text; hesapla(); });
     aramaKur(document.getElementById('urunAra'), document.getElementById('urunSonuc'),
         function (q) { return 'stok_ara.php?yon=' + yon() + '&q=' + encodeURIComponent(q); },
-        function (u) { return '<span class="koyu">' + esc(u.kod) + '</span> ' + esc(u.ad) + ' <span class="soluk">· ' + bicim(u.fiyat) + ((u.pb || 'TRY') === 'TRY' ? ' ₺' : ' ' + u.pb) + ' · eldeki ' + u.eldeki.toLocaleString('tr-TR') + '</span>'; },
+        function (u) { return '<span class="koyu">' + esc(u.kod) + '</span> ' + esc(u.ad) + ' <span class="soluk">· ' + bicim(u.fiyat) + ((u.pb || 'TRY') === 'TRY' ? ' ₺' : ' ' + u.pb) + (u.eldeki === null ? '' : ' · eldeki ' + u.eldeki.toLocaleString('tr-TR')) + '</span>'; },
         function (u) { satirEkle(u); document.getElementById('urunAra').value = ''; });
 
     document.getElementById('cariAra').addEventListener('input', function () { document.getElementById('cariId').value = ''; hesapla(); });

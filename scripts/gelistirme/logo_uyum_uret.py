@@ -262,6 +262,20 @@ YAZMA = {
     'LMV_ORFLINE': ('LM_BELGE_SATIR', ORFLINE_YAZ, {}, {}),
 }
 
+# Yazma kuralları (görünüm → ek denetimler). INSTEAD OF tetikleyicisi görünümün WHERE
+# koşulunu uygulamaz: sipariş satırı yalnız açık bir SİPARİŞE eklenir; satırın belgesi ve
+# teslim miktarı (belge modülü yönetir) LOGO uyumlu yoldan değişmez; teslim edilenin altına
+# düşürülemez.
+YAZMA_KURAL = {
+    'LMV_ORFLINE': {
+        'ekle_kosul': 'EXISTS (SELECT 1 FROM dbo.LM_BELGE BX WHERE BX.ID = I.ORDFICHEREF AND BX.TUR = 1 AND BX.DURUM <> 9)',
+        'guncelle_haric': ['BELGE_ID', 'TESLIM_MIKTAR'],
+        'guncelle_denetim': ("IF EXISTS (SELECT 1 FROM inserted I JOIN dbo.LM_BELGE_SATIR T ON T.ID = I.LOGICALREF\n"
+                             "               WHERE ISNULL(I.AMOUNT, 0) < T.TESLIM_MIKTAR - 0.000001)\n"
+                             "        THROW 51001, N'Sipariş satırı teslim edilen miktarın altına düşürülemez.', 1;"),
+    },
+}
+
 
 def gorunum(ad, logo_tablo, oku, kaynak, kosul):
     satirlar = []
@@ -274,24 +288,34 @@ def gorunum(ad, logo_tablo, oku, kaynak, kosul):
 
 def tetikleyiciler(ad):
     hedef, eslem, ek_ekle, ek_guncelle = YAZMA[ad]
+    kural = YAZMA_KURAL.get(ad, {})
     ekle = dict(eslem, **ek_ekle)
     kol = ', '.join(ekle)
     deg = ',\n        '.join(ekle.values())
-    guncelle = dict(eslem, **ek_guncelle)
+    guncelle = {k: v for k, v in dict(eslem, **ek_guncelle).items() if k not in kural.get('guncelle_haric', [])}
     set_ = ',\n        '.join(f'{k} = {v}' for k, v in guncelle.items())
+    kosul = f"\n    WHERE {kural['ekle_kosul']}" if 'ekle_kosul' in kural else ''
+    denetim = f"\n    {kural['guncelle_denetim']}" if 'guncelle_denetim' in kural else ''
+    # Yeni kaydın kimliği oturum bağlamıyla bildirilir (lumen_insert_kimlik okur; @@IDENTITY
+    # başka bir tetikleyicinin ya da eklenmeyen satırın kimliğini verebilirdi).
     return f"""CREATE OR ALTER TRIGGER dbo.TR_{ad}_EKLE ON dbo.{ad} INSTEAD OF INSERT AS
 BEGIN
     SET NOCOUNT ON;
     INSERT INTO dbo.{hedef} ({kol})
     SELECT
         {deg}
-    FROM inserted I;
+    FROM inserted I{kosul};
+    IF @@ROWCOUNT > 0
+    BEGIN
+        DECLARE @yeni INT = CAST(SCOPE_IDENTITY() AS INT);
+        EXEC sp_set_session_context N'lumen_yeni_id', @yeni;
+    END;
 END;
 GO
 
 CREATE OR ALTER TRIGGER dbo.TR_{ad}_GUNCELLE ON dbo.{ad} INSTEAD OF UPDATE AS
 BEGIN
-    SET NOCOUNT ON;
+    SET NOCOUNT ON;{denetim}
     UPDATE T SET
         {set_}
     FROM dbo.{hedef} T JOIN inserted I ON I.LOGICALREF = T.ID;
