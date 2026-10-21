@@ -36,7 +36,9 @@ sqlcmd() {
 }
 
 echo "==> Konteynerler başlatılıyor (ilk seferde imajlar iner, birkaç dakika sürebilir)"
-docker compose up -d --build
+# --pull: taban PHP imajının güvenlik güncellemeleri her kurulumda alınsın.
+docker compose build --pull
+docker compose up -d
 
 echo "==> SQL Server bekleniyor"
 for _ in $(seq 1 60); do

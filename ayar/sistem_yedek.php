@@ -148,6 +148,12 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
             </div>
         <?php endif; ?>
 
+        <?php require_once __DIR__ . '/../includes/guvenlik/php_surum.php';
+        $phpSorunlari = lumen_php_guvenlik_sorunlari(); ?>
+        <?php if ($phpSorunlari !== []): ?>
+            <div class="mesaj error" role="alert"><i class="fa-solid fa-shield-halved"></i>
+                <span><b>Sunucu PHP'si güncellenmeli (kritik güvenlik açığı).</b> <?= $h(implode(' ', $phpSorunlari)) ?></span></div>
+        <?php endif; ?>
         <section class="kart" id="calisma-modu">
             <h2><i class="fa-solid fa-database"></i> Çalışma modu</h2>
             <div class="bilgi">
@@ -156,6 +162,7 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
                     <?php else: ?>LOGO'ya bağlı <span class="rozet logo">LOGO</span><?php endif; ?></div></div>
                 <div><div class="k">Veritabanı</div><div class="v"><?= $h($veritabani) ?></div></div>
                 <div><div class="k">Veriler</div><div class="v"><?= $bagimsiz ? 'Lumen veritabanında' : 'LOGO Tiger tablolarında' ?></div></div>
+                <div><div class="k">PHP</div><div class="v"><?= $h(PHP_VERSION) ?> <?= $phpSorunlari === [] ? '<span class="rozet logo">güncel</span>' : '<span class="rozet beta">güncellenmeli</span>' ?></div></div>
             </div>
             <p class="aciklama">
                 <?php if ($bagimsiz): ?>

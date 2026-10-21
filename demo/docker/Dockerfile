@@ -3,6 +3,8 @@
 #  php-fpm sorunsuz. Önünde nginx konteyneri çalışır.)
 # Microsoft ODBC sürücüsü yalnız amd64 için paketlendiğinden imaj amd64 derlenir
 # (Apple Silicon'da Rosetta/QEMU ile çalışır).
+# Kritik açık CVE-2026-109618/109619 (Ekim 2026) 8.2.35'te kapandı; resmi imaj güncellenince
+# kur.sh yeniden derlerken (--pull) yamalı sürümü alır. Uygulama yamasız PHP'yi yöneticiye bildirir.
 FROM php:8.2-fpm-bookworm
 
 RUN set -eux; \
@@ -32,6 +34,8 @@ RUN { \
       echo 'upload_max_filesize=12M'; \
       echo 'post_max_size=16M'; \
       echo 'date.timezone=Europe/Istanbul'; \
+      echo '; PHP2Shell (CVE-2026-109619) geçici önlemi; Lumen bu özelliği kullanmaz.'; \
+      echo 'session.upload_progress.enabled=0'; \
     } > /usr/local/etc/php/conf.d/lumen.ini
 
 COPY giris.sh /usr/local/bin/lumen-giris

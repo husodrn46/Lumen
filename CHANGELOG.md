@@ -1,5 +1,16 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı]
+
+### 🔒 Güvenlik
+
+- **PHP2Shell (CVE-2026-109618, CVE-2026-109619)** — PHP'nin kendisinde kimlik
+  doğrulamasız uzaktan kod çalıştırma açıkları (Lumen kodunda değil). Sunucunuzda en az
+  **PHP 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12** olmalı. Lumen artık yamasız PHP'yi yönetici
+  ana sayfasında ve Sistem ve Yedek ekranında uyarır. Güncelleyene kadar `php.ini`'de
+  `session.upload_progress.enabled=0` (Lumen bu özelliği kullanmaz). Demo imajında bu
+  ayar kapalı ve `kur.sh` taban PHP imajını her kurulumda yeniler (`--pull`).
+
 ## [1.3.0-beta.2] — 2026-10-19 (ÖN SÜRÜM — Bağımsız Lumen BETA)
 
 > ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.0**'ı kullanın.

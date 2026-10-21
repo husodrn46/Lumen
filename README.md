@@ -88,6 +88,11 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
 
 - **LOGO Tiger** kurulu bir **Microsoft SQL Server** veritabanı
 - **PHP 8.2+** ve `pdo_sqlsrv` sürücüsü ([Microsoft Drivers for PHP for SQL Server](https://learn.microsoft.com/sql/connect/php/download-drivers-php-sql-server))
+  > 🔒 **Güvenlik:** Ekim 2026'daki kritik PHP açıkları (CVE-2026-109618, CVE-2026-109619 —
+  > "PHP2Shell", kimlik doğrulamasız uzaktan kod çalıştırma) nedeniyle en az **8.2.35 / 8.3.36 /
+  > 8.4.27 / 8.5.12** kullanın. Güncelleyene kadar `php.ini`'de `session.upload_progress.enabled=0`
+  > yapıp web sunucusunu yeniden başlatın (Lumen bu özelliği kullanmaz; tam çözüm değildir).
+  > Lumen yamasız PHP'yi yönetici ana sayfasında ve Sistem ve Yedek ekranında uyarır.
 - Web sunucusu: IIS (FastCGI) veya Apache/nginx
 - [Composer](https://getcomposer.org/) (bağımlılıklar için)
 
