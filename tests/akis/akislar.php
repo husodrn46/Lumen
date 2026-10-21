@@ -423,6 +423,47 @@ akis('faturalama (BETA): kapalıyken kapalı; sipariş faturalanır, ikinci kez 
     }
 });
 
+akis('özel cari: gizli cariye çek girilemez; yazdırma görünümü ve API çek listesi gizli cariyi göstermez', function () use ($URL, $pdo): void {
+    $sip = $pdo->query('SELECT TOP 1 LOGICALREF, CLIENTREF FROM LG_001_02_ORFICHE WHERE CLIENTREF > 0 ORDER BY LOGICALREF')->fetch(PDO::FETCH_ASSOC);
+    $cari = (int) $sip['CLIENTREF'];
+    $kod = (string) tek($pdo, "SELECT CODE FROM LG_001_CLCARD WHERE LOGICALREF = {$cari}");
+    $pdo->exec("DELETE FROM M_OZEL_CARI_KISIT WHERE CARIREF = {$cari}");
+    $pdo->exec("INSERT INTO M_OZEL_CARI_KISIT (CARIREF, OLUSTURAN, OLUSTURMA_TARIHI, YETKI_KODU, PERSONEL_ID)
+                VALUES ({$cari}, 1, GETDATE(), 'M19', 2), ({$cari}, 1, GETDATE(), 'M4', 2)");
+    try {
+        $s = (new Tarayici($URL))->giris('SATIS1');
+        $j = json_decode($s->istek('cek/cek_giris.php', ['csrf_token' => $s->belirtec('cek/cek_panel.php'), 'cari_ref' => $cari, 'aciklama' => 'x',
+            'istek_id' => bin2hex(random_bytes(16)), 'kalemler' => json_encode([['tutar' => 1, 'cekno' => 'G', 'banka' => 'B', 'vade' => date('Y-m-d', strtotime('+9 days')), 'sahibi' => '']])])['govde'], true);
+        bekle(($j['ok'] ?? null) === false, 'gizli cariye çek girildi');
+        bekle($s->istek("yazdir/fis_goruntule.php?tip=siparis&fis={$sip['LOGICALREF']}")['kod'] === 404, 'gizli carinin siparişi yazdırma görünümünde açıldı');
+        $ch = curl_init("{$URL}/api/login.php");
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode(['kullanici' => 'SATIS1', 'sifre' => 'demo1234'])]);
+        $tok = (string) (json_decode((string) curl_exec($ch), true)['token'] ?? '');
+        $ch = curl_init("{$URL}/api/cek_listesi.php");
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ["Authorization: Bearer {$tok}"]]);
+        $liste = json_decode((string) curl_exec($ch), true);
+        bekle(is_array($liste) && !str_contains((string) json_encode($liste, JSON_UNESCAPED_UNICODE), '"' . $kod . '"'), 'API çek listesinde gizli carinin çeki var');
+    } finally {
+        $pdo->exec("DELETE FROM M_OZEL_CARI_KISIT WHERE CARIREF = {$cari}");
+    }
+});
+
+akis('sipariş satırı: sipariş olmayan kimliğe satır eklenmez; sevk edilen miktarın altına inilmez', function () use ($yonetici, $pdo): void {
+    $yok = (int) tek($pdo, 'SELECT ISNULL(MAX(LOGICALREF), 0) + 5000 FROM LG_001_02_ORFICHE');
+    $yonetici->istek("siparis/lg_fis.php?stokhareket={$yok}", ['csrf_token' => $yonetici->belirtec('cek/cek_panel.php'), 'stkid' => 1, 'stokhareket' => $yok,
+        'kontrol' => uniqid(), 'stkbirim' => 1, 'stkadt' => 1, 'stbrm' => 1, 'stkfyt' => 1, 'stkkdv' => 20, 'aciklama' => '']);
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = {$yok}") === 0, 'sipariş olmayan kimliğe satır eklendi');
+    $sat = $pdo->query('SELECT TOP 1 L.LOGICALREF, L.ORDFICHEREF, L.AMOUNT, L.SHIPPEDAMOUNT FROM LG_001_02_ORFLINE L JOIN LG_001_02_ORFICHE F ON F.LOGICALREF = L.ORDFICHEREF
+                        WHERE L.SHIPPEDAMOUNT > 1 AND L.LINETYPE = 0 AND ISNULL(F.TRCURR, 0) = 0 ORDER BY L.LOGICALREF')->fetch(PDO::FETCH_ASSOC);
+    if ($sat === false) {
+        return;   // bu veritabanında sevk edilmiş satır yok
+    }
+    $yonetici->istek("siparis/lg_fis.php?stokhareket={$sat['ORDFICHEREF']}", ['csrf_token' => $yonetici->belirtec('cek/cek_panel.php'),
+        'stkduzenle' => (int) $sat['LOGICALREF'], 'stokhareket' => (int) $sat['ORDFICHEREF'], 'stkadt' => '1', 'stkfyt' => '1', 'stkkdv' => '20', 'aciklama' => '']);
+    yakin((float) $sat['AMOUNT'], (float) tek($pdo, "SELECT AMOUNT FROM LG_001_02_ORFLINE WHERE LOGICALREF = {$sat['LOGICALREF']}"), 'sevk edilen satırın miktarı');
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

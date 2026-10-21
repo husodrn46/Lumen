@@ -1,5 +1,23 @@
 # Değişiklik Günlüğü
 
+## [1.2.2] — 2026-10-21
+
+Güvenlik bakım sürümü. Uygulama davranışı ve şema v1.2.1 ile aynıdır.
+
+### 🔒 Güvenlik
+
+v1.3.0 öncesi güvenlik denetiminde, kararlı sürümü de etkileyen şu açıklar bulundu ve kapatıldı:
+
+- **Özel cari kısıtı:** çek giriş, ciro ve kendi çekimiz uçları; sipariş/fatura yazdırma
+  görünümü (`yazdir/fis_goruntule.php`) ve API çek listesi, kullanıcının göremediği cariyi
+  süzmüyordu.
+- **Sipariş satırı:** satır ekleme uçları, var olmayan ya da sipariş olmayan bir kimliğe
+  satır yazabiliyordu; sevk edilmiş satırın miktarı sevk edilenin altına düşürülebiliyordu.
+- **Kurulum sihirbazı:** sunucu ve veritabanı adı denetlenir (bağlantı dizesine ek
+  parametre eklenemez).
+- **Sunucu kuralları:** `includes/` klasörü, `web.config` ve `.lumen.gz` dosyaları
+  tarayıcıdan açılmaz (`.htaccess`, `web.config`, README nginx kuralları).
+
 ## [1.2.1] — 2026-10-21
 
 Güvenlik bakım sürümü. Uygulama davranışı v1.2.0 ile aynıdır; şema değişikliği yoktur.

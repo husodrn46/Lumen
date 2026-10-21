@@ -30,7 +30,7 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 
 Lumen, LOGO Tiger için bir yardımcı arayüzdür. **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
 
-**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.2.1](https://github.com/husodrn46/Lumen/releases/tag/v1.2.1) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.2.1.zip)
+**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.2.2](https://github.com/husodrn46/Lumen/releases/tag/v1.2.2) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.2.2.zip)
 
 `v1.1.0-beta.1` (Faturalama BETA) ön sürümünün yerini v1.2.0 alır: Faturalama modülü bu sürümde de BETA ve varsayılan kapalıdır. Yükseltme: [CHANGELOG.md](CHANGELOG.md).
 
@@ -239,8 +239,10 @@ nginx kullanıyorsanız `server { … }` bloğunuza şunu ekleyin:
 ```nginx
 location ~ /\.            { deny all; }          # .env, .git, .user.ini …
 location ~* \.(inc|ini|sql|log|bak|example|db)$ { deny all; }
+location ~* (^|/)web\.config$ { deny all; }
+location ~* \.lumen\.gz$ { deny all; }
 location ~* ^/composer\.(json|lock)$ { deny all; }
-location ~ ^/(logs|tmp|sql|vendor|scripts|database|demo|tests)/   { deny all; }
+location ~ ^/(logs|tmp|sql|vendor|scripts|database|demo|tests|includes)/   { deny all; }
 # Güvenlik başlıkları (web.config / .htaccess ile aynı)
 add_header X-Content-Type-Options "nosniff" always;
 add_header X-Frame-Options "SAMEORIGIN" always;
