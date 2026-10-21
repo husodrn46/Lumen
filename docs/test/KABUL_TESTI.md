@@ -105,6 +105,20 @@ olmadığını not edin.
 Her maddeyi rapora **Geçti / Sorunlu / Denenemedi** olarak, sorunluysa ne gördüğünüzle
 (ekran, adım, beklenen, görülen) yazın.
 
+## Performans ölçümü (isteğe bağlı, Yol A'dan sonra)
+
+Büyük veride (5.000 cari, 20.000 ürün, bir yıllık hareket) ekranların ve çıktıların hızını ölçer.
+Demo verisini kalıcı olarak büyütür; keşif denemesinden **sonra** çalıştırın.
+
+```bash
+bash demo/kur.sh --bagimsiz
+docker compose -f demo/docker-compose.yml exec -T app php tests/performans/olc.php --veri --rapor tests/performans/rapor.md
+```
+
+Sınırlar: ekran 2 sn (iyi) / 5 sn (çok yavaş), indirilen PDF ve Excel 5 / 15 sn, yedekleme ve
+Excel'den aktarma 10 / 30 sn. "Çok yavaş" ya da hatalı satır varsa çıkış kodu 1'dir ve kabul
+raporuna **Sorunlu** olarak yazılır; "yavaş" satırlar not edilir, kabulü engellemez.
+
 ## Rapor ve bildirim
 
 Sonucu, görevi veren kişiye şu biçimde verin:

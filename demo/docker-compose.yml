@@ -11,6 +11,8 @@ services:
       MSSQL_SA_PASSWORD: "${LUMEN_DEMO_SA_PASS:-Lumen_Demo_2026!}"
       MSSQL_COLLATION: Turkish_CI_AS
       MSSQL_PID: Developer
+      # Uygulamayla aynı saat dilimi (GETDATE() kullanan raporlar gece 00-03 arası bugünü kaçırmasın)
+      TZ: Europe/Istanbul
     ports:
       - "127.0.0.1:${LUMEN_DEMO_DB_PORT:-14330}:1433"
     volumes:

@@ -44,6 +44,18 @@ foreach (cari_ekstre_hareketleri($dbh, (int) $CARIID, (string) $donemSecim) as $
     $toplam_borc += (float) $h['BORC'];
     $toplam_alacak += (float) $h['ALACAK'];
 }
+// Çok hareketli caride PDF kütüphanesi belleği aşıyordu (1.000 satır 256 MB): PDF'e son
+// $pdfEnFazlaSatir hareket girer, öncekiler "Devir" satırında toplanır (bakiye yine doğru).
+// Tamamı ekranda ve Excel çıktısında.
+$pdfEnFazlaSatir = 500;
+$kesilenHareket = max(0, count($hareketler) - $pdfEnFazlaSatir);
+if ($kesilenHareket > 0) {
+    $hareketler = array_slice($hareketler, -$pdfEnFazlaSatir);
+    $toplam_borc = array_sum(array_map(static fn($h) => (float) $h['BORC'], $hareketler));
+    $toplam_alacak = array_sum(array_map(static fn($h) => (float) $h['ALACAK'], $hareketler));
+}
+@ini_set('memory_limit', '256M');
+@set_time_limit(120);
 $islem_net_etki = $toplam_borc - $toplam_alacak;
 $baslangic_bakiye = $resmi_bakiye - $islem_net_etki;
 
@@ -241,6 +253,9 @@ table.footer-wrap td { vertical-align: bottom; font-size: 7.5pt; color: #9ca3af;
     </tr>
 </table>
 
+<?php if ($kesilenHareket > 0): ?>
+<p style="font-size:7.5pt;color:#6b7280;margin:0 0 6px 0;">Bu PDF son <?php echo $pdfEnFazlaSatir; ?> hareketi içerir; önceki <?php echo number_format($kesilenHareket, 0, ',', '.'); ?> hareket "Devir" satırına dahildir. Tamamı için Excel çıktısını kullanın.</p>
+<?php endif; ?>
 <table class="hareket">
     <thead>
         <tr>

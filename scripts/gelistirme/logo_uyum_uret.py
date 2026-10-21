@@ -50,7 +50,7 @@ ORFICHE_OKU = {
     'FICHENO': 'B.NO',
     'DATE_': 'CAST(B.TARIH AS DATETIME)',
     'TIME_': 'B.SAAT_KODU',
-    'CLIENTREF': 'ISNULL(B.CARI_ID, 0)',
+    'CLIENTREF': 'B.CARI_REF',
     'SALESMANREF': 'ISNULL(B.PERSONEL_ID, 0)',
     'SOURCEINDEX': 'ISNULL(D.NO, 0)',
     'CANCELLED': 'CASE WHEN B.DURUM = 9 THEN 1 ELSE 0 END',
@@ -101,7 +101,7 @@ ORFLINE_OKU = {
     'PRPRICE': 'ISNULL(S.DOVIZ_FIYAT, 0)', 'PRCURR': PB_KOD.format(p='B.PARA_BIRIMI'),
     'TRCODE': 'CASE B.YON WHEN 1 THEN 1 ELSE 2 END', 'TRCURR': PB_KOD.format(p='B.PARA_BIRIMI'),
     'TRRATE': "CASE WHEN B.PARA_BIRIMI = 'TRY' THEN 0 ELSE B.KUR END",
-    'DATE_': 'CAST(B.TARIH AS DATETIME)', 'TIME_': 'B.SAAT_KODU', 'CLIENTREF': 'ISNULL(B.CARI_ID, 0)',
+    'DATE_': 'CAST(B.TARIH AS DATETIME)', 'TIME_': 'B.SAAT_KODU', 'CLIENTREF': 'B.CARI_REF',
     'SALESMANREF': 'ISNULL(B.PERSONEL_ID, 0)', 'SOURCEINDEX': 'ISNULL(D.NO, 0)', 'STATUS': 'B.ONAY_DURUMU',
     'CANCELLED': 'CASE WHEN B.DURUM = 9 OR S.IPTAL = 1 THEN 1 ELSE 0 END', 'SPECODE': 'S.OZEL_KOD',
     'CLOSED': 'CAST(S.KAPALI AS INT)', 'RESERVEAMOUNT': 'ISNULL(S.REZERVE_MIKTAR, 0)',
@@ -132,7 +132,7 @@ STOKFIS_TRCODE = ('CASE WHEN B.TUR = 2 AND B.YON = 1 THEN 8 WHEN B.TUR = 2 THEN 
                   ' WHEN B.TUR = 3 AND B.YON = 1 THEN 8 WHEN B.TUR = 3 THEN 1 WHEN B.YON = 1 THEN 3 ELSE 6 END')
 ORTAK_BASLIK = {
     'LOGICALREF': 'B.ID', 'FICHENO': 'B.NO', 'DATE_': 'CAST(B.TARIH AS DATETIME)', 'DOCDATE': 'CAST(B.TARIH AS DATETIME)',
-    'TIME_': 'B.SAAT_KODU', 'CLIENTREF': 'ISNULL(B.CARI_ID, 0)', 'SALESMANREF': 'ISNULL(B.PERSONEL_ID, 0)',
+    'TIME_': 'B.SAAT_KODU', 'CLIENTREF': 'B.CARI_REF', 'SALESMANREF': 'ISNULL(B.PERSONEL_ID, 0)',
     'SOURCEINDEX': 'ISNULL(D.NO, 0)', 'CANCELLED': 'CASE WHEN B.DURUM = 9 THEN 1 ELSE 0 END',
     'GROSSTOTAL': 'B.BRUT', 'TOTALDISCOUNTS': 'B.ISKONTO', 'TOTALDISCOUNTED': 'B.BRUT - B.ISKONTO', 'TOTALVAT': 'B.KDV',
     'NETTOTAL': 'B.NET', 'REPORTNET': 'B.NET', 'REPORTRATE': '1', 'ADDDISCOUNTS': 'B.EK_ISKONTO',
@@ -156,7 +156,7 @@ STLINE_OKU = {
     'UINFO1': '1', 'UINFO2': 'S.CARPAN', 'LINEEXP': 'S.ACIKLAMA', 'TRCODE': STOKFIS_TRCODE,
     'IOCODE': 'CASE WHEN B.YON = 2 THEN 1 ELSE 4 END', 'SIGN': 'CASE WHEN B.YON = 2 THEN 0 ELSE 1 END',
     'DATE_': 'CAST(B.TARIH AS DATETIME)', 'FTIME': 'B.SAAT_KODU',
-    'MONTH_': 'MONTH(B.TARIH)', 'YEAR_': 'YEAR(B.TARIH)', 'CLIENTREF': 'ISNULL(B.CARI_ID, 0)',
+    'MONTH_': 'MONTH(B.TARIH)', 'YEAR_': 'YEAR(B.TARIH)', 'CLIENTREF': 'B.CARI_REF',
     'SALESMANREF': 'ISNULL(B.PERSONEL_ID, 0)', 'SOURCEINDEX': 'ISNULL(D.NO, 0)', 'INVENNO': 'ISNULL(D.NO, 0)',
     'CANCELLED': 'CASE WHEN B.DURUM = 9 OR S.IPTAL = 1 THEN 1 ELSE 0 END',
     'STFICHEREF': 'CASE WHEN B.TUR IN (2, 5, 6) THEN B.ID ELSE 0 END', 'STFICHELNNO': 'S.SIRA',
@@ -245,13 +245,21 @@ GORUNUMLER = [
      ' JOIN dbo.LM_FINANS_FIS FF ON FF.ID = H.FIS_ID', 'FF.DURUM = 1'),
     ('LMV_STFICHE', 'LG_001_02_STFICHE', STFICHE_OKU, BELGE_FROM, 'B.TUR IN (2, 3, 4, 5, 6)'),
     # Stok satırı: sipariş dışı belgelerin satırları. KS: siparişten geldiyse kaynak sipariş satırı;
-    # FK: irsaliye satırı sonradan faturalandıysa o fatura satırı.
+    # FK: irsaliye satırı sonradan faturalandıysa o fatura satırı. İki bölüm: fatura satırlarında
+    # INVOICEREF = BELGE_ID (sade; rapor birleştirmeleri dizin kullanır — tek ifadeyle 100+ sn sürüyordu),
+    # irsaliye satırlarında FK araması, üretim/sayımda yok.
     ('LMV_STLINE', 'LG_001_02_STLINE', STLINE_OKU,
      SATIR_FROM + ' LEFT JOIN dbo.LM_BELGE_SATIR KSS ON KSS.ID = S.KAYNAK_SATIR_ID'
      ' LEFT JOIN dbo.LM_BELGE KS ON KS.ID = KSS.BELGE_ID AND KS.TUR = 1'
      ' OUTER APPLY (SELECT TOP 1 FS.BELGE_ID FROM dbo.LM_BELGE_SATIR FS JOIN dbo.LM_BELGE FB ON FB.ID = FS.BELGE_ID'
      ' AND FB.TUR IN (3, 4) WHERE FS.KAYNAK_SATIR_ID = S.ID) FK',
-     'B.TUR IN (2, 3, 4, 5, 6)'),
+     'B.TUR = 2',
+     [({'INVOICEREF': 'S.BELGE_ID', 'BILLED': '1'},
+       SATIR_FROM + ' LEFT JOIN dbo.LM_BELGE_SATIR KSS ON KSS.ID = S.KAYNAK_SATIR_ID'
+       ' LEFT JOIN dbo.LM_BELGE KS ON KS.ID = KSS.BELGE_ID AND KS.TUR = 1',
+       'B.TUR IN (3, 4)'),
+      # Üretim ve sayım hiç faturalanmaz: arama yok (büyük açılış sayımlarında rapor saniyeler sürüyordu)
+      ({'INVOICEREF': '0', 'BILLED': '0', 'ORDFICHEREF': '0'}, SATIR_FROM, 'B.TUR IN (5, 6)')]),
 ]
 YAZMA = {
     'LMV_ORFICHE': ('LM_BELGE', ORFICHE_YAZ, {'TUR': '1', 'DURUM': 'CASE WHEN I.CANCELLED = 1 THEN 9 ELSE 1 END',
@@ -277,13 +285,18 @@ YAZMA_KURAL = {
 }
 
 
-def gorunum(ad, logo_tablo, oku, kaynak, kosul):
-    satirlar = []
-    for kolon, tip in logo_kolonlari(logo_tablo):
-        ifade = oku.get(kolon)
-        satirlar.append(f'    CAST({ifade} AS {tip}) AS [{kolon}]' if ifade else f'    {bos(tip)} AS [{kolon}]')
-    return (f'CREATE OR ALTER VIEW dbo.{ad} AS\nSELECT\n' + ',\n'.join(satirlar)
-            + f'\n{kaynak}\nWHERE {kosul};\nGO\n')
+def gorunum(ad, logo_tablo, oku, kaynak, kosul, ek_parcalar=()):
+    """ek_parcalar: [(oku_degisikligi, kaynak, kosul), ...] — aynı kolonlarla UNION ALL bölümleri.
+    Bölme, kolon ifadesinin bölüme göre sade kalmasını sağlar (ör. fatura satırında INVOICEREF
+    doğrudan BELGE_ID olur ve birleştirmede dizin kullanılabilir)."""
+    def sec(o, kay, kos):
+        satirlar = []
+        for kolon, tip in logo_kolonlari(logo_tablo):
+            ifade = o.get(kolon)
+            satirlar.append(f'    CAST({ifade} AS {tip}) AS [{kolon}]' if ifade else f'    {bos(tip)} AS [{kolon}]')
+        return 'SELECT\n' + ',\n'.join(satirlar) + f'\n{kay}\nWHERE {kos}'
+    bolumler = [sec(oku, kaynak, kosul)] + [sec(dict(oku, **d), kay, kos) for d, kay, kos in ek_parcalar]
+    return f'CREATE OR ALTER VIEW dbo.{ad} AS\n' + '\nUNION ALL\n'.join(bolumler) + ';\nGO\n'
 
 
 def tetikleyiciler(ad):

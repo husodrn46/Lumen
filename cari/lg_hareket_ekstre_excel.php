@@ -14,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Conditional;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 
 $CARIID = (int) ($_GET['cariid'] ?? 0);
@@ -223,6 +224,10 @@ if (empty($hareketler)) {
     $sheet->getRowDimension($row)->setRowHeight(40);
     $row++;
 } else {
+    // Değerler tek seferde yazılır, biçimler aralığa bir kez uygulanır (hücre hücre biçim
+    // binlerce harekette 30 sn sınırını aşıyordu). Renkler koşullu biçimle verilir.
+    $ilkSatir = $row;
+    $veri = [];
     foreach ($hareketler as $h) {
         $borc = (float) $h['BORC'];
         $alacak = (float) $h['ALACAK'];
@@ -234,47 +239,42 @@ if (empty($hareketler)) {
             $ts = strtotime((string) $h['DATE_']);
             $tarihGoster = $ts ? date('d.m.Y', $ts) : (string) $h['DATE_'];
         }
-
-        $sheet->setCellValue('A' . $row, $tarihGoster);
-        $sheet->setCellValue('B' . $row, (string) ($h['TRCODE'] ?? ''));
-        $sheet->setCellValue('C' . $row, (string) ($h['ACIKLAMA'] ?? ''));
-        if ($alacak > 0) {
-            $sheet->setCellValue('D' . $row, $alacak);
-            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode($moneyFormat);
-            $sheet->getStyle('D' . $row)->getFont()->getColor()->setRGB($colorGreen);
-        } else {
-            $sheet->setCellValue('D' . $row, '-');
-            $sheet->getStyle('D' . $row)->getFont()->getColor()->setRGB('9CA3AF');
-        }
-        if ($borc > 0) {
-            $sheet->setCellValue('E' . $row, $borc);
-            $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode($moneyFormat);
-            $sheet->getStyle('E' . $row)->getFont()->getColor()->setRGB($colorRed);
-        } else {
-            $sheet->setCellValue('E' . $row, '-');
-            $sheet->getStyle('E' . $row)->getFont()->getColor()->setRGB('9CA3AF');
-        }
-        $sheet->setCellValue('F' . $row, $bakiye);
-        $sheet->getStyle('F' . $row)->getNumberFormat()->setFormatCode($moneyFormat);
-        $sheet->getStyle('F' . $row)->getFont()->setBold(true)->getColor()->setRGB($bakiye >= 0 ? $colorGreen : $colorRed);
-
-        $sheet->getStyle('D' . $row . ':F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('A' . $row . ':F' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle('C' . $row)->getAlignment()->setWrapText(true);
-
-        if ($satirIndex % 2 === 1) {
-            $sheet->getStyle('A' . $row . ':F' . $row)->applyFromArray([
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $colorZebra]],
-            ]);
-        }
-        $sheet->getStyle('A' . $row . ':F' . $row)->applyFromArray([
-            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => $colorBorder]]],
-        ]);
-
-        $row++;
-        $satirIndex++;
+        $veri[] = [$tarihGoster, (string) ($h['TRCODE'] ?? ''), (string) ($h['ACIKLAMA'] ?? ''),
+            $alacak > 0 ? $alacak : '-', $borc > 0 ? $borc : '-', $bakiye];
     }
+    $sheet->fromArray($veri, null, 'A' . $ilkSatir, true);
+    $row = $ilkSatir + count($veri);
+    $son = $row - 1;
+    $alan = "A{$ilkSatir}:F{$son}";
+    $sheet->getStyle("D{$ilkSatir}:F{$son}")->getNumberFormat()->setFormatCode($moneyFormat);
+    $sheet->getStyle("D{$ilkSatir}:F{$son}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->getStyle("A{$ilkSatir}:A{$son}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getStyle($alan)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+    $sheet->getStyle("C{$ilkSatir}:C{$son}")->getAlignment()->setWrapText(true);
+    $sheet->getStyle("F{$ilkSatir}:F{$son}")->getFont()->setBold(true);
+    $sheet->getStyle($alan)->applyFromArray([
+        'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => $colorBorder]]],
+    ]);
+    $kosul = static function (string $formul, string $renk, bool $zemin = false): Conditional {
+        $k = (new Conditional())->setConditionType(Conditional::CONDITION_EXPRESSION)->addCondition($formul);
+        if ($zemin) {
+            $k->getStyle()->getFill()->setFillType(Fill::FILL_SOLID)->getEndColor()->setRGB($renk);
+        } else {
+            $k->getStyle()->getFont()->getColor()->setRGB($renk);
+        }
+        return $k;
+    };
+    $sheet->getStyle("D{$ilkSatir}:D{$son}")->setConditionalStyles([
+        $kosul("ISTEXT(D{$ilkSatir})", '9CA3AF'), $kosul("D{$ilkSatir}>0", $colorGreen),
+    ]);
+    $sheet->getStyle("E{$ilkSatir}:E{$son}")->setConditionalStyles([
+        $kosul("ISTEXT(E{$ilkSatir})", '9CA3AF'), $kosul("E{$ilkSatir}>0", $colorRed),
+    ]);
+    $sheet->getStyle("F{$ilkSatir}:F{$son}")->setConditionalStyles([
+        $kosul("F{$ilkSatir}<0", $colorRed), $kosul("F{$ilkSatir}>=0", $colorGreen),
+    ]);
+    $zebra = 'MOD(ROW()-' . $ilkSatir . ',2)=1';
+    $sheet->getStyle("A{$ilkSatir}:C{$son}")->setConditionalStyles([$kosul($zebra, $colorZebra, true)]);
 }
 $dataEndRow = $row - 1;
 $row++;

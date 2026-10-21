@@ -1,5 +1,31 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı] — 1.3.0-beta.5 adayı
+
+> ⚠️ **Ön sürüm adayı (beta).** Üretim için kararlı **v1.2.2**'yi kullanın.
+
+### ⚡ Büyük veriyle performans
+
+Bağımsız mod 5.000 cari, 20.000 ürün ve bir yıllık hareketle (18.000 belge, 78.000 belge
+satırı, 15.000 kasa fişi) ölçüldü: `tests/performans/olc.php --veri`. Ölçülen 32 ekran ve
+işlemin hepsi sınır içinde (ekranlar 1 sn'nin altında).
+
+- **Raporlar:** satış raporlarında irsaliye/fatura eşleşmesi her satır için bütün tabloyu
+  tarıyordu (bir rapor 3 dakikayı aşıyordu → 0,02 sn); yıllık özet 16 sn → 1 sn, tahsilat
+  radarı 4 sn → 0,5 sn. Eksik dizinler eklendi (`sql/lumen_cekirdek/08_dizinler.sql`).
+- **Cari ekstresi:** çok hareketli caride PDF bellek yetmediği için açılmıyordu; artık son
+  500 hareketi içerir, öncekiler "Devir" satırında toplanır (bakiye değişmez, tamamı Excel'de).
+  Excel çıktısı 30 sn sınırına takılıp açılmıyordu → 1 sn.
+- **Ürün ligi Excel'i** (20.000 ürün) 23 sn → 2,5 sn.
+- **Takılan sorgu:** web isteğinde tek sorgu en fazla 100 sn sürer (`LUMEN_SORGU_SINIRI`);
+  önceden uzun bir rapor kullanıcının oturumunu dakikalarca kilitleyebiliyordu.
+
+### 🐛 Düzeltmeler
+
+- **Ürün ligi (son 30 gün):** veritabanı sunucusunun saat dilimi uygulamadan farklıysa gece
+  yarısından sonra bugünün satışları görünmüyordu; artık uygulamanın takvimiyle hesaplanır.
+  Demo veritabanı da İstanbul saatine ayarlandı.
+
 ## [1.3.0-beta.4] — 2026-10-21 (ÖN SÜRÜM — Bağımsız Lumen BETA)
 
 > ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.2**'yi kullanın. Bu ön sürüm v1.2.2'deki

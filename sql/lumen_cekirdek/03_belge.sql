@@ -128,3 +128,10 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_LM_SH_STOK')
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_LM_SH_BELGE')
     CREATE INDEX IX_LM_SH_BELGE ON dbo.LM_STOK_HAREKET (BELGE_ID);
 GO
+
+-- Cari kimliği LOGO uyumlu görünümlerde 0 ile gösterilir (CLIENTREF): ISNULL(CARI_ID, 0) ifadesinde
+-- dizin kullanılamadığından cari başına bütün belgeler taranıyordu (tahsilat radarı, yıllık özet).
+-- Kalıcı hesaplanmış kolon; dizini 08_dizinler.sql'de, görünümler (07) bu kolonu okur.
+IF COL_LENGTH('dbo.LM_BELGE', 'CARI_REF') IS NULL
+    ALTER TABLE dbo.LM_BELGE ADD CARI_REF AS ISNULL(CARI_ID, 0) PERSISTED;
+GO

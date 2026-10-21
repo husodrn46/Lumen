@@ -57,3 +57,4 @@ Desktop.ini
 /database/*
 !/database/.htaccess
 !/database/web.config
+tests/performans/rapor.md
