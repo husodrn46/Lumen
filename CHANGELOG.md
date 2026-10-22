@@ -1,6 +1,9 @@
 # Değişiklik Günlüğü
 
-## [Yayımlanmadı] — 1.3.0-rc.2 adayı
+## [1.3.0-rc.2] — 2026-10-22 (SÜRÜM ADAYI)
+
+> ⚠️ **Sürüm adayıdır.** Üretimde LOGO'ya bağlı kullanım için kararlı **v1.2.4**'ü kullanın.
+> v1.2.4'teki güvenlik düzeltmesini içerir.
 
 rc.1'in bağımsız kabul testinde (yapay zekâ ajanı, kodu GitHub'dan çekerek; `docs/test/KABUL_TESTI.md`)
 bulunanlar. Otomatik testler, GitHub iş akışı ve performans ölçümü rc.1'de de geçmişti; elle
