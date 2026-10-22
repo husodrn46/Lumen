@@ -276,6 +276,22 @@ geçiş aracı geçmiş belgeleri, cariye özel fiyatları ve açık siparişler
   türleri yanlış adlandırıyordu (7 perakende, 8 toptan, 9 verilen hizmet).
 - Cari bakiye detayında kullanılmayan 11 sorgu kaldırıldı.
 
+## [1.2.4] — 2026-10-22
+
+Güvenlik bakım sürümü (v1.3.0 sürüm adayının bağımsız kabul testinde bulundu). Şema değişikliği
+yoktur; v1.2.3'ün üzerine dosyaları kopyalamanız yeterlidir.
+
+### 🔒 Güvenlik
+
+- **Cari finans bilgisi:** "Müşteri Bakiye" ya da "Cari Bakiye/Ekstre" yetkisi olmayan bir
+  kullanıcı (ör. depo personeli) adresi doğrudan yazarak her carinin ekstresini, ekstre
+  PDF/Excel'ini, nakit ve fatura görünümlerini açabiliyordu. Artık bu ekranlar M4/M20 ya da
+  CR1/CR2 yetkisi ister (yönetici her zaman görür).
+- **Önceki dönem fatura/hizmet görünümleri** özel cari kısıtını uygulamıyordu; artık uygular ve
+  faturanın gerçek carisini denetler.
+- **Sipariş ekranı:** fiyat görme yetkisi olmayan kullanıcı satır fiyatlarını göremiyor ama
+  özet tutarları (ara toplam, KDV, genel toplam) görüyordu; artık onlar da gizlenir.
+
 ## [1.2.3] — 2026-10-22
 
 Hata düzeltme sürümü (v1.3.0 betalarında büyük veriyle yapılan performans testinde bulunanlar).

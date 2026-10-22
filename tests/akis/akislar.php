@@ -408,6 +408,15 @@ akis('sipariş satırı: sipariş olmayan kimliğe satır eklenmez; sevk edilen 
     yakin((float) $sat['AMOUNT'], (float) tek($pdo, "SELECT AMOUNT FROM LG_001_02_ORFLINE WHERE LOGICALREF = {$sat['LOGICALREF']}"), 'sevk edilen satırın miktarı');
 });
 
+akis('cari finans bilgisi: bakiye/ekstre yetkisi olmayan kullanıcı ekstre, PDF/Excel ve fatura görünümü açamaz', function () use ($URL): void {
+    $depo = (new Tarayici($URL))->giris('DEPO1');   // M15 + ST1; M4/CR yok
+    foreach (['cari/lg_hareket.php?cariid=2', 'cari/lg_hareket_ekstre_pdf.php?cariid=2', 'cari/lg_hareket_ekstre_excel.php?cariid=2', 'cari/lg_nakit.php?cariid=2'] as $yol) {
+        bekle($depo->istek($yol)['kod'] === 403, "yetkisiz kullanıcı {$yol} açtı");
+    }
+    $satis = (new Tarayici($URL))->giris('SATIS1');  // M4 + CR1/CR2
+    bekle($satis->istek('cari/lg_hareket.php?cariid=2')['kod'] === 200, 'bakiye yetkili kullanıcı ekstreyi açamadı');
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);
