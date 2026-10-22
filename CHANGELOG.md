@@ -1,5 +1,26 @@
 # Değişiklik Günlüğü
 
+## [1.2.3] — 2026-10-22
+
+Hata düzeltme sürümü (v1.3.0 betalarında büyük veriyle yapılan performans testinde bulunanlar).
+Şema değişikliği yoktur; v1.2.2'nin üzerine dosyaları kopyalamanız yeterlidir.
+
+### 🐛 Düzeltmeler
+
+- **Takılan sorgu:** web isteğinde tek bir veritabanı sorgusu en fazla 100 sn sürer
+  (`.env`'de `LUMEN_SORGU_SINIRI` ile değişir). Önceden çok uzun süren bir rapor, kullanıcının
+  oturumunu dakikalarca kilitleyebiliyordu.
+- **Cari ekstresi PDF:** binlerce hareketli caride bellek yetmediği için açılmıyordu. Artık son
+  500 hareketi içerir, öncekiler "Devir" satırında toplanır (bakiye değişmez; tamamı Excel'de).
+- **Cari ekstresi Excel:** binlerce hareketli caride 30 sn sınırına takılıp açılmıyordu (artık ~1 sn).
+- **Ürün ligi Excel'i:** 20.000 üründe 23 sn → 2,5 sn. Büyük Excel/PDF çıktılarında bellek
+  sınırı gerektiğinde 256 MB'a çıkarılır.
+- **En İyi 20 Ürün (son 30 gün):** veritabanı sunucusunun saat dilimi farklıysa gece yarısından
+  sonra bugünün satışları görünmüyordu.
+- **Ekstre dönem seçimi:** yıllar sabit yazılmıştı ("2026 (Aktif)", "2025"); artık
+  "Aktif Dönem / Önceki Dönem / Tüm Dönemler".
+- **Kullanıcı formu:** parola ipucu "en az 4 karakter" diyordu; kural 8 karakterdir.
+
 ## [1.2.2] — 2026-10-21
 
 Güvenlik bakım sürümü. Uygulama davranışı ve şema v1.2.1 ile aynıdır.

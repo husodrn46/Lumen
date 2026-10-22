@@ -428,9 +428,9 @@ function paraformat(float|int|string|null $kusurat): string
             </div>
             <div class="header-actions">
                 <select id="donemSecim" onchange="donemDegistir(this.value)" class="donem-select" aria-label="Donem secimi">
-                    <option value="aktif" <?php echo $donemSecim === 'aktif' ? 'selected' : ''; ?>>2026 (Aktif)</option>
-                    <option value="onceki" <?php echo $donemSecim === 'onceki' ? 'selected' : ''; ?>>2025 (Onceki)</option>
-                    <option value="tumu" <?php echo $donemSecim === 'tumu' ? 'selected' : ''; ?>>Tum Donemler</option>
+                    <option value="aktif" <?php echo $donemSecim === 'aktif' ? 'selected' : ''; ?>>Aktif Dönem</option>
+                    <option value="onceki" <?php echo $donemSecim === 'onceki' ? 'selected' : ''; ?>>Önceki Dönem</option>
+                    <option value="tumu" <?php echo $donemSecim === 'tumu' ? 'selected' : ''; ?>>Tüm Dönemler</option>
                 </select>
                 <button onclick="ekstreModalAc()" class="btn-ekstre" type="button">
                     <i class="fa-solid fa-file-export"></i> Ekstre

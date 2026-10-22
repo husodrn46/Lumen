@@ -102,13 +102,25 @@ while ($h = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $toplam_borc += (float) $h['BORC'];
     $toplam_alacak += (float) $h['ALACAK'];
 }
+// Çok hareketli caride PDF kütüphanesi belleği aşıyordu (1.000 satır 256 MB): PDF'e son
+// $pdfEnFazlaSatir hareket girer, öncekiler "Devir" satırında toplanır (bakiye yine doğru).
+// Tamamı ekranda ve Excel çıktısında.
+$pdfEnFazlaSatir = 500;
+$kesilenHareket = max(0, count($hareketler) - $pdfEnFazlaSatir);
+if ($kesilenHareket > 0) {
+    $hareketler = array_slice($hareketler, -$pdfEnFazlaSatir);
+    $toplam_borc = array_sum(array_map(static fn($h) => (float) $h['BORC'], $hareketler));
+    $toplam_alacak = array_sum(array_map(static fn($h) => (float) $h['ALACAK'], $hareketler));
+}
+lumen_bellek_en_az(256);
+@set_time_limit(120);
 $islem_net_etki = $toplam_borc - $toplam_alacak;
 $baslangic_bakiye = $resmi_bakiye - $islem_net_etki;
 
 $donemEtiket = match ($donemSecim) {
-    'onceki' => '2025 (Onceki Donem)',
+    'onceki' => 'Onceki Donem',
     'tumu' => 'Tum Donemler',
-    default => '2026 (Aktif Donem)',
+    default => 'Aktif Donem',
 };
 
 function ekstre_para(float $v): string
@@ -299,6 +311,9 @@ table.footer-wrap td { vertical-align: bottom; font-size: 7.5pt; color: #9ca3af;
     </tr>
 </table>
 
+<?php if ($kesilenHareket > 0): ?>
+<p style="font-size:7.5pt;color:#6b7280;margin:0 0 6px 0;">Bu PDF son <?php echo $pdfEnFazlaSatir; ?> hareketi içerir; önceki <?php echo number_format($kesilenHareket, 0, ',', '.'); ?> hareket "Devir" satırına dahildir. Tamamı için Excel çıktısını kullanın.</p>
+<?php endif; ?>
 <table class="hareket">
     <thead>
         <tr>
