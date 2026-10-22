@@ -2,6 +2,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../kontrol.php';
+// Cari finans bilgisi (bakiye/ekstre/fatura) yalnız bakiye ya da ekstre yetkisiyle görülür
+// (adres doğrudan yazılarak da açılmasın; menüdeki "Müşteri Bakiye" kuralıyla aynı aile).
+if (!m_p_cari_finans_erisim_var_mi($terminalkullanici)) {
+    lumen_hata_sayfasi('Yetkiniz yok', 'Cari bakiye ve ekstre için Müşteri Bakiye ya da Cari Bakiye/Ekstre yetkisi gerekir.', 403, 'fa-lock');
+}
 ob_start();
 
 include_once __DIR__ . '/../ayr.php';

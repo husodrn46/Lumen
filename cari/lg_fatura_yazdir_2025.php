@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 include_once(__DIR__ . "/../ayr.php");
 require_once __DIR__ . '/../kontrol.php';
+// Cari finans bilgisi (bakiye/ekstre/fatura) yalnız bakiye ya da ekstre yetkisiyle görülür
+// (adres doğrudan yazılarak da açılmasın; menüdeki "Müşteri Bakiye" kuralıyla aynı aile).
+if (!m_p_cari_finans_erisim_var_mi($terminalkullanici)) {
+    lumen_hata_sayfasi('Yetkiniz yok', 'Cari bakiye ve ekstre için Müşteri Bakiye ya da Cari Bakiye/Ekstre yetkisi gerekir.', 403, 'fa-lock');
+}
 include_once(__DIR__ . "/../log_ip.php");
 
 // 2025 dönemi için eski tabloları kullan
@@ -13,6 +18,14 @@ $CARIID = isset($_GET['cari_id']) ? (int)$_GET['cari_id'] : 0;
 $REF = isset($_GET['REF']) ? (int)$_GET['REF'] : 0;
 
 if ($CARIID <= 0 || $REF <= 0) {
+    exit;
+}
+// Fatura REF ile bulunur; URL'deki cari_id değil faturanın GERÇEK carisi denetlenir (özel cari kısıtı).
+$stmtSahip = $dbh->prepare("SELECT CLIENTREF FROM {$firmadonem}INVOICE WHERE LOGICALREF = :ref");
+$stmtSahip->execute([':ref' => $REF]);
+$sahip = $stmtSahip->fetchColumn();
+if ($sahip === false || (int) $sahip !== $CARIID || !m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4')) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
     exit;
 }
 function paraformat(float|int|string|null $kusurat): string
