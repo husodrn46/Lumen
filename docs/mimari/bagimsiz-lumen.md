@@ -1,6 +1,6 @@
 # Bağımsız Lumen — mimari ve yol haritası
 
-> **Durum: BETA** — son ön sürüm `v1.3.0-beta.5` (ilki `v1.3.0-beta.1`). Kararlı sürüm (v1.2.2) yalnız LOGO'ya bağlı moddur.
+> **Durum: BETA** — son ön sürüm `v1.3.0-beta.6` (ilki `v1.3.0-beta.1`). Kararlı sürüm (v1.2.2) yalnız LOGO'ya bağlı moddur.
 
 **Hedef:** Lumen tek başına çalışan bir ön muhasebe programı olur (kendi veritabanı,
 cari, stok, sipariş, irsaliye, KDV'li fatura, kasa/banka, çek/senet, raporlar) ve

@@ -1,6 +1,8 @@
 # Değişiklik Günlüğü
 
-## [Yayımlanmadı] — 1.3.0-beta.6 adayı
+## [1.3.0-beta.6] — 2026-10-22 (ÖN SÜRÜM — Bağımsız Lumen BETA)
+
+> ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.2**'yi kullanın.
 
 ### ✨ Yeni
 
