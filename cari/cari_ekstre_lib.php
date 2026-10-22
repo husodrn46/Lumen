@@ -157,3 +157,18 @@ if (!function_exists('cari_ekstre_hareketleri')) {
         return $satirlar;
     }
 }
+
+if (!function_exists('cari_ekstre_donem_etiketi')) {
+    /** Ekstre başlığındaki dönem adı. Bağımsız modda dönem ayrımı yok (tüm geçmiş tek tabloda). */
+    function cari_ekstre_donem_etiketi(string $donemSecim): string
+    {
+        if (lumen_bagimsiz_mi()) {
+            return 'Tum Hareketler';
+        }
+        return match ($donemSecim) {
+            'onceki' => 'Onceki Donem',
+            'tumu' => 'Tum Donemler',
+            default => 'Aktif Donem',
+        };
+    }
+}

@@ -11,6 +11,12 @@
   kullanılmış birim kaldırılamaz. Yetki: "Yeni Stok" (M11) ya da yönetici; alış fiyatı
   faturalama yetkisi ister.
 
+### 🐛 Düzeltmeler
+
+- **Cari ekstresi dönem seçimi:** yıllar ekrana sabit yazılmıştı ("2026 (Aktif)", "2025");
+  artık "Aktif Dönem / Önceki Dönem / Tüm Dönemler". Bağımsız modda seçim kutusu gösterilmez
+  (ekstre her zaman bütün geçmişi verir) ve PDF/Excel başlığı "Tüm Hareketler" der.
+
 ## [1.3.0-beta.5] — 2026-10-22 (ÖN SÜRÜM — Bağımsız Lumen BETA)
 
 > ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.2**'yi kullanın.

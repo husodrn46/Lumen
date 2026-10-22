@@ -487,7 +487,7 @@ Her carinin altındaki düğmeler:
 ### Ekstre (ekranda, PDF, Excel)
 
 1. Carinin "Hareket" düğmesine basın ("Cari Hareket Dokumu" açılır).
-2. Sağ üstteki seçiciden dönemi seçin: aktif dönem, önceki dönem ya da "Tum Donemler".
+2. LOGO modunda sağ üstteki seçiciden dönemi seçin: "Aktif Dönem", "Önceki Dönem" ya da "Tüm Dönemler". Bağımsız modda seçici yoktur; ekstre bütün geçmişi gösterir.
 3. Ekran görüntüsünü yazdırmak için "Yazdir" düğmesine basın.
 4. Dosya olarak almak için "Ekstre" düğmesine basın ve "PDF" ya da "Excel" seçin.
 

@@ -59,11 +59,7 @@ if ($kesilenHareket > 0) {
 $islem_net_etki = $toplam_borc - $toplam_alacak;
 $baslangic_bakiye = $resmi_bakiye - $islem_net_etki;
 
-$donemEtiket = match ($donemSecim) {
-    'onceki' => '2025 (Onceki Donem)',
-    'tumu' => 'Tum Donemler',
-    default => '2026 (Aktif Donem)',
-};
+$donemEtiket = cari_ekstre_donem_etiketi((string) $donemSecim);
 
 function ekstre_para(float $v): string
 {
