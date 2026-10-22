@@ -586,7 +586,9 @@ akis('toplu fiyat: önizleme değiştirmez; grup ve yüzdeyle yuvarlayarak bugü
     $satirOnce = (int) tek($pdo, 'SELECT COUNT(*) FROM LM_FIYAT');
     $alan = ['tur' => '1', 'grup' => $grup, 'kod' => '', 'yontem' => 'yuzde', 'deger' => '10', 'yuvarla' => '0.5', 'tarih' => date('Y-m-d')];
     $on = $yonetici->istek('tanimlar/toplu_fiyat.php', ['csrf_token' => $yonetici->belirtec('tanimlar/toplu_fiyat.php'), 'islem' => 'onizle'] + $alan);
-    bekle(str_contains($on['govde'], count($once) . ' ürün değişecek'), 'önizleme ürün sayısı yanlış (' . count($once) . ' bekleniyordu)');
+    // Yuvarlamadan sonra fiyatı değişmeyen ürün (ör. 1,00 → 1,10 → 1,00) listeye girmez
+    $degisen = count(array_filter($once, static fn($f) => abs(round((float) $f * 1.1 / 0.5) * 0.5 - (float) $f) >= 0.00005));
+    bekle(str_contains($on['govde'], $degisen . ' ürün değişecek'), "önizleme ürün sayısı yanlış ({$degisen} bekleniyordu)");
     bekle((int) tek($pdo, 'SELECT COUNT(*) FROM LM_FIYAT') === $satirOnce, 'önizleme fiyat yazdı');
     $r = $yonetici->istek('tanimlar/toplu_fiyat.php', ['csrf_token' => $yonetici->belirtec('tanimlar/toplu_fiyat.php'), 'islem' => 'uygula'] + $alan);
     bekle($r['kod'] === 303, 'toplu fiyat uygulanmadı');
