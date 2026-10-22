@@ -27,7 +27,7 @@ Gereksinim: Docker + docker compose (Docker Desktop, Colima ya da OrbStack), en 
 
 ```bash
 git clone https://github.com/husodrn46/Lumen.git && cd Lumen
-git checkout v1.3.0-beta.6          # denenecek sürüm
+git checkout v1.3.0-beta.7          # denenecek sürüm
 bash tests/kabul/calistir.sh        # ~15–30 dk; sonuç: kabul-raporu.md
 ```
 
@@ -57,7 +57,7 @@ Kapatmak için: `bash demo/kur.sh --kapat`.
 GitHub hesabı ve `gh` komut satırı aracı gerekir (depoda çalıştırma yetkisi olan hesap).
 
 ```bash
-gh workflow run kabul.yml -R husodrn46/Lumen -f ref=v1.3.0-beta.6
+gh workflow run kabul.yml -R husodrn46/Lumen -f ref=v1.3.0-beta.7
 gh run list -R husodrn46/Lumen --workflow kabul.yml --limit 1      # çalıştırma numarası
 gh run watch <numara> -R husodrn46/Lumen
 gh run download <numara> -R husodrn46/Lumen -n kabul-raporu         # kabul-raporu.md
