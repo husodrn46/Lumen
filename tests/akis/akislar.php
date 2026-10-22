@@ -15,109 +15,10 @@ declare(strict_types=1);
  * Yalnız LUMEN_ ile başlayan veritabanında çalışır (demo verisini değiştirir).
  */
 
-if (PHP_SAPI !== 'cli') {
-    http_response_code(404);
-    exit;
-}
+require __DIR__ . '/_ortak.php';
 
-$URL = rtrim(getenv('LUMEN_TEST_URL') ?: 'http://web', '/');
-$DB  = getenv('AKL_DB_NAME') ?: 'LUMEN_DEMO';
-if (!preg_match('/^LUMEN_[A-Z0-9_]+$/', $DB)) {
-    fwrite(STDERR, "REDDEDİLDİ: akış testleri yalnız demo/test veritabanında çalışır ({$DB}).\n");
-    exit(3);
-}
-$pdo = new PDO(
-    sprintf('sqlsrv:server=%s;database=%s;TrustServerCertificate=1', getenv('AKL_DB_SERVER') ?: 'db', $DB),
-    getenv('AKL_DB_USER') ?: 'sa', getenv('AKL_DB_PASS') ?: '',
-    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-);
-
-// ---------------------------------------------------------------- yardımcılar
-final class Tarayici
-{
-    private string $cerez;
-
-    public function __construct(private string $url)
-    {
-        $this->cerez = (string) tempnam(sys_get_temp_dir(), 'akis_');
-    }
-
-    /** @return array{kod:int, govde:string, yer:string} */
-    public function istek(string $yol, ?array $post = null, array $basliklar = []): array
-    {
-        $ch = curl_init(str_starts_with($yol, 'http') ? $yol : $this->url . '/' . ltrim($yol, '/'));
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_TIMEOUT => 60,
-            CURLOPT_COOKIEFILE => $this->cerez, CURLOPT_COOKIEJAR => $this->cerez,
-            CURLOPT_HTTPHEADER => $basliklar,
-        ]);
-        if ($post !== null) {
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
-        }
-        $yanit = (string) curl_exec($ch);
-        $bas = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        $sonuc = ['kod' => (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE), 'govde' => substr($yanit, $bas),
-                  'yer' => (string) (curl_getinfo($ch, CURLINFO_REDIRECT_URL) ?: '')];
-        curl_close($ch);
-        return $sonuc;
-    }
-
-    public function giris(string $kullanici): self
-    {
-        $this->istek('giris.php');
-        $r = $this->istek('giris.php', ['kullaniciadi' => $kullanici, 'kullanicisifre' => 'demo1234']);
-        if ($r['kod'] !== 302) {
-            throw new RuntimeException("giriş başarısız: {$kullanici}");
-        }
-        return $this;
-    }
-
-    /** Sayfadaki CSRF belirteci (form alanı veya JS değişkeni). */
-    public function belirtec(string $yol): string
-    {
-        $g = $this->istek($yol)['govde'];
-        if (preg_match('/name="csrf_token" value="([a-f0-9]+)"/', $g, $m) || preg_match('/csrf\w*\s*=\s*"([a-f0-9]{40,})"/i', $g, $m)) {
-            return $m[1];
-        }
-        throw new RuntimeException("CSRF belirteci bulunamadı: {$yol}");
-    }
-}
-
-function tek(PDO $pdo, string $sql, array $p = []): mixed
-{
-    $st = $pdo->prepare($sql);
-    $st->execute($p);
-    $v = $st->fetchColumn();
-    $st->closeCursor();
-    return $v;
-}
-
-$sonuclar = [];
-function akis(string $ad, callable $fn): void
-{
-    global $sonuclar;
-    try {
-        $fn();
-        $sonuclar[] = [true, $ad, ''];
-        echo "  ✓ {$ad}\n";
-    } catch (Throwable $e) {
-        $sonuclar[] = [false, $ad, $e->getMessage()];
-        echo "  ✗ {$ad}\n      " . $e->getMessage() . "\n";
-    }
-}
-
-function bekle(bool $kosul, string $mesaj): void
-{
-    if (!$kosul) {
-        throw new RuntimeException($mesaj);
-    }
-}
-
-function yakin(float $beklenen, float $gercek, string $ne): void
-{
-    bekle(abs($beklenen - $gercek) < 0.011, "{$ne}: beklenen {$beklenen}, gelen {$gercek}");
-}
+// Bağımsız modda da çalışır: doğrulama sorgularındaki LOGO tablo adları LMV_ görünümlerine
+// çevrilir (tests/akis/_ortak.php). Henüz taşınmamış modülün akışı atlanır.
 
 $yonetici = (new Tarayici($URL))->giris('YONETICI');
 
@@ -227,7 +128,7 @@ akis('çek girişi kuruşlu tutarı aynen kaydeder; mükerrer gönderim ve geri 
     $g = json_decode($yonetici->istek('cek/cek_geri_al.php', ['csrf_token' => $t2, 'log_id' => $j['log_id']])['govde'], true);
     bekle(($g['ok'] ?? false) === true, 'geri alma başarısız: ' . ($g['mesaj'] ?? '?'));
     bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_CSCARD WHERE LOGICALREF = :r", [':r' => $j['cscard_ref']]) === 0, 'çek kartı silinmedi');
-});
+}, 'cek');
 
 akis('dövizli sipariş: döviz kodu TRCURR\'a yazılır, TRNET = NETTOTAL / kur', function () use ($yonetici, $pdo): void {
     $t = $yonetici->belirtec('doviz/fisekle.php?cariid=3&doviz=1');
@@ -267,7 +168,7 @@ akis('ayarlar JSON\'a yazılır; _bilgi_.inc değişmez; UNC yazıcı adı korun
 akis('yetki: stok personeli sipariş satırı ekleyemez, M16 personeli yönetici olamaz', function () use ($URL, $pdo, &$fis): void {
     $depo = (new Tarayici($URL))->giris('DEPO1');
     $once = (int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :f", [':f' => $fis]);
-    $t = $depo->belirtec('stok/index.php');
+    $t = $depo->belirtec('sifre_degistir.php');   // DEPO1'in açabildiği, CSRF formu olan bir sayfa
     $depo->istek("siparis/lg_fis.php?stokhareket={$fis}", ['csrf_token' => $t, 'stkid' => 2, 'stokhareket' => $fis,
         'kontrol' => uniqid(), 'stkbirim' => 1, 'stkadt' => 1, 'stbrm' => 1, 'stkfyt' => 1, 'stkkdv' => 20]);
     bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :f", [':f' => $fis]) === $once, 'DEPO1 satır ekleyebildi');
@@ -335,7 +236,9 @@ akis('entegrasyon hesabı: API okur, yazamaz, web\'e giremez', function () use (
         curl_close($ch);
         return $k;
     };
-    bekle($kod('rapor_kasa.php', false) === 200, 'okuma ucu kapalı');
+    // Okuma ucu: bağımsız modda rapor uçları henüz kapalı (Faz 6) — stok araması.
+    $okuma = lumen_bagimsiz_mi() ? 'stok_ara.php?q=tabak' : 'rapor_kasa.php';
+    bekle($kod($okuma, false) === 200, "okuma ucu kapalı: {$okuma}");
     foreach (['siparis_olustur.php', 'stok_guncelle.php', 'kullanici_listesi.php'] as $uc) {
         bekle($kod($uc, true) === 403, "yazma/yönetim ucu açık: {$uc}");
     }
@@ -421,6 +324,47 @@ akis('faturalama (BETA): kapalıyken kapalı; sipariş faturalanır, ikinci kez 
     } finally {
         $ayarla('0');
     }
+}, 'logo_fatura');
+
+akis('cari ekstresi: ekran, bakiye listesi, PDF ve Excel aynı kaynaktan (cari_ekstre_lib)', function () use ($yonetici, $pdo): void {
+    $bakiye = (float) tek($pdo, "SELECT DEBIT - CREDIT FROM LV_001_02_GNTOTCL WHERE CARDREF = 5 AND TOTTYP = 1");
+    $metin = number_format(abs($bakiye), 2, ',', '.');
+    $e = $yonetici->istek('cari/lg_hareket.php?cariid=5')['govde'];
+    bekle(str_contains($e, $metin), "ekstrede bakiye ({$metin}) yok");
+    // Demo verisi: LOGO'da satış faturaları (CLFLINE 38), bağımsızda açılış hareketleri.
+    $etiket = lumen_bagimsiz_mi() ? 'Açılış Fişi' : 'Toptan Satış Faturası';
+    bekle(str_contains($e, $etiket), "ekstrede işlem türü etiketi ({$etiket}) yok");
+    bekle(str_contains($yonetici->istek('cari/lg_bakiye.php?q=' . rawurlencode('anadolu ev'))['govde'], $metin), 'bakiye listesinde bakiye yok');
+    foreach (['cari/lg_hareket_ekstre_pdf.php?cariid=5' => '%PDF', 'cari/lg_hareket_ekstre_excel.php?cariid=5' => "PK\x03\x04"] as $yol => $imza) {
+        $r = $yonetici->istek($yol);
+        bekle($r['kod'] === 200 && str_starts_with($r['govde'], $imza), "{$yol}: dosya üretilmedi (HTTP {$r['kod']})");
+    }
+});
+
+akis('koli ölçüsü: ondalıklı ağırlık kaydedilir (eskiden tamsayı dönüşüm hatası)', function () use ($yonetici, $pdo): void {
+    $t = $yonetici->belirtec('stok/koli_olcu_toplu.php');
+    $eski = (string) tek($pdo, "SELECT NAME FROM LG_001_ITEMS WHERE LOGICALREF = 4");
+    $j = json_decode($yonetici->istekJson('stok/koli_olcu_kaydet.php', ['csrf_token' => $t, 'id' => 4, 'name' => $eski,
+        'width' => 120, 'length' => 300, 'height' => 90, 'weight' => 2.5])['govde'], true);
+    bekle(($j['success'] ?? false) === true, 'kaydedilmedi: ' . json_encode($j, JSON_UNESCAPED_UNICODE));
+    yakin(2.5, (float) tek($pdo, "SELECT WEIGHT FROM LG_001_ITMUNITA WHERE ITEMREF = 4 AND LINENR = 1"), 'ağırlık');
+});
+
+akis('sistem ve yedek: mod görünür; yönetici yedek alır, listeler, indirir; yetkisiz giremez', function () use ($yonetici, $URL): void {
+    $g = $yonetici->istek('ayar/sistem_yedek.php')['govde'];
+    $bagimsiz = strtolower((string) getenv('LUMEN_VERI_KAYNAGI')) === 'lumen';
+    bekle(str_contains($g, $bagimsiz ? 'Bağımsız' : "LOGO'ya bağlı") && str_contains($g, 'LUMEN_VERI_KAYNAGI'), 'çalışma modu görünmüyor');
+    $t = $yonetici->belirtec('ayar/sistem_yedek.php');
+    $r = $yonetici->istek('ayar/sistem_yedek.php', ['csrf_token' => $t, 'islem' => 'yedek_al']);
+    bekle(str_contains($r['govde'], 'Yedek alındı'), 'yedek alınamadı');
+    bekle(preg_match('/\?indir=(lumen_[0-9_]+_elle_[a-f0-9]{6}\.lumen\.gz)/', $r['govde'], $m) === 1, 'yedek listede yok');
+    $d = $yonetici->istek('ayar/sistem_yedek.php?indir=' . $m[1]);
+    bekle($d['kod'] === 200 && str_starts_with($d['govde'], "\x1f\x8b"), 'yedek indirilemedi');
+    bekle(str_contains((string) gzdecode($d['govde']), '"lumen_yedek":1'), 'indirilen dosya Lumen yedeği değil');
+    bekle($yonetici->istek('ayar/sistem_yedek.php?indir=..%2F..%2F.env')['kod'] !== 200, 'klasör dışı dosya indirildi');
+    @unlink(dirname(__DIR__, 2) . '/database/yedekler/' . $m[1]);
+    $satis = (new Tarayici($URL))->giris('SATIS1');
+    bekle($satis->istek('ayar/sistem_yedek.php?indir=' . $m[1])['kod'] !== 200, 'yetkisiz kullanıcı yedek indirdi');
 });
 
 akis('özel cari: gizli cariye çek girilemez; yazdırma görünümü ve API çek listesi gizli cariyi göstermez', function () use ($URL, $pdo): void {
@@ -467,7 +411,8 @@ akis('sipariş satırı: sipariş olmayan kimliğe satır eklenmez; sevk edilen 
 akis('cari finans bilgisi: bakiye/ekstre yetkisi olmayan kullanıcı ekstre, PDF/Excel ve fatura görünümü açamaz', function () use ($URL): void {
     $depo = (new Tarayici($URL))->giris('DEPO1');   // M15 + ST1; M4/CR yok
     foreach (['cari/lg_hareket.php?cariid=2', 'cari/lg_hareket_ekstre_pdf.php?cariid=2', 'cari/lg_hareket_ekstre_excel.php?cariid=2', 'cari/lg_nakit.php?cariid=2'] as $yol) {
-        bekle($depo->istek($yol)['kod'] === 403, "yetkisiz kullanıcı {$yol} açtı");
+        // 403: yetki yok; 501: bağımsız modda sayfa zaten kapalı (LOGO nakit görünümü)
+        bekle(in_array($depo->istek($yol)['kod'], [403, 501], true), "yetkisiz kullanıcı {$yol} açtı");
     }
     $satis = (new Tarayici($URL))->giris('SATIS1');  // M4 + CR1/CR2
     bekle($satis->istek('cari/lg_hareket.php?cariid=2')['kod'] === 200, 'bakiye yetkili kullanıcı ekstreyi açamadı');

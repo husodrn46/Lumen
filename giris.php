@@ -54,33 +54,22 @@ if (!isset($_SESSION['plasiyer_id']) && (!function_exists('saldiri_modu_aktif_mi
     if ($personelId !== false) {
         // Personel bilgilerini al
         try {
-            $stmt = $dbh->prepare("
-                SELECT L.LOGICALREF, L.CODE, L.CYPHCODE, L.SPECODE
-                FROM LG_SLSMAN L
-                WHERE L.LOGICALREF = :personel_id AND L.ACTIVE = 0
-            ");
-            $stmt->execute([':personel_id' => $personelId]);
-            $personel = $stmt->fetch(PDO::FETCH_ASSOC);
+            $personel = lumen_personel_getir($dbh, (int) $personelId);
 
             if ($personel) {
                 // Oturum baslat
-                session_regenerate_id(true);
-                $_SESSION['plasiyer_id']    = $personel['LOGICALREF'];
-                $_SESSION['plasiyer_depo']  = $personel['SPECODE'];
-                $_SESSION['plasiyer_yetki'] = $personel['CYPHCODE'];
-                $_SESSION['kullanici_adi']  = $personel['CODE'];
-                $_SESSION['login_ts']       = time(); // force-logout referansi (oturum baslangici)
+                lumen_oturum_ac($personel);
                 // Doğrulayıcı her kullanımda yenilenir; kopyalanan eski çerez geçersizleşir.
                 remember_token_yenile($selector);
 
                 // Yetki cache'ini temizle
                 if (function_exists('m_p_yetki_cache_temizle')) {
-                    m_p_yetki_cache_temizle($personel['LOGICALREF']);
+                    m_p_yetki_cache_temizle((int) $personel['ID']);
                 }
 
                 // Basarili otomatik girisi logla
                 if (function_exists('logGiris')) {
-                    logGiris($personel['LOGICALREF'], $personel['CODE'], true, 'Token ile otomatik giriş');
+                    logGiris((int) $personel['ID'], (string) $personel['KOD'], true, 'Token ile otomatik giriş');
                 }
 
                 header('Location: index.php?giris=basarili');
@@ -182,27 +171,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kullaniciadi'])) {
     }
 
     // Kullaniciyi bul (sifre kontrolu PHP tarafinda yapilacak)
-    $sorgu_str = "SELECT L.LOGICALREF, L.CYPHCODE, L.SPECODE, M.SIFRE
-                  FROM LG_SLSMAN L
-                  LEFT JOIN M_P_YETKI M ON L.LOGICALREF = M.PERSONEL
-                  WHERE L.FIRMNR = :firmano
-                    AND L.CODE   = :kullanici
-                    AND L.ACTIVE = 0";
-    $stmt = $dbh->prepare($sorgu_str);
-    $stmt->bindParam(':firmano', $firmano, PDO::PARAM_INT);
-    $stmt->bindParam(':kullanici', $veri_kullanici);
-    $stmt->execute();
-
-    $sorgu2 = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Kullanıcı: LOGO modunda LG_SLSMAN, bağımsız modda LM_PERSONEL (includes/veri/veri.php)
+    $sorgu2 = lumen_personel_giris_bilgisi($dbh, (string) $veri_kullanici);
+    if ($sorgu2) {
+        $sorgu2['LOGICALREF'] = (int) $sorgu2['ID'];   // aşağıdaki mevcut kullanımlar için
+    }
 
     // Sifre dogrulama (hash veya duz metin destekli)
     if ($sorgu2 && isset($sorgu2['SIFRE']) && sifre_dogrula($veri_parola, $sorgu2['SIFRE'])) {
-        session_regenerate_id(true);
-        $_SESSION['plasiyer_id']   = $sorgu2['LOGICALREF'];
-        $_SESSION['plasiyer_depo'] = $sorgu2['SPECODE'];
-        $_SESSION['plasiyer_yetki']= $sorgu2['CYPHCODE'];
+        lumen_oturum_ac($sorgu2);
         $_SESSION['kullanici_adi'] = $veri_kullanici;
-        $_SESSION['login_ts']      = time(); // force-logout referansi (oturum baslangici)
 
         // Yetki cache'ini temizle (güncel yetkileri almak için)
         if (function_exists('m_p_yetki_cache_temizle')) {
@@ -632,7 +610,7 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
                                autocomplete="username"
                                autocapitalize="characters"
                                spellcheck="false"
-                               pattern="[A-Z0-9_.-]*"
+                               pattern="[A-Z0-9_.\-]*"
                                autofocus>
                     </div>
                 </div>

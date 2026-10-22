@@ -40,72 +40,20 @@ if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4
     exit;
 }
 
-// Cari bilgileri
-$stmtCari = $dbh->prepare("SELECT CODE, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF = :cariid");
-$stmtCari->execute([':cariid' => $CARIID]);
-$cari = $stmtCari->fetch(PDO::FETCH_ASSOC) ?: ['CODE' => '', 'DEFINITION_' => 'Bilinmeyen Cari'];
+// Cari, resmi bakiye ve hareketler ekranla aynı kaynaktan (cari/cari_ekstre_lib.php), iki modda.
+require_once __DIR__ . '/cari_ekstre_lib.php';
+$cari = cari_ekstre_cari($dbh, (int) $CARIID) ?: ['CODE' => '', 'DEFINITION_' => 'Bilinmeyen Cari'];
 
-// Firma adı
-$stmtFirma = $dbh->prepare("SELECT TOP 1 DEFINITION_ FROM {$firma}CLCARD WHERE ACTIVE = 0 ORDER BY LOGICALREF");
-$stmtFirma->execute();
-$firmaAdi = (string) ($stmtFirma->fetchColumn() ?: 'Firma');
+// Firma adı: kurulumun firması (eskiden listedeki ilk carinin unvanı basılıyordu).
+$stmtFirma = $dbh->prepare("SELECT TOP 1 F.NAME FROM " . lumen_tablo('firma') . " F WHERE F.NR = :nr");
+$stmtFirma->execute([':nr' => (int) ($firmano ?? 1)]);
+$firmaAdi = (string) ($stmtFirma->fetchColumn() ?: ($firmabaslik ?? 'Firma'));
 
-// Resmi bakiye
-$stmtResmi = $dbh->prepare("SELECT (ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE
-    FROM {$firmadonemx}GNTOTCL G WITH(NOLOCK)
-    WHERE G.CARDREF = :cariid AND G.TOTTYP = 1");
-$stmtResmi->execute([':cariid' => $CARIID]);
-$resmi_bakiye = (float) $stmtResmi->fetchColumn();
-
-// Dönem prefixleri
-$donemPrefixler = match ($donemSecim) {
-    'onceki' => [$eskifirmadonem],
-    'tumu' => [$firmadonem, $eskifirmadonem],
-    default => [$firmadonem],
-};
-
-$trcodeCaseExpr = "CASE HAREKET.TRCODE
-    WHEN 1 THEN 'Nakit Tahsilat' WHEN 2 THEN 'Nakit Odeme' WHEN 3 THEN 'Borc Dekontu' WHEN 4 THEN 'Alacak Dekontu' WHEN 5 THEN 'Virman Fisi'
-    WHEN 6 THEN 'Kur Farki Fisi' WHEN 12 THEN 'Ozel Fis' WHEN 14 THEN 'Acilis Fisi' WHEN 20 THEN 'Gelen Havale' WHEN 21 THEN 'Gonderilen Havale'
-    WHEN 24 THEN 'Doviz Alis Belgesi' WHEN 25 THEN 'Doviz Satis belgesi' WHEN 28 THEN 'Alinan Hizmet Faturasi' WHEN 29 THEN 'Verilen Hizmet Faturasi'
-    WHEN 31 THEN 'Satin Alma Faturasi' WHEN 32 THEN 'Perakende Satis Iade Faturasi' WHEN 33 THEN 'Toptan Satis Iade Faturasi'
-    WHEN 34 THEN 'Alinan Hizmet Faturasi' WHEN 35 THEN 'Alinan Proforma Fatura' WHEN 36 THEN 'Satin Alma Iade Faturasi'
-    WHEN 37 THEN 'Perakende Satis Faturasi' WHEN 38 THEN 'Toptan Satis Faturasi' WHEN 39 THEN 'Verilen Hizmet Faturasi'
-    WHEN 40 THEN 'Verilen proforma fatura' WHEN 41 THEN 'Verilen Vade Farki Faturasi' WHEN 42 THEN 'Alinan Vade Farki Faturasi'
-    WHEN 43 THEN 'Satin Alma Fiyat Farki Faturasi' WHEN 44 THEN 'Satis Fiyat Farki Faturasi' WHEN 45 THEN 'Verilen Serbest Meslek Makbuzu'
-    WHEN 46 THEN 'Alinan Serbest Meslek Makbuzu' WHEN 56 THEN 'Mustahsil Makbuzu'
-    WHEN 61 THEN 'Cek Girisi' WHEN 62 THEN 'Senet Girisi'
-    WHEN 63 THEN 'Cek Cikisi (Cari Hesaba)' WHEN 64 THEN 'Senet Cikisi (Cari Hesaba)'
-    WHEN 70 THEN 'Kredi Karti Fisi' WHEN 71 THEN 'Kredi Karti Iade Fisi' WHEN 72 THEN 'Firma Kredi Karti Fisi' WHEN 73 THEN 'Firma Kredi Karti Iade Fisi'
-    WHEN 81 THEN 'Satinalma Siparisi' WHEN 82 THEN 'Satis Siparisi'
-  END";
-
-$cariIdSafe = (int) $CARIID;
-$queryParts = [];
-foreach ($donemPrefixler as $prefix) {
-    $acilisFiltresi = ($donemSecim === 'tumu') ? ' AND HAREKET.TRCODE <> 14' : '';
-    $queryParts[] = "
-    SELECT
-      HAREKET.LOGICALREF,
-      HAREKET.DATE_,
-      HAREKET.TRANNO AS DOCODE,
-      HAREKET.TRCODE AS TRCODE_NO,
-      {$trcodeCaseExpr} AS TRCODE,
-      HAREKET.LINEEXP AS ACIKLAMA,
-      ISNULL((1 - HAREKET.SIGN) * HAREKET.AMOUNT, 0) AS BORC,
-      ISNULL(HAREKET.SIGN * HAREKET.AMOUNT, 0) AS ALACAK,
-      '{$prefix}' AS DONEM_PREFIX
-    FROM {$prefix}CLFLINE AS HAREKET
-    WHERE HAREKET.CANCELLED = 0 AND HAREKET.CLIENTREF = {$cariIdSafe}{$acilisFiltresi}";
-}
-
-$sql = "SELECT * FROM (" . implode(" UNION ALL ", $queryParts) . ") AS BIRLESIK ORDER BY DATE_ ASC, LOGICALREF ASC";
-$stmt = $dbh->prepare($sql);
-$stmt->execute();
+$resmi_bakiye = cari_ekstre_resmi_bakiye($dbh, (int) $CARIID);
 $hareketler = [];
 $toplam_borc = 0.0;
 $toplam_alacak = 0.0;
-while ($h = $stmt->fetch(PDO::FETCH_ASSOC)) {
+foreach (cari_ekstre_hareketleri($dbh, (int) $CARIID, (string) $donemSecim) as $h) {
     $hareketler[] = $h;
     $toplam_borc += (float) $h['BORC'];
     $toplam_alacak += (float) $h['ALACAK'];
@@ -113,11 +61,7 @@ while ($h = $stmt->fetch(PDO::FETCH_ASSOC)) {
 $islem_net_etki = $toplam_borc - $toplam_alacak;
 $baslangic_bakiye = $resmi_bakiye - $islem_net_etki;
 
-$donemEtiket = match ($donemSecim) {
-    'onceki' => 'Onceki Donem',
-    'tumu' => 'Tum Donemler',
-    default => 'Aktif Donem',
-};
+$donemEtiket = cari_ekstre_donem_etiketi((string) $donemSecim);
 
 // Excel oluştur
 // Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).

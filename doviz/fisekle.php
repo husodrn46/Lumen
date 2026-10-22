@@ -41,7 +41,7 @@ if ($dovizKuru <= 0) {
     try {
         $stmtKur = $dbh->prepare("
             SELECT TOP 1 RATES2 AS KUR
-            FROM L_DAILYEXCHANGES
+            FROM {$GLOBALS['LUMEN_KUR']}
             WHERE CRTYPE = :doviz
             ORDER BY LREF DESC
         ");
@@ -806,7 +806,7 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
                 <div class="back-row">
                     <a href="cari.php" class="back-link">
                         <i class="fa-solid fa-xmark"></i>
-                        <span>Vazgec ve Musteri Listesine Don</span>
+                        <span>Vazgeç ve Müşteri Listesine Dön</span>
                     </a>
                 </div>
             </form>

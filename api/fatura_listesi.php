@@ -8,7 +8,8 @@ declare(strict_types=1);
  *          kdv, kdv_metin, cari_kod, cari_ad }], sayi, toplam, toplam_metin, donem }
  *
  * Token + CR1 (cari finans) yetkisi zorunlu. Kesilen SATIŞ faturalarını listeler:
- * INVOICE.TRCODE IN (6,7,8) (perakende/toptan/hizmet) ve CANCELLED=0. Opsiyonel cari
+ * INVOICE.TRCODE IN (7,8,9) (perakende/toptan satış, verilen hizmet) ve CANCELLED=0.
+ * (LOGO'da 6 satınalma iadesidir; eskiden satış diye listeleniyordu.) Opsiyonel cari
  * ve fiş/cari araması. donem=tumu iki dönemi (aktif + önceki) birleştirir.
  */
 
@@ -42,7 +43,7 @@ $cidSafe = $cariId > 0 ? (int) $cariId : 0; // int — UNION'da güvenle gömül
 $parcalar = [];
 $params   = [];
 foreach ($donemler as $i => $tbl) {
-    $w = ['ISNULL(I.CANCELLED, 0) = 0', 'I.TRCODE IN (6, 7, 8)'];
+    $w = ['ISNULL(I.CANCELLED, 0) = 0', 'I.TRCODE IN (7, 8, 9)'];
     if ($cidSafe > 0) {
         $w[] = "I.CLIENTREF = {$cidSafe}";
     }
@@ -87,8 +88,7 @@ try {
 }
 
 $turler = [
-    1 => 'Alış Faturası', 3 => 'Toptan İade', 6 => 'Perakende Satış',
-    7 => 'Toptan Satış', 8 => 'Hizmet Faturası', 9 => 'Satış İade',
+    7 => 'Perakende Satış', 8 => 'Toptan Satış', 9 => 'Verilen Hizmet',
 ];
 
 $toplam = 0.0;

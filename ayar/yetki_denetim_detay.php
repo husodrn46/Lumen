@@ -30,7 +30,7 @@ $stmt = $dbh->prepare("SELECT
         S.FIRMNR,
         CASE WHEN Y.PERSONEL IS NULL THEN 0 ELSE 1 END AS HAS_YETKI_ROW,
         ISNULL(Y.YETKI, 2) AS YETKI_TURU
-    FROM LG_SLSMAN S
+    FROM {$GLOBALS['LUMEN_SLSMAN']} S
     LEFT JOIN M_P_YETKI Y ON Y.PERSONEL = S.LOGICALREF
     WHERE S.LOGICALREF = :id");
 $stmt->execute([':id' => $userId]);

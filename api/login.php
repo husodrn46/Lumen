@@ -53,7 +53,7 @@ if ($kilit['kilitli']) {
 try {
     $stmt = $dbh->prepare("
         SELECT L.LOGICALREF, L.CYPHCODE, L.SPECODE, M.SIFRE
-        FROM LG_SLSMAN L
+        FROM {$GLOBALS['LUMEN_SLSMAN']} L
         LEFT JOIN M_P_YETKI M ON L.LOGICALREF = M.PERSONEL
         WHERE L.FIRMNR = :firmano
           AND L.CODE = :kullanici

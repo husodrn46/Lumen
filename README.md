@@ -28,9 +28,11 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 
 ## Denemek için
 
-Lumen, LOGO Tiger için bir yardımcı arayüzdür. **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
+Lumen, LOGO Tiger için bir yardımcı arayüzdür; v1.3.0'dan itibaren LOGO olmadan, kendi veritabanıyla ön muhasebe programı olarak da çalışır (**Bağımsız mod**). **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
 
-**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.2.4](https://github.com/husodrn46/Lumen/releases/tag/v1.2.4) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.2.4.zip)
+**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.3.0](https://github.com/husodrn46/Lumen/releases/tag/v1.3.0) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.3.0.zip)
+
+**Bağımsız mod (v1.3.0):** LOGO'suz, kendi veritabanıyla ön muhasebe — mimari ve LOGO'dan geçiş: [docs/mimari/bagimsiz-lumen.md](docs/mimari/bagimsiz-lumen.md).
 
 `v1.1.0-beta.1` (Faturalama BETA) ön sürümünün yerini v1.2.0 alır: Faturalama modülü bu sürümde de BETA ve varsayılan kapalıdır. Yükseltme: [CHANGELOG.md](CHANGELOG.md).
 
@@ -50,6 +52,8 @@ Hızlı deneme için `bash demo/kur.sh` Docker üzerinde SQL Server + sentetik L
 - [Güvenlik](#güvenlik)
 - [Katkıda Bulunma](#katkıda-bulunma)
 - [Lisans](#lisans)
+
+> 📖 **Kullanım kılavuzu** (personel ve işletme sahibi için, adım adım): [docs/kullanim/KILAVUZ.md](docs/kullanim/KILAVUZ.md)
 
 ## Lumen Nedir?
 
@@ -90,7 +94,7 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
   > "PHP2Shell", kimlik doğrulamasız uzaktan kod çalıştırma) nedeniyle en az **8.2.35 / 8.3.36 /
   > 8.4.27 / 8.5.12** kullanın. Güncelleyene kadar `php.ini`'de `session.upload_progress.enabled=0`
   > yapıp web sunucusunu yeniden başlatın (Lumen bu özelliği kullanmaz; tam çözüm değildir).
-  > Lumen yamasız PHP'yi kurulumda ve yönetici ana sayfasında uyarır.
+  > Lumen yamasız PHP'yi kurulumda, yönetici ana sayfasında ve Sistem ve Yedek ekranında uyarır.
 - Web sunucusu: IIS (FastCGI) veya Apache/nginx
 - [Composer](https://getcomposer.org/) (bağımlılıklar için)
 

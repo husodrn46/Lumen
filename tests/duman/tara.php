@@ -39,6 +39,7 @@ $HARIC = [
     // Yalnız include edilen parçalar (sekme şeritleri, tanım listeleri, JS/HTML parçası)
     '#^ayar/(\w+_sekmeler|yetki_tanimlari)\.php$#',
     '#^(cek/cek_kirpma|stok/ean)\.php$#',
+    '#(^|/)_[^/]+\.php$#',   // _ile başlayan parça dosyaları (ör. belge/_ortak.php)
 ];
 // Oturumsuz açılabilen sayfalar.
 $HERKESE_ACIK = ['giris.php', 'js_hata_log.php', 'ajax_hava.php'];

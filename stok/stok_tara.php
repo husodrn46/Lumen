@@ -49,7 +49,7 @@ $link = getSafeReturnLink($rawLink);
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stok Goruntuleme</title>
+  <title>Stok Görüntüleme</title>
   <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -314,7 +314,7 @@ $link = getSafeReturnLink($rawLink);
       </a>
       <div class="header-divider"></div>
       <span class="header-title">
-        <i class="fa-solid fa-magnifying-glass"></i>Stok Goruntuleme
+        <i class="fa-solid fa-magnifying-glass"></i>Stok Görüntüleme
       </span>
     </div>
   </header>

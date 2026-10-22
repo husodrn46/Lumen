@@ -781,7 +781,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
    FROM {$firma}CLCARD C WITH(NOLOCK)
    LEFT JOIN SonFatura SF ON SF.CLIENTREF = C.LOGICALREF
    LEFT JOIN {$firmadonemx}GNTOTCL G WITH(NOLOCK) ON G.CARDREF = C.LOGICALREF AND G.TOTTYP = 1
-   LEFT JOIN LG_SLSMAN SL WITH(NOLOCK) ON SL.LOGICALREF = SF.SALESMANREF
+   LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = SF.SALESMANREF
    WHERE C.ACTIVE = 0 AND C.LOGICALREF = :clientRef2;
    ";
       $stmt = $dbh->prepare($sql);
@@ -823,6 +823,14 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                </div>
                <!-- Butonlar -->
                <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+                  <?php if (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M31') == 1): ?>
+                  <!-- Bağımsız mod: siparişten Lumen faturası / irsaliyesi (belge modülü) -->
+                  <a href="../belge/siparisten.php?siparis=<?php echo (int) $stokhareket; ?>"
+                     class="btn-flat btn-red" title="Faturala / İrsaliye" style="padding:8px 14px;">
+                     <i class="fa fa-file-invoice"></i>
+                     <span class="hidden sm:inline">Faturala</span>
+                  </a>
+                  <?php endif; ?>
                   <a href="../yazdir/yeni_dizayn.php?stokhareket=<?php echo $stokhareket; ?>&tipdurum=1"
                      class="btn-flat btn-amber" title="Yazdır" style="padding:8px 14px;">
                      <i class="fa fa-print"></i>
@@ -860,13 +868,16 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                         <a href="../stok/stok_hareket_tarih_degistir.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-calendar" style="color:#8b5cf6;"></i> Tarih Değiştir
                         </a>
+                        <?php // Teklif çıktıları ayrı kurulur (açık kaynakta yok): dosya varsa bağlantı görünür
+                        $teklifler = array_filter(['resimsizteklif.php' => ['fa-file-alt', '#6b7280', 'Resimsiz Teklif'], 'resimliteklif.php' => ['fa-image', '#6366f1', 'Resimli Teklif']],
+                            static fn($d) => is_file(__DIR__ . '/' . $d), ARRAY_FILTER_USE_KEY);
+                        if ($teklifler): ?>
                         <div class="dropdown-divider"></div>
-                        <a href="resimsizteklif.php?stokhareket=<?php echo $stokhareket; ?>&yazdir=yazdir">
-                           <i class="fa fa-file-alt" style="color:#6b7280;"></i> Resimsiz Teklif
+                        <?php foreach ($teklifler as $dosya => [$ikon, $renk, $ad]): ?>
+                        <a href="<?php echo $dosya; ?>?stokhareket=<?php echo $stokhareket; ?>&yazdir=yazdir">
+                           <i class="fa <?php echo $ikon; ?>" style="color:<?php echo $renk; ?>;"></i> <?php echo $ad; ?>
                         </a>
-                        <a href="resimliteklif.php?stokhareket=<?php echo $stokhareket; ?>&yazdir=yazdir">
-                           <i class="fa fa-image" style="color:#6366f1;"></i> Resimli Teklif
-                        </a>
+                        <?php endforeach; endif; ?>
                      </div>
                   </div>
                </div>

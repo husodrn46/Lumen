@@ -335,6 +335,13 @@ if (isset($_POST['cstok_miktari'])) {
 	      $stokmiktar = $cstok_mik;
 	      $stokfiyat = $cstok_fiy;
 	      $stokkdv = defined('RESMI_FORCE_KDV') ? (float) RESMI_FORCE_KDV : 0;
+	      // Bağımsız modda faturayı Lumen keser: sipariş satırı ürün kartının KDV'siyle yazılır
+	      // (LOGO modunda KDV sonradan "KDV Ayarları" ya da LOGO'da verilir).
+	      if (!defined('RESMI_FORCE_KDV') && function_exists('lumen_bagimsiz_mi') && lumen_bagimsiz_mi()) {
+	        $stmtKdv = $dbh->prepare("SELECT VAT FROM " . $firma . "ITEMS WHERE LOGICALREF = :stokid");
+	        $stmtKdv->execute([':stokid' => intcevir($cstok_id)]);
+	        $stokkdv = max(0.0, min(100.0, (float) $stmtKdv->fetchColumn()));
+	      }
 	      $stokaciklama = "";
 	      $stokbirim = intcevir($cstok_birim);
       $stoktoplam = round($stokmiktar * $stokfiyat, 2);

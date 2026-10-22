@@ -21,6 +21,36 @@ if (m_p_yetki($terminalkullanici, 'CR1') != 1) {
             exit;
         }
 
+	// Not: eskiden burada çıktıda hiç kullanılmayan 10 günlük toplam ve bir satır
+	// sorgusu daha çalışıyordu (her pencere açılışında); kaldırıldı.
+	if (lumen_bagimsiz_mi()) {
+	// Bağımsız mod: aynı değerler Lumen tablolarından (LM_BELGE, LM_CARI_HAREKET, LM_CEK).
+	$tek = static function (string $sql) use ($dbh, $id): array {
+		$st = $dbh->prepare($sql);
+		$st->execute([':id' => $id]);
+		return ['TOPLAM' => (float) ($st->fetchColumn() ?: 0)];
+	};
+	$satis = $tek("SELECT SUM(NET) FROM dbo.LM_BELGE WHERE CARI_ID = :id AND TUR = 3 AND YON = 1 AND DURUM = 1");
+	$alis = $tek("SELECT SUM(NET) FROM dbo.LM_BELGE WHERE CARI_ID = :id AND TUR = 3 AND YON = 2 AND DURUM = 1");
+	// Tahsilat/ödeme: finans fişi (KAYNAK 2) ve çek hareketi (KAYNAK 3) — alacak tahsilat, borç ödeme.
+	$tahsilat = $tek("SELECT SUM(ALACAK) FROM dbo.LM_CARI_HAREKET WHERE CARI_ID = :id AND KAYNAK IN (2, 3)");
+	$odeme = $tek("SELECT SUM(BORC) FROM dbo.LM_CARI_HAREKET WHERE CARI_ID = :id AND KAYNAK IN (2, 3)");
+	$bekleyen_cek = $tek("SELECT SUM(TUTAR) FROM dbo.LM_CEK WHERE ALINAN_CARI_ID = :id AND TUR = 1 AND DURUM = 1");
+	$odenen_cek = $tek("SELECT SUM(TUTAR) FROM dbo.LM_CEK WHERE ALINAN_CARI_ID = :id AND TUR = 1 AND DURUM = 3");
+
+	$stmtFavoriUrunler = $dbh->prepare("
+	    SELECT TOP 5 S.KOD AS STOK_KODU, S.AD AS STOK_ADI,
+	           SUM(L.MIKTAR * L.CARPAN) AS TOPLAM_MIKTAR, COUNT(DISTINCT B.ID) AS SIPARIS_SAYISI,
+	           AVG(L.FIYAT) AS ORTALAMA_FIYAT, MAX(B.TARIH) AS SON_ALIS_TARIHI
+	    FROM dbo.LM_BELGE_SATIR L
+	    INNER JOIN dbo.LM_BELGE B ON B.ID = L.BELGE_ID
+	    INNER JOIN dbo.LM_STOK S ON S.ID = L.STOK_ID
+	    WHERE B.CARI_ID = :id AND B.YON = 1 AND B.TUR IN (1, 3) AND B.DURUM <> 9
+	    GROUP BY S.KOD, S.AD
+	    ORDER BY TOPLAM_MIKTAR DESC");
+	$stmtFavoriUrunler->execute([':id' => $id]);
+	$favoriUrunler = $stmtFavoriUrunler->fetchAll(PDO::FETCH_ASSOC);
+	} else {
 		// Satış - İki dönemi birleştir (2025 + 2026)
 	$stmtSatis = $dbh->prepare("SELECT SUM(TRNET) AS TOPLAM FROM (
 		SELECT F.TRNET FROM " . $firmadonem . "INVOICE F WHERE F.CLIENTREF = :id1 AND F.CANCELLED = 0 AND F.TRCODE IN(7,8)
@@ -97,49 +127,6 @@ if (m_p_yetki($terminalkullanici, 'CR1') != 1) {
 	$stmtOdenenCek->execute([':id' => $id]);
 	$odenen_cek = $stmtOdenenCek->fetch(PDO::FETCH_ASSOC);
 
-
-
-
-	$stmtGunlukNakit = $dbh->prepare("SELECT SUM(AMOUNT) AS TOPLAM FROM " . $firmadonem . "CLFLINE WHERE (CANCELLED = 0) AND TRCODE IN(1,4,20,61,62,70) AND DATE_ BETWEEN :tarih AND :tarih2");
-	$stmtGunlukNakit->execute([':tarih' => $tarih, ':tarih2' => $tarih2]);
-	$gunluknakit = $stmtGunlukNakit->fetch(PDO::FETCH_ASSOC);
-
-	$stmtGunlukSatis = $dbh->prepare("SELECT SUM(AMOUNT) AS TOPLAM FROM " . $firmadonem . "CLFLINE WHERE (CANCELLED = 0) AND TRCODE IN(37,38) AND DATE_ BETWEEN :tarih AND :tarih2");
-	$stmtGunlukSatis->execute([':tarih' => $tarih, ':tarih2' => $tarih2]);
-	$gunluksatis = $stmtGunlukSatis->fetch(PDO::FETCH_ASSOC);
-
-	$stmtGunlukAlis = $dbh->prepare("SELECT SUM(AMOUNT) AS TOPLAM FROM " . $firmadonem . "CLFLINE WHERE (CANCELLED = 0) AND TRCODE ='31' AND DATE_ BETWEEN :tarih AND :tarih2");
-	$stmtGunlukAlis->execute([':tarih' => $tarih, ':tarih2' => $tarih2]);
-	$gunlukalis = $stmtGunlukAlis->fetch(PDO::FETCH_ASSOC);
-
-	$stmtGunlukOdeme = $dbh->prepare("SELECT SUM(AMOUNT) AS TOPLAM FROM " . $firmadonem . "CLFLINE WHERE (CANCELLED = 0) AND TRCODE IN(2,3,21,63,64,72) AND DATE_ BETWEEN :tarih AND :tarih2");
-	$stmtGunlukOdeme->execute([':tarih' => $tarih, ':tarih2' => $tarih2]);
-	$gunlukodeme = $stmtGunlukOdeme->fetch(PDO::FETCH_ASSOC);
-
-	$stmtGunlukSiparisSat = $dbh->prepare("SELECT SUM(FS.NETTOTAL) AS TOPLAM FROM " . $firmadonem . "ORFICHE FS WHERE FS.DATE_ BETWEEN :tarih AND :tarih2 AND FS.TRCODE='1' AND FS.LOGICALREF NOT IN (SELECT ST.ORDFICHEREF FROM " . $firmadonem . "STLINE ST)");
-	$stmtGunlukSiparisSat->execute([':tarih' => $tarih, ':tarih2' => $tarih2]);
-	$gunluksiparissat = $stmtGunlukSiparisSat->fetch(PDO::FETCH_ASSOC);
-
-	$stmtGunlukSiparisAl = $dbh->prepare("SELECT SUM(FS.NETTOTAL) AS TOPLAM FROM " . $firmadonem . "ORFICHE FS WHERE FS.DATE_ BETWEEN :tarih AND :tarih2 AND FS.TRCODE='2' AND FS.LOGICALREF NOT IN (SELECT ST.ORDFICHEREF FROM " . $firmadonem . "STLINE ST)");
-	$stmtGunlukSiparisAl->execute([':tarih' => $tarih, ':tarih2' => $tarih2]);
-	$gunluksiparisal = $stmtGunlukSiparisAl->fetch(PDO::FETCH_ASSOC);
-
-	$stmtGunlukSiparisBekleyen = $dbh->prepare("SELECT SUM(FS.NETTOTAL) AS TOPLAM FROM " . $firmadonem . "ORFICHE FS WHERE FS.TRCODE='1' AND FS.LOGICALREF NOT IN (SELECT ST.ORDFICHEREF FROM " . $firmadonem . "STLINE ST)");
-	$stmtGunlukSiparisBekleyen->execute();
-	$gunluksiparisbekleyen = $stmtGunlukSiparisBekleyen->fetch(PDO::FETCH_ASSOC);
-
-	$stmtGunlukSiparisBekleyenAl = $dbh->prepare("SELECT SUM(FS.NETTOTAL) AS TOPLAM FROM " . $firmadonem . "ORFICHE FS WHERE FS.TRCODE='2' AND FS.LOGICALREF NOT IN (SELECT ST.ORDFICHEREF FROM " . $firmadonem . "STLINE ST)");
-	$stmtGunlukSiparisBekleyenAl->execute();
-	$gunluksiparisbekleyenal = $stmtGunlukSiparisBekleyenAl->fetch(PDO::FETCH_ASSOC);
-
-	$stmtGunlukSatisHizmet = $dbh->prepare("SELECT SUM(AMOUNT) AS TOPLAM FROM " . $firmadonem . "CLFLINE WHERE (CANCELLED = 0) AND TRCODE=39 AND DATE_ BETWEEN :tarih AND :tarih2");
-	$stmtGunlukSatisHizmet->execute([':tarih' => $tarih, ':tarih2' => $tarih2]);
-	$gunluksatishizmet = $stmtGunlukSatisHizmet->fetch(PDO::FETCH_ASSOC);
-
-	$stmtGunlukAlisHizmet = $dbh->prepare("SELECT SUM(AMOUNT) AS TOPLAM FROM " . $firmadonem . "CLFLINE WHERE (CANCELLED = 0) AND TRCODE =34 AND DATE_ BETWEEN :tarih AND :tarih2");
-	$stmtGunlukAlisHizmet->execute([':tarih' => $tarih, ':tarih2' => $tarih2]);
-	$gunlukalishizmet = $stmtGunlukAlisHizmet->fetch(PDO::FETCH_ASSOC);
-
 	// Müşterinin favori ürünleri - İki dönemi birleştir (2025 + 2026)
 	$stmtFavoriUrunler = $dbh->prepare("
 	    SELECT TOP 5
@@ -185,11 +172,7 @@ if (m_p_yetki($terminalkullanici, 'CR1') != 1) {
 	");
 	$stmtFavoriUrunler->execute([':id1' => $id, ':id2' => $id]);
 	$favoriUrunler = $stmtFavoriUrunler->fetchAll(PDO::FETCH_ASSOC);
-
-	$limit = isset($carilistesayisi) ? (int) $carilistesayisi : 100;
-	$stmtRow = $dbh->prepare("SELECT TOP {$limit} C.LOGICALREF AS CARIID, C.CODE AS KODU, C.TELNRS1, C.EMAILADDR, C.DEFINITION_ AS UNVANI, (G.DEBIT - G.CREDIT) AS BAKIYE FROM " . $firma . "CLCARD C WITH(NOLOCK) LEFT JOIN " . $firmadonemx . "GNTOTCL G WITH(NOLOCK) ON G.CARDREF = C.LOGICALREF AND G.TOTTYP = 1 WHERE C.LOGICALREF = :id");
-	$stmtRow->execute([':id' => $id]);
-	$row = $stmtRow->fetch(PDO::FETCH_ASSOC);
+	}
 
 // Başlangıç response
 $response = '<div class="space-y-4">';

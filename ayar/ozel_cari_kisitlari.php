@@ -72,7 +72,7 @@ $personelStmt = $dbh->prepare("
         S.DEFINITION_,
         S.ACTIVE,
         ISNULL(Y.YETKI, 1) AS YETKI_TURU
-    FROM LG_SLSMAN S
+    FROM {$GLOBALS['LUMEN_SLSMAN']} S
     LEFT JOIN M_P_YETKI Y ON Y.PERSONEL = S.LOGICALREF
     WHERE S.FIRMNR = :firma
       AND ISNULL(Y.YETKI, 1) IN (0, 1)
@@ -241,7 +241,7 @@ if ($initError === null && m_p_ozel_cari_tablosu_var_mi($dbh)) {
             S.DEFINITION_ AS EKLEYEN_ADI
         FROM " . m_p_ozel_cari_tablo_adi() . " K
         LEFT JOIN {$firma}CLCARD C WITH(NOLOCK) ON C.LOGICALREF = K.CARIREF
-        LEFT JOIN LG_SLSMAN S WITH(NOLOCK) ON S.LOGICALREF = K.OLUSTURAN
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = K.OLUSTURAN
         WHERE K.PERSONEL_ID = :personel_id
         ORDER BY ISNULL(C.CODE, ''), ISNULL(C.DEFINITION_, ''), ISNULL(K.YETKI_KODU, '')
     ");
@@ -286,7 +286,7 @@ if ($initError === null && m_p_ozel_cari_tablosu_var_mi($dbh)) {
                     S.DEFINITION_ AS EKLEYEN_ADI
                 FROM " . m_p_ozel_cari_tablo_adi() . " K
                 LEFT JOIN {$firma}CLCARD C WITH(NOLOCK) ON C.LOGICALREF = K.CARIREF
-                LEFT JOIN LG_SLSMAN S WITH(NOLOCK) ON S.LOGICALREF = K.OLUSTURAN
+                LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = K.OLUSTURAN
                 WHERE K.PERSONEL_ID = :personel_id
                 ORDER BY ISNULL(C.CODE, ''), ISNULL(C.DEFINITION_, ''), ISNULL(K.YETKI_KODU, '')
             ");

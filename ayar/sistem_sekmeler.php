@@ -3,7 +3,7 @@
  * sistem_sekmeler.php — "Sistem Ayarları" ekranının ortak üst çubuğu + sekme şeridi.
  *
  * Dahil eden sayfa, include'dan ÖNCE $saAktifSekme değişkenini tanımlar:
- *   'genel' | 'iskonto' | 'marka'
+ *   'genel' | 'iskonto' | 'marka' | 'yedek'
  * Üç sayfa da (sistem_ayarlari.php, hizli_iskonto.php, marka.php) aynı üst çubuğu
  * paylaşır → ayar panelinde tek "Sistem Ayarları" girişi altında toplanır.
  *
@@ -15,6 +15,7 @@ $sa_sekmeler = [
     ['id' => 'genel',   'dosya' => 'sistem_ayarlari.php', 'ikon' => 'fa-sliders', 'ad' => 'Genel'],
     ['id' => 'iskonto', 'dosya' => 'hizli_iskonto.php',   'ikon' => 'fa-percent', 'ad' => 'Hızlı İskonto'],
     ['id' => 'marka',   'dosya' => 'marka.php',           'ikon' => 'fa-palette', 'ad' => 'Marka / Logo'],
+    ['id' => 'yedek',   'dosya' => 'sistem_yedek.php',    'ikon' => 'fa-box-archive', 'ad' => 'Sistem ve Yedek'],
 ];
 ?>
 <style>
@@ -47,3 +48,7 @@ $sa_sekmeler = [
         <?php endforeach; ?>
     </nav>
 </header>
+<script>
+// Dar ekranda etkin sekme şeridin dışında kalmasın.
+(function () { var a = document.querySelector('.sa-tab.aktif'); if (a && a.scrollIntoView) { a.scrollIntoView({ block: 'nearest', inline: 'center' }); } })();
+</script>

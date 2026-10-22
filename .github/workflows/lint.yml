@@ -121,6 +121,33 @@ jobs:
       - name: Akış testleri (sipariş, iskonto, yazdırma, çek, döviz, ayarlar, yetki, API)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
 
+      - name: Yedekleme gidiş-dönüş (LOGO modu, Lumen tabloları)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/yedek/yedek_test.php
+
+      - name: LOGO'dan bağımsız Lumen'e içe aktarma (toplamlar, kimlikler, parolalar)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/aktarim/logo_aktar_test.php
+
+      - name: Bağımsız mod kur (LOGO'suz, Lumen çekirdek şeması)
+        run: bash demo/kur.sh --bagimsiz
+
+      - name: Bağımsız mod duman testi (taşınmamış modüller 501 kartı vermeli, çökmemeli)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/duman/tara.php
+
+      - name: Bağımsız mod akış testleri (Lumen'e özgü akışlar)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/bagimsiz.php
+
+      - name: Bağımsız mod güvenlik regresyonları (denetimde bulunan açıklar)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/guvenlik.php
+
+      - name: Bağımsız modda LOGO akışları (aynı akışlar LMV_ görünümleri üzerinden)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
+
+      - name: Yedekleme gidiş-dönüş (bağımsız mod, tüm veritabanı)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/yedek/yedek_test.php
+
+      - name: Kurulum sihirbazı uçtan uca (bağımsız mod, boş veritabanı)
+        run: docker compose -f demo/docker-compose.yml exec -T app bash tests/kurulum/sihirbaz_bagimsiz.sh
+
       - name: Konteyner logları (hata durumunda)
         if: failure()
         run: |

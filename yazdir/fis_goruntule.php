@@ -52,7 +52,7 @@ if ($tip == 'siparis') {
             S.CODE AS SATICI_KODU
         FROM " . $firmadonem . "ORFICHE F
         LEFT JOIN " . $firma . "CLCARD C ON C.LOGICALREF = F.CLIENTREF
-        LEFT JOIN LG_SLSMAN S ON S.LOGICALREF = F.SALESMANREF
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = F.SALESMANREF
         WHERE F.LOGICALREF = :fisRef
     ");
     $stmtFisInfo->execute([':fisRef' => $fisRef]);
@@ -114,7 +114,7 @@ if ($tip == 'siparis') {
             S.CODE AS SATICI_KODU
         FROM " . $firmadonem . "INVOICE F
         LEFT JOIN " . $firma . "CLCARD C ON C.LOGICALREF = F.CLIENTREF
-        LEFT JOIN LG_SLSMAN S ON S.LOGICALREF = F.SALESMANREF
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = F.SALESMANREF
         WHERE F.LOGICALREF = :fisRef
     ");
     $stmtFisInfo->execute([':fisRef' => $fisRef]);

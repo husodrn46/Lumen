@@ -278,6 +278,7 @@ $hasMore = (!$searchedByBarcode && ($offset + count($rows) < $total));
 
 // ---------------------- <li> HTML'ini string olarak üret ----------------------
 $html = '';
+$stokKarti = lumen_modul_hazir_mi('kart') && (m_p_yetki($terminalkullanici, 'ST1') == 1 || (int) $yetkidurum === 0);
 foreach ($rows as $r) {
     $kod     = $r['URUN_KODU'] ?? '';
     $ad      = $r['URUN_ADI'] ?? '';
@@ -297,7 +298,8 @@ foreach ($rows as $r) {
 
     $html .= '<li>';
     $html .=   '<div class="list-row">';
-    $html .=     '<div class="kod">'.$escapeHtml($kod).'</div>';
+    // Bağımsız mod: kod stok kartına bağlanır (hareket geçmişi, depolar, fiyatlar).
+    $html .=     '<div class="kod">' . ($stokKarti ? '<a href="../kart/stok.php?id=' . (int) ($r['URUN_ID'] ?? 0) . '" style="color:inherit">' . $escapeHtml($kod) . '</a>' : $escapeHtml($kod)) . '</div>';
     $html .=     '<div class="ad" title="'.$escapeHtml($ad).'">'.$escapeHtml($ad).'</div>';
     $html .=     '<div class="bk">'.$escapeHtml($brk).'</div>';
     $html .=     '<div class="stk">';

@@ -203,6 +203,55 @@ foreach ($menu_items as $item) {
 //     ];
 // }
 
+// Bağımsız mod: Lumen'in kendi faturaları ve belgeleri (belge modülü), M31 yetkisiyle;
+// yalnız M15 (depo) yetkilisi üretim ve sayım girer.
+if (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M31') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Faturalar',
+        'icon' => 'fa-file-invoice',
+        'href' => 'belge/index.php',
+        'theme' => 't-red',
+    ];
+} elseif (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M15') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Üretim ve Sayım',
+        'icon' => 'fa-industry',
+        'href' => 'belge/index.php',
+        'theme' => 't-amber',
+    ];
+}
+
+// Bağımsız mod: yeni ürün kartı (M11 Yeni Stok ya da yönetici).
+if (lumen_modul_hazir_mi('kart') && (m_p_yetki($terminalkullanici, 'M11') == 1 || $yetkidurum === 0)) {
+    $visible_menu_items[] = [
+        'label' => 'Yeni Ürün',
+        'icon' => 'fa-box-open',
+        'href' => 'kart/stok_duzenle.php',
+        'theme' => 't-amber',
+        'badge' => 0,
+    ];
+}
+
+// Bağımsız mod: kasa ve banka fişleri (finans modülü), M32 yetkisiyle.
+if (lumen_modul_hazir_mi('finans') && m_p_yetki($terminalkullanici, 'M32') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Kasa ve Banka',
+        'icon' => 'fa-building-columns',
+        'href' => 'finans/index.php',
+        'theme' => 't-emerald',
+    ];
+}
+
+// Bağımsız mod: firma, kasa/banka, depo, birim ve kur tanımları (M16).
+if (lumen_modul_hazir_mi('tanimlar') && m_p_yetki($terminalkullanici, 'M16') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Tanımlar',
+        'icon' => 'fa-sliders',
+        'href' => 'tanimlar/index.php',
+        'theme' => 't-slate',
+    ];
+}
+
 // Faturalama (BETA) — hem kill-switch açık hem M31 yetkisi gerekir.
 // Kapalıysa kutucuk hiç görünmez; ayar: _bilgi_.inc > $faturalama_aktif
 if (!empty($faturalama_aktif) && m_p_yetki($terminalkullanici, 'M31') == 1) {
@@ -231,6 +280,10 @@ if (m_p_yetki($terminalkullanici, 'M18') == 1 || m_p_yetki($terminalkullanici, '
         'theme' => 't-indigo',
     ];
 }
+
+// Bağımsız modda henüz taşınmamış modüllerin kutucukları gösterilmez (includes/veri/moduller.php).
+$visible_menu_items = array_values(array_filter($visible_menu_items,
+    static fn(array $i): bool => lumen_yol_hazir_mi((string) strtok((string) $i['href'], '?'))));
 
 $kisisel_kisayollar = function_exists('lumen_page_visit_shortcuts')
     ? lumen_page_visit_shortcuts($dbh, $terminalkullanici, $visible_menu_items, 5)
@@ -321,7 +374,7 @@ try {
 // Kullanıcının gerçek ismini LG_SLSMAN tablosundan çek
 $kullanici_adi = '';
 try {
-    $stmt = $dbh->prepare("SELECT DEFINITION_ FROM LG_SLSMAN WHERE LOGICALREF = :id AND ACTIVE = 0");
+    $stmt = $dbh->prepare("SELECT DEFINITION_ FROM {$GLOBALS['LUMEN_SLSMAN']} WHERE LOGICALREF = :id AND ACTIVE = 0");
     $stmt->bindParam(':id', $terminalkullanici, PDO::PARAM_INT);
     $stmt->execute();
     $slsman = $stmt->fetch(PDO::FETCH_ASSOC);

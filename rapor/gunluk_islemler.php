@@ -58,7 +58,8 @@ $sql_sales_detail = "
         CL.DEFINITION_ AS CARI_ADI,
         (1-C.SIGN)*C.AMOUNT AS TUTAR,
         C.TRCODE,
-        C.REPORTRATE AS KUR
+        -- Dövizli faturada belgenin kuru; TL faturada raporlama kuru (LOGO)
+        CASE WHEN ISNULL(C.TRCURR, 0) <> 0 AND ISNULL(C.TRRATE, 0) > 0 THEN C.TRRATE ELSE C.REPORTRATE END AS KUR
     FROM " . $firmadonem . "CLFLINE C WITH(NOLOCK)
     LEFT JOIN " . $firma . "CLCARD CL ON CL.LOGICALREF = C.CLIENTREF
     WHERE C.CANCELLED=0
@@ -229,8 +230,8 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gunluk Islem Ozeti</title>
-    <link rel="icon" type="image/png" href="icon.png">
+    <title>Günlük İşlem Özeti</title>
+    <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -626,7 +627,7 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
             </a>
             <div class="header-divider"></div>
             <div class="header-title">
-                <h1><i class="fa-solid fa-calendar-day"></i>Gunluk Islem Ozeti</h1>
+                <h1><i class="fa-solid fa-calendar-day"></i>Günlük İşlem Özeti</h1>
                 <p>
                     <?php echo htmlspecialchars((string) $turkce_tarih); ?>
                     <span class="kod"><?php echo htmlspecialchars((string) date('d.m.Y', (int) $tarih_obj)); ?></span>

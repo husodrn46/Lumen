@@ -275,8 +275,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
         } catch (PDOException $e) {
-            $hata_mesaji = "Veritabanı hatası: " . $e->getMessage();
-            logError($hata_mesaji);
+            logError("Veritabanı hatası: " . $e->getMessage());
+            $hata_mesaji = 'Yazdırma kaydı oluşturulamadı; yöneticinize bildirin.';
             error_log("Yazdırma kuyruğu ekleme hatası: " . $e->getMessage());
         }
         
@@ -754,9 +754,10 @@ $aktif_secenekler[$tipdurum] = 'selected';
             if (!isset($dizaynyolu) || empty($dizaynyolu)) {
                 $hata_mesaji = 'Dizayn yolu tanımlı değil';
             } elseif (!is_dir($dizaynyolu)) {
-                $hata_mesaji = 'Dizayn klasörü bulunamadı: ' . htmlspecialchars($dizaynyolu, ENT_QUOTES);
+                // Sunucu yolu yalnız yöneticiye (kurulum için); diğer kullanıcıya genel mesaj
+                $hata_mesaji = 'Dizayn klasörü bulunamadı' . ((int) ($yetkidurum ?? 1) === 0 ? ': ' . $dizaynyolu : '; yöneticinize bildirin.');
             } elseif (!is_readable($dizaynyolu)) {
-                $hata_mesaji = 'Dizayn klasörü okunamıyor (izin hatası): ' . htmlspecialchars($dizaynyolu, ENT_QUOTES);
+                $hata_mesaji = 'Dizayn klasörü okunamıyor (izin hatası)' . ((int) ($yetkidurum ?? 1) === 0 ? ': ' . $dizaynyolu : '; yöneticinize bildirin.');
             }
             
             if (is_dir($dizaynyolu) && is_readable($dizaynyolu)) {
@@ -776,7 +777,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
                 echo '<option value="">' . htmlspecialchars($hata_mesaji ?: 'Dizayn bulunamadı', ENT_QUOTES) . '</option>';
                 
                 // Debug modunda detaylı bilgi göster
-                if (isset($_GET['debug']) || isset($_GET['debug_dizayn'])) {
+                if ((isset($_GET['debug']) || isset($_GET['debug_dizayn'])) && (int) ($yetkidurum ?? 1) === 0) {
                     echo '<!-- DEBUG BİLGİLERİ: ';
                     echo 'Tip Durum: ' . ($debug_info['tipdurum']) . ', ';
                     echo 'Yol: ' . ($debug_info['yol']) . ', ';
@@ -788,7 +789,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
             }
             ?>
           </select>
-          <?php if (isset($_GET['debug']) || isset($_GET['debug_dizayn'])): ?>
+          <?php if ((isset($_GET['debug']) || isset($_GET['debug_dizayn'])) && (int) ($yetkidurum ?? 1) === 0): ?>
             <div class="debug-box">
               <strong>Debug Bilgileri:</strong><br>
               Tip Durum: <?php echo htmlspecialchars((string)($debug_info['tipdurum'])); ?><br>

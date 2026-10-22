@@ -35,7 +35,7 @@ $sql = "SELECT
             s.ACTIVE,
             {$yetkiSutunlari},
             y.YETKI as YETKI_TURU
-        FROM LG_SLSMAN s
+        FROM {$GLOBALS['LUMEN_SLSMAN']} s
         LEFT JOIN M_P_YETKI y ON y.PERSONEL = s.LOGICALREF
         WHERE s.FIRMNR = :firma
         ORDER BY s.CODE ASC";
@@ -651,7 +651,7 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <label for="firma" class="filter-label">Firma</label>
                     <select id="firma" name="firma" class="form-select" onchange="if(confirmPageChange()) this.form.submit()">
                         <?php
-                        $firm_stmt = $dbh->prepare("SELECT NR, NAME FROM L_CAPIFIRM ORDER BY NAME ASC");
+                        $firm_stmt = $dbh->prepare("SELECT NR, NAME FROM " . lumen_tablo('firma') . " F ORDER BY NAME ASC");
                         $firm_stmt->execute();
                         $allFirms = $firm_stmt->fetchAll(PDO::FETCH_ASSOC);
                         foreach ($allFirms as $f) {

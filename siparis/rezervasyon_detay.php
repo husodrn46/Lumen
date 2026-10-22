@@ -88,7 +88,7 @@ $stmtBekleyenSiparisler = $dbh->prepare("
     FROM " . $firmadonem . "ORFLINE L
     INNER JOIN " . $firmadonem . "ORFICHE F ON F.LOGICALREF = L.ORDFICHEREF
     LEFT JOIN " . $firma . "CLCARD C ON C.LOGICALREF = F.CLIENTREF
-    LEFT JOIN LG_SLSMAN S ON S.LOGICALREF = F.SALESMANREF
+    LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = F.SALESMANREF
     WHERE L.STOCKREF = :stokId
         AND L.TRCODE = 1
         AND L.STATUS <> 2

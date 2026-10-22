@@ -65,10 +65,10 @@ try {
                 LENGTH = :length,
                 HEIGHT = :height,
                 WEIGHT = :weight,
-                WIDTHREF = CASE WHEN :width2 > 0 THEN 2 ELSE 0 END,
-                LENGTHREF = CASE WHEN :length2 > 0 THEN 2 ELSE 0 END,
-                HEIGHTREF = CASE WHEN :height2 > 0 THEN 2 ELSE 0 END,
-                WEIGHTREF = CASE WHEN :weight2 > 0 THEN 18 ELSE 0 END
+                WIDTHREF = CASE WHEN CAST(:width2 AS FLOAT) > 0 THEN 2 ELSE 0 END,
+                LENGTHREF = CASE WHEN CAST(:length2 AS FLOAT) > 0 THEN 2 ELSE 0 END,
+                HEIGHTREF = CASE WHEN CAST(:height2 AS FLOAT) > 0 THEN 2 ELSE 0 END,
+                WEIGHTREF = CASE WHEN CAST(:weight2 AS FLOAT) > 0 THEN 18 ELSE 0 END
             WHERE ITEMREF = :id AND LINENR = 1
         ");
         $stmtUpdate->execute([
@@ -103,10 +103,10 @@ try {
                      MTRLCLAS, PURCHCLAS, SALESCLAS, CONVFACT1, CONVFACT2, RECSTATUS)
                     VALUES
                     (:itemref, 1, :unitlineref, :width, :length, :height, :weight,
-                     CASE WHEN :width2 > 0 THEN 2 ELSE 0 END,
-                     CASE WHEN :length2 > 0 THEN 2 ELSE 0 END,
-                     CASE WHEN :height2 > 0 THEN 2 ELSE 0 END,
-                     CASE WHEN :weight2 > 0 THEN 18 ELSE 0 END,
+                     CASE WHEN CAST(:width2 AS FLOAT) > 0 THEN 2 ELSE 0 END,
+                     CASE WHEN CAST(:length2 AS FLOAT) > 0 THEN 2 ELSE 0 END,
+                     CASE WHEN CAST(:height2 AS FLOAT) > 0 THEN 2 ELSE 0 END,
+                     CASE WHEN CAST(:weight2 AS FLOAT) > 0 THEN 18 ELSE 0 END,
                      1, 1, 1, 1, 1, 2)
                 ");
                 $stmtInsert->execute([
@@ -131,5 +131,7 @@ try {
 } catch (PDOException $e) {
     $dbh->rollBack();
     error_log("Koli olcu kaydetme hatasi: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Veritabani hatasi: ' . $e->getMessage()]);
+    // Ayrıntı loga (eskiden SQL hata metni istemciye gönderiliyordu).
+    error_log('koli_olcu_kaydet: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Kaydedilemedi, lütfen tekrar deneyin.']);
 }

@@ -35,10 +35,17 @@ if ($erisim && $cariRef > 0) {
         $q->execute([':r' => $cariRef]);
         $cari = $q->fetch(PDO::FETCH_ASSOC) ?: null;
         if ($cari) {
-            $bakiye = (float) $dbh->query("SELECT ISNULL(SUM(CASE WHEN SIGN=0 THEN AMOUNT ELSE -AMOUNT END),0) FROM {$firmadonem}CLFLINE WHERE CLIENTREF={$cariRef} AND CANCELLED=0")->fetchColumn();
-            $r = $dbh->query("SELECT COUNT(*) a, ISNULL(SUM(cc.AMOUNT),0) t
-                FROM {$firmadonem}CSCARD cc JOIN {$firmadonem}CSTRANS ct ON ct.CSREF=cc.LOGICALREF AND ct.TRCODE=1
-                WHERE ct.CARDREF={$cariRef} AND cc.DOC=1 AND cc.CURRSTAT=1 AND cc.CANCELLED=0")->fetch(PDO::FETCH_ASSOC);
+            if (lumen_bagimsiz_mi()) {
+                // Bağımsız mod: bakiye LMV_CARI_BAKIYE, portföydeki çekler LM_CEK (müşteri çeki, portföyde).
+                $bakiye = (float) $dbh->query("SELECT ISNULL(BAKIYE, 0) FROM dbo.LMV_CARI_BAKIYE WHERE CARI_ID = " . (int) $cariRef)->fetchColumn();
+                $r = $dbh->query("SELECT COUNT(*) a, ISNULL(SUM(TUTAR), 0) t FROM dbo.LM_CEK
+                    WHERE ALINAN_CARI_ID = " . (int) $cariRef . " AND TUR = 1 AND DURUM = 1")->fetch(PDO::FETCH_ASSOC);
+            } else {
+                $bakiye = (float) $dbh->query("SELECT ISNULL(SUM(CASE WHEN SIGN=0 THEN AMOUNT ELSE -AMOUNT END),0) FROM {$firmadonem}CLFLINE WHERE CLIENTREF={$cariRef} AND CANCELLED=0")->fetchColumn();
+                $r = $dbh->query("SELECT COUNT(*) a, ISNULL(SUM(cc.AMOUNT),0) t
+                    FROM {$firmadonem}CSCARD cc JOIN {$firmadonem}CSTRANS ct ON ct.CSREF=cc.LOGICALREF AND ct.TRCODE=1
+                    WHERE ct.CARDREF={$cariRef} AND cc.DOC=1 AND cc.CURRSTAT=1 AND cc.CANCELLED=0")->fetch(PDO::FETCH_ASSOC);
+            }
             $portfoyAdet = (int) ($r['a'] ?? 0);
             $portfoyTutar = (float) ($r['t'] ?? 0);
         }
@@ -51,7 +58,7 @@ if ($erisim && $cariRef > 0) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cari İşlemleri</title>
-    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">

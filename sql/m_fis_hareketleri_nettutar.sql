@@ -1,3 +1,4 @@
+-- lumen:yalniz-logo  (LOGO tablolarından view; bağımsız modda kurulmaz)
 -- ============================================================================
 -- M_FIS_HAREKETLERI view'ina NETTUTAR kolonu eklendi (2026-07-13)
 -- ----------------------------------------------------------------------------

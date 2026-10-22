@@ -2,7 +2,8 @@
 #
 # Lumen demo ortamını kurar: SQL Server + sentetik LOGO verisi + uygulama.
 #
-#   bash demo/kur.sh          # kur / güncelle (veri sıfırlanır)
+#   bash demo/kur.sh             # kur / güncelle — bağlı mod, LOGO demo şeması (veri sıfırlanır)
+#   bash demo/kur.sh --bagimsiz  # bağımsız mod: Lumen'in kendi LM_ şeması, LOGO yok
 #   bash demo/kur.sh --kapat  # konteynerleri durdur (veri saklanır)
 #   bash demo/kur.sh --sil    # konteynerleri ve demo verisini tamamen sil
 #
@@ -15,6 +16,14 @@ cd "$DEMO_DIR"
 
 SA_PASS="${LUMEN_DEMO_SA_PASS:-Lumen_Demo_2026!}"
 DB_ADI="LUMEN_DEMO"
+MOD="logo"
+if [ "${1:-}" = "--bagimsiz" ]; then
+  # Bağımsız mod: LOGO şeması yok; Lumen'in kendi LM_ tabloları (sql/lumen_cekirdek/).
+  MOD="lumen"
+  DB_ADI="LUMEN_BAGIMSIZ"
+  shift
+fi
+export LUMEN_VERI_KAYNAGI="$MOD" LUMEN_DEMO_DB="$DB_ADI"
 PORT="${LUMEN_DEMO_PORT:-8088}"
 
 case "${1:-}" in
@@ -48,14 +57,20 @@ uygula() {
   docker compose exec -T app php demo/araclar/sql_uygula.php "$DB_ADI" "$@"
 }
 
-echo "==> LOGO şeması (demo)"
-uygula demo/sql/01_logo_sema.sql
+if [ "$MOD" = "logo" ]; then
+  echo "==> LOGO şeması (demo)"
+  uygula demo/sql/01_logo_sema.sql
+fi
 
 echo "==> Lumen şema betikleri (sql/ — kurulum sihirbazının uyguladıklarıyla aynı)"
 docker compose exec -T app php demo/araclar/sql_uygula.php "$DB_ADI" --sema
 
-echo "==> Demo verisi"
-uygula demo/sql/02_demo_veri.sql
+echo "==> Demo verisi ($MOD)"
+if [ "$MOD" = "logo" ]; then
+  uygula demo/sql/02_demo_veri.sql
+else
+  uygula demo/sql/bagimsiz/01_demo_veri.sql
+fi
 
 echo "==> Uygulama bekleniyor (konteyner ilk açılışta composer install çalıştırır)"
 # 'docker compose exec' adımları PHP-FPM'i beklemez; web istekleri bekler. Hazır
@@ -72,5 +87,5 @@ if [ -z "$hazir" ]; then
   exit 1
 fi
 echo
-echo "Hazır: http://localhost:$PORT/giris.php"
+echo "Hazır ($MOD modu, veritabanı $DB_ADI): http://localhost:$PORT/giris.php"
 echo "Kullanıcılar: YONETICI / SATIS1 / DEPO1 — parola: demo1234"

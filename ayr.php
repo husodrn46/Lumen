@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/oturum.php';
 require_once __DIR__ . '/includes/hata_sayfasi.php';
+require_once __DIR__ . '/includes/veri/veri.php';
 
 //header("Content-Type: text/html; charset=utf-8");
 # Set timezone
@@ -232,7 +233,8 @@ function tema_kullanici_kodu(): string
         return '';
     }
     try {
-        $stmt = $dbh->prepare("SELECT CODE FROM LG_SLSMAN WHERE LOGICALREF = :id");
+        $P = lumen_tablo('personel');
+        $stmt = $dbh->prepare("SELECT P.KOD FROM {$P} P WHERE P.ID = :id");
         $stmt->execute([':id' => $personel]);
         $kod = $stmt->fetchColumn();
         if ($kod !== false && $kod !== null && (string) $kod !== '') {
@@ -723,6 +725,13 @@ if (!defined('APP_ROOT_URL')) {
 // Her sayfa kendi head bölümünde bu dosyaları dahil etmeli
 // Bu satırlar kaldırıldı çünkü header() redirect'i engelliyordu
 include_once(__DIR__ . "/_baglanti_.inc");
+// Bağımsız modda LOGO tablo önekleri, LM_ tabloları üzerindeki LOGO uyumlu görünümlere
+// (dbo.LMV_CLCARD …) yönlenir: ana veriyi okuyan "{$firma}CLCARD" sorguları kod değişmeden
+// çalışır. Görünümü olmayan (taşınmamış) tablolar bulunamaz; o modüller zaten kapalıdır
+// (includes/veri/moduller.php).
+if (lumen_bagimsiz_mi()) {
+  $firma = $eskifirma = $firmadonem = $eskifirmadonem = $firmadonemx = $eskifirmadonemx = 'dbo.LMV_';
+}
 include_once(__DIR__ . "/_bilgi_.inc");
 // v1.0.0'dan yükseltilen kurulumlar kendi _bilgi_.inc'lerini korur (o sürümde
 // Ayarlar ekranı değerleri bu dosyaya yazıyordu). Eski dosyada ayar deposunu
@@ -958,7 +967,7 @@ function cari_bul(int|string $cariid): string
   }
 
   try {
-    $stmt = $dbh->prepare("SELECT CODE, DEFINITION_ FROM " . $firma . "CLCARD WHERE LOGICALREF = :cariid");
+    $stmt = $dbh->prepare("SELECT C.KOD AS CODE, C.UNVAN AS DEFINITION_ FROM " . lumen_tablo('cari') . " C WHERE C.ID = :cariid");
     $stmt->bindParam(':cariid', $cariid, PDO::PARAM_INT);
     $stmt->execute();
 
@@ -986,7 +995,7 @@ function doviz_bul(string|int|float|null $doviz): float
     return $GLOBALS['_cache_doviz_bul'][$doviz];
   }
 
-  $stmt = $dbh->prepare("SELECT RATES1 FROM L_DAILYEXCHANGES WHERE CRTYPE=:doviz ORDER BY LREF DESC");
+  $stmt = $dbh->prepare("SELECT RATES1 FROM {$GLOBALS['LUMEN_KUR']} WHERE CRTYPE=:doviz ORDER BY LREF DESC");
   $stmt->bindParam(':doviz', $doviz, PDO::PARAM_STR);
   $stmt->execute();
   $bul = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1028,30 +1037,7 @@ function dovizsembol_bul(int|string $doviz): string
   return $semboller[(int)$doviz] ?? '₺';
 }
 
-if (!function_exists('lumen_insert_kimlik')) {
-  /**
-   * Tek satırlık "INSERT INTO T (...) VALUES (...)" çalıştırır ve eklenen satırın
-   * LOGICALREF'ini döndürür. Kimlik OUTPUT INSERTED ... INTO tablo değişkeni ile
-   * alınır: LOGO tablolarındaki trigger'larla uyumludur (OUTPUT'u doğrudan kullanmak
-   * trigger'lı tabloda hata verir) ve eşzamanlı kayıtlarda yanlış satırı döndüren
-   * "SELECT MAX(LOGICALREF)" yönteminin yerine geçer.
-   */
-  function lumen_insert_kimlik(PDO $dbh, string $insertSql, array $parametreler): int
-  {
-    $sql = preg_replace('/\)\s*VALUES\s*\(/i', ') OUTPUT INSERTED.LOGICALREF INTO @lumen_yeni VALUES (', $insertSql, 1, $adet);
-    if ($sql === null || $adet !== 1) {
-      throw new InvalidArgumentException('lumen_insert_kimlik: INSERT ... VALUES (...) bekleniyor');
-    }
-    $stmt = $dbh->prepare("SET NOCOUNT ON; DECLARE @lumen_yeni TABLE (ID INT);\n{$sql};\nSELECT ID FROM @lumen_yeni;");
-    $stmt->execute($parametreler);
-    $id = (int) $stmt->fetchColumn();
-    $stmt->closeCursor();
-    if ($id <= 0) {
-      throw new RuntimeException('lumen_insert_kimlik: yeni kayıt kimliği alınamadı');
-    }
-    return $id;
-  }
-}
+// lumen_insert_kimlik: includes/veri/veri.php (CLI testleri ve kütüphaneler de kullanır).
 
 // guid - birden fazla dosyada kullanılıyor
 function guid(): string
@@ -1429,7 +1415,7 @@ if (!function_exists('m_p_yetki_tum_sutunlar')) {
   {
     return [
       'YETKI', 'SIFRE', 'PERSONEL',
-      'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19', 'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31',
+      'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19', 'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31', 'M32',
       'ST1', 'ST2', 'ST3',
       'CR1', 'CR2', 'CR3', 'CR4',
       'SP1', 'SP2', 'SP3', 'SP4',
@@ -1446,7 +1432,7 @@ if (!function_exists('m_p_menu_yetki_kodlari')) {
     return [
       'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10',
       'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19',
-      'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31',
+      'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31', 'M32',
     ];
   }
 }
@@ -1536,7 +1522,8 @@ if (!function_exists('m_p_yetki_etiketleri')) {
       'M28' => 'Görevler',
       'M29' => 'Görev Atama',
       'M30' => 'Çek İşlemleri',
-      'M31' => 'Faturalama (beta)',
+      'M31' => 'Faturalama',
+      'M32' => 'Kasa ve Banka İşlemleri',
       'ST1' => 'Miktar Görme',
       'ST2' => 'Fiyat Görme',
       'ST3' => 'Stok Extre',
@@ -2107,7 +2094,7 @@ if (!function_exists('m_p_cari_kodu_getir')) {
       return null;
     }
 
-    $stmt = $dbh->prepare("SELECT TOP 1 CODE FROM {$firma}CLCARD WITH(NOLOCK) WHERE LOGICALREF = :cariid");
+    $stmt = $dbh->prepare("SELECT TOP 1 C.KOD FROM " . lumen_tablo('cari') . " C WHERE C.ID = :cariid");
     $stmt->bindValue(':cariid', $cariId, PDO::PARAM_INT);
     $stmt->execute();
     $code = $stmt->fetchColumn();
@@ -2378,7 +2365,7 @@ function cokludepomiktar(int|string $stokref): string
     $stokref = (int)$stokref;
     $stmt = $dbh->prepare("
       SELECT W.NAME, ISNULL(S.ONHAND, 0) AS MIKTAR
-      FROM L_CAPIWHOUSE W
+      FROM " . lumen_tablo('depo') . " W
       LEFT JOIN {$firmadonemx}STINVTOT S ON S.INVENNO = W.NR AND S.STOCKREF = :stokref
       WHERE W.FIRMNR = 1
       ORDER BY W.NR
@@ -2775,9 +2762,9 @@ function logFisOlusturma(int|string $fisRef, string $ficheno, int|string $cariRe
   try {
     // Cari bilgilerini al
     $stmtCariInfo = $dbh->prepare("
-      SELECT CODE, DEFINITION_
-      FROM {$firma}CLCARD
-      WHERE LOGICALREF = :cariRef
+      SELECT C.KOD AS CODE, C.UNVAN AS DEFINITION_
+      FROM " . lumen_tablo('cari') . " C
+      WHERE C.ID = :cariRef
     ");
     $stmtCariInfo->execute([':cariRef' => (int) $cariRef]);
     $cariInfo = $stmtCariInfo->fetch(PDO::FETCH_ASSOC);

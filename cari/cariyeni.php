@@ -4,6 +4,8 @@ declare(strict_types=1);
 include_once(__DIR__ . "/../ayr.php");
 require_once(__DIR__ . "/../kontrol.php");
 include_once(__DIR__ . "/../log_ip.php");
+// Kod üretimi ve kayıt iki modda tek yerde (LOGO: CLCARD şablon kopyası, bağımsız: LM_CARI).
+require_once __DIR__ . '/cari_olustur_lib.php';
 
 // YETKI: M12 (Yeni Cari) yetkisi olan personel cari acabilir
 if (m_p_yetki($terminalkullanici, 'M12') != 1) {
@@ -17,37 +19,6 @@ $yeniCariAcik = !isset($yenicariac) || (string) $yenicariac === '1';
 // Cari kodu on eki _bilgi_.inc'ten gelir ($carikoduontaki), Sistem Ayarlari'ndan
 // duzenlenebilir. Tanimsizsa notr 'C' kullanilir.
 $onek = cariyeni_onek_temizle((string) ($carikoduontaki ?? ''));
-
-/**
- * On eki guvenli karakter kumesine indirger (SQL LIKE deseni olarak gomulecek).
- */
-function cariyeni_onek_temizle(string $onek): string
-{
-    $temiz = preg_replace('/[^A-Za-z0-9._-]/', '', $onek) ?? '';
-    return $temiz !== '' ? $temiz : 'C';
-}
-
-/**
- * On eki T-SQL LIKE deseni icin kacisla ('_' tek karakter joker olmasin).
- */
-function cariyeni_onek_like(string $onek): string
-{
-    return str_replace(['[', '_', '%'], ['[[]', '[_]', '[%]'], $onek);
-}
-
-/**
- * Siradaki cari kodunu uret: <onek>0001 formatinda, mevcut en buyukten +1.
- */
-function cariyeni_sonraki_kod(PDO $dbh, string $firma, string $onek): string
-{
-    $like = cariyeni_onek_like($onek) . str_repeat('[0-9]', 4);
-    $max = $dbh->query("SELECT MAX(CODE) FROM {$firma}CLCARD WHERE CODE LIKE '{$like}'")->fetchColumn();
-    $n = 1;
-    if ($max && preg_match('/^' . preg_quote($onek, '/') . '(\d+)$/', (string) $max, $m)) {
-        $n = (int) $m[1] + 1;
-    }
-    return $onek . str_pad((string) $n, 4, '0', STR_PAD_LEFT);
-}
 
 $mesaj = '';
 $mesajTip = '';
@@ -66,95 +37,16 @@ if ($yeniCariAcik && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cari
     $sehir = trim((string) ($_POST['sehir'] ?? ''));
     $ilce = trim((string) ($_POST['ilce'] ?? ''));
 
-    // Uzunluk sinirlari (LOGO CLCARD alan boyutlari)
-    $unvan = mb_substr($unvan, 0, 200);
-    $telefon = mb_substr($telefon, 0, 30);
-    $sehir = mb_substr($sehir, 0, 30);
-    $ilce = mb_substr($ilce, 0, 30);
-
-    if ($unvan === '') {
-        $mesaj = 'Cari unvani zorunludur.';
+    // Uzunluk sınırları, boş unvan kontrolü ve kod çakışmasında yeniden deneme kütüphanededir.
+    $sonuc = cari_olustur_yeni($dbh, $firma, (int) $terminalkullanici, $unvan, $telefon, $sehir, $ilce, $onek);
+    if (!$sonuc['ok']) {
+        $mesaj = $sonuc['mesaj'];
         $mesajTip = 'error';
     } else {
-        // Yaris durumuna karsi: cakisirsa kodu yenile ve tekrar dene
-        $denendi = 0;
-        $basarili = false;
-        while (!$basarili && $denendi < 3) {
-            $denendi++;
-            $yeniKod = cariyeni_sonraki_kod($dbh, $firma, $onek);
-            try {
-                // Sablon: ayni on ekle acilmis en son cari (LOGO butunlugu icin tum alanlar)
-                $onekLike = cariyeni_onek_like($onek) . '%';
-                $sablon = $dbh->prepare("SELECT TOP 1 * FROM {$firma}CLCARD WHERE CODE LIKE :onek AND ACTIVE=0 ORDER BY LOGICALREF DESC");
-                $sablon->execute([':onek' => $onekLike]);
-                $ref = $sablon->fetch(PDO::FETCH_ASSOC);
-                if (!$ref) {
-                    // Sablon yoksa herhangi bir aktif cari
-                    $ref = $dbh->query("SELECT TOP 1 * FROM {$firma}CLCARD WHERE ACTIVE=0 ORDER BY LOGICALREF DESC")->fetch(PDO::FETCH_ASSOC);
-                }
-                if (!$ref) {
-                    throw new RuntimeException('Sablon cari bulunamadi.');
-                }
-                unset($ref['LOGICALREF']); // IDENTITY
-
-                // Cari-spesifik alanlari override et (gerisi sablondan = LOGO butunlugu korunur)
-                $ref['CODE'] = $yeniKod;
-                $ref['DEFINITION_'] = $unvan;
-                $ref['DEFINITION2'] = '';
-                $ref['TELNRS1'] = $telefon;
-                $ref['TELNRS2'] = '';
-                $ref['CITY'] = $sehir;
-                $ref['TOWN'] = $ilce;
-                $ref['DISTRICT'] = '';
-                $ref['ADDR1'] = '';
-                $ref['ADDR2'] = '';
-                $ref['EMAILADDR'] = '';
-                $ref['TAXNR'] = '';
-                $ref['TAXOFFICE'] = '';
-                if (array_key_exists('TCKNO', $ref)) { $ref['TCKNO'] = ''; }
-                $ref['SPECODE'] = '';
-                $ref['CYPHCODE'] = '';
-                $ref['GUID'] = strtoupper(guid());
-                $ref['CAPIBLOCK_CREATEDBY'] = (int) $terminalkullanici;
-                $ref['CAPIBLOCK_CREADEDDATE'] = date('Y-m-d H:i:s');
-                $ref['CAPIBLOCK_CREATEDHOUR'] = (int) date('H');
-                $ref['CAPIBLOCK_CREATEDMIN'] = (int) date('i');
-                $ref['CAPIBLOCK_CREATEDSEC'] = (int) date('s');
-
-                $kolonlar = array_keys($ref);
-                $kolStr = '[' . implode('],[', $kolonlar) . ']';
-                $phStr = ':' . implode(', :', $kolonlar);
-                $stmt = $dbh->prepare("INSERT INTO {$firma}CLCARD ({$kolStr}) VALUES ({$phStr})");
-                foreach ($ref as $k => $v) {
-                    $stmt->bindValue(':' . $k, $v);
-                }
-                $stmt->execute();
-                $olusanCariId = (int) $dbh->lastInsertId();
-                $olusanCariKod = $yeniKod;
-                $olusanCariAd = $unvan;
-                $basarili = true;
-
-                if (function_exists('logGenel')) {
-                    // varsa genel log; yoksa sessiz gec
-                    @logGenel('cari_olustur', "Yeni cari: [{$yeniKod}] {$unvan}", $terminalkullanici);
-                }
-            } catch (PDOException $e) {
-                $kod = (int) ($e->errorInfo[1] ?? 0);
-                if (in_array($kod, [2601, 2627], true) && $denendi < 3) {
-                    continue; // kod cakismasi -> yeni kod ile tekrar
-                }
-                error_log('cariyeni INSERT hatasi: ' . $e->getMessage());
-                $mesaj = 'Cari olusturulamadi. Lutfen tekrar deneyin.';
-                $mesajTip = 'error';
-                break;
-            } catch (Throwable $e) {
-                error_log('cariyeni hatasi: ' . $e->getMessage());
-                $mesaj = 'Cari olusturulamadi.';
-                $mesajTip = 'error';
-                break;
-            }
-        }
-
+        $olusanCariId = $sonuc['cariid'];
+        $olusanCariKod = $sonuc['kod'];
+        $olusanCariAd = $sonuc['ad'];
+        $basarili = true;
         if ($basarili) {
             $mesaj = 'Cari basariyla olusturuldu.';
             $mesajTip = 'success';
@@ -172,7 +64,7 @@ $csrf = function_exists('csrf_field') ? csrf_field() : '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yeni Cari</title>
-    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -289,7 +181,7 @@ $csrf = function_exists('csrf_field') ? csrf_field() : '';
                     <div class="form-row">
                         <label class="form-label">Cari Kodu (otomatik)</label>
                         <input type="text" class="form-input" value="<?php echo htmlspecialchars($sonrakiKod, ENT_QUOTES, 'UTF-8'); ?>" readonly>
-                        <div class="kod-hint">Kod otomatik atanir. Diger bilgileri (adres, vergi vb.) sonradan LOGO'dan tamamlayabilirsiniz.</div>
+                        <div class="kod-hint">Kod otomatik atanır. Diğer bilgileri (adres, vergi, vade vb.) sonradan <?php echo lumen_bagimsiz_mi() ? 'cari kartındaki &quot;Düzenle&quot; ile' : 'LOGO\'dan'; ?> tamamlayabilirsiniz.</div>
                     </div>
 
                     <button type="submit" class="btn-primary"><i class="fa-solid fa-floppy-disk"></i> Cariyi Olustur</button>
