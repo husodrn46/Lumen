@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 include_once(__DIR__ . "/../ayr.php");
 require_once __DIR__ . '/../kontrol.php';
+// Cari finans bilgisi (bakiye/ekstre/fatura) yalnız bakiye ya da ekstre yetkisiyle görülür
+// (adres doğrudan yazılarak da açılmasın; menüdeki "Müşteri Bakiye" kuralıyla aynı aile).
+if (!m_p_cari_finans_erisim_var_mi($terminalkullanici)) {
+    lumen_hata_sayfasi('Yetkiniz yok', 'Cari bakiye ve ekstre için Müşteri Bakiye ya da Cari Bakiye/Ekstre yetkisi gerekir.', 403, 'fa-lock');
+}
 include_once(__DIR__ . "/../log_ip.php");
 
 // 2025 dönemi için eski tabloları kullan
@@ -27,6 +32,11 @@ $stmtClSatir = $dbh->prepare("
 ");
 $stmtClSatir->execute([':cariid' => $CARIID, ':ref' => $REF]);
 $clSatir = $stmtClSatir->fetch(PDO::FETCH_ASSOC);
+// Belge bu cariye ait olmalı ve cari kullanıcıya görünür olmalı (özel cari kısıtı)
+if (!$clSatir || !m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4')) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 
 // Başlığı belirle (TRCODE: 28,34=Alınan, 29,39=Verilen Hizmet Faturası)
 $trcode = $clSatir ? (int)$clSatir['TRCODE'] : 0;

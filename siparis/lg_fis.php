@@ -1143,6 +1143,8 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          <?php
             // Hacim ve ağırlık hesapla
             $hacimAgirlik = fis_hacim_agirlik_hesapla($stokhareket, 'siparis');
+            // Fiyat görme (ST2) yetkisi yoksa satır fiyatları gibi özet tutarları da gizlenir
+            $ozetTutar = static fn(string $t): string => (int) m_p_yetki($terminalkullanici, 'ST2') === 1 ? $t : '<i class="fa fa-lock" style="color:var(--text-3);"></i> ***';
             ?>
          <div style="width: 100%; max-width: 480px; margin-left: auto;">
             <div class="glass-card summary-panel">
@@ -1187,7 +1189,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                      <span class="metric-label">
                         <i class="fa-solid fa-turkish-lira-sign" style="color: #059669;"></i>Ara Toplam (TL)
                      </span>
-                     <span class="metric-value" style="color: #166534;"><?php echo paraformat_lg_fis($bakiye_toplam); ?></span>
+                     <span class="metric-value" style="color: #166534;"><?php echo $ozetTutar(paraformat_lg_fis($bakiye_toplam)); ?></span>
                   </div>
 
                   <!-- İskonto -->
@@ -1210,7 +1212,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                         }
                         ?>
                      </span>
-                     <span class="metric-value" style="color: var(--red,#6F1022);">-<?php echo paraformat_lg_fis($bakiskoto); ?></span>
+                     <span class="metric-value" style="color: var(--red,#6F1022);">-<?php echo $ozetTutar(paraformat_lg_fis($bakiskoto)); ?></span>
                   </div>
 
                   <!-- KDV -->
@@ -1223,7 +1225,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                         }
                         ?>
                      </span>
-                     <span class="metric-value" style="color: #059669;">+<?php echo paraformat_lg_fis($bakiyk); ?></span>
+                     <span class="metric-value" style="color: #059669;">+<?php echo $ozetTutar(paraformat_lg_fis($bakiyk)); ?></span>
                   </div>
 
                   <!-- Divider -->
@@ -1234,7 +1236,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                      <span class="metric-label" style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 12px;">
                         <i class="fa-solid fa-turkish-lira-sign" style="color: #059669;"></i>Genel Toplam (TL)
                      </span>
-                     <span class="grand-total-value"><?php echo paraformat_lg_fis($bakiyekdv); ?></span>
+                     <span class="grand-total-value"><?php echo $ozetTutar(paraformat_lg_fis($bakiyekdv)); ?></span>
                   </div>
 
                   <?php if ($dovizAktif):
@@ -1252,21 +1254,21 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                            <span class="metric-label">
                               <i class="fa-solid <?php echo $dovizIcon; ?>" style="color: #2563eb;"></i>Ara Toplam (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
                            </span>
-                           <span class="metric-value" style="color: #2563eb;"><?php echo paraformat_doviz_lg_fis($bakiye_toplam / $dovizKuru, $dovizSembol); ?></span>
+                           <span class="metric-value" style="color: #2563eb;"><?php echo $ozetTutar(paraformat_doviz_lg_fis($bakiye_toplam / $dovizKuru, $dovizSembol)); ?></span>
                         </div>
 
                         <div class="metric-row">
                            <span class="metric-label">
                               <i class="fa-solid fa-percent" style="color: var(--red);"></i>İskonto (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
                            </span>
-                           <span class="metric-value" style="color: var(--red,#6F1022);">-<?php echo paraformat_doviz_lg_fis($bakiskoto / $dovizKuru, $dovizSembol); ?></span>
+                           <span class="metric-value" style="color: var(--red,#6F1022);">-<?php echo $ozetTutar(paraformat_doviz_lg_fis($bakiskoto / $dovizKuru, $dovizSembol)); ?></span>
                         </div>
 
                         <div class="metric-row">
                            <span class="metric-label">
                               <i class="fa-solid fa-receipt" style="color: #059669;"></i>KDV (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
                            </span>
-                           <span class="metric-value" style="color: #059669;">+<?php echo paraformat_doviz_lg_fis($bakiyk / $dovizKuru, $dovizSembol); ?></span>
+                           <span class="metric-value" style="color: #059669;">+<?php echo $ozetTutar(paraformat_doviz_lg_fis($bakiyk / $dovizKuru, $dovizSembol)); ?></span>
                         </div>
 
                         <hr class="metric-divider" />
@@ -1275,7 +1277,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                            <span class="metric-label" style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 12px;">
                               <i class="fa-solid <?php echo $dovizIcon; ?>" style="color: #2563eb;"></i>Genel Toplam (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
                            </span>
-                           <span class="grand-total-value" style="color: #2563eb;"><?php echo paraformat_doviz_lg_fis($bakiyekdv / $dovizKuru, $dovizSembol); ?></span>
+                           <span class="grand-total-value" style="color: #2563eb;"><?php echo $ozetTutar(paraformat_doviz_lg_fis($bakiyekdv / $dovizKuru, $dovizSembol)); ?></span>
                         </div>
                   <?php endif; ?>
 
