@@ -10,7 +10,7 @@ require_once __DIR__ . '/_ortak.php';
 require_once __DIR__ . '/../includes/belge/fatura_sablon.php';
 
 $id = (int) ($_GET['id'] ?? 0);
-$st = $dbh->prepare('SELECT TUR, YON, NO, CARI_ID FROM dbo.LM_BELGE WHERE ID = :id AND TUR <> 1');
+$st = $dbh->prepare('SELECT TUR, YON, NO, CARI_ID FROM dbo.LM_BELGE WHERE ID = :id AND (TUR <> 1 OR YON = 2)');
 $st->execute([':id' => $id]);
 $b = $st->fetch(PDO::FETCH_ASSOC);
 if (!$b || !isset($belgeTurleri[(string) lumen_belge_tur_kodu((int) $b['TUR'], (int) $b['YON'])])

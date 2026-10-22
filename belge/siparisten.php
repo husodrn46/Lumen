@@ -23,7 +23,8 @@ $st = $dbh->prepare("SELECT B.ID, B.NO, B.YON, B.TARIH, B.CARI_ID, B.DEPO_ID, B.
                      WHERE B.ID = :id AND B.TUR = :tur AND B.DURUM <> 9");
 $st->execute([':id' => $sid, ':tur' => $irsaliyeden ? 2 : 1]);
 $sip = $st->fetch(PDO::FETCH_ASSOC);
-$gorur = $sip && ($irsaliyeden
+// Alış siparişi ve irsaliye: cari görme kuralı; satış siparişi: sipariş görme kuralı (personel kısıtı dahil)
+$gorur = $sip && ($irsaliyeden || (int) $sip['YON'] === 2
     ? m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, (int) $sip['CARI_ID'])
     : m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, (int) $terminalkullanici, $sid));
 if (!$gorur) {
@@ -44,7 +45,7 @@ $satirFiyat = static fn(array $r): float => $dovizli
 $para = static fn(float $v): string => $dovizli ? number_format($v, 2, ',', '.') . ' ' . $pb : btl($v);
 
 belge_sayfa_basla(($irsaliyeden ? 'İrsaliyeden Fatura · ' : 'Siparişten Belge · ') . $sip['NO'], 'fa-file-export',
-    $irsaliyeden ? 'goster.php?id=' . $sid : '../siparis/lg_fis.php?stokhareket=' . $sid);
+    $irsaliyeden || $yon === 2 ? 'goster.php?id=' . $sid : '../siparis/lg_fis.php?stokhareket=' . $sid);
 ?>
 <?php if ($satirlar === []): ?>
     <div class="kart kart-ic" style="text-align:center;padding:30px">

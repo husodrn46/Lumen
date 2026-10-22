@@ -44,11 +44,11 @@ if ($islem === 'kaydet') {
     // Siparişten belge / irsaliyeden fatura: kaynak kullanıcının görebildiği bir belge olmalı.
     $kaynakIrsaliye = false;
     if ($kaynakBelge > 0) {
-        $kq = $dbh->prepare('SELECT TUR, CARI_ID FROM dbo.LM_BELGE WHERE ID = :k');
+        $kq = $dbh->prepare('SELECT TUR, YON, CARI_ID FROM dbo.LM_BELGE WHERE ID = :k');
         $kq->execute([':k' => $kaynakBelge]);
         $kr = $kq->fetch(PDO::FETCH_ASSOC);
         $kaynakIrsaliye = $kr && (int) $kr['TUR'] === 2;
-        $gorur = $kaynakIrsaliye
+        $gorur = $kaynakIrsaliye || ($kr && (int) $kr['YON'] === 2)
             ? m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, (int) $kr['CARI_ID'])
             : m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, (int) $terminalkullanici, $kaynakBelge);
         if (!$gorur) {

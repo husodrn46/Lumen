@@ -336,6 +336,21 @@ Ana menüden "Faturalar" kutucuğuna girin; "Faturalar ve Belgeler" listesi aç�
 - Siparişte kalandan fazla faturalanamaz.
 - Siparişin kalan satırı yoksa ekran "Bu siparişin faturalanacak/sevk edilecek kalan satırı yok." der.
 
+### Alış siparişi (tedarikçiye sipariş)
+
+**Ne işe yarar:** Tedarikçiye verdiğiniz siparişi kaydeder; mal geldikçe alış irsaliyesine ya da alış faturasına aktarırsınız. Bekleyen miktar ürünün stok kartında "Bekleyen alış siparişi" olarak görünür.
+
+1. "Faturalar" → "Yeni Belge" → belge türü "Alış Siparişi".
+2. Tedarikçiyi (cari) ve ürünleri, miktar ve fiyatlarıyla girip kaydedin. Sipariş stoğu ve cari bakiyeyi değiştirmez.
+3. Mal geldiğinde siparişi açıp "Faturala"ya basın; "Alış İrsaliyesi" ya da "Alış Faturası" seçin, gelen miktarı yazın.
+4. İrsaliyeyle aldıysanız fatura gelince irsaliyeyi açıp "Faturala" ile faturasını kesin (stok ikinci kez artmaz).
+
+**Dikkat**
+
+- Kısmi teslim alabilirsiniz; kalan miktar siparişte açık kalır.
+- Siparişe bağlı irsaliye ya da fatura varken sipariş iptal edilemez; önce onları iptal edin.
+- Satış siparişleri burada değil, sipariş ekranlarında ("Yeni Sipariş", "Siparişler") girilir.
+
 ### İrsaliyeden faturalama
 
 **Ne işe yarar:** Malı önce irsaliyeyle gönderip (ya da alıp) faturayı sonra kesersiniz. Stok irsaliyeyle düşer; fatura yalnız cariyi borçlandırır (alışta alacaklandırır), stoğu ikinci kez oynatmaz.

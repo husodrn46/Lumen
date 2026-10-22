@@ -103,7 +103,7 @@ belge_sayfa_basla($c['UNVAN'], 'fa-address-card', '../cari/lg_bakiye.php?q=' . r
         <?php foreach ($belgeler as $b):
             $tk = lumen_belge_tur_kodu((int) $b['TUR'], (int) $b['YON']);
             $ad = (int) $b['TUR'] === 1 ? ((int) $b['YON'] === 1 ? 'Satış siparişi' : 'Alış siparişi') : ($tk !== null ? $turler[$tk]['ad'] : 'Belge');
-            $link = (int) $b['TUR'] === 1 ? '../siparis/lg_fis.php?stokhareket=' . (int) $b['ID'] : ($belgeYetki ? '../belge/goster.php?id=' . (int) $b['ID'] : null); ?>
+            $link = (int) $b['TUR'] === 1 && (int) $b['YON'] === 1 ? '../siparis/lg_fis.php?stokhareket=' . (int) $b['ID'] : ($belgeYetki ? '../belge/goster.php?id=' . (int) $b['ID'] : null); ?>
             <tr><td><?= bh($tarih($b['TARIH'])) ?></td>
                 <td class="koyu"><?= $link ? '<a href="' . bh($link) . '" style="color:inherit">' . bh($b['NO']) . '</a>' : bh($b['NO']) ?></td>
                 <td><span class="rozet <?= (int) $b['YON'] === 1 ? 'satis' : 'alis' ?>"><?= bh($ad) ?></span><?= (int) $b['DURUM'] === 9 ? ' <span class="rozet iptal">İptal</span>' : '' ?></td>

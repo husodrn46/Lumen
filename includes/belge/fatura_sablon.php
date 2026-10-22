@@ -90,7 +90,7 @@ if (!function_exists('lumen_belge_yazdir_html')) {
                              LEFT JOIN dbo.LM_CARI C ON C.ID = B.CARI_ID
                              LEFT JOIN dbo.LM_DEPO D ON D.ID = B.DEPO_ID
                              LEFT JOIN dbo.LM_BELGE KB ON KB.ID = B.KAYNAK_BELGE_ID
-                             WHERE B.ID = :id AND B.TUR <> 1");
+                             WHERE B.ID = :id AND (B.TUR <> 1 OR B.YON = 2)");
         $st->execute([':id' => $id]);
         $b = $st->fetch(PDO::FETCH_ASSOC);
         if (!$b) {

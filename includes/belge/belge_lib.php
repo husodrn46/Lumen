@@ -35,6 +35,9 @@ if (!function_exists('lumen_belge_turleri')) {
             'uretim' => ['tur' => 5, 'yon' => 2, 'seri' => 'URETIM', 'ad' => 'Üretimden Giriş', 'stok' => 1, 'cari' => 0, 'cari_zorunlu' => false],
             'sayim_fazla' => ['tur' => 6, 'yon' => 2, 'seri' => 'SAYIM', 'ad' => 'Sayım Fazlası', 'stok' => 1, 'cari' => 0, 'cari_zorunlu' => false],
             'sayim_eksik' => ['tur' => 6, 'yon' => 1, 'seri' => 'SAYIM', 'ad' => 'Sayım Eksiği', 'stok' => -1, 'cari' => 0, 'cari_zorunlu' => false],
+            // Tedarikçiye sipariş: stok/cari etkisi yok; "Faturala" ile alış faturası/irsaliyesine aktarılır.
+            // (Satış siparişleri sipariş ekranlarından girilir.)
+            'alis_siparis' => ['tur' => 1, 'yon' => 2, 'seri' => 'ALIS_SIPARIS', 'ad' => 'Alış Siparişi', 'stok' => 0, 'cari' => 0, 'cari_zorunlu' => true],
         ];
     }
 }
@@ -365,10 +368,11 @@ if (!function_exists('lumen_belge_iptal')) {
     {
         try {
             $dbh->beginTransaction();
-            $st = $dbh->prepare('SELECT ID, TUR, DURUM, NO, TARIH FROM dbo.LM_BELGE WITH (UPDLOCK, HOLDLOCK) WHERE ID = :id');
+            $st = $dbh->prepare('SELECT ID, TUR, YON, DURUM, NO, TARIH FROM dbo.LM_BELGE WITH (UPDLOCK, HOLDLOCK) WHERE ID = :id');
             $st->execute([':id' => $belgeId]);
             $b = $st->fetch(PDO::FETCH_ASSOC);
-            if (!$b || (int) $b['TUR'] === 1) {
+            // Satış siparişi sipariş ekranlarından iptal edilir; alış siparişi buradan.
+            if (!$b || ((int) $b['TUR'] === 1 && (int) $b['YON'] !== 2)) {
                 $dbh->rollBack();
                 return ['ok' => false, 'mesaj' => 'Belge bulunamadı.'];
             }

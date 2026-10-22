@@ -14,7 +14,7 @@ $bas = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['bas'] ?? '')) ? (str
 $bit = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['bit'] ?? '')) ? (string) $_GET['bit'] : date('Y-m-d');
 $ara = trim((string) ($_GET['ara'] ?? ''));
 
-$kosul = 'B.TUR <> 1 AND B.TARIH BETWEEN :bas AND :bit';
+$kosul = '(B.TUR <> 1 OR B.YON = 2) AND B.TARIH BETWEEN :bas AND :bit';   // satış siparişleri sipariş ekranında
 if (!$belgeTam) {
     $kosul .= ' AND B.TUR IN (5, 6)'; // depo personeli: üretim ve sayım
 }

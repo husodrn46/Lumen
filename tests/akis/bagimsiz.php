@@ -609,6 +609,55 @@ akis('toplu fiyat: önizleme değiştirmez; grup ve yüzdeyle yuvarlayarak bugü
     bekle($satis->istek('tanimlar/toplu_fiyat.php')['kod'] === 403, 'M16 olmayan kullanıcı toplu fiyat ekranını açtı');
 });
 
+akis('alış siparişi: stok/cari etkisiz; kısmi alış irsaliyesi → irsaliyeden fatura → kalan doğrudan fatura; bağlıyken iptal edilemez', function () use ($yonetici, $pdo): void {
+    $stokMiktar = static fn(): float => (float) tek($pdo, 'SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 7');
+    $bakiye = static fn(): float => (float) tek($pdo, 'SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 6');
+    [$stok0, $bakiye0] = [$stokMiktar(), $bakiye()];
+    $sat = static fn(string $m, int $kaynak = 0): array => ['stok_id' => [7], 'birim_id' => [0], 'miktar' => [$m], 'fiyat' => ['20'],
+        'iskonto' => ['0'], 'kdv' => ['20'], 'kaynak_satir_id' => [$kaynak]];
+    $sip = belge_kes($yonetici, 'belge/yeni.php?tur=alis_siparis', ['tur' => 'alis_siparis', 'cari_id' => 6, 'tarih' => date('Y-m-d'), 'satir' => $sat('10')]);
+    bekle($sip['id'] > 0, 'alış siparişi kesilmedi: ' . ($sip['hata'] ?? ''));
+    yakin($stok0, $stokMiktar(), 'sipariş stoğu oynatmamalı');
+    yakin($bakiye0, $bakiye(), 'sipariş cariyi oynatmamalı');
+    bekle((int) tek($pdo, "SELECT TRCODE FROM LMV_ORFICHE WHERE LOGICALREF = {$sip['id']}") === 2, 'LMV_ORFICHE alış siparişi (TRCODE 2) değil');
+    bekle(str_contains($yonetici->istek('belge/index.php')['govde'], (string) tek($pdo, "SELECT NO FROM LM_BELGE WHERE ID = {$sip['id']}")), 'alış siparişi belge listesinde yok');
+    bekle(preg_match('/Bekleyen alış siparişi<\/span><b>10/', $yonetici->istek('kart/stok.php?id=7')['govde']) === 1, 'stok kartında bekleyen alış siparişi görünmüyor');
+    bekle(str_contains($yonetici->istek("belge/goster.php?id={$sip['id']}")['govde'], "siparisten.php?siparis={$sip['id']}"), 'alış siparişinde Faturala yok');
+    $ekran = $yonetici->istek("belge/siparisten.php?siparis={$sip['id']}")['govde'];
+    bekle(str_contains($ekran, 'value="alis_irsaliye"') && str_contains($ekran, 'value="alis_fatura"'), 'alış siparişinden alış faturası/irsaliyesi seçilemiyor');
+    $satir = (int) tek($pdo, "SELECT ID FROM LM_BELGE_SATIR WHERE BELGE_ID = {$sip['id']}");
+    // 6 adet irsaliyeyle gelir
+    $irs = belge_kes($yonetici, "belge/siparisten.php?siparis={$sip['id']}", ['tur' => 'alis_irsaliye', 'cari_id' => 6, 'kaynak_belge_id' => $sip['id'],
+        'tarih' => date('Y-m-d'), 'para_birimi' => 'TRY', 'satir' => $sat('6', $satir)]);
+    bekle($irs['id'] > 0, 'alış irsaliyesi kesilmedi: ' . ($irs['hata'] ?? ''));
+    yakin($stok0 + 6, $stokMiktar(), 'alış irsaliyesi stoğu artırmalı');
+    yakin(6.0, (float) tek($pdo, "SELECT TESLIM_MIKTAR FROM LM_BELGE_SATIR WHERE ID = {$satir}"), 'siparişte teslim alınan');
+    // irsaliyenin faturası: cari alacaklanır, stok değişmez
+    $irsSatir = (int) tek($pdo, "SELECT ID FROM LM_BELGE_SATIR WHERE BELGE_ID = {$irs['id']}");
+    $f1 = belge_kes($yonetici, "belge/siparisten.php?irsaliye={$irs['id']}", ['tur' => 'alis_fatura', 'cari_id' => 6, 'kaynak_belge_id' => $irs['id'],
+        'tarih' => date('Y-m-d'), 'para_birimi' => 'TRY', 'satir' => $sat('6', $irsSatir)]);
+    bekle($f1['id'] > 0, 'alış irsaliyesinden fatura kesilmedi: ' . ($f1['hata'] ?? ''));
+    yakin($stok0 + 6, $stokMiktar(), 'irsaliyeden alış faturası stoğu tekrar artırmamalı');
+    yakin($bakiye0 - 144, $bakiye(), 'alış faturası cariyi alacaklandırmalı (6 × 20 × 1,2)');
+    // kalan 4 doğrudan faturayla
+    $f2 = belge_kes($yonetici, "belge/siparisten.php?siparis={$sip['id']}", ['tur' => 'alis_fatura', 'cari_id' => 6, 'kaynak_belge_id' => $sip['id'],
+        'tarih' => date('Y-m-d'), 'para_birimi' => 'TRY', 'satir' => $sat('4', $satir)]);
+    bekle($f2['id'] > 0, 'siparişten kalan alış faturası kesilmedi: ' . ($f2['hata'] ?? ''));
+    yakin($stok0 + 10, $stokMiktar(), 'doğrudan alış faturası stoğu artırmalı');
+    yakin($bakiye0 - 240, $bakiye(), 'iki alış faturası toplamı');
+    bekle(!str_contains($yonetici->istek("belge/goster.php?id={$sip['id']}")['govde'], "siparisten.php?siparis={$sip['id']}"), 'tamamlanan alış siparişinde Faturala kalmış');
+    // Bağlı belgesi varken sipariş iptal edilemez; bağsız sipariş iptal edilir
+    $iptalEt = static fn(int $id) => $yonetici->istek('belge/islem.php', ['csrf_token' => $yonetici->belirtec("belge/goster.php?id={$id}"), 'islem' => 'iptal', 'id' => $id]);
+    $iptalEt($sip['id']);
+    bekle((int) tek($pdo, "SELECT DURUM FROM LM_BELGE WHERE ID = {$sip['id']}") === 1, 'belgesi olan alış siparişi iptal edildi');
+    $sip2 = belge_kes($yonetici, 'belge/yeni.php?tur=alis_siparis', ['tur' => 'alis_siparis', 'cari_id' => 6, 'tarih' => date('Y-m-d'), 'satir' => $sat('3')]);
+    $iptalEt($sip2['id']);
+    bekle((int) tek($pdo, "SELECT DURUM FROM LM_BELGE WHERE ID = {$sip2['id']}") === 9, 'bağsız alış siparişi iptal edilemedi');
+    // Satış siparişi belge ekranından açılmaz/iptal edilmez (sipariş ekranındadır)
+    $satisSip = (int) tek($pdo, 'SELECT TOP 1 ID FROM LM_BELGE WHERE TUR = 1 AND YON = 1 AND DURUM = 1');
+    bekle($yonetici->istek("belge/goster.php?id={$satisSip}")['kod'] === 404, 'satış siparişi belge ekranında açıldı');
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */

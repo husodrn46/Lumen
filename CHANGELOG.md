@@ -8,6 +8,9 @@
   başlangıcıyla seçilen ürünlerin satış ya da alış fiyatı yüzde ya da tutar kadar değişir,
   isteğe bağlı yuvarlanır. Önce önizleme, sonra onay; eski fiyat silinmez, seçilen tarihten
   geçerli yeni fiyat yazılır. 20.000 ürün 1,5 sn.
+- **Alış siparişi** (bağımsız mod): Faturalar → Yeni Belge → "Alış Siparişi". Stok ve cariyi
+  etkilemez; "Faturala" ile kısmi ya da tam alış irsaliyesi/faturasına aktarılır, irsaliyesi
+  sonra faturalanır. Bekleyen miktar stok kartında görünür; bağlı belgesi varken iptal edilemez.
 
 ### 🐛 Düzeltmeler
 
