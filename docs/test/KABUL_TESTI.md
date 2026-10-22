@@ -101,6 +101,11 @@ olmadığını not edin.
 9. Bir ürün için **stok kartı** (stok aramasında koda tıklayın): eldeki miktar ve hareketler doğru mu?
 10. `DEPO1` ile girin: yalnız "Üretim ve Sayım" görünmeli, fatura ve kasa görünmemeli. `SATIS1` ile: Tanımlar ve yedekleme görünmemeli.
 11. **Raporlar → Günlük İşlemler**: bugünün faturaları ve tahsilatları görünmeli.
+12. **Yeni Ürün** (ana sayfa): koli birimi (çarpan 12), iki barkod ve fiyatla bir ürün açın; belge ürün aramasında ve koli barkoduyla stok aramasında çıkmalı. Stok kartında "Düzenle" ile fiyatı değiştirin.
+13. **Satış irsaliyesi** kesip irsaliye ekranında **Faturala** ile yarısını faturalayın: stok yalnız irsaliyede düşmeli, cari faturayla borçlanmalı, irsaliyede "Fatura:" satırı görünmeli.
+14. **Alış Siparişi** (Yeni Belge): siparişi "Faturala" ile kısmen alış irsaliyesine aktarın; stok kartında "Bekleyen alış siparişi" azalmalı.
+15. **Tanımlar → Toplu fiyat**: bir grup için %10 + 0,50 ₺ yuvarlama önizleyin (hiçbir şey değişmemeli), sonra uygulayın; stok kartında yeni fiyat bugünden geçerli görünmeli.
+16. **Raporlar → Vade Takibi**: tahsil/ödenecek sekmeleri, dilim kutuları ve cari arama; vadesi geçmiş bir caride cari kartındaki "Vadesi geçmiş" tutarı raporla aynı olmalı.
 
 Her maddeyi rapora **Geçti / Sorunlu / Denenemedi** olarak, sorunluysa ne gördüğünüzle
 (ekran, adım, beklenen, görülen) yazın.

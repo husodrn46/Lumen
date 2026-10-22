@@ -679,6 +679,7 @@ Bu bölüm iki modda da geçerlidir.
 - Tahsilatlar ve iadeler en erken vadeli faturadan başlayarak düşülür; kısmen ödenmiş faturanın yalnız kalan kısmı görünür.
 - Faturada vade girilmezse carinin "vade günü" uygulanır (fatura tarihi + vade günü). Vade günü cari kartında / Excel aktarımında girilir.
 - Cari kartında "Vadesi geçmiş" kutusu aynı hesabı o cari için gösterir.
+- Aynı firma hem müşteriniz hem tedarikçinizse açık kalemler net bakiyenin olduğu tarafta görünür (ör. fazla tahsilat "Ödenecek" sekmesinde).
 - Görmek için "Raporlar" ve "Cari bakiye" yetkisi gerekir.
 
 ## 10. Yedekleme ve geri yükleme

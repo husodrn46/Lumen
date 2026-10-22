@@ -9,7 +9,9 @@ declare(strict_types=1);
  * eskiden yeniye dizilir; carinin bütün alacak kayıtları (tahsilat, iade, alınan çek …) bu
  * kalemleri sırayla kapatır (FIFO). Kalan kısım "tahsil edilecek" tutardır. Tedarikçi tarafı
  * simetriktir: alacak kalemleri borç kayıtlarıyla kapanır, kalan "ödenecek" tutardır.
- * Vade: hareketin vadesi; yoksa hareket tarihi + carinin vade günü.
+ * Vade: hareketin vadesi; yoksa faturada tarih + carinin vade günü, diğer kayıtlarda (avans,
+ * fazla tahsilat, açılış) kendi tarihi. Aynı cari hem alıcı hem satıcıysa açık kalemler net
+ * bakiyenin olduğu taraftadır (ör. fazla tahsilat 'ödenecek' görünür).
  */
 
 if (!function_exists('lumen_vade_acik_kalemler')) {
@@ -35,7 +37,7 @@ if (!function_exists('lumen_vade_acik_kalemler')) {
         $st = $dbh->prepare("
             WITH K AS (
                 SELECT H.CARI_ID, H.ID, H.BELGE_ID, H.BELGE_NO, H.TARIH, H.{$kalem} AS TUTAR,
-                       ISNULL(H.VADE, DATEADD(DAY, C.VADE_GUN, H.TARIH)) AS VADE
+                       ISNULL(H.VADE, CASE WHEN H.KAYNAK = 1 THEN DATEADD(DAY, C.VADE_GUN, H.TARIH) ELSE H.TARIH END) AS VADE
                 FROM dbo.LM_CARI_HAREKET H JOIN dbo.LM_CARI C ON C.ID = H.CARI_ID
                 WHERE H.{$kalem} > 0 AND {$kosul}
             ), Y AS (
