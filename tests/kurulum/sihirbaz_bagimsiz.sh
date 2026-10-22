@@ -53,9 +53,16 @@ rm -f "$CEREZ"
 curl -s -c "$CEREZ" -b "$CEREZ" "$URL/giris.php" > /dev/null
 KOD=$(curl -s -o /dev/null -w '%{http_code}' -c "$CEREZ" -b "$CEREZ" "$URL/giris.php" -d kullaniciadi=PATRON -d kullanicisifre=Parola-1234)
 [ "$KOD" = 302 ] || hata "yönetici giremedi (HTTP $KOD)"
-ANA=$(curl -s -c "$CEREZ" -b "$CEREZ" "$URL/index.php")
+ANA=$(curl -s -c "$CEREZ" -b "$CEREZ" -w '\nHTTP_KODU=%{http_code} YONLENDIRME=%{redirect_url}' "$URL/index.php")
 for m in belge/index.php finans/index.php cari/cari.php; do
-    echo "$ANA" | grep -q "href=\"$m" || hata "menüde $m yok"
+    if ! echo "$ANA" | grep -q "href=\"$m"; then
+        # Tanı: ana sayfanın yanıtı ve son uygulama hataları (aralıklı görülen bir düşmenin sebebi için)
+        echo "$ANA" | tail -n 1
+        echo "$ANA" | grep -o '<title>[^<]*' | head -1
+        echo "$ANA" | grep -o 'href="[a-z_/]*\.php' | sort -u | head -30 | tr '\n' ' '; echo
+        tail -n 5 "$KOPYA/logs/app/app-error.log" 2>/dev/null | cut -c1-400
+        hata "menüde $m yok"
+    fi
 done
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$URL/kurulum.php")" = 302 ] || hata "sihirbaz kurulumdan sonra açık kaldı"
 echo "  ✓ yönetici girer; faturalar, kasa/banka ve cari menüde; sihirbaz kapandı"
