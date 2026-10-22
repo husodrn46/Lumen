@@ -528,6 +528,54 @@ akis('ürün kartı: ekle (birim, barkod, fiyat) → düzenle → aramada ve bel
     bekle(!str_contains($satis->istek("kart/stok.php?id={$id}")['govde'], 'stok_duzenle.php'), 'M11 olmayana düzenle bağlantısı görünüyor');
 });
 
+akis('irsaliyeden fatura: stok yalnız irsaliyede düşer, fatura cariyi borçlandırır; kısmi, fazlası reddedilir; iptal geri alır; LOGO görünümlerinde tek satır', function () use ($yonetici, $pdo): void {
+    $stokMiktar = static fn(): float => (float) tek($pdo, 'SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = 3');
+    $bakiye = static fn(): float => (float) tek($pdo, 'SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = 4');
+    [$stok0, $bakiye0] = [$stokMiktar(), $bakiye()];
+    $irs = belge_kes($yonetici, 'belge/yeni.php', ['tur' => 'satis_irsaliye', 'cari_id' => 4, 'tarih' => date('Y-m-d'),
+        'satir' => ['stok_id' => [3], 'birim_id' => [0], 'miktar' => ['10'], 'fiyat' => ['50'], 'iskonto' => ['0'], 'kdv' => ['20']]]);
+    bekle($irs['id'] > 0, 'irsaliye kesilmedi: ' . ($irs['hata'] ?? ''));
+    yakin($stok0 - 10, $stokMiktar(), 'irsaliye stoğu düşürmeli');
+    yakin($bakiye0, $bakiye(), 'irsaliye cariyi etkilememeli');
+    $g = $yonetici->istek("belge/goster.php?id={$irs['id']}")['govde'];
+    bekle(str_contains($g, "siparisten.php?irsaliye={$irs['id']}"), 'irsaliyede Faturala düğmesi yok');
+    $ekran = $yonetici->istek("belge/siparisten.php?irsaliye={$irs['id']}")['govde'];
+    bekle(str_contains($ekran, 'value="satis_fatura"') && !str_contains($ekran, 'value="satis_irsaliye"'), 'irsaliyeden yalnız fatura seçilebilmeli');
+    $satir = (int) tek($pdo, "SELECT ID FROM LM_BELGE_SATIR WHERE BELGE_ID = {$irs['id']}");
+    $fatura = static fn(string $m): array => belge_kes($yonetici, "belge/siparisten.php?irsaliye={$irs['id']}", ['tur' => 'satis_fatura',
+        'cari_id' => 4, 'kaynak_belge_id' => $irs['id'], 'tarih' => date('Y-m-d'), 'para_birimi' => 'TRY',
+        'satir' => ['stok_id' => [3], 'birim_id' => [0], 'miktar' => [$m], 'fiyat' => ['50'], 'iskonto' => ['0'], 'kdv' => ['20'], 'kaynak_satir_id' => [$satir]]]);
+    $f1 = $fatura('4');
+    bekle($f1['id'] > 0, 'irsaliyeden fatura kesilmedi: ' . ($f1['hata'] ?? ''));
+    yakin($stok0 - 10, $stokMiktar(), 'fatura stoğu ikinci kez düşürmemeli');
+    yakin($bakiye0 + 240, $bakiye(), 'fatura cariyi KDV dahil borçlandırmalı (4 × 50 × 1,2)');
+    yakin(4.0, (float) tek($pdo, "SELECT TESLIM_MIKTAR FROM LM_BELGE_SATIR WHERE ID = {$satir}"), 'irsaliye satırında faturalanan miktar');
+    bekle(fatura_kes_hata($fatura('7')), 'irsaliyede kalandan fazlası faturalanabildi');
+    // LOGO uyumlu görünümler: stok satırı yalnız irsaliyeninki, faturayı gösterir; faturanın ayrı stok fişi yok
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LMV_STLINE WHERE INVOICEREF = {$f1['id']}") === 1, 'LMV_STLINE fatura için tek satır vermeli');
+    bekle((int) tek($pdo, "SELECT LOGICALREF FROM LMV_STLINE WHERE INVOICEREF = {$f1['id']}") === $satir, 'LMV_STLINE satırı irsaliye satırı olmalı');
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LMV_STFICHE WHERE LOGICALREF = {$f1['id']}") === 0, 'faturanın ayrı stok fişi olmamalı');
+    bekle((int) tek($pdo, "SELECT INVOICEREF FROM LMV_STFICHE WHERE LOGICALREF = {$irs['id']}") === $f1['id'], 'irsaliye başlığı faturayı göstermeli');
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LMV_INVOICE WHERE LOGICALREF = {$f1['id']}") === 1, 'fatura LMV_INVOICE görünümünde yok');
+    // İrsaliye, faturası dururken iptal edilemez; fatura iptali faturalanan miktarı ve cariyi geri alır
+    $yonetici->istek('belge/islem.php', ['csrf_token' => $yonetici->belirtec("belge/goster.php?id={$irs['id']}"), 'islem' => 'iptal', 'id' => $irs['id']]);
+    bekle((int) tek($pdo, "SELECT DURUM FROM LM_BELGE WHERE ID = {$irs['id']}") === 1, 'faturalı irsaliye iptal edildi');
+    $yonetici->istek('belge/islem.php', ['csrf_token' => $yonetici->belirtec("belge/goster.php?id={$f1['id']}"), 'islem' => 'iptal', 'id' => $f1['id']]);
+    yakin(0.0, (float) tek($pdo, "SELECT TESLIM_MIKTAR FROM LM_BELGE_SATIR WHERE ID = {$satir}"), 'fatura iptali faturalanan miktarı geri almalı');
+    yakin($bakiye0, $bakiye(), 'fatura iptali cariyi geri almalı');
+    yakin($stok0 - 10, $stokMiktar(), 'fatura iptali stoğu oynatmamalı');
+    bekle((int) tek($pdo, "SELECT BILLED FROM LMV_STLINE WHERE LOGICALREF = {$satir}") === 0, 'iptal faturadan sonra irsaliye satırı faturalı görünüyor');
+    $f2 = $fatura('10');
+    bekle($f2['id'] > 0, 'iptalden sonra irsaliyenin tamamı faturalanamadı');
+    bekle(!str_contains($yonetici->istek("belge/goster.php?id={$irs['id']}")['govde'], "siparisten.php?irsaliye={$irs['id']}"), 'tamamı faturalanan irsaliyede Faturala düğmesi kalmış');
+});
+
+/** Belge kesilemediyse (hata mesajıyla döndüyse) true. */
+function fatura_kes_hata(array $r): bool
+{
+    return $r['id'] === 0 && ($r['hata'] ?? '') !== '';
+}
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */

@@ -3,9 +3,10 @@
 declare(strict_types=1);
 
 /**
- * Siparişten fatura / irsaliye — yalnız bağımsız mod. Siparişin kalan satırları
- * gelir; miktar kısmen değiştirilebilir (kısmi sevk/fatura). Satırlar siparişin
- * fiyat, iskonto ve KDV'siyle aktarılır; sipariş satırlarının teslim miktarı güncellenir.
+ * Siparişten fatura / irsaliye ve irsaliyeden fatura — yalnız bağımsız mod. Kaynağın kalan
+ * satırları gelir; miktar kısmen değiştirilebilir (kısmi sevk/fatura). Satırlar kaynağın
+ * fiyat, iskonto ve KDV'siyle aktarılır; kaynak satırların teslim/fatura miktarı güncellenir.
+ * İrsaliyeden kesilen fatura stoğu tekrar oynatmaz (irsaliye oynattı).
  */
 
 include_once __DIR__ . '/../ayr.php';
@@ -15,18 +16,23 @@ require_once __DIR__ . '/_ortak.php';
 if (!$belgeTam) {
     lumen_hata_sayfasi('Fatura yetkiniz yok', 'Siparişten belge için M31 (Faturalama) yetkisi gerekir.', 403, 'fa-lock');
 }
-$sid = (int) ($_GET['siparis'] ?? 0);
+$irsaliyeden = (int) ($_GET['irsaliye'] ?? 0) > 0;
+$sid = (int) ($irsaliyeden ? $_GET['irsaliye'] : ($_GET['siparis'] ?? 0));
 $st = $dbh->prepare("SELECT B.ID, B.NO, B.YON, B.TARIH, B.CARI_ID, B.DEPO_ID, B.PARA_BIRIMI, B.KUR, C.KOD, C.UNVAN
                      FROM dbo.LM_BELGE B LEFT JOIN dbo.LM_CARI C ON C.ID = B.CARI_ID
-                     WHERE B.ID = :id AND B.TUR = 1 AND B.DURUM <> 9");
-$st->execute([':id' => $sid]);
+                     WHERE B.ID = :id AND B.TUR = :tur AND B.DURUM <> 9");
+$st->execute([':id' => $sid, ':tur' => $irsaliyeden ? 2 : 1]);
 $sip = $st->fetch(PDO::FETCH_ASSOC);
-if (!$sip || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, (int) $terminalkullanici, $sid)) {
-    lumen_hata_sayfasi('Sipariş bulunamadı', 'Faturalanacak sipariş bulunamadı veya iptal edilmiş.', 404);
+$gorur = $sip && ($irsaliyeden
+    ? m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, (int) $sip['CARI_ID'])
+    : m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, (int) $terminalkullanici, $sid));
+if (!$gorur) {
+    lumen_hata_sayfasi($irsaliyeden ? 'İrsaliye bulunamadı' : 'Sipariş bulunamadı', 'Faturalanacak belge bulunamadı veya iptal edilmiş.', 404);
 }
 $satirlar = lumen_siparis_kalan_satirlar($dbh, $sid);
 $yon = (int) $sip['YON'];
-$secenekler = $yon === 1 ? ['satis_fatura', 'satis_irsaliye'] : ['alis_fatura', 'alis_irsaliye'];
+$secenekler = $irsaliyeden ? [$yon === 1 ? 'satis_fatura' : 'alis_fatura']
+    : ($yon === 1 ? ['satis_fatura', 'satis_irsaliye'] : ['alis_fatura', 'alis_irsaliye']);
 $turler = lumen_belge_turleri();
 $pb = (string) $sip['PARA_BIRIMI'];
 $dovizli = $pb !== 'TRY';
@@ -37,11 +43,12 @@ $satirFiyat = static fn(array $r): float => $dovizli
     : (float) $r['FIYAT'];
 $para = static fn(float $v): string => $dovizli ? number_format($v, 2, ',', '.') . ' ' . $pb : btl($v);
 
-belge_sayfa_basla('Siparişten Belge · ' . $sip['NO'], 'fa-file-export', '../siparis/lg_fis.php?stokhareket=' . $sid);
+belge_sayfa_basla(($irsaliyeden ? 'İrsaliyeden Fatura · ' : 'Siparişten Belge · ') . $sip['NO'], 'fa-file-export',
+    $irsaliyeden ? 'goster.php?id=' . $sid : '../siparis/lg_fis.php?stokhareket=' . $sid);
 ?>
 <?php if ($satirlar === []): ?>
     <div class="kart kart-ic" style="text-align:center;padding:30px">
-        <div class="koyu">Bu siparişin faturalanacak/sevk edilecek kalan satırı yok.</div>
+        <div class="koyu"><?= $irsaliyeden ? 'Bu irsaliyenin faturalanmamış satırı yok.' : 'Bu siparişin faturalanacak/sevk edilecek kalan satırı yok.' ?></div>
         <div style="margin-top:12px"><a class="btn btn-ikincil" href="index.php">Belgelere git</a></div>
     </div>
 <?php belge_sayfa_bitir(); exit; endif; ?>
@@ -67,7 +74,7 @@ belge_sayfa_basla('Siparişten Belge · ' . $sip['NO'], 'fa-file-export', '../si
     </div>
     <div class="kart tablo-sar">
         <table class="liste">
-            <thead><tr><th>Ürün</th><th class="sag">Sipariş</th><th class="sag">Teslim edilen</th><th style="width:130px">Bu belgede</th>
+            <thead><tr><th>Ürün</th><th class="sag"><?= $irsaliyeden ? 'İrsaliye' : 'Sipariş' ?></th><th class="sag"><?= $irsaliyeden ? 'Faturalanan' : 'Teslim edilen' ?></th><th style="width:130px">Bu belgede</th>
                 <th class="sag">Fiyat</th><th class="sag">İsk. %</th><th class="sag">KDV %</th></tr></thead>
             <tbody>
             <?php foreach ($satirlar as $r): ?>
@@ -90,7 +97,7 @@ belge_sayfa_basla('Siparişten Belge · ' . $sip['NO'], 'fa-file-export', '../si
             </tbody>
         </table>
     </div>
-    <div class="kart kart-ic"><label class="alan">Açıklama <textarea name="aciklama" rows="2" maxlength="500"><?= bh('Sipariş ' . $sip['NO']) ?></textarea></label></div>
+    <div class="kart kart-ic"><label class="alan">Açıklama <textarea name="aciklama" rows="2" maxlength="500"><?= bh(($irsaliyeden ? 'İrsaliye ' : 'Sipariş ') . $sip['NO']) ?></textarea></label></div>
     <div style="display:flex;justify-content:flex-end;gap:10px">
         <button type="submit" class="btn btn-birincil"><i class="fa-solid fa-check"></i> Belgeyi kes</button>
     </div>

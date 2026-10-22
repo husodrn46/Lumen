@@ -140,7 +140,10 @@ if (!function_exists('lumen_belge_kaydet')) {
      *
      * $baslik: cari_id, tarih (Y-m-d), vade (Y-m-d|null), depo_id (boşsa merkez), aciklama, dokuman_no
      * $satirlar: [['stok_id', 'miktar', 'birim_id'?, 'fiyat', 'iskonto' (%), 'kdv' (%), 'aciklama'?, 'kaynak_satir_id'?], …]
-     *            kaynak_satir_id: siparişten aktarımda sipariş satırı (teslim miktarı güncellenir)
+     *            kaynak_satir_id: siparişten aktarımda sipariş satırı, irsaliyeden faturada irsaliye satırı
+     *            (TESLIM_MIKTAR = sevk/fatura edilen miktar güncellenir)
+     * İrsaliyeden fatura (kaynak_belge_id bir irsaliye): stok hareketi yazılmaz (irsaliye stoğu zaten
+     * oynattı), yalnız cari etkisi yazılır.
      *
      * @return array{ok:bool, mesaj:string, id?:int, no?:string, net?:float}
      */
@@ -193,6 +196,7 @@ if (!function_exists('lumen_belge_kaydet')) {
         if ($kaynakSatirVar && $kaynakBelge <= 0) {
             return ['ok' => false, 'mesaj' => 'Sipariş satırı, siparişi belirtilmeden kullanılamaz.'];
         }
+        $kaynakTur = 0;   // 1 sipariş, 2 irsaliye (irsaliyeden fatura)
 
         try {
             $dbh->beginTransaction();
@@ -217,14 +221,16 @@ if (!function_exists('lumen_belge_kaydet')) {
                 $dbh->rollBack();
                 return ['ok' => false, 'mesaj' => 'Depo bulunamadı ya da pasif.'];
             }
-            // Siparişten belge: sipariş açık, aynı yönde ve aynı cariye ait olmalı.
+            // Siparişten belge / irsaliyeden fatura: kaynak açık, aynı yönde ve aynı cariye ait olmalı.
             if ($kaynakBelge > 0) {
                 $kb = $dbh->prepare('SELECT TUR, YON, DURUM, CARI_ID FROM dbo.LM_BELGE WITH (UPDLOCK) WHERE ID = :k');
                 $kb->execute([':k' => $kaynakBelge]);
                 $kbs = $kb->fetch(PDO::FETCH_ASSOC);
-                if (!$kbs || (int) $kbs['TUR'] !== 1 || (int) $kbs['DURUM'] === 9 || (int) $kbs['YON'] !== $t['yon'] || (int) $kbs['CARI_ID'] !== $cariId) {
+                $kaynakTur = $kbs ? (int) $kbs['TUR'] : 0;
+                $turUygun = $kaynakTur === 1 || ($kaynakTur === 2 && $t['tur'] === 3);
+                if (!$kbs || !$turUygun || (int) $kbs['DURUM'] === 9 || (int) $kbs['YON'] !== $t['yon'] || (int) $kbs['CARI_ID'] !== $cariId) {
                     $dbh->rollBack();
-                    return ['ok' => false, 'mesaj' => 'Kaynak sipariş bulunamadı, iptal edilmiş ya da bu cariye ait değil.'];
+                    return ['ok' => false, 'mesaj' => 'Kaynak sipariş/irsaliye bulunamadı, iptal edilmiş ya da bu cariye ait değil.'];
                 }
             }
             $kullanilan = [];   // sipariş satırı → bu belgede toplam miktar (aynı satır tekrarlanırsa)
@@ -259,16 +265,17 @@ if (!function_exists('lumen_belge_kaydet')) {
                 if ($kaynak > 0) {
                     $kaynakSt->execute([':k' => $kaynak]);
                     $k = $kaynakSt->fetch(PDO::FETCH_ASSOC);
-                    if (!$k || (int) $k['BELGE_ID'] !== $kaynakBelge || (int) $k['TUR'] !== 1 || (int) $k['DURUM'] === 9 || (int) $k['YON'] !== $t['yon']
-                        || (int) $k['STOK_ID'] !== (int) $stok['ID'] || (int) $k['CARI_ID'] !== $cariId) {
+                    if (!$k || (int) $k['BELGE_ID'] !== $kaynakBelge || (int) $k['TUR'] !== $kaynakTur || (int) $k['DURUM'] === 9 || (int) $k['YON'] !== $t['yon']
+                        || (int) $k['STOK_ID'] !== (int) $stok['ID'] || (int) $k['CARI_ID'] !== $cariId
+                        || ((int) $k['BIRIM_ID'] > 0 && (int) $k['BIRIM_ID'] !== $birimId)) {   // miktar kaynağın biriminde karşılaştırılır
                         $dbh->rollBack();
-                        return ['ok' => false, 'mesaj' => 'Satır ' . ($i + 1) . ': kaynak sipariş satırı uygun değil.'];
+                        return ['ok' => false, 'mesaj' => 'Satır ' . ($i + 1) . ': kaynak sipariş/irsaliye satırı uygun değil.'];
                     }
                     $kalan = (float) $k['MIKTAR'] - (float) $k['TESLIM_MIKTAR'] - ($kullanilan[$kaynak] ?? 0.0);
                     $kullanilan[$kaynak] = ($kullanilan[$kaynak] ?? 0.0) + $miktar;
                     if ($miktar > $kalan + 0.000001) {
                         $dbh->rollBack();
-                        return ['ok' => false, 'mesaj' => 'Satır ' . ($i + 1) . ': siparişte kalan miktardan (' . rtrim(rtrim(number_format($kalan, 3, ',', '.'), '0'), ',') . ') fazla.'];
+                        return ['ok' => false, 'mesaj' => 'Satır ' . ($i + 1) . ': ' . ($kaynakTur === 2 ? 'irsaliyede faturalanmamış' : 'siparişte kalan') . ' miktardan (' . rtrim(rtrim(number_format($kalan, 3, ',', '.'), '0'), ',') . ') fazla.'];
                     }
                 }
                 $h = lumen_belge_satir_hesapla($miktar, $fiyat, $isk, $kdvOran);
@@ -314,7 +321,7 @@ if (!function_exists('lumen_belge_kaydet')) {
                     ':ack' => $r['aciklama'] !== '' ? $r['aciklama'] : null]);
                 $satirId = (int) $satirEkle->fetchColumn();
                 $satirEkle->closeCursor();
-                if ($t['stok'] !== 0 && (int) $r['stok']['STOK_TAKIPLI'] === 1) {
+                if ($t['stok'] !== 0 && $kaynakTur !== 2 && (int) $r['stok']['STOK_TAKIPLI'] === 1) {
                     $anaMiktar = round($r['miktar'] * $r['carpan'], 6);
                     $stokHar->execute([':s' => (int) $r['stok']['ID'], ':d' => $depoId, ':t' => $tarih, ':b' => $belgeId, ':sat' => $satirId,
                         ':g' => $t['stok'] > 0 ? $anaMiktar : 0, ':c' => $t['stok'] < 0 ? $anaMiktar : 0,
@@ -404,7 +411,8 @@ if (!function_exists('lumen_belge_iptal')) {
 
 if (!function_exists('lumen_siparis_kalan_satirlar')) {
     /**
-     * Siparişin faturalanmamış/sevk edilmemiş satırları (kalan > 0) — siparişten belge ekranı için.
+     * Siparişin faturalanmamış/sevk edilmemiş ya da irsaliyenin faturalanmamış satırları (kalan > 0)
+     * — siparişten belge / irsaliyeden fatura ekranı için.
      * @return array<int, array<string, mixed>>
      */
     function lumen_siparis_kalan_satirlar(PDO $dbh, int $siparisId): array
@@ -414,7 +422,7 @@ if (!function_exists('lumen_siparis_kalan_satirlar')) {
                     -- Satır + dağıtılmış iskonto (iskonto satırları dahil) → etkin iskonto oranı
                     CASE WHEN S.TUTAR > 0 THEN ROUND((S.TUTAR - S.NET) * 100.0 / S.TUTAR, 4) ELSE 0 END AS ISKONTO
              FROM dbo.LM_BELGE_SATIR S
-             JOIN dbo.LM_BELGE B ON B.ID = S.BELGE_ID AND B.TUR = 1 AND B.DURUM <> 9
+             JOIN dbo.LM_BELGE B ON B.ID = S.BELGE_ID AND B.TUR IN (1, 2) AND B.DURUM <> 9   -- sipariş ya da irsaliye
              JOIN dbo.LM_STOK ST ON ST.ID = S.STOK_ID
              LEFT JOIN dbo.LM_BIRIM BR ON BR.ID = S.BIRIM_ID
              WHERE S.BELGE_ID = :s AND S.SATIR_TURU = 0 AND S.IPTAL = 0 AND S.MIKTAR - S.TESLIM_MIKTAR > 0.000001

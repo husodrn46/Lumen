@@ -146,8 +146,10 @@ INVOICE_OKU = dict(ORTAK_BASLIK, TRCODE=FATURA_TRCODE, GRPCODE='CASE B.YON WHEN 
                    ACCOUNTED='0', ACCFICHEREF='0', EINVOICE='0')
 STFICHE_OKU = dict(ORTAK_BASLIK, TRCODE=STOKFIS_TRCODE, GRPCODE='CASE B.YON WHEN 1 THEN 2 ELSE 1 END',
                    IOCODE='CASE WHEN B.YON = 2 THEN 1 ELSE 3 END',
-                   INVOICEREF='CASE WHEN B.TUR IN (3, 4) THEN B.ID ELSE 0 END',
-                   BILLED='CASE WHEN B.TUR IN (3, 4) THEN 1 ELSE 0 END', INVNO='CASE WHEN B.TUR IN (3, 4) THEN B.NO END')
+                   # İrsaliye faturalandıysa fatura başlığı (irsaliyeden kesilen fatura: KAYNAK_BELGE_ID)
+                   INVOICEREF='CASE WHEN B.TUR IN (3, 4) THEN B.ID WHEN B.TUR = 2 THEN ISNULL(IF_.ID, 0) ELSE 0 END',
+                   BILLED='CASE WHEN B.TUR IN (3, 4) OR IF_.ID IS NOT NULL THEN 1 ELSE 0 END',
+                   INVNO='CASE WHEN B.TUR IN (3, 4) THEN B.NO ELSE IF_.NO END')
 STLINE_OKU = {
     'LOGICALREF': 'S.ID', 'STOCKREF': 'ISNULL(S.STOK_ID, 0)', 'LINETYPE': 'S.SATIR_TURU', 'AMOUNT': 'S.MIKTAR',
     'PRICE': 'S.FIYAT', 'TOTAL': 'S.TUTAR', 'DISTDISC': 'S.ISKONTO_TUTAR', 'DISTCOST': 'S.MASRAF_TUTAR',
@@ -243,7 +245,12 @@ GORUNUMLER = [
     ('LMV_KSLINES', 'LG_001_02_KSLINES', KSLINES_OKU,
      'FROM dbo.LM_FINANS_HAREKET H JOIN dbo.LM_FINANS_HESAP F ON F.ID = H.HESAP_ID AND F.TUR = 1'
      ' JOIN dbo.LM_FINANS_FIS FF ON FF.ID = H.FIS_ID', 'FF.DURUM = 1'),
-    ('LMV_STFICHE', 'LG_001_02_STFICHE', STFICHE_OKU, BELGE_FROM, 'B.TUR IN (2, 3, 4, 5, 6)'),
+    # İrsaliyeden kesilen faturanın stok fişi yoktur (LOGO'daki gibi stok irsaliyede); irsaliye başlığı faturayı gösterir.
+    ('LMV_STFICHE', 'LG_001_02_STFICHE', STFICHE_OKU,
+     BELGE_FROM + ' OUTER APPLY (SELECT TOP 1 FB.ID, FB.NO FROM dbo.LM_BELGE FB WHERE B.TUR = 2 AND FB.KAYNAK_BELGE_ID = B.ID'
+     ' AND FB.TUR = 3 AND FB.DURUM <> 9) IF_',
+     'B.TUR IN (2, 3, 4, 5, 6) AND NOT (B.TUR = 3 AND B.KAYNAK_BELGE_ID IS NOT NULL'
+     ' AND EXISTS (SELECT 1 FROM dbo.LM_BELGE KB WHERE KB.ID = B.KAYNAK_BELGE_ID AND KB.TUR = 2))'),
     # Stok satırı: sipariş dışı belgelerin satırları. KS: siparişten geldiyse kaynak sipariş satırı;
     # FK: irsaliye satırı sonradan faturalandıysa o fatura satırı. İki bölüm: fatura satırlarında
     # INVOICEREF = BELGE_ID (sade; rapor birleştirmeleri dizin kullanır — tek ifadeyle 100+ sn sürüyordu),
@@ -252,12 +259,13 @@ GORUNUMLER = [
      SATIR_FROM + ' LEFT JOIN dbo.LM_BELGE_SATIR KSS ON KSS.ID = S.KAYNAK_SATIR_ID'
      ' LEFT JOIN dbo.LM_BELGE KS ON KS.ID = KSS.BELGE_ID AND KS.TUR = 1'
      ' OUTER APPLY (SELECT TOP 1 FS.BELGE_ID FROM dbo.LM_BELGE_SATIR FS JOIN dbo.LM_BELGE FB ON FB.ID = FS.BELGE_ID'
-     ' AND FB.TUR IN (3, 4) WHERE FS.KAYNAK_SATIR_ID = S.ID) FK',
+     ' AND FB.TUR IN (3, 4) AND FB.DURUM <> 9 WHERE FS.KAYNAK_SATIR_ID = S.ID) FK',
      'B.TUR = 2',
      [({'INVOICEREF': 'S.BELGE_ID', 'BILLED': '1'},
        SATIR_FROM + ' LEFT JOIN dbo.LM_BELGE_SATIR KSS ON KSS.ID = S.KAYNAK_SATIR_ID'
        ' LEFT JOIN dbo.LM_BELGE KS ON KS.ID = KSS.BELGE_ID AND KS.TUR = 1',
-       'B.TUR IN (3, 4)'),
+       # irsaliyeden kesilen fatura satırı ayrıca stok satırı değildir (irsaliye satırı faturayı gösterir)
+       'B.TUR IN (3, 4) AND NOT (KSS.ID IS NOT NULL AND KS.ID IS NULL)'),
       # Üretim ve sayım hiç faturalanmaz: arama yok (büyük açılış sayımlarında rapor saniyeler sürüyordu)
       ({'INVOICEREF': '0', 'BILLED': '0', 'ORDFICHEREF': '0'}, SATIR_FROM, 'B.TUR IN (5, 6)')]),
 ]

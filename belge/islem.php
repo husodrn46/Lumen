@@ -41,9 +41,19 @@ if ($islem === 'kaydet') {
     if (!isset($belgeTurleri[$tur]) || (!$belgeTam && $kaynakBelge > 0)) {
         lumen_hata_sayfasi('Yetkiniz yok', 'Bu belge türü için M31 (Faturalama) yetkisi gerekir.', 403, 'fa-lock');
     }
-    // Siparişten belge: sipariş kullanıcının görebildiği bir sipariş olmalı.
-    if ($kaynakBelge > 0 && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, (int) $terminalkullanici, $kaynakBelge)) {
-        $git('yeni.php', ['tur' => $tur, 'hata' => 'Sipariş bulunamadı.']);
+    // Siparişten belge / irsaliyeden fatura: kaynak kullanıcının görebildiği bir belge olmalı.
+    $kaynakIrsaliye = false;
+    if ($kaynakBelge > 0) {
+        $kq = $dbh->prepare('SELECT TUR, CARI_ID FROM dbo.LM_BELGE WHERE ID = :k');
+        $kq->execute([':k' => $kaynakBelge]);
+        $kr = $kq->fetch(PDO::FETCH_ASSOC);
+        $kaynakIrsaliye = $kr && (int) $kr['TUR'] === 2;
+        $gorur = $kaynakIrsaliye
+            ? m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, (int) $kr['CARI_ID'])
+            : m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, (int) $terminalkullanici, $kaynakBelge);
+        if (!$gorur) {
+            $git('yeni.php', ['tur' => $tur, 'hata' => 'Kaynak belge bulunamadı.']);
+        }
     }
     $cari = (int) ($_POST['cari_id'] ?? 0);
     // Depo personeli (yalnız M15): üretim/sayımda cari, fiyat ve sipariş bağlantısı yok sayılır
@@ -80,7 +90,7 @@ if ($islem === 'kaydet') {
         $git('goster.php', ['id' => $r['id'], 'ok' => $r['mesaj']]);
     }
     $kaynak = (int) ($_POST['kaynak_belge_id'] ?? 0);
-    $git($kaynak > 0 ? 'siparisten.php' : 'yeni.php', $kaynak > 0 ? ['siparis' => $kaynak, 'hata' => $r['mesaj']] : ['tur' => $tur, 'hata' => $r['mesaj']]);
+    $git($kaynak > 0 ? 'siparisten.php' : 'yeni.php', $kaynak > 0 ? [$kaynakIrsaliye ? 'irsaliye' : 'siparis' => $kaynak, 'hata' => $r['mesaj']] : ['tur' => $tur, 'hata' => $r['mesaj']]);
 }
 
 lumen_hata_sayfasi('Geçersiz istek', 'Bilinmeyen işlem.', 400);

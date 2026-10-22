@@ -318,6 +318,23 @@ Ana menüden "Faturalar" kutucuğuna girin; "Faturalar ve Belgeler" listesi aç�
 - Siparişte kalandan fazla faturalanamaz.
 - Siparişin kalan satırı yoksa ekran "Bu siparişin faturalanacak/sevk edilecek kalan satırı yok." der.
 
+### İrsaliyeden faturalama
+
+**Ne işe yarar:** Malı önce irsaliyeyle gönderip (ya da alıp) faturayı sonra kesersiniz. Stok irsaliyeyle düşer; fatura yalnız cariyi borçlandırır (alışta alacaklandırır), stoğu ikinci kez oynatmaz.
+
+**Nasıl yapılır:**
+
+1. İrsaliyeyi açın ("Faturalar" listesinden).
+2. Üstteki "Faturala" düğmesine basın ("İrsaliyeden Fatura" ekranı açılır). Düğme yalnız faturalanmamış satır varsa görünür.
+3. "Bu belgede" alanında faturalanacak miktarı bırakın ya da azaltın.
+4. "Belgeyi kes" düğmesine basın.
+
+**Dikkat**
+
+- İrsaliyede faturalanmamış miktardan fazlası faturalanamaz; bir kısmını şimdi, kalanını sonra faturalayabilirsiniz.
+- İrsaliye ekranında kesilen faturalar "Fatura:" satırında listelenir.
+- Faturası duran irsaliye iptal edilemez; önce faturayı iptal edin. Fatura iptal edilince irsaliye yeniden faturalanabilir.
+
 ### Dövizli belge ve kur sınırı
 
 1. "Yeni Belge" formunda "Para birimi" seçin. Bu alan yalnız birden çok para birimi tanımlıysa görünür.
@@ -348,7 +365,7 @@ Ana menüden "Faturalar" kutucuğuna girin; "Faturalar ve Belgeler" listesi aç�
 **İptalin sonuçları**
 
 - Belgenin stok ve cari etkisi geri alınır.
-- Siparişten kesildiyse ilgili sipariş satırları yeniden faturalanabilir duruma gelir.
+- Siparişten ya da irsaliyeden kesildiyse ilgili satırlar yeniden faturalanabilir duruma gelir.
 - Belge silinmez; listede "İptal" etiketiyle kalır.
 
 **Dikkat**

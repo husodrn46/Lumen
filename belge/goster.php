@@ -36,8 +36,19 @@ $iptal = (int) $b['DURUM'] === 9;
 $dovizli = (string) $b['PARA_BIRIMI'] !== 'TRY';
 $dv = static fn(mixed $v): string => number_format((float) $v, 2, ',', '.') . ' ' . $b['PARA_BIRIMI'];
 
+// İrsaliye: bu irsaliyeden kesilen faturalar; faturalanmamış satırı varsa "Faturala"
+$faturalar = [];
+$faturalanabilir = false;
+if ((int) $b['TUR'] === 2) {
+    $fq = $dbh->prepare('SELECT ID, NO FROM dbo.LM_BELGE WHERE KAYNAK_BELGE_ID = :id AND TUR = 3 AND DURUM <> 9 ORDER BY ID');
+    $fq->execute([':id' => $id]);
+    $faturalar = $fq->fetchAll(PDO::FETCH_ASSOC);
+    $faturalanabilir = !$iptal && $belgeTam && lumen_siparis_kalan_satirlar($dbh, $id) !== [];
+}
+
 belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
-    '<a class="btn btn-ikincil yazdirma-gizle" href="yazdir.php?id=' . $id . '&pdf=1"><i class="fa-solid fa-file-pdf"></i><span class="metin">PDF</span></a>'
+    ($faturalanabilir ? '<a class="btn btn-birincil yazdirma-gizle" href="siparisten.php?irsaliye=' . $id . '"><i class="fa-solid fa-file-invoice"></i><span class="metin">Faturala</span></a>' : '')
+    . '<a class="btn btn-ikincil yazdirma-gizle" href="yazdir.php?id=' . $id . '&pdf=1"><i class="fa-solid fa-file-pdf"></i><span class="metin">PDF</span></a>'
     . '<a class="btn btn-birincil yazdirma-gizle" href="yazdir.php?id=' . $id . '" target="_blank" rel="noopener"><i class="fa-solid fa-print"></i><span class="metin">Yazdır</span></a>');
 ?>
 <div class="kart kart-ic izgara">
@@ -48,7 +59,8 @@ belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
     <div><div class="soluk">Cari</div><div class="koyu"><?= $b['CARI_ID'] ? '<a style="color:inherit" href="../kart/cari.php?id=' . (int) $b['CARI_ID'] . '">' . bh(trim($b['CARI_KOD'] . ' ' . $b['UNVAN'])) . '</a>' : '—' ?></div>
         <?php if ($b['VERGI_NO']): ?><div class="soluk"><?= bh($b['VERGI_DAIRESI'] . ' / ' . $b['VERGI_NO']) ?></div><?php endif; ?></div>
     <div><div class="soluk">Depo</div><div class="koyu"><?= bh($b['DEPO_AD'] ?? '—') ?></div>
-        <?php if ($b['KAYNAK_NO']): ?><div class="soluk">Kaynak: <?= bh($b['KAYNAK_NO']) ?></div><?php endif; ?></div>
+        <?php if ($b['KAYNAK_NO']): ?><div class="soluk">Kaynak: <?= bh($b['KAYNAK_NO']) ?></div><?php endif; ?>
+        <?php foreach ($faturalar as $f): ?><div class="soluk">Fatura: <a style="color:inherit" href="goster.php?id=<?= (int) $f['ID'] ?>"><?= bh($f['NO']) ?></a></div><?php endforeach; ?></div>
     <?php if ($dovizli): ?>
         <div><div class="soluk">Para birimi / kur</div><div class="koyu"><?= bh($b['PARA_BIRIMI']) ?> · <?= bh(number_format((float) $b['KUR'], 4, ',', '.')) ?> ₺</div></div>
     <?php endif; ?>

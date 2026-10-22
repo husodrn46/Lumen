@@ -10,9 +10,18 @@
   sonradan değişmez; fiyat değişikliği bugünden geçerli yeni fiyat olarak saklanır; belgede
   kullanılmış birim kaldırılamaz. Yetki: "Yeni Stok" (M11) ya da yönetici; alış fiyatı
   faturalama yetkisi ister.
+- **İrsaliyeden fatura** (bağımsız mod): irsaliye ekranındaki "Faturala" ile kısmi ya da tam
+  fatura kesilir. Stok yalnız irsaliyede düşer, fatura cariyi borçlandırır; faturalanan miktar
+  irsaliye satırında izlenir, fatura iptal edilince geri alınır. LOGO uyumlu görünümlerde
+  LOGO'daki gibi görünür: irsaliye satırı faturayı gösterir, faturanın ayrı stok fişi/satırı
+  yoktur (raporlarda çift sayım olmaz).
 
 ### 🐛 Düzeltmeler
 
+- LOGO uyumlu stok satırı görünümü, iptal edilmiş faturaya bağlı irsaliye satırını "faturalı"
+  gösteriyordu.
+- Siparişten belgede satır birimi kaynak satırın birimiyle aynı olmak zorunda (farklı birimle
+  kalan miktar denetimi aşılabiliyordu).
 - **Cari ekstresi dönem seçimi:** yıllar ekrana sabit yazılmıştı ("2026 (Aktif)", "2025");
   artık "Aktif Dönem / Önceki Dönem / Tüm Dönemler". Bağımsız modda seçim kutusu gösterilmez
   (ekstre her zaman bütün geçmişi verir) ve PDF/Excel başlığı "Tüm Hareketler" der.
