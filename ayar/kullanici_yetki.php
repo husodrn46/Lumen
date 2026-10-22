@@ -497,7 +497,7 @@ if ($hataMsj !== '') {
             document.getElementById('ky_adi').value = '';
             document.getElementById('ky_tipi').value = '1';
             document.getElementById('ky_sifre').value = '';
-            document.getElementById('ky_sifre').setAttribute('placeholder','En az 4 karakter (zorunlu)');
+            document.getElementById('ky_sifre').setAttribute('placeholder','En az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter (zorunlu)');
             document.getElementById('ky_sifre_ipucu').textContent = 'Yeni kullanıcı için parola zorunludur (en az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter).';
             kyModal.classList.add('acik');
             setTimeout(function(){ document.getElementById('ky_kodu').focus(); }, 50);
@@ -510,7 +510,7 @@ if ($hataMsj !== '') {
             document.getElementById('ky_tipi').value = String(tipi);
             document.getElementById('ky_sifre').value = '';
             if (yetkiYok){
-                document.getElementById('ky_sifre').setAttribute('placeholder','En az 4 karakter (zorunlu)');
+                document.getElementById('ky_sifre').setAttribute('placeholder','En az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter (zorunlu)');
                 document.getElementById('ky_sifre_ipucu').textContent = 'Bu kullanıcının parolası yok — belirlemeniz gerekir.';
             } else {
                 document.getElementById('ky_sifre').setAttribute('placeholder','Değiştirmek için yeni parola');

@@ -29,8 +29,8 @@ $sql = "
     JOIN {$firma}ITEMS     AS I ON I.LOGICALREF = S.STOCKREF
     WHERE S.TRCODE IN (2,3,7,8)
       AND {$urunKosulu}
-      AND S.DATE_       >= DATEADD(DAY,-30,GETDATE())
-      AND S.DATE_       <  GETDATE()
+      AND S.DATE_       >= :bas
+      AND S.DATE_       <  :bit
       AND S.CANCELLED   = 0
     GROUP BY S.STOCKREF, I.CODE, I.NAME
 )
@@ -41,7 +41,8 @@ $sql = "
 
 	";
 	$stmt = $dbh->prepare($sql);
-	$stmt->execute();
+	// Uygulamanın takvimiyle son 30 gün + bugün (veritabanı sunucusunun saat dilimi farklı olabilir)
+	$stmt->execute(['bas' => date('Y-m-d', strtotime('-30 days')), 'bit' => date('Y-m-d', strtotime('+1 day'))]);
 	$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 /* ---- Dizi hazırlığı ve KPI'lar ---------------------------- */

@@ -87,6 +87,27 @@ if (function_exists('app_php_error_log_file')) {
  * @param mixed $value Encode edilecek değer
  * @return string HTML-safe string
  */
+if (!function_exists('lumen_bellek_en_az')) {
+  /**
+   * Bellek sınırını en az $mb MB'a çıkarır (düşürmez; -1 sınırsızsa dokunmaz). Büyük Excel/PDF
+   * çıktılarında tablo kütüphaneleri varsayılan 128 MB'ı aşabiliyor.
+   */
+  function lumen_bellek_en_az(int $mb): void
+  {
+    $simdi = trim((string) ini_get('memory_limit'));
+    if ($simdi === '-1') {
+      return;
+    }
+    $sayi = (int) $simdi;
+    $mbSimdi = match (strtoupper(substr($simdi, -1))) {
+      'G' => $sayi * 1024, 'M' => $sayi, 'K' => intdiv($sayi, 1024), default => intdiv($sayi, 1048576),
+    };
+    if ($mbSimdi < $mb) {
+      @ini_set('memory_limit', $mb . 'M');
+    }
+  }
+}
+
 function e(mixed $value): string
 {
   if ($value === null) {
@@ -748,6 +769,12 @@ try {
 
   // Güvenlik: PDO ayarları
   $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+  // Web isteklerinde tek sorgu için üst süre (sn): takılan bir rapor sorgusu PHP işçisini ve
+  // kullanıcının oturumunu dakikalarca kilitlemesin (nginx/IIS zaman aşımından önce, anlaşılır
+  // hatayla biter). Komut satırı betiklerinde (yedek, aktarım) sınır yok. LUMEN_SORGU_SINIRI ile değişir.
+  if (PHP_SAPI !== 'cli' && defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT') && str_starts_with((string) $dbh->getAttribute(PDO::ATTR_DRIVER_NAME), 'sqlsrv')) {
+    $dbh->setAttribute(PDO::SQLSRV_ATTR_QUERY_TIMEOUT, max(10, (int) (getenv('LUMEN_SORGU_SINIRI') ?: 100)));
+  }
   // NOT: ATTR_EMULATE_PREPARES ve ATTR_DEFAULT_FETCH_MODE
   // SQL Server driver'da desteklenmeyebilir
   // Sadece temel güvenlik ayarını yapıyoruz

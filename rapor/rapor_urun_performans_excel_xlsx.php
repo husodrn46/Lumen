@@ -15,6 +15,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Conditional;
 
 // Yetki kontrolü
 if (m_p_yetki($terminalkullanici, 'M17') != 1) {
@@ -95,6 +96,7 @@ $fmtQty = '#,##0';
 // Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
 require_once __DIR__ . '/../includes/xlsx_guvenli.php';
 lumen_xlsx_guvenli_baglayici();
+lumen_bellek_en_az(256);   // çok satırlı listede tablo kütüphanesi 128 MB'ı aşabiliyor
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator('Lumen')
@@ -158,24 +160,25 @@ foreach ($rows as $idx => $r) {
     $sheet->setCellValue("D{$row}", (float) ($r['SATILAN_ADET'] ?? 0));
     $sheet->setCellValue("E{$row}", (float) ($r['ORT_FIYAT'] ?? 0));
 
-    $sheet->getStyle("C{$row}:C{$row}")->getNumberFormat()->setFormatCode($fmtMoney);
-    $sheet->getStyle("D{$row}:D{$row}")->getNumberFormat()->setFormatCode($fmtQty);
-    $sheet->getStyle("E{$row}:E{$row}")->getNumberFormat()->setFormatCode($fmtMoney);
-    $sheet->getStyle("C{$row}:E{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-
-    if ($idx % 2 === 1) {
-        $sheet->getStyle("A{$row}:E{$row}")->applyFromArray([
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F9FAFB']],
-        ]);
-    }
-    $sheet->getStyle("A{$row}:E{$row}")->applyFromArray([
-        'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'E5E7EB']]],
-        'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
-    ]);
-
     $row++;
 }
 $dataEndRow = $row - 1;
+// Biçimler aralığa bir kez uygulanır (satır satır biçim 20.000 üründe ~25 sn sürüyordu)
+if ($dataEndRow >= $dataStartRow) {
+    $alan = "A{$dataStartRow}:E{$dataEndRow}";
+    $sheet->getStyle("C{$dataStartRow}:C{$dataEndRow}")->getNumberFormat()->setFormatCode($fmtMoney);
+    $sheet->getStyle("D{$dataStartRow}:D{$dataEndRow}")->getNumberFormat()->setFormatCode($fmtQty);
+    $sheet->getStyle("E{$dataStartRow}:E{$dataEndRow}")->getNumberFormat()->setFormatCode($fmtMoney);
+    $sheet->getStyle("C{$dataStartRow}:E{$dataEndRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->getStyle($alan)->applyFromArray([
+        'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'E5E7EB']]],
+        'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+    ]);
+    $zebra = (new Conditional())->setConditionType(Conditional::CONDITION_EXPRESSION)
+        ->addCondition("MOD(ROW()-{$dataStartRow},2)=1");
+    $zebra->getStyle()->getFill()->setFillType(Fill::FILL_SOLID)->getEndColor()->setRGB('F9FAFB');
+    $sheet->getStyle($alan)->setConditionalStyles([$zebra]);
+}
 
 $sheet->getColumnDimension('A')->setWidth(14);
 $sheet->getColumnDimension('B')->setWidth(48);
