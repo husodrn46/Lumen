@@ -277,3 +277,33 @@ if (!function_exists('lumen_bellek_en_az')) {
         }
     }
 }
+
+if (!function_exists('lumen_vergi_no_gecerli')) {
+    /**
+     * Vergi kimlik no (10 hane) ya da TC kimlik no (11 hane) kontrol basamaklarıyla geçerli mi.
+     * Boş değer burada denetlenmez (çağıran karar verir).
+     */
+    function lumen_vergi_no_gecerli(string $no): bool
+    {
+        if (preg_match('/^[0-9]{10}$/', $no) === 1) {
+            $d = array_map('intval', str_split($no));
+            $toplam = 0;
+            for ($i = 0; $i < 9; $i++) {
+                $t = ($d[$i] + 9 - $i) % 10;
+                $v = ($t * (2 ** (9 - $i))) % 9;
+                if ($t !== 0 && $v === 0) {
+                    $v = 9;
+                }
+                $toplam += $v;
+            }
+            return (10 - $toplam % 10) % 10 === $d[9];
+        }
+        if (preg_match('/^[1-9][0-9]{10}$/', $no) === 1) {
+            $d = array_map('intval', str_split($no));
+            $tek = $d[0] + $d[2] + $d[4] + $d[6] + $d[8];
+            $cift = $d[1] + $d[3] + $d[5] + $d[7];
+            return ((($tek * 7 - $cift) % 10) + 10) % 10 === $d[9] && array_sum(array_slice($d, 0, 10)) % 10 === $d[10];
+        }
+        return false;
+    }
+}

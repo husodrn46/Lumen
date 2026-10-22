@@ -21,18 +21,22 @@ if (!$yonetici && ((int) m_p_yetki($terminalkullanici, 'M17') !== 1 || (int) m_p
 }
 $yon = ($_GET['yon'] ?? '') === 'odeme' ? 'odeme' : 'tahsil';
 $dilimSec = (string) ($_GET['dilim'] ?? '');
-$ara = mb_strtolower(trim((string) ($_GET['q'] ?? '')), 'UTF-8');
+// Türkçe harf duyarsız arama: "zuccaciye" → "Züccaciye", "IST" → "İstanbul"
+$katla = static fn(string $s): string => strtr(mb_strtolower(strtr($s, ['I' => 'ı', 'İ' => 'i']), 'UTF-8'),
+    ['ç' => 'c', 'ğ' => 'g', 'ı' => 'i', 'ö' => 'o', 'ş' => 's', 'ü' => 'u']);
+$araHam = trim((string) ($_GET['q'] ?? ''));
+$ara = $katla($araHam);
 $ozel = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'H.CARI_ID', 'vade_ozel');
 $kalemler = lumen_vade_acik_kalemler($dbh, $yon, null, $ozel);
 $ozet = lumen_vade_ozet($kalemler);
-$liste = array_values(array_filter($kalemler, static function (array $k) use ($dilimSec, $ara): bool {
+$liste = array_values(array_filter($kalemler, static function (array $k) use ($dilimSec, $ara, $katla): bool {
     if ($dilimSec !== '' && lumen_vade_dilim($k['GUN']) !== $dilimSec) {
         return false;
     }
-    return $ara === '' || str_contains(mb_strtolower($k['KOD'] . ' ' . $k['UNVAN'], 'UTF-8'), $ara);
+    return $ara === '' || str_contains($katla($k['KOD'] . ' ' . $k['UNVAN']), $ara);
 }));
 $dilimler = ['gecikmis' => ['Vadesi geçmiş', 'red'], 'hafta' => ['Bu hafta (7 gün)', 'amber'], 'ay' => ['Bu ay (8–30 gün)', 'indigo'], 'sonra' => ['30 günden sonra', 'slate']];
-$url = static fn(array $ek): string => '?' . http_build_query(array_filter(['yon' => $yon, 'dilim' => $dilimSec, 'q' => $ara] + $ek + [], static fn($v) => $v !== ''));
+$url = static fn(array $ek): string => '?' . http_build_query(array_filter($ek + ['yon' => $yon, 'dilim' => $dilimSec, 'q' => $araHam], static fn($v) => $v !== ''));
 
 belge_sayfa_basla('Vade takibi', 'fa-calendar-check', 'dashboard.php');
 ?>
@@ -46,6 +50,8 @@ belge_sayfa_basla('Vade takibi', 'fa-calendar-check', 'dashboard.php');
     .ozet b { display: block; font-size: 19px; margin-top: 4px; }
     .ozet .red b { color: var(--red); } .ozet .amber b { color: var(--amber); }
     .gec { color: var(--red); font-weight: 700; } .yakin { color: var(--amber); font-weight: 600; }
+    /* Telefonda belge tarihi ve ilk tutar gizlenir: vade, cari, açık tutar ve durum sığsın */
+    @media (max-width: 640px) { .tel-gizle { display: none; } table.liste td, table.liste th { padding-left: 6px; padding-right: 6px; } }
 </style>
 <nav class="sekmeler">
     <a href="?yon=tahsil" class="<?= $yon === 'tahsil' ? 'aktif' : '' ?>"><i class="fa-solid fa-hand-holding-dollar"></i> Tahsil edilecek</a>
@@ -60,22 +66,22 @@ belge_sayfa_basla('Vade takibi', 'fa-calendar-check', 'dashboard.php');
 </div>
 <form class="kart kart-ic" method="get" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
     <input type="hidden" name="yon" value="<?= bh($yon) ?>"><input type="hidden" name="dilim" value="<?= bh($dilimSec) ?>">
-    <label class="alan" style="flex:1;min-width:200px">Cari ara <input name="q" value="<?= bh($ara) ?>" placeholder="kod veya unvan"></label>
+    <label class="alan" style="flex:1;min-width:200px">Cari ara <input name="q" value="<?= bh($araHam) ?>" placeholder="kod veya unvan"></label>
     <button class="btn btn-ikincil" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Ara</button>
 </form>
 <div class="kart tablo-sar">
     <div class="kart-baslik"><i class="fa-solid fa-list"></i><?= count($liste) ?> açık kalem<?= count($liste) > 500 ? ' (ilk 500)' : '' ?></div>
     <table class="liste">
-        <thead><tr><th>Vade</th><th>Cari</th><th>Belge</th><th>Tarih</th><th class="sag">Tutar</th><th class="sag">Açık</th><th class="sag">Durum</th></tr></thead>
+        <thead><tr><th>Vade</th><th>Cari</th><th class="tel-gizle">Belge</th><th class="tel-gizle">Tarih</th><th class="sag tel-gizle">Tutar</th><th class="sag">Açık</th><th class="sag">Durum</th></tr></thead>
         <tbody>
         <?php if ($liste === []): ?><tr><td colspan="7" class="soluk" style="text-align:center;padding:22px">Açık kalem yok.</td></tr><?php endif; ?>
         <?php foreach (array_slice($liste, 0, 500) as $k): ?>
             <tr>
                 <td class="koyu"><?= bh(date('d.m.Y', (int) strtotime($k['VADE']))) ?></td>
                 <td><a style="color:inherit" href="../kart/cari.php?id=<?= $k['CARI_ID'] ?>"><span class="koyu"><?= bh($k['KOD']) ?></span> <?= bh($k['UNVAN']) ?></a></td>
-                <td><?= $k['BELGE_ID'] ? '<a style="color:inherit" href="../belge/goster.php?id=' . $k['BELGE_ID'] . '">' . bh($k['BELGE_NO']) . '</a>' : bh($k['BELGE_NO'] ?? '') ?></td>
-                <td class="soluk"><?= bh(date('d.m.Y', (int) strtotime($k['TARIH']))) ?></td>
-                <td class="sag soluk"><?= btl($k['TUTAR']) ?></td>
+                <td class="tel-gizle"><?= $k['BELGE_ID'] ? '<a style="color:inherit" href="../belge/goster.php?id=' . $k['BELGE_ID'] . '">' . bh($k['BELGE_NO']) . '</a>' : bh($k['BELGE_NO'] ?? '') ?></td>
+                <td class="soluk tel-gizle"><?= bh(date('d.m.Y', (int) strtotime($k['TARIH']))) ?></td>
+                <td class="sag soluk tel-gizle"><?= btl($k['TUTAR']) ?></td>
                 <td class="sag koyu"><?= btl($k['ACIK']) ?></td>
                 <td class="sag"><?= $k['GUN'] > 0 ? '<span class="gec">' . $k['GUN'] . ' gün gecikti</span>'
                     : ($k['GUN'] === 0 ? '<span class="yakin">Bugün</span>' : '<span class="' . ($k['GUN'] >= -7 ? 'yakin' : 'soluk') . '">' . (-$k['GUN']) . ' gün kaldı</span>') ?></td>

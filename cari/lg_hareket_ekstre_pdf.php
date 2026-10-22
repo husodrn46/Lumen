@@ -44,7 +44,7 @@ $hareketler = [];
 $toplam_borc = 0.0;
 $toplam_alacak = 0.0;
 foreach (cari_ekstre_hareketleri($dbh, (int) $CARIID, (string) $donemSecim) as $h) {
-    $h['TRCODE'] = cari_islem_etiketi($h['TRCODE_NO'] !== null ? (int) $h['TRCODE_NO'] : null, true);   // PDF yazı tipi
+    $h['TRCODE'] = cari_islem_etiketi($h['TRCODE_NO'] !== null ? (int) $h['TRCODE_NO'] : null);   // DejaVu Sans Türkçe harfleri basar
     $hareketler[] = $h;
     $toplam_borc += (float) $h['BORC'];
     $toplam_alacak += (float) $h['ALACAK'];
@@ -203,7 +203,7 @@ table.footer-wrap td { vertical-align: bottom; font-size: 7.5pt; color: #9ca3af;
         <td class="h-right">
             <div class="ekstre-baslik">Cari Hesap Ekstresi</div>
             <div class="ekstre-meta">
-                Donem: <?php echo htmlspecialchars($donemEtiket, ENT_QUOTES, 'UTF-8'); ?><br>
+                Dönem: <?php echo htmlspecialchars($donemEtiket, ENT_QUOTES, 'UTF-8'); ?><br>
                 Rapor Tarihi: <?php echo date('d.m.Y H:i'); ?>
             </div>
         </td>
@@ -235,11 +235,11 @@ table.footer-wrap td { vertical-align: bottom; font-size: 7.5pt; color: #9ca3af;
 <table class="summary">
     <tr>
         <td>
-            <span class="lbl">Onceki Donem Devri</span>
+            <span class="lbl">Önceki Dönem Devri</span>
             <span class="val"><?php echo ekstre_para($baslangic_bakiye); ?> TL</span>
         </td>
         <td>
-            <span class="lbl">Toplam Cikis (Borc)</span>
+            <span class="lbl">Toplam Çıkış (Borç)</span>
             <span class="val cikis"><?php echo ekstre_para($toplam_borc); ?> TL</span>
         </td>
         <td>
@@ -261,10 +261,10 @@ table.footer-wrap td { vertical-align: bottom; font-size: 7.5pt; color: #9ca3af;
     <thead>
         <tr>
             <th class="col-tarih center">Tarih</th>
-            <th class="col-tip">Islem Turu</th>
-            <th class="col-acik">Aciklama</th>
+            <th class="col-tip">İşlem Türü</th>
+            <th class="col-acik">Açıklama</th>
             <th class="col-vade center">Vade</th>
-            <th class="right col-num">Borc</th>
+            <th class="right col-num">Borç</th>
             <th class="right col-num">Alacak</th>
             <th class="right col-num">Bakiye</th>
         </tr>
@@ -272,13 +272,13 @@ table.footer-wrap td { vertical-align: bottom; font-size: 7.5pt; color: #9ca3af;
     <tbody>
 <?php
 if (empty($hareketler) && abs($baslangic_bakiye) <= 0.01) {
-    echo '<tr><td colspan="7" class="bos">Bu cari icin goruntulenecek hareket bulunamadi.</td></tr>';
+    echo '<tr><td colspan="7" class="bos">Bu cari için görüntülenecek hareket bulunamadı.</td></tr>';
 } else {
     if (abs($baslangic_bakiye) > 0.01) {
         $basClass = $baslangic_bakiye >= 0 ? 'poz' : 'neg';
         echo '<tr class="devir">';
         echo '<td class="center">-</td>';
-        echo '<td>Onceki Donem Bakiyesi</td>';
+        echo '<td>Önceki Dönem Bakiyesi</td>';
         echo '<td>Devir</td>';
         echo '<td class="center">-</td>';
         echo '<td class="right muted">-</td>';
@@ -326,7 +326,7 @@ if (empty($hareketler) && abs($baslangic_bakiye) <= 0.01) {
 <table class="toplam">
     <tr>
         <td>GENEL TOPLAM</td>
-        <td class="right">Borc: <?php echo ekstre_para($toplam_borc); ?> TL</td>
+        <td class="right">Borç: <?php echo ekstre_para($toplam_borc); ?> TL</td>
         <td class="right">Alacak: <?php echo ekstre_para($toplam_alacak); ?> TL</td>
         <td class="right">Bakiye: <?php echo ekstre_para($bakiyeMutlak); ?> TL <?php echo $bakiyeDurum !== '' ? '(' . $bakiyeDurum . ')' : ''; ?></td>
     </tr>

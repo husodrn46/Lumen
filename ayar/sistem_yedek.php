@@ -46,6 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     @set_time_limit(600);
     $islem = (string) ($_POST['islem'] ?? '');
+    // Sayfa yenilenince (formu yeniden gönder) aynı işlem ikinci kez yapılmasın: her form tek
+    // kullanımlık işlem numarası taşır (yedek tekrar alınmaz, geri yükleme tekrarlanmaz).
+    $islemId = preg_match('/^[a-f0-9]{16}$/', (string) ($_POST['islem_id'] ?? '')) === 1 ? (string) $_POST['islem_id'] : '';
+    $yapilan = is_array($_SESSION['yedek_islem'] ?? null) ? $_SESSION['yedek_islem'] : [];
+    if ($islemId !== '' && isset($yapilan[$islemId])) {
+        [$mesaj, $mesajTip] = ['Bu işlem zaten yapıldı (sayfa yenilendi); tekrar yapılmadı.', 'error'];
+        $islem = '';
+    } elseif ($islemId !== '') {
+        $_SESSION['yedek_islem'] = array_slice([$islemId => time()] + $yapilan, 0, 50, true);
+    }
     if ($islem === 'yedek_al') {
         $r = lumen_yedek_al($dbh, 'elle');
         [$mesaj, $mesajTip] = [$r['mesaj'], $r['ok'] ? 'ok' : 'error'];
@@ -78,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             [$mesaj, $mesajTip] = [$r['mesaj'], $r['ok'] ? 'ok' : 'error'];
         }
     }
-    if (function_exists('app_log_write')) {
+    if ($islem !== '' && function_exists('app_log_write')) {
         app_log_write('ayar-degisiklik', ['ekran' => 'yedek', 'islem' => $islem, 'personel' => (int) $terminalkullanici, 'sonuc' => $mesajTip]);
     }
 }
@@ -195,9 +205,9 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
                     <div class="mesaj uyari" style="margin-bottom:14px"><i class="fa-solid fa-triangle-exclamation"></i><span>Henüz yedek yok. Şimdi bir yedek alın.</span></div>
                 <?php endif; ?>
                 <div class="satir" style="margin-bottom:16px">
-                    <form method="post"><?= csrf_field() ?><input type="hidden" name="islem" value="yedek_al">
+                    <form method="post"><?= csrf_field() ?><input type="hidden" name="islem_id" value="<?= bin2hex(random_bytes(8)) ?>"><input type="hidden" name="islem" value="yedek_al">
                         <button class="btn btn-red" type="submit" id="yedekAl"><i class="fa-solid fa-floppy-disk"></i> Şimdi yedek al</button></form>
-                    <form method="post" enctype="multipart/form-data" class="satir"><?= csrf_field() ?><input type="hidden" name="islem" value="yukle">
+                    <form method="post" enctype="multipart/form-data" class="satir"><?= csrf_field() ?><input type="hidden" name="islem_id" value="<?= bin2hex(random_bytes(8)) ?>"><input type="hidden" name="islem" value="yukle">
                         <input type="file" name="dosya" accept=".gz" required>
                         <button class="btn btn-hat" type="submit"><i class="fa-solid fa-upload"></i> Yedek dosyası yükle</button></form>
                 </div>
@@ -227,7 +237,7 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
         <section class="kart">
             <h2><i class="fa-solid fa-gear"></i> Yedekleme ayarları</h2>
             <form method="post">
-                <?= csrf_field() ?><input type="hidden" name="islem" value="ayar">
+                <?= csrf_field() ?><input type="hidden" name="islem_id" value="<?= bin2hex(random_bytes(8)) ?>"><input type="hidden" name="islem" value="ayar">
                 <div style="display:grid; gap:14px">
                     <label class="satir" style="font-weight:600"><input type="checkbox" name="otomatik" <?= $ayar['otomatik'] ? 'checked' : '' ?>>
                         Her gün otomatik yedek al <span class="soluk">(günün ilk kullanımında, arka planda<?php
@@ -248,7 +258,7 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
 
         <dialog id="geriYukleDlg">
             <form method="post">
-                <?= csrf_field() ?><input type="hidden" name="islem" value="geri_yukle"><input type="hidden" name="ad" id="gyAd">
+                <?= csrf_field() ?><input type="hidden" name="islem_id" value="<?= bin2hex(random_bytes(8)) ?>"><input type="hidden" name="islem" value="geri_yukle"><input type="hidden" name="ad" id="gyAd">
                 <h3>Yedeği geri yükle</h3>
                 <p class="aciklama" style="margin-bottom:12px"><b id="gyTarih"></b> tarihli yedeğe dönülecek (veritabanı: <b id="gyVt"></b>).
                     Bu yedekten sonra girilen tüm kayıtlar kaybolur; parolalar ve yetkiler de yedek anındaki haline döner, herkes

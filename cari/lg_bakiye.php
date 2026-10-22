@@ -192,7 +192,7 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="icon" type="image/png" href="../icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bakiye Listesi</title>
@@ -862,7 +862,7 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
                         <div class="desc">Girdiginiz kriterlere uygun bir musteri bulunamadi.</div>
                     <?php else: ?>
                         <div class="big-icon" style="background:#f3f4f6;color:#9ca3af;"><i class="fa-solid fa-magnifying-glass"></i></div>
-                        <div class="title">Arama Yapiniz</div>
+                        <div class="title">Arama Yapınız</div>
                         <div class="desc">Musterileri listelemek icin yukaridaki alana bir arama terimi girin.</div>
                     <?php endif; ?>
                 </div>

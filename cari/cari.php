@@ -146,7 +146,7 @@ if (!$hasSearch) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Musteri Listesi</title>
+    <title>Müşteri Listesi</title>
     <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -551,7 +551,7 @@ if (!$hasSearch) {
             </a>
             <div class="header-divider"></div>
             <span class="header-title">
-                <i class="fa-solid fa-users"></i>Musteri Listesi
+                <i class="fa-solid fa-users"></i>Müşteri Listesi
             </span>
             <?php if (m_p_yetki($terminalkullanici, 'M12') == 1): ?>
             <a href="cariyeni.php" title="Yeni Cari Ekle"
@@ -616,7 +616,7 @@ if (!$hasSearch) {
                         <div class="desc">Arama kriterlerinize uyan bir kayit bulunamadi.</div>
                     <?php else: ?>
                         <div class="big-icon" style="background:#f3f4f6;color:#9ca3af;"><i class="fa-solid fa-magnifying-glass"></i></div>
-                        <div class="title">Arama Yapiniz</div>
+                        <div class="title">Arama Yapınız</div>
                         <div class="desc">Musterileri listelemek icin yukaridaki alana bir arama terimi girin.</div>
                     <?php endif; ?>
                 </div>

@@ -610,7 +610,7 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
                                autocomplete="username"
                                autocapitalize="characters"
                                spellcheck="false"
-                               pattern="[A-Z0-9_.-]*"
+                               pattern="[A-Z0-9_.\-]*"
                                autofocus>
                     </div>
                 </div>

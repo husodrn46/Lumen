@@ -243,6 +243,17 @@ akis('cari finans bilgisi: bakiye/ekstre yetkisi olmayan kullanıcı cari kartı
     bekle($g['kod'] !== 200 || !str_contains($g['govde'], $net), 'fiyat yetkisiz kullanıcı sipariş genel toplamını görüyor');
 });
 
+akis('yedek ekranı: sayfa yenilenip form yeniden gönderilince işlem tekrarlanmaz', function () use ($y): void {
+    $klasor = dirname(__DIR__, 2) . '/database/yedekler';
+    $say = static fn(): int => count(glob($klasor . '/*.lumen.gz') ?: []);
+    $alan = ['csrf_token' => $y->belirtec('ayar/sistem_yedek.php'), 'islem' => 'yedek_al', 'islem_id' => bin2hex(random_bytes(8))];
+    $once = $say();
+    $y->istek('ayar/sistem_yedek.php', $alan);
+    bekle($say() === $once + 1, 'yedek alınmadı');
+    $r = $y->istek('ayar/sistem_yedek.php', $alan);   // aynı form ikinci kez (F5)
+    bekle($say() === $once + 1 && str_contains($r['govde'], 'zaten yapıldı'), 'yenilenen form ikinci yedeği aldı');
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

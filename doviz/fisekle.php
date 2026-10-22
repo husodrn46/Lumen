@@ -806,7 +806,7 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
                 <div class="back-row">
                     <a href="cari.php" class="back-link">
                         <i class="fa-solid fa-xmark"></i>
-                        <span>Vazgec ve Musteri Listesine Don</span>
+                        <span>Vazgeç ve Müşteri Listesine Dön</span>
                     </a>
                 </div>
             </form>

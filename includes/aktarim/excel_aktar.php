@@ -246,6 +246,10 @@ if (!function_exists('lumen_excel_dogrula')) {
                     $hata('Vergi no 10, TCKN 11 haneli olmalı.');
                     continue;
                 }
+                if ($vno !== '' && !lumen_vergi_no_gecerli($vno)) {
+                    $hata("Vergi no / TCKN geçersiz ({$vno}: kontrol basamağı tutmuyor).");
+                    continue;
+                }
                 if ($eposta !== '' && filter_var($eposta, FILTER_VALIDATE_EMAIL) === false) {
                     $hata('E-posta geçersiz.');
                     continue;

@@ -111,6 +111,8 @@ if (!function_exists('lumen_belge_yazdir_html')) {
         $dovizli = $pb !== 'TRY';
 
         $h = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+        // Türkçe büyük harf (PDF kütüphanesi CSS büyük harfinde i → I yapıyordu: "MIKTAR")
+        $bh = static fn(string $s): string => htmlspecialchars(mb_strtoupper(strtr($s, ['i' => 'İ', 'ı' => 'I']), 'UTF-8'), ENT_QUOTES, 'UTF-8');
         $tl = static fn(mixed $v): string => number_format((float) $v, 2, ',', '.');
         $mk = static fn(mixed $v): string => rtrim(rtrim(number_format((float) $v, 3, ',', '.'), '0'), ',');
         $tarih = static fn(?string $t): string => $t ? date('d.m.Y', (int) strtotime($t)) : '';
@@ -152,15 +154,15 @@ if (!function_exists('lumen_belge_yazdir_html')) {
     .firma { font-weight: bold; font-size: 1.25em; color: #6F1022; }
     .kucuk { color: #4b5563; font-size: .9em; line-height: 1.45; }
     .belge-baslik { text-align: right; }
-    .belge-baslik .tur { font-size: 1.6em; font-weight: bold; color: #6F1022; letter-spacing: .5px; text-transform: uppercase; }
+    .belge-baslik .tur { font-size: 1.6em; font-weight: bold; color: #6F1022; letter-spacing: .5px; }
     .bilgi td { padding: 3px 0 3px 10px; font-size: .95em; }
     .bilgi td.e { color: #6b7280; text-align: right; white-space: nowrap; }
     .cizgi { height: 3px; background: #6F1022; margin: 10px 0 12px; }
     .kutu { border: 1px solid #e5e7eb; border-radius: 6px; padding: 9px 11px; }
-    .kutu .e { color: #6b7280; font-size: .8em; text-transform: uppercase; letter-spacing: .4px; font-weight: bold; margin-bottom: 3px; }
+    .kutu .e { color: #6b7280; font-size: .8em; letter-spacing: .4px; font-weight: bold; margin-bottom: 3px; }
     .kutu .unvan { font-weight: bold; font-size: 1.1em; }
     .satirlar { margin-top: 12px; }
-    .satirlar th { background: #6F1022; color: #fff; font-size: .82em; text-transform: uppercase; letter-spacing: .3px; padding: 6px 6px; text-align: left; }
+    .satirlar th { background: #6F1022; color: #fff; font-size: .82em; letter-spacing: .3px; padding: 6px 6px; text-align: left; }
     .satirlar td { padding: 6px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
     .satirlar tr:nth-child(even) td { background: #fafafa; }
     .sag, .satirlar th.sag { text-align: right; } .orta { text-align: center; } .nw { white-space: nowrap; }
@@ -206,15 +208,15 @@ if (!function_exists('lumen_belge_yazdir_html')) {
             </div>
         </td>
         <td class="belge-baslik">
-            <div class="tur"><?= $h($tur['ad']) ?></div>
+            <div class="tur"><?= $bh($tur['ad']) ?></div>
             <?php if ((int) $b['DURUM'] === 9): ?><div class="iptal">İPTAL EDİLDİ</div><?php endif; ?>
             <table class="bilgi" style="width:auto; margin-left:auto; margin-top:6px">
-                <tr><td class="e">Belge no</td><td><b><?= $h($b['NO']) ?></b></td></tr>
-                <tr><td class="e">Tarih</td><td><?= $h($tarih($b['TARIH'])) ?></td></tr>
-                <?php if ($b['VADE']): ?><tr><td class="e">Vade</td><td><?= $h($tarih($b['VADE'])) ?></td></tr><?php endif; ?>
-                <?php if ($b['DOKUMAN_NO']): ?><tr><td class="e">Dış belge no</td><td><?= $h($b['DOKUMAN_NO']) ?></td></tr><?php endif; ?>
-                <?php if ($b['KAYNAK_NO']): ?><tr><td class="e">Sipariş</td><td><?= $h($b['KAYNAK_NO'] . ' · ' . $tarih($b['KAYNAK_TARIH'])) ?></td></tr><?php endif; ?>
-                <?php if ($dovizli): ?><tr><td class="e">Kur</td><td>1 <?= $h($pb) ?> = <?= $h(number_format((float) $b['KUR'], 4, ',', '.')) ?> TL</td></tr><?php endif; ?>
+                <tr><td class="e"><?= $bh('Belge no') ?></td><td><b><?= $h($b['NO']) ?></b></td></tr>
+                <tr><td class="e"><?= $bh('Tarih') ?></td><td><?= $h($tarih($b['TARIH'])) ?></td></tr>
+                <?php if ($b['VADE']): ?><tr><td class="e"><?= $bh('Vade') ?></td><td><?= $h($tarih($b['VADE'])) ?></td></tr><?php endif; ?>
+                <?php if ($b['DOKUMAN_NO']): ?><tr><td class="e"><?= $bh('Dış belge no') ?></td><td><?= $h($b['DOKUMAN_NO']) ?></td></tr><?php endif; ?>
+                <?php if ($b['KAYNAK_NO']): ?><tr><td class="e"><?= $bh('Sipariş') ?></td><td><?= $h($b['KAYNAK_NO'] . ' · ' . $tarih($b['KAYNAK_TARIH'])) ?></td></tr><?php endif; ?>
+                <?php if ($dovizli): ?><tr><td class="e"><?= $bh('Kur') ?></td><td>1 <?= $h($pb) ?> = <?= $h(number_format((float) $b['KUR'], 4, ',', '.')) ?> TL</td></tr><?php endif; ?>
             </table>
         </td>
     </tr></table>
@@ -222,7 +224,7 @@ if (!function_exists('lumen_belge_yazdir_html')) {
 
     <?php if ($b['CARI_ID']): ?>
     <div class="kutu">
-        <div class="e"><?= (int) $tur['cari'] < 0 || (int) $b['YON'] === 2 ? 'Satıcı / Tedarikçi' : 'Sayın' ?></div>
+        <div class="e"><?= $bh((int) $tur['cari'] < 0 || (int) $b['YON'] === 2 ? 'Satıcı / Tedarikçi' : 'Sayın') ?></div>
         <div class="unvan"><?= $h($b['UNVAN']) ?></div>
         <div class="kucuk">
             <?php if ($cariAdres !== ''): ?><?= $h($cariAdres) ?><br><?php endif; ?>
@@ -234,9 +236,9 @@ if (!function_exists('lumen_belge_yazdir_html')) {
 
     <table class="satirlar">
         <thead><tr>
-            <th style="width:4%">#</th><th>Ürün / hizmet</th><th class="sag nw" style="width:12%">Miktar</th>
+            <th style="width:4%">#</th><th><?= $bh('Ürün / hizmet') ?></th><th class="sag nw" style="width:12%"><?= $bh('Miktar') ?></th>
             <?php if ($fiyatli): ?>
-                <th class="sag nw" style="width:14%">Birim fiyat</th><th class="sag gizle-m" style="width:6%">İsk.</th><th class="sag gizle-m" style="width:6%">KDV</th><th class="sag nw" style="width:14%">Tutar</th>
+                <th class="sag nw" style="width:14%"><?= $bh('Birim fiyat') ?></th><th class="sag gizle-m" style="width:6%"><?= $bh('İsk.') ?></th><th class="sag gizle-m" style="width:6%"><?= $bh('KDV') ?></th><th class="sag nw" style="width:14%"><?= $bh('Tutar') ?></th>
             <?php endif; ?>
         </tr></thead>
         <tbody>
@@ -261,7 +263,7 @@ if (!function_exists('lumen_belge_yazdir_html')) {
     <table class="alt" style="margin-top:12px"><tr>
         <td style="width:52%; padding-right:16px">
             <table class="dokum">
-                <tr><th>KDV oranı</th><th>Matrah</th><th>KDV</th></tr>
+                <tr><th><?= $bh('KDV oranı') ?></th><th><?= $bh('Matrah') ?></th><th><?= $bh('KDV') ?></th></tr>
                 <?php foreach ($kdvDokum as $o => $d): ?>
                     <tr><td>%<?= $h($mk($o)) ?></td><td><?= $h($tl($d['matrah'])) ?></td><td><?= $h($tl($d['kdv'])) ?></td></tr>
                 <?php endforeach; ?>
@@ -284,7 +286,7 @@ if (!function_exists('lumen_belge_yazdir_html')) {
     </tr></table>
     <?php endif; ?>
 
-    <?php if ($b['ACIKLAMA']): ?><div class="kutu" style="margin-top:12px"><div class="e">Açıklama</div><?= $h($b['ACIKLAMA']) ?></div><?php endif; ?>
+    <?php if ($b['ACIKLAMA']): ?><div class="kutu" style="margin-top:12px"><div class="e"><?= $bh('Açıklama') ?></div><?= $h($b['ACIKLAMA']) ?></div><?php endif; ?>
 
     <?php if ($irsaliye || (int) $b['TUR'] === 3): ?>
     <table class="imza"><tr>

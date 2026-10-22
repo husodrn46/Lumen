@@ -376,6 +376,7 @@ akis('tanımlar: firma, kasa/banka (IBAN, bakiyeli pasif engeli), depo, birim, k
     bekle(tanim($yonetici, ['islem' => 'firma_kaydet', 'unvan' => 'Lumen Demo Firması', 'vergi_dairesi' => 'Demo', 'vergi_no' => '1234567890',
         'adres' => 'Örnek Mah. Deneme Cad. No: 1 Kadıköy / İstanbul', 'telefon' => '0 216 000 00 00', 'eposta' => 'info@ornek.test'])['ok'] !== null, 'firma kaydedilmedi');
     bekle(tanim($yonetici, ['islem' => 'firma_kaydet', 'unvan' => 'X', 'vergi_no' => '12'])['hata'] !== null, 'geçersiz vergi no kabul edildi');
+    bekle(tanim($yonetici, ['islem' => 'firma_kaydet', 'unvan' => 'X', 'vergi_no' => '4829103751'])['hata'] !== null, 'kontrol basamağı tutmayan vergi no kabul edildi');
     bekle(str_contains((string) tanim($yonetici, ['islem' => 'hesap_kaydet', 'tur' => 2, 'kod' => "BNK.T{$ek}", 'ad' => 'Test', 'iban' => 'TR70 0006 1000 0000 1234 5678 90'])['hata'], 'IBAN'), 'geçersiz IBAN kabul edildi');
     bekle(tanim($yonetici, ['islem' => 'hesap_kaydet', 'tur' => 2, 'kod' => "BNK.T{$ek}", 'ad' => 'Test Bankası Hesabı', 'banka_adi' => 'Test', 'iban' => 'TR69 0006 1000 0000 1234 5678 90'])['ok'] !== null, 'banka hesabı eklenmedi');
     bekle((string) tek($pdo, "SELECT IBAN FROM LM_FINANS_HESAP WHERE KOD = 'BNK.T{$ek}'") === 'TR690006100000001234567890', 'IBAN boşluksuz saklanmadı');

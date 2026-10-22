@@ -1,5 +1,32 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı] — 1.3.0-rc.2 adayı
+
+rc.1'in bağımsız kabul testinde (yapay zekâ ajanı, kodu GitHub'dan çekerek; `docs/test/KABUL_TESTI.md`)
+bulunanlar. Otomatik testler, GitHub iş akışı ve performans ölçümü rc.1'de de geçmişti; elle
+denemede çıkan sorunlar:
+
+### 🔒 Güvenlik
+- **Cari finans bilgisi** (LOGO modunu da etkiler): bakiye/ekstre yetkisi olmayan kullanıcı
+  (ör. depo personeli) adresi doğrudan yazarak cari kartını, ekstreyi ve ekstre PDF/Excel'ini
+  açabiliyordu. Artık "Müşteri Bakiye" ya da "Cari Bakiye/Ekstre" yetkisi gerekir. Önceki
+  dönem fatura/hizmet görünümlerinde özel cari kısıtı da uygulanır. Sipariş ekranında fiyat
+  görme yetkisi olmayana özet tutarlar da gizlenir.
+
+### 🐛 Düzeltmeler
+- **Siparişten KDV'siz fatura:** stok aramadan çoklu eklenen sipariş satırları KDV %0
+  yazılıyordu ve "Faturala" bunu sessizce faturaya taşıyordu. Bağımsız modda satır ürünün KDV'siyle
+  yazılır; "Faturala" ekranında KDV seçilebilir, %0 kalmış satıra ürün KDV'si önerilir ve uyarılır.
+- **Koli barkodu:** koli barkoduyla eklenen satır 1 ADET geliyordu; birim KOLİ'ye çevrilince fiyat
+  değişmiyordu (bir koli bir adet fiyatına satılabiliyordu). Barkodun birimi seçili gelir, fiyat
+  çarpanla hesaplanır ve birim değişince çevrilir. Yeni ürün formunda iki boş barkod satırı.
+- **Vergi no / TCKN:** firma bilgilerinde ve Excel'den cari aktarımında kontrol basamağı denetlenir.
+- **Yedek ekranı:** sayfa yenilenince (formu yeniden gönder) yedek alma ya da geri yükleme
+  tekrarlanıyordu; artık her form bir kez işlenir.
+- Fatura PDF'inde başlıklar Türkçe büyük harfle ("MİKTAR"); ekstre PDF'inde Türkçe harfler;
+  Günlük İşlemler'de dövizli faturanın kuru; vade takibi telefonda sığar ve Türkçe harf duyarsız
+  arar; giriş sayfasında tarayıcı konsol hatası; bazı ekran başlıklarında Türkçe harfler; ikon yolu.
+
 ## [1.3.0-rc.1] — 2026-10-22 (SÜRÜM ADAYI)
 
 > ⚠️ **Sürüm adayıdır.** Kabul testi tamamlanınca v1.3.0 olarak yayımlanacak. Üretimde

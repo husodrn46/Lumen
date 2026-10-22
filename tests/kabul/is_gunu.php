@@ -47,7 +47,7 @@ akis('Excel\'den yeni müşteri, tedarikçi ve ürünler (açılış bakiyesi ve
     $x = new PhpOffice\PhpSpreadsheet\Spreadsheet();
     $x->getActiveSheet()->fromArray([
         ['Kod', 'Unvan', 'Tür', 'Vergi dairesi', 'Vergi no / TCKN', 'İl', 'İlçe', 'Adres', 'Telefon', 'E-posta', 'Vade (gün)', 'Açılış bakiyesi'],
-        ["KB{$ek}M", 'Kabul Müşteri Ltd.', 'Alıcı', 'Ümraniye', '1111111111', 'İstanbul', '', '', '', '', 30, 1000],
+        ["KB{$ek}M", 'Kabul Müşteri Ltd.', 'Alıcı', 'Ümraniye', '1111111114', 'İstanbul', '', '', '', '', 30, 1000],
         ["KB{$ek}T", 'Kabul Tedarikçi A.Ş.', 'Satıcı', '', '', 'Bursa', '', '', '', '', '', -2000],
     ], null, 'A1', true);
     $f = tempnam(sys_get_temp_dir(), 'kb') . '.xlsx';

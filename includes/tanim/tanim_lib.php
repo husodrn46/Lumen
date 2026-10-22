@@ -34,6 +34,9 @@ if (!function_exists('lumen_tanim_firma_kaydet')) {
         if ($temiz['vergi_no'] !== '' && preg_match('/^[0-9]{10,11}$/', $temiz['vergi_no']) !== 1) {
             return ['ok' => false, 'mesaj' => 'Vergi no 10 haneli, TCKN 11 haneli olmalı.'];
         }
+        if ($temiz['vergi_no'] !== '' && !lumen_vergi_no_gecerli($temiz['vergi_no'])) {
+            return ['ok' => false, 'mesaj' => 'Vergi no / TCKN geçersiz (kontrol basamağı tutmuyor); numarayı kontrol edin.'];
+        }
         if ($temiz['eposta'] !== '' && filter_var($temiz['eposta'], FILTER_VALIDATE_EMAIL) === false) {
             return ['ok' => false, 'mesaj' => 'E-posta adresi geçersiz.'];
         }
