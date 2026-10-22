@@ -221,6 +221,17 @@ if (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M31') == 1) 
     ];
 }
 
+// Bağımsız mod: yeni ürün kartı (M11 Yeni Stok ya da yönetici).
+if (lumen_modul_hazir_mi('kart') && (m_p_yetki($terminalkullanici, 'M11') == 1 || $yetkidurum === 0)) {
+    $visible_menu_items[] = [
+        'label' => 'Yeni Ürün',
+        'icon' => 'fa-box-open',
+        'href' => 'kart/stok_duzenle.php',
+        'theme' => 't-amber',
+        'badge' => 0,
+    ];
+}
+
 // Bağımsız mod: kasa ve banka fişleri (finans modülü), M32 yetkisiyle.
 if (lumen_modul_hazir_mi('finans') && m_p_yetki($terminalkullanici, 'M32') == 1) {
     $visible_menu_items[] = [

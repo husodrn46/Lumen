@@ -61,7 +61,9 @@ $bekleyen = $sorgu('SELECT ISNULL(SUM(CASE WHEN B.YON = 1 THEN (S.MIKTAR - S.TES
 $belgeYetki = (int) m_p_yetki($terminalkullanici, 'M31') === 1 || (int) m_p_yetki($terminalkullanici, 'M15') === 1;
 $turler = lumen_belge_turleri();
 
-belge_sayfa_basla($s['KOD'] . ' · ' . $s['AD'], 'fa-box', '../index.php');
+$duzenler = (int) $yetkidurum === 0 || (int) m_p_yetki($terminalkullanici, 'M11') === 1;
+belge_sayfa_basla($s['KOD'] . ' · ' . $s['AD'], 'fa-box', '../index.php', $duzenler
+    ? '<a href="stok_duzenle.php?id=' . $id . '" class="btn btn-ikincil"><i class="fa-solid fa-pen"></i><span class="metin">Düzenle</span></a>' : '');
 ?>
 <style>
     .ozet { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }

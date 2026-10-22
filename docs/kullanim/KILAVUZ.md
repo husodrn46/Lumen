@@ -33,7 +33,7 @@ Ana sayfada yalnız yetkiniz olan kutucuklar görünür. Olası kutucuklar:
 - "Stok Ara", "Fiyat Listesi", "Barkodlar", "Bekleyen Ürünler", "Stoklar"
 - "Sil" (taslak siparişler), "Günlük İşlemler", "Görevler", "Raporlar"
 - "Sistem Ayarları", "Loglar", "Personel İzleme"
-- **[Bağımsız mod]** "Faturalar" (ya da depo personeli için "Üretim ve Sayım"), "Kasa ve Banka", "Tanımlar"
+- **[Bağımsız mod]** "Faturalar" (ya da depo personeli için "Üretim ve Sayım"), "Kasa ve Banka", "Tanımlar", "Yeni Ürün"
 - **[Yalnız LOGO modu]** "Faturalama" (BETA; ayarlardan açılmışsa)
 
 Üst çubukta "Bildirimler" (zil), "Ayarlar" (kendi görünüm tercihleriniz), "Şifre" ve "Çıkış" düğmeleri vardır.
@@ -159,7 +159,25 @@ Listede her kullanıcının yanında "Düzenle", "Pasife al" / "Aktife al" ve "S
 
 ### Ürün (stok kartı)
 
-- **[Bağımsız mod]** Ürünler ve ürünlerin birimleri, fiyatları, barkodları ve koli içi adetleri "Tanımlar" → "Excel'den aktar" → "Stok kartları" ile girilir.
+**[Bağımsız mod] Tek ürün eklemek:**
+
+1. Ana sayfada "Yeni Ürün" kutucuğuna basın ("Yeni Stok" yetkisi ya da yönetici gerekir).
+2. "Ürün kodu", "Ürün adı", "Ana birim" (ör. ADET) ve "KDV %" girin; isterseniz "Grup" ve "Özel kod".
+3. Satış ve alış fiyatını yazın (ana birim, KDV hariç, TL). Satış fiyatı için fiyat görme, alış fiyatı için faturalama yetkisi gerekir.
+4. "Diğer birimler"de koli, paket gibi birimleri ve çarpanını yazın (1 KOLİ = 24 ADET ise 24).
+5. "Barkodlar"a barkodları yazın; koli barkodu ise yanındaki birimden KOLİ'yi seçin.
+6. "Kaydet"e basın; ürünün stok kartı açılır.
+
+**Düzenlemek:** Stok kartında sağ üstteki "Düzenle" düğmesi.
+
+**Dikkat**
+
+- Ürün kodu ve ana birim kaydedildikten sonra değişmez.
+- Fiyatı değiştirdiğinizde yeni fiyat bugünden geçerli olur; geçmiş belgeler eski fiyatla kalır.
+- Belgelerde kullanılmış bir birim karttan kaldırılamaz; hareket görmüş ürün hizmete çevrilemez.
+- Satmayacağınız ürünü silmek yerine "Aktif" işaretini kaldırın.
+- Çok sayıda ürün için "Tanımlar" → "Excel'den aktar" → "Stok kartları" daha hızlıdır.
+
 - Barkod eklemek için "Barkodlar" kutucuğu kullanılır.
 - Fiyatları görmek için "Fiyat Listesi" kutucuğu kullanılır.
 - Ürünün özetini görmek için "Stok kartı"nı açın (bölüm 7).

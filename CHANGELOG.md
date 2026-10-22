@@ -1,5 +1,16 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı] — 1.3.0-beta.6 adayı
+
+### ✨ Yeni
+
+- **Ürün kartı ekranı** (bağımsız mod): ana sayfadaki "Yeni Ürün" ve stok kartındaki
+  "Düzenle" ile tek ürün eklenir/düzenlenir — ad, grup, KDV, birimler ve çarpanlar, barkodlar,
+  satış ve alış fiyatı. Önceden ürün yalnız Excel'den aktarılabiliyordu. Kod ve ana birim
+  sonradan değişmez; fiyat değişikliği bugünden geçerli yeni fiyat olarak saklanır; belgede
+  kullanılmış birim kaldırılamaz. Yetki: "Yeni Stok" (M11) ya da yönetici; alış fiyatı
+  faturalama yetkisi ister.
+
 ## [1.3.0-beta.5] — 2026-10-22 (ÖN SÜRÜM — Bağımsız Lumen BETA)
 
 > ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.2**'yi kullanın.

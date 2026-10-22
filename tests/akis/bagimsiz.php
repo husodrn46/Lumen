@@ -486,6 +486,48 @@ akis('cari ve stok kartı: bakiye, belgeler, tahsilatlar, çekler; stok hareketl
     bekle(str_contains((string) ($ara['html'] ?? ''), 'kart/stok.php?id=5'), 'stok aramasında kart bağlantısı yok');
 });
 
+akis('ürün kartı: ekle (birim, barkod, fiyat) → düzenle → aramada ve belgede çıkar; yetkisiz giremez', function () use ($yonetici, $pdo, $URL): void {
+    $birim = static fn(string $k): int => (int) tek($pdo, "SELECT ID FROM LM_BIRIM WHERE KOD = '{$k}'");
+    $kod = 'UK-' . random_int(10000, 99999);
+    $gonder = static fn(array $alan, int $id = 0): array => $yonetici->istek('kart/stok_duzenle.php',
+        ['csrf_token' => $yonetici->belirtec('kart/stok_duzenle.php' . ($id ? "?id={$id}" : '')), 'id' => $id] + $alan);
+    $r = $gonder(['kod' => strtolower($kod), 'ad' => 'Ürün kartı deneme', 'ana_birim_id' => $birim('ADET'), 'kdv' => '10', 'grup' => 'DENEME',
+        'birim_id' => [$birim('KOLI'), 0], 'carpan' => ['12', ''], 'barkod' => ["869{$kod}", "869{$kod}K"], 'barkod_birim' => [0, $birim('KOLI')],
+        'satis' => '15,50', 'alis' => '9,25']);
+    $id = (int) tek($pdo, "SELECT ID FROM LM_STOK WHERE KOD = '{$kod}'");
+    bekle($r['kod'] === 303 && $id > 0, 'ürün eklenmedi (kod büyük harfe çevrilmeli)');
+    yakin(10.0, (float) tek($pdo, "SELECT KDV_ORANI FROM LM_STOK WHERE ID = {$id}"), 'KDV');
+    yakin(12.0, (float) tek($pdo, "SELECT CARPAN FROM LM_STOK_BIRIM WHERE STOK_ID = {$id} AND BIRIM_ID = {$birim('KOLI')}"), 'koli çarpanı');
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LM_BARKOD WHERE STOK_ID = {$id}") === 2, 'barkodlar yazılmadı');
+    yakin(15.5, (float) tek($pdo, "SELECT FIYAT FROM LM_FIYAT WHERE STOK_ID = {$id} AND TUR = 1"), 'satış fiyatı');
+    yakin(9.25, (float) tek($pdo, "SELECT FIYAT FROM LM_FIYAT WHERE STOK_ID = {$id} AND TUR = 2"), 'alış fiyatı');
+    // LOGO uyumlu görünümlerde ve aramalarda görünür
+    bekle((string) tek($pdo, "SELECT CODE FROM LMV_ITEMS WHERE LOGICALREF = {$id}") === $kod, 'LMV_ITEMS görünümünde yok');
+    $ara = json_decode($yonetici->istek('stok/urun_arama_ajax.php', ['barkod' => "869{$kod}K"])['govde'], true);
+    bekle(str_contains((string) ($ara['html'] ?? ''), "kart/stok.php?id={$id}"), 'koli barkoduyla stok aramasında çıkmadı');
+    bekle(str_contains($yonetici->istek('belge/stok_ara.php?yon=1&q=' . rawurlencode($kod))['govde'], $kod), 'belge ürün aramasında çıkmadı');
+    // Aynı kod ve başka üründeki barkod reddedilir
+    $gonder(['kod' => $kod, 'ad' => 'Kopya', 'ana_birim_id' => $birim('ADET')]);
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LM_STOK WHERE KOD = '{$kod}'") === 1, 'aynı kodla ikinci ürün açıldı');
+    $baska = (string) tek($pdo, 'SELECT TOP 1 BARKOD FROM LM_BARKOD WHERE STOK_ID = 1');
+    $r = $gonder(['ad' => 'Ürün kartı deneme', 'kdv' => '10', 'barkod' => [$baska], 'aktif' => '1'], $id);
+    bekle($r['kod'] === 200 && str_contains($r['govde'], 'ürününde kayıtlı'), 'başka ürünün barkodu kabul edildi');
+    // Düzenle: ad, fiyat (bugünden geçerli tek satır), koli kaldır, paket ekle
+    $r = $gonder(['ad' => 'Ürün kartı düzenlendi', 'kdv' => '20', 'aktif' => '1', 'birim_id' => [$birim('PAKET')], 'carpan' => ['6'],
+        'barkod' => ["869{$kod}"], 'barkod_birim' => [0], 'satis' => '17'], $id);
+    bekle($r['kod'] === 303, 'düzenleme kaydedilmedi');
+    bekle((string) tek($pdo, "SELECT AD FROM LM_STOK WHERE ID = {$id}") === 'Ürün kartı düzenlendi', 'ad güncellenmedi');
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LM_STOK_BIRIM WHERE STOK_ID = {$id} AND BIRIM_ID = {$birim('KOLI')}") === 0, 'koli kaldırılmadı');
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LM_FIYAT WHERE STOK_ID = {$id} AND TUR = 1") === 1, 'aynı gün fiyat değişikliği yeni satır açtı');
+    yakin(17.0, (float) tek($pdo, "SELECT FIYAT FROM LM_FIYAT WHERE STOK_ID = {$id} AND TUR = 1"), 'yeni satış fiyatı');
+    yakin(9.25, (float) tek($pdo, "SELECT FIYAT FROM LM_FIYAT WHERE STOK_ID = {$id} AND TUR = 2"), 'boş bırakılan alış fiyatı değişmemeli');
+    bekle(str_contains($yonetici->istek("kart/stok.php?id={$id}")['govde'], "stok_duzenle.php?id={$id}"), 'stok kartında düzenle bağlantısı yok');
+    // Yetki: M11 olmayan kullanıcı ekleyemez ve göremez
+    $satis = (new Tarayici($URL))->giris('SATIS1');
+    bekle($satis->istek('kart/stok_duzenle.php')['kod'] === 403, 'M11 olmayan kullanıcı ürün kartı ekranını açtı');
+    bekle(!str_contains($satis->istek("kart/stok.php?id={$id}")['govde'], 'stok_duzenle.php'), 'M11 olmayana düzenle bağlantısı görünüyor');
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */
