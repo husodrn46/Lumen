@@ -83,6 +83,7 @@ adim "Sunucu denetimi (gizli dosyalar, başlıklar, PHP sürümü)" \
   docker compose -f demo/docker-compose.yml exec -T -e LUMEN_DENETIM_PAROLA=demo1234 app \
   php tests/kabul/sunucu_denetimi.php http://web --kullanici YONETICI --rapor /tmp/sunucu_denetimi.md
 adim "Statik güvenlik regresyonları" bash scripts/security-regression.sh
+adim "Tekrar eden SQL parametresi taraması" python3 demo/araclar/tekrar_parametre.py
 PHP_SURUM=$(uyg php -r 'echo PHP_VERSION;' 2>/dev/null || echo "?")
 
 # ---- Rapor

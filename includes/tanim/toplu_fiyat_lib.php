@@ -57,11 +57,12 @@ if (!function_exists('lumen_toplu_fiyat_hesapla')) {
             $kosul[] = "S.KOD LIKE :kod ESCAPE '!'";
             $p[':kod'] = str_replace(['!', '%', '_', '['], ['!!', '!%', '!_', '!['], $f['kod']) . '%';
         }
-        $st = $dbh->prepare("SELECT S.ID, S.ANA_BIRIM_ID, S.KOD, S.AD, F.FIYAT
+        $sql = "SELECT S.ID, S.ANA_BIRIM_ID, S.KOD, S.AD, F.FIYAT
             FROM dbo.LM_STOK S
             CROSS APPLY (SELECT TOP 1 FIYAT FROM dbo.LM_FIYAT X WHERE X.STOK_ID = S.ID AND X.TUR = :tur AND X.BIRIM_ID = S.ANA_BIRIM_ID
                          AND X.PARA_BIRIMI = 'TRY' AND X.BASLANGIC <= :tarih ORDER BY X.BASLANGIC DESC, X.ID DESC) F
-            WHERE " . implode(' AND ', $kosul) . ' ORDER BY S.KOD');
+            WHERE " . implode(' AND ', $kosul) . ' ORDER BY S.KOD';
+        $st = $dbh->prepare($sql);
         $st->execute($p);
         $sonuc = [];
         while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
@@ -103,7 +104,8 @@ if (!function_exists('lumen_toplu_fiyat_uygula')) {
                     $p[":b{$i}"] = $r['birim_id'];
                     $p[":f{$i}"] = $r['yeni'];
                 }
-                $dbh->prepare('INSERT INTO #TF (STOK_ID, BIRIM_ID, FIYAT) VALUES ' . implode(', ', $yer))->execute($p);
+                $ekle = 'INSERT INTO #TF (STOK_ID, BIRIM_ID, FIYAT) VALUES ' . implode(', ', $yer);
+                $dbh->prepare($ekle)->execute($p);
             }
             $p = [':t' => $f['tur'], ':tarih' => $f['tarih']];
             $dbh->prepare("UPDATE X SET FIYAT = T.FIYAT FROM dbo.LM_FIYAT X JOIN #TF T ON T.STOK_ID = X.STOK_ID AND T.BIRIM_ID = X.BIRIM_ID
