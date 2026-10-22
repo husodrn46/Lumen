@@ -50,9 +50,6 @@ belge_sayfa_basla('Vade takibi', 'fa-calendar-check', 'dashboard.php');
     .ozet b { display: block; font-size: 19px; margin-top: 4px; }
     .ozet .red b { color: var(--red); } .ozet .amber b { color: var(--amber); }
     .gec { color: var(--red); font-weight: 700; } .yakin { color: var(--amber); font-weight: 600; }
-    /* Telefonda belge tarihi ve ilk tutar gizlenir: vade, cari, açık tutar ve durum sığsın */
-    @media (max-width: 640px) { .tel-gizle { display: none; } table.liste { font-size: 12px; } table.liste td, table.liste th { padding-left: 5px; padding-right: 5px; }
-        table.liste td:nth-child(2) .koyu { display: block; } .gec, .yakin { white-space: normal; } }
 </style>
 <nav class="sekmeler">
     <a href="?yon=tahsil" class="<?= $yon === 'tahsil' ? 'aktif' : '' ?>"><i class="fa-solid fa-hand-holding-dollar"></i> Tahsil edilecek</a>
@@ -72,7 +69,7 @@ belge_sayfa_basla('Vade takibi', 'fa-calendar-check', 'dashboard.php');
 </form>
 <div class="kart tablo-sar">
     <div class="kart-baslik"><i class="fa-solid fa-list"></i><?= count($liste) ?> açık kalem<?= count($liste) > 500 ? ' (ilk 500)' : '' ?></div>
-    <table class="liste">
+    <table class="liste kartla">
         <thead><tr><th>Vade</th><th>Cari</th><th class="tel-gizle">Belge</th><th class="tel-gizle">Tarih</th><th class="sag tel-gizle">Tutar</th><th class="sag">Açık</th><th class="sag">Durum</th></tr></thead>
         <tbody>
         <?php if ($liste === []): ?><tr><td colspan="7" class="soluk" style="text-align:center;padding:22px">Açık kalem yok.</td></tr><?php endif; ?>

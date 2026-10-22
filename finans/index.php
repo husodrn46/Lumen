@@ -75,7 +75,7 @@ belge_sayfa_basla('Kasa ve Banka', 'fa-building-columns', '../index.php',
 </form>
 
 <div class="kart tablo-sar">
-    <table class="liste">
+    <table class="liste kartla">
         <thead><tr><th>Fiş No</th><th>Tür</th><th>Tarih</th><th>Hesap</th><th>Cari / Açıklama</th><th class="sag">Tutar</th><th></th></tr></thead>
         <tbody>
         <?php if ($fisler === []): ?>

@@ -105,7 +105,7 @@ belge_sayfa_basla($s['KOD'] . ' · ' . $s['AD'], 'fa-box', '../index.php', $duze
 </div>
 <div class="kart tablo-sar">
     <div class="kart-baslik"><i class="fa-solid fa-clock-rotate-left"></i>Hareketler (son 100)</div>
-    <table class="liste">
+    <table class="liste kartla">
         <thead><tr><th>Tarih</th><th>Belge</th><th>Cari</th><th>Depo</th><th class="sag">Giriş</th><th class="sag">Çıkış</th><th class="sag">Bakiye</th>
             <?php if ($maliyetGorur): ?><th class="sag">Birim maliyet</th><?php endif; ?></tr></thead>
         <tbody>

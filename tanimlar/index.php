@@ -80,7 +80,7 @@ if ($sekme === 'firma'):
     <script>
         (function () { var t = document.getElementById('hesapTur'); function g() { document.querySelectorAll('.banka').forEach(function (e) { e.style.display = t.value === '2' ? '' : 'none'; }); } t.addEventListener('change', g); g(); })();
     </script>
-    <div class="kart tablo-sar"><table class="liste">
+    <div class="kart tablo-sar"><table class="liste kartla">
         <thead><tr><th>Kod</th><th>Ad</th><th>Tür</th><th>IBAN</th><th class="sag">Bakiye</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($hesaplar as $h): $aktif = (int) $h['AKTIF'] === 1; ?>
@@ -114,7 +114,7 @@ if ($sekme === 'firma'):
             <?php if ($e): ?><a class="btn btn-ikincil" href="?sekme=depo">Vazgeç</a><?php endif; ?>
         </div>
     </form>
-    <div class="kart tablo-sar"><table class="liste">
+    <div class="kart tablo-sar"><table class="liste kartla">
         <thead><tr><th>Ambar</th><th>Kod</th><th>Ad</th><th class="sag">Stoklu ürün</th><th class="sag">Toplam miktar</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($depolar as $d): $aktif = (int) $d['AKTIF'] === 1; ?>
@@ -142,7 +142,7 @@ if ($sekme === 'firma'):
             <?php if ($e): ?><a class="btn btn-ikincil" href="?sekme=birim">Vazgeç</a><?php endif; ?>
         </div>
     </form>
-    <div class="kart tablo-sar"><table class="liste">
+    <div class="kart tablo-sar"><table class="liste kartla">
         <thead><tr><th>Kod</th><th>Ad</th><th class="sag">Kullanan ürün</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($birimler as $b): ?>
@@ -172,7 +172,7 @@ if ($sekme === 'firma'):
             <span class="ipucu">Dövizli faturada belge tarihinin döviz <b>alış</b> kuru önerilir (yoksa önceki en yakın gün).</span>
         </form>
     </div>
-    <div class="kart tablo-sar"><table class="liste">
+    <div class="kart tablo-sar"><table class="liste kartla">
         <thead><tr><th>Tarih</th><th>Para birimi</th><th class="sag">Döviz alış</th><th class="sag">Döviz satış</th></tr></thead>
         <tbody>
         <?php if ($kurlar === []): ?><tr><td colspan="4" class="soluk" style="text-align:center;padding:22px">Henüz kur girilmedi.</td></tr><?php endif; ?>

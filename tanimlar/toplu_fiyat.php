@@ -77,7 +77,7 @@ if ($sonuc !== null && !$sonuc['ok']) {
 <div class="kart tablo-sar">
     <div class="kart-baslik"><i class="fa-solid fa-list"></i><?= $liste === [] ? 'Değişecek fiyat yok' : count($liste) . ' ürün değişecek' . (count($liste) > 200 ? ' (ilk 200 gösteriliyor)' : '') ?></div>
     <?php if ($liste): ?>
-    <table class="liste">
+    <table class="liste kartla">
         <thead><tr><th>Kod</th><th>Ürün</th><th class="sag">Şimdiki</th><th class="sag">Yeni</th><th class="sag">Fark</th></tr></thead>
         <tbody>
         <?php foreach (array_slice($liste, 0, 200) as $r): ?>

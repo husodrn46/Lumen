@@ -59,7 +59,7 @@ belge_sayfa_basla($belgeTam ? 'Faturalar ve Belgeler' : 'Üretim ve Sayım', 'fa
 </form>
 
 <div class="kart tablo-sar">
-    <table class="liste">
+    <table class="liste kartla">
         <thead><tr><th>Belge No</th><th>Tür</th><th>Tarih</th><th>Cari</th><th class="sag">Tutar (KDV dahil)</th><th></th></tr></thead>
         <tbody>
         <?php if ($belgeler === []): ?>

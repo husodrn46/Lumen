@@ -35,6 +35,10 @@ if (function_exists('kisisel_ayarlar')) {
         if (is_array($__renk) && isset($__renk[0], $__renk[1])) {
             $__th = htmlspecialchars((string) $__renk[0], ENT_QUOTES);
             $__ts = htmlspecialchars((string) $__renk[1], ENT_QUOTES);
+            $__rgb = ltrim((string) $__renk[0], '#');
+            if (strlen($__rgb) === 6 && ctype_xdigit($__rgb)) {
+                $__js .= "d.style.setProperty('--red-rgb','" . hexdec(substr($__rgb, 0, 2)) . ',' . hexdec(substr($__rgb, 2, 2)) . ',' . hexdec(substr($__rgb, 4, 2)) . "');";
+            }
             $__js .= "d.style.setProperty('--red','" . $__th . "');"
                    . "d.style.setProperty('--red-soft','" . $__ts . "');"
                    . "d.classList.add('lumen-accent');"
@@ -98,6 +102,8 @@ if (function_exists('kisisel_ayarlar')) {
 
 <!-- Ortak Asset'ler (tek yukle, tum sayfalarda gecerli) -->
 <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
+<!-- Lumen ortak görünüm (v1.4): belirteçler + bileşenler; sayfa içi stiller sonra gelir -->
+<link rel="stylesheet" href="/assets/css/lumen.css?v=<?php echo (int) @filemtime(__DIR__ . '/assets/css/lumen.css'); ?>">
 
 <!-- Lumen marka: Montserrat fontu + hafif letter-spacing (tum sayfalara uygulanir) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -259,10 +265,28 @@ if (function_exists('kisisel_ayarlar')) {
       try{localStorage.setItem(KEY,yeni?'1':'0');}catch(e){}
       uygula(yeni);
     });
-    document.body.appendChild(b);
+    /* Başlık çubuğu varsa düğme orada durur (içeriğin üstüne binmez); yoksa sağ altta, içeriğe yer bırakarak */
+    var baslik=document.querySelector('.top-header .header-inner');
+    if(baslik){b.classList.add('baslikta');baslik.appendChild(b);}
+    else{document.body.appendChild(b);document.body.classList.add('gizli-btn-yuzen');}
     var acik=false;try{acik=localStorage.getItem(KEY)==='1';}catch(e){}
     uygula(acik);
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',kur);}else{kur();}
+})();
+</script>
+<script>
+/* Telefonda kart listesine dönen tablolar (table.liste.kartla): her hücreye sütun başlığını etiket olarak yaz */
+(function(){
+  function etiketle(){
+    document.querySelectorAll('table.liste.kartla').forEach(function(t){
+      var basliklar=[].map.call(t.querySelectorAll('thead th'),function(th){return th.textContent.trim();});
+      t.querySelectorAll('tbody tr').forEach(function(tr){
+        [].forEach.call(tr.children,function(td,i){ if(!td.hasAttribute('data-label')) td.setAttribute('data-label',basliklar[i]||''); });
+      });
+    });
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',etiketle);}else{etiketle();}
+  window.lumenTabloEtiketle=etiketle;
 })();
 </script>

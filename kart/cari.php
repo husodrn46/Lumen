@@ -112,7 +112,7 @@ belge_sayfa_basla($c['UNVAN'], 'fa-address-card', '../cari/lg_bakiye.php?q=' . r
     </nav>
     <div class="tablo-sar">
     <?php if ($sekme === 'belge'): ?>
-        <table class="liste"><thead><tr><th>Tarih</th><th>Belge</th><th>Tür</th><th class="sag">Tutar</th></tr></thead><tbody>
+        <table class="liste kartla"><thead><tr><th>Tarih</th><th>Belge</th><th>Tür</th><th class="sag">Tutar</th></tr></thead><tbody>
         <?php if ($belgeler === []): ?><tr><td colspan="4" class="soluk" style="text-align:center;padding:22px">Belge yok.</td></tr><?php endif; ?>
         <?php foreach ($belgeler as $b):
             $tk = lumen_belge_tur_kodu((int) $b['TUR'], (int) $b['YON']);
@@ -125,7 +125,7 @@ belge_sayfa_basla($c['UNVAN'], 'fa-address-card', '../cari/lg_bakiye.php?q=' . r
         <?php endforeach; ?>
         </tbody></table>
     <?php elseif ($sekme === 'fis'): ?>
-        <table class="liste"><thead><tr><th>Tarih</th><th>Fiş</th><th>Tür</th><th>Hesap</th><th class="sag">Tutar</th></tr></thead><tbody>
+        <table class="liste kartla"><thead><tr><th>Tarih</th><th>Fiş</th><th>Tür</th><th>Hesap</th><th class="sag">Tutar</th></tr></thead><tbody>
         <?php if ($fisler === []): ?><tr><td colspan="5" class="soluk" style="text-align:center;padding:22px">Tahsilat ya da ödeme yok.</td></tr><?php endif; ?>
         <?php foreach ($fisler as $f): ?>
             <tr><td><?= bh($tarih($f['TARIH'])) ?></td>
@@ -135,7 +135,7 @@ belge_sayfa_basla($c['UNVAN'], 'fa-address-card', '../cari/lg_bakiye.php?q=' . r
         <?php endforeach; ?>
         </tbody></table>
     <?php else: ?>
-        <table class="liste"><thead><tr><th>Vade</th><th>Portföy / seri</th><th>Yön</th><th>Durum</th><th class="sag">Tutar</th></tr></thead><tbody>
+        <table class="liste kartla"><thead><tr><th>Vade</th><th>Portföy / seri</th><th>Yön</th><th>Durum</th><th class="sag">Tutar</th></tr></thead><tbody>
         <?php if ($cekler === []): ?><tr><td colspan="5" class="soluk" style="text-align:center;padding:22px">Çek ya da senet yok.</td></tr><?php endif; ?>
         <?php foreach ($cekler as $k): ?>
             <tr><td><?= bh($tarih($k['VADE'])) ?></td><td class="koyu"><?= bh($k['PORTFOY_NO']) ?> <span class="soluk"><?= bh($k['SERI_NO'] ?? '') ?></span></td>
