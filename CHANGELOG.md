@@ -1,6 +1,8 @@
 # Değişiklik Günlüğü
 
-## [Yayımlanmadı] — 1.3.0-rc.3 adayı
+## [1.3.0-rc.3] — 2026-10-22 (SÜRÜM ADAYI)
+
+> ⚠️ **Sürüm adayıdır.** Üretimde LOGO'ya bağlı kullanım için kararlı **v1.2.4**'ü kullanın.
 
 rc.2'nin yeniden kabul denemesinde (yapay zekâ ajanı) karar **KABUL**; bildirilen küçük konular:
 
