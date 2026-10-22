@@ -70,6 +70,8 @@ $sayfalar = [
     'Rapor: kasa' => 'rapor/rapor_kasa.php',
     'Rapor: stok izleme' => 'rapor/rapor_stok_izleme.php',
     'Rapor: yıllık özet' => 'rapor/rapor_yillik_ozet.php',
+    'Rapor: vade takibi (tahsil)' => 'rapor/vade_takibi.php',
+    'Rapor: vade takibi (ödeme)' => 'rapor/vade_takibi.php?yon=odeme',
 ];
 // Sınırlar: ekran 2/5 sn; indirilen PDF/Excel 5/15 sn; toplu işlem (yedek, Excel aktarma) 10/30 sn
 $sinir = static fn(string $ad): array => match (true) {

@@ -13,6 +13,7 @@ require_once __DIR__ . '/../kontrol.php';
 require_once __DIR__ . '/../includes/belge/belge_lib.php';
 require_once __DIR__ . '/../includes/finans/finans_lib.php';
 require_once __DIR__ . '/../includes/belge/sayfa.php';
+require_once __DIR__ . '/../includes/rapor/vade_lib.php';
 
 // İkinci savunma hattı: bu modül yalnız bağımsız modda çalışır (modül korumasından bağımsız).
 if (!lumen_bagimsiz_mi()) {
@@ -83,6 +84,13 @@ belge_sayfa_basla($c['UNVAN'], 'fa-address-card', '../cari/lg_bakiye.php?q=' . r
     <div class="kart"><span class="soluk">Toplam alacak</span><b><?= btl($c['ALACAK']) ?></b></div>
     <div class="kart"><span class="soluk">Bakiye</span><b class="<?= $bakiye > 0.005 ? 'borclu' : ($bakiye < -0.005 ? 'alacakli' : '') ?>" id="cariBakiye"><?= btl(abs($bakiye)) ?></b>
         <span class="soluk"><?= $bakiye > 0.005 ? 'Cari bize borçlu' : ($bakiye < -0.005 ? 'Biz cariye borçluyuz' : 'Kapalı') ?></span></div>
+    <?php
+    // Vade: bakiye yönündeki açık kalemlerin gecikmiş kısmı ve en yakın vade
+    $vadeKalem = abs($bakiye) > 0.005 ? lumen_vade_acik_kalemler($dbh, $bakiye > 0 ? 'tahsil' : 'odeme', $id) : [];
+    $vadeOzet = lumen_vade_ozet($vadeKalem);
+    $yakinVade = array_values(array_filter($vadeKalem, static fn($k) => $k['GUN'] <= 0))[0]['VADE'] ?? null; ?>
+    <div class="kart"><span class="soluk">Vadesi geçmiş</span><b id="vadeGecmis" class="<?= $vadeOzet['gecikmis'] > 0.005 ? 'borclu' : '' ?>"><?= btl($vadeOzet['gecikmis']) ?></b>
+        <span class="soluk"><?= $yakinVade ? 'Sıradaki vade ' . bh(date('d.m.Y', (int) strtotime($yakinVade))) : ($vadeKalem ? 'Hepsi gecikmiş' : 'Açık kalem yok') ?></span></div>
 </div>
 <div class="eylemler">
     <a class="btn btn-ikincil" href="../cari/lg_hareket.php?cariid=<?= $id ?>"><i class="fa-solid fa-list"></i> Ekstre</a>

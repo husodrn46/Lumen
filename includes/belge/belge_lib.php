@@ -205,11 +205,16 @@ if (!function_exists('lumen_belge_kaydet')) {
             $dbh->beginTransaction();
 
             if ($cariId > 0) {
-                $c = $dbh->prepare('SELECT ID FROM dbo.LM_CARI WITH (UPDLOCK) WHERE ID = :c AND AKTIF = 1');
+                $c = $dbh->prepare('SELECT ID, VADE_GUN FROM dbo.LM_CARI WITH (UPDLOCK) WHERE ID = :c AND AKTIF = 1');
                 $c->execute([':c' => $cariId]);
-                if (!$c->fetchColumn()) {
+                $cr = $c->fetch(PDO::FETCH_ASSOC);
+                if (!$cr) {
                     $dbh->rollBack();
                     return ['ok' => false, 'mesaj' => 'Cari bulunamadı veya pasif.'];
+                }
+                // Vade girilmemiş faturada carinin vade günü uygulanır (vade takibi bu tarihi kullanır)
+                if ($vade === null && $t['cari'] !== 0 && (int) $cr['VADE_GUN'] > 0) {
+                    $vade = date('Y-m-d', (int) strtotime($tarih . ' +' . (int) $cr['VADE_GUN'] . ' days'));
                 }
             }
             $depoId = (int) ($baslik['depo_id'] ?? 0);

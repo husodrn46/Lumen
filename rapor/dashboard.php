@@ -34,6 +34,11 @@ $report_groups = [
         ['href' => 'rapor_urun_top20.php', 'title' => 'En İyi 20 Ürün', 'desc' => 'Son 30 günün ciro şampiyonu 20 ürün.', 'icon' => 'fa-trophy', 'tone' => 'amber'],
     ]],
 ];
+// Bağımsız mod: vade takibi (Lumen'in kendi cari hareketleri üzerinden)
+if (lumen_bagimsiz_mi()) {
+    array_unshift($report_groups[0]['reports'], ['href' => 'vade_takibi.php', 'title' => 'Vade Takibi',
+        'desc' => 'Tahsil edilecek ve ödenecek açık kalemler: gecikmiş, bu hafta, bu ay.', 'icon' => 'fa-calendar-check', 'tone' => 'red']);
+}
 
 ?>
 <!DOCTYPE html>

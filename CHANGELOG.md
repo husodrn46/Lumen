@@ -11,6 +11,10 @@
 - **Alış siparişi** (bağımsız mod): Faturalar → Yeni Belge → "Alış Siparişi". Stok ve cariyi
   etkilemez; "Faturala" ile kısmi ya da tam alış irsaliyesi/faturasına aktarılır, irsaliyesi
   sonra faturalanır. Bekleyen miktar stok kartında görünür; bağlı belgesi varken iptal edilemez.
+- **Vade takibi** (bağımsız mod, Raporlar → Vade Takibi): tahsil edilecek ve ödenecek açık
+  kalemler vadesine göre — vadesi geçmiş, bu hafta, bu ay, sonrası; tahsilat/iadeler en erken
+  vadeli kalemden düşülür. Cari kartında "Vadesi geçmiş" tutarı. Vadesi girilmeyen faturaya
+  carinin vade günü uygulanır.
 
 ### 🐛 Düzeltmeler
 

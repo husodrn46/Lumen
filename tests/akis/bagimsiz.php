@@ -658,6 +658,53 @@ akis('alış siparişi: stok/cari etkisiz; kısmi alış irsaliyesi → irsaliye
     bekle($yonetici->istek("belge/goster.php?id={$satisSip}")['kod'] === 404, 'satış siparişi belge ekranında açıldı');
 });
 
+akis('vade takibi: carinin vade günü faturaya uygulanır; tahsilat en erken vadeyi kapatır; gecikmiş/hafta/ay; tedarikçi tarafı; cari kartı', function () use ($yonetici, $pdo): void {
+    require_once dirname(__DIR__, 2) . '/includes/rapor/vade_lib.php';
+    $kod = 'VT.' . random_int(10000, 99999);
+    $pdo->exec("INSERT INTO LM_CARI (KOD, UNVAN, TUR, VADE_GUN) VALUES ('{$kod}', N'Vade deneme {$kod}', 3, 30)");
+    $cari = (int) tek($pdo, "SELECT ID FROM LM_CARI WHERE KOD = '{$kod}'");
+    $kasa = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'KASA.01'");
+    $gun = static fn(int $g): string => date('Y-m-d', strtotime(($g >= 0 ? '+' : '') . $g . ' days'));
+    $fatura = static function (string $tur, string $tarih, string $fiyat, string $vade = '') use ($yonetici, &$cari): array {
+        return belge_kes($yonetici, 'belge/yeni.php', ['tur' => $tur, 'cari_id' => $cari, 'tarih' => $tarih, 'vade' => $vade, 'satir' => ['stok_id' => [2], 'birim_id' => [0], 'miktar' => ['1'], 'fiyat' => [$fiyat], 'iskonto' => ['0'], 'kdv' => ['0']]]);
+    };
+    $f1 = $fatura('satis_fatura', $gun(-40), '1000');          // vade = tarih + 30 → 10 gün gecikmiş
+    $f2 = $fatura('satis_fatura', $gun(0), '300');             // vade +30 → bu ay
+    $f3 = $fatura('satis_fatura', $gun(-2), '200', $gun(5));   // açık vade +5 → bu hafta
+    bekle($f1['id'] > 0 && $f2['id'] > 0 && $f3['id'] > 0, 'test faturaları kesilmedi: ' . ($f1['hata'] ?? '') . ($f2['hata'] ?? '') . ($f3['hata'] ?? ''));
+    bekle(substr((string) tek($pdo, "SELECT VADE FROM LM_BELGE WHERE ID = {$f1['id']}"), 0, 10) === $gun(-10), 'carinin vade günü faturaya uygulanmadı');
+    bekle(substr((string) tek($pdo, "SELECT VADE FROM LM_BELGE WHERE ID = {$f3['id']}"), 0, 10) === $gun(5), 'girilen vade korunmadı');
+    $t = fis_kes($yonetici, ['tur' => 1, 'hesap_id' => $kasa, 'cari_id' => $cari, 'tutar' => '400']);
+    bekle($t['id'] > 0, 'tahsilat kesilmedi');
+    $o = lumen_vade_ozet(lumen_vade_acik_kalemler($pdo, 'tahsil', $cari));
+    yakin(600.0, $o['gecikmis'], 'gecikmiş (1000 − 400 tahsilat)');
+    yakin(200.0, $o['hafta'], 'bu hafta');
+    yakin(300.0, $o['ay'], 'bu ay');
+    yakin(1100.0, $o['toplam'], 'toplam açık = bakiye');
+    // Rapor ekranı ve cari kartı
+    $r = $yonetici->istek('rapor/vade_takibi.php?q=' . rawurlencode(strtolower($kod)))['govde'];
+    bekle(str_contains($r, $kod) && str_contains($r, '10 gün gecikti') && str_contains($r, '5 gün kaldı'), 'vade takibi ekranında carinin kalemleri yok');
+    bekle(str_contains($yonetici->istek('rapor/dashboard.php')['govde'], 'vade_takibi.php'), 'rapor panelinde vade takibi yok');
+    bekle(preg_match('/id="vadeGecmis"[^>]*>([^<]+)</', $yonetici->istek("kart/cari.php?id={$cari}")['govde'], $m) === 1
+        && str_contains($m[1], '600,00'), 'cari kartında vadesi geçmiş tutar yanlış');
+    // Fazla tahsilat: tahsil tarafı kapanır
+    fis_kes($yonetici, ['tur' => 1, 'hesap_id' => $kasa, 'cari_id' => $cari, 'tutar' => '1100']);
+    bekle(lumen_vade_acik_kalemler($pdo, 'tahsil', $cari) === [], 'tamamen tahsil edilen caride açık kalem kaldı');
+    // Tedarikçi tarafı (ayrı cari): alış faturası ödenecek; kısmi ödeme düşer
+    $pdo->exec("INSERT INTO LM_CARI (KOD, UNVAN, TUR, VADE_GUN) VALUES ('{$kod}T', N'Vade tedarikçi {$kod}', 2, 30)");
+    $cari = (int) tek($pdo, "SELECT ID FROM LM_CARI WHERE KOD = '{$kod}T'");
+    $a1 = $fatura('alis_fatura', $gun(-35), '500');            // vade −5 → gecikmiş
+    fis_kes($yonetici, ['tur' => 2, 'hesap_id' => $kasa, 'cari_id' => $cari, 'tutar' => '100']);
+    bekle($a1['id'] > 0, 'alış faturası kesilmedi');
+    bekle(lumen_vade_acik_kalemler($pdo, 'tahsil', $cari) === [], 'tedarikçide tahsil edilecek kalem çıkmamalı');
+    $od = lumen_vade_ozet(lumen_vade_acik_kalemler($pdo, 'odeme', $cari));
+    yakin(400.0, $od['gecikmis'], 'ödenecek gecikmiş (500 − 100 ödeme)');
+    bekle(str_contains($yonetici->istek('rapor/vade_takibi.php?yon=odeme&q=' . rawurlencode(strtolower($kod)))['govde'], '5 gün gecikti'), 'ödenecekler sekmesinde kalem yok');
+    // Yetki: M17 olmayan giremez
+    $depo = (new Tarayici($GLOBALS['URL']))->giris('DEPO1');
+    bekle($depo->istek('rapor/vade_takibi.php')['kod'] === 403, 'yetkisiz kullanıcı vade takibini açtı');
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */

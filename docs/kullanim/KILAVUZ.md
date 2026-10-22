@@ -665,6 +665,22 @@ Bu bölüm iki modda da geçerlidir.
 
 ---
 
+### Vade takibi [Bağımsız mod]
+
+**Ne işe yarar:** Hangi müşteriden ne zaman ne kadar tahsilat bekleniyor, hangi tedarikçiye ne zaman ödeme yapılacak — vadesine göre gösterir.
+
+1. "Raporlar" → "Vade Takibi".
+2. "Tahsil edilecek" ya da "Ödenecek" sekmesini seçin.
+3. Üstteki kutular toplamları gösterir: "Vadesi geçmiş", "Bu hafta", "Bu ay", "30 günden sonra". Bir kutuya basınca liste o dilime süzülür; "Cari ara" ile tek cariye bakabilirsiniz.
+4. Listede her açık faturanın vadesi, açık kalan tutarı ve kaç gün geciktiği / kaç gün kaldığı görünür.
+
+**Dikkat**
+
+- Tahsilatlar ve iadeler en erken vadeli faturadan başlayarak düşülür; kısmen ödenmiş faturanın yalnız kalan kısmı görünür.
+- Faturada vade girilmezse carinin "vade günü" uygulanır (fatura tarihi + vade günü). Vade günü cari kartında / Excel aktarımında girilir.
+- Cari kartında "Vadesi geçmiş" kutusu aynı hesabı o cari için gösterir.
+- Görmek için "Raporlar" ve "Cari bakiye" yetkisi gerekir.
+
 ## 10. Yedekleme ve geri yükleme
 
 **Yeri:** "Sistem Ayarları" → "Sistem Ayarları" → "Sistem ve Yedek" sekmesi.
