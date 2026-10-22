@@ -427,7 +427,7 @@ if (!function_exists('lumen_siparis_kalan_satirlar')) {
     function lumen_siparis_kalan_satirlar(PDO $dbh, int $siparisId): array
     {
         $st = $dbh->prepare("SELECT S.ID, S.SIRA, S.STOK_ID, S.BIRIM_ID, ST.KOD, ST.AD, BR.KOD AS BIRIM, S.MIKTAR, S.TESLIM_MIKTAR,
-                    S.MIKTAR - S.TESLIM_MIKTAR AS KALAN, S.FIYAT, S.DOVIZ_FIYAT, S.KDV_ORANI,
+                    S.MIKTAR - S.TESLIM_MIKTAR AS KALAN, S.FIYAT, S.DOVIZ_FIYAT, S.KDV_ORANI, ST.KDV_ORANI AS URUN_KDV,
                     -- Satır + dağıtılmış iskonto (iskonto satırları dahil) → etkin iskonto oranı
                     CASE WHEN S.TUTAR > 0 THEN ROUND((S.TUTAR - S.NET) * 100.0 / S.TUTAR, 4) ELSE 0 END AS ISKONTO
              FROM dbo.LM_BELGE_SATIR S

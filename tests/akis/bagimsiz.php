@@ -707,6 +707,32 @@ akis('vade takibi: carinin vade günü faturaya uygulanır; tahsilat en erken va
     bekle($depo->istek('rapor/vade_takibi.php')['kod'] === 403, 'yetkisiz kullanıcı vade takibini açtı');
 });
 
+akis('siparişte KDV %0 kalmış satır: Faturala ekranı ürün KDV\'sini önerir ve uyarır; çoklu ekleme bağımsızda ürün KDV\'siyle yazar', function () use ($yonetici, $pdo): void {
+    $sip = (int) tek($pdo, "SELECT TOP 1 B.ID FROM LM_BELGE B WHERE B.TUR = 1 AND B.YON = 1 AND B.DURUM = 1
+        AND EXISTS (SELECT 1 FROM LM_BELGE_SATIR S WHERE S.BELGE_ID = B.ID AND S.MIKTAR > S.TESLIM_MIKTAR) ORDER BY B.ID DESC");
+    $satir = $pdo->query("SELECT TOP 1 S.ID, S.KDV_ORANI, ST.KDV_ORANI AS URUN FROM LM_BELGE_SATIR S JOIN LM_STOK ST ON ST.ID = S.STOK_ID
+        WHERE S.BELGE_ID = {$sip} AND S.MIKTAR > S.TESLIM_MIKTAR AND ST.KDV_ORANI > 0 ORDER BY S.SIRA")->fetch(PDO::FETCH_ASSOC);
+    bekle($satir !== false, 'uygun sipariş satırı yok');
+    $pdo->exec("UPDATE LM_BELGE_SATIR SET KDV_ORANI = 0 WHERE ID = {$satir['ID']}");
+    try {
+        $g = $yonetici->istek("belge/siparisten.php?siparis={$sip}")['govde'];
+        bekle(str_contains($g, 'siparişteki KDV %0'), 'KDV %0 uyarısı yok');
+        bekle(preg_match('/class="kdv-onerildi"[^>]*>.*?<option value="' . preg_quote(rtrim(rtrim(number_format((float) $satir['URUN'], 2, '.', ''), '0'), '.'), '/') . '[^"]*" selected/s', $g) === 1,
+            'ürün KDV\'si önerilmedi');
+    } finally {
+        $pdo->exec("UPDATE LM_BELGE_SATIR SET KDV_ORANI = {$satir['KDV_ORANI']} WHERE ID = {$satir['ID']}");
+    }
+    // Stok aramadan çoklu ekleme (lg_fis.php → hareketeklecoklu.php) satırı ürün KDV'siyle yazar
+    $stok = $pdo->query('SELECT TOP 1 ID, ANA_BIRIM_ID, KDV_ORANI FROM LM_STOK WHERE AKTIF = 1 AND KDV_ORANI > 0 ORDER BY ID')->fetch(PDO::FETCH_ASSOC);
+    $once = (int) tek($pdo, "SELECT ISNULL(MAX(ID), 0) FROM LM_BELGE_SATIR WHERE BELGE_ID = {$sip}");
+    $yonetici->istek("siparis/lg_fis.php?stokhareket={$sip}", ['csrf_token' => $yonetici->belirtec("siparis/lg_fis.php?stokhareket={$sip}"),
+        'stokhareket' => $sip, 'cstok_id' => [$stok['ID']], 'cstok_miktari' => ['2'], 'cstok_fiyati' => ['10'], 'cstok_birim' => [$stok['ANA_BIRIM_ID']]]);
+    $yeni = $pdo->query("SELECT TOP 1 ID, KDV_ORANI FROM LM_BELGE_SATIR WHERE BELGE_ID = {$sip} AND ID > {$once} ORDER BY ID DESC")->fetch(PDO::FETCH_ASSOC);
+    bekle($yeni !== false, 'çoklu ekleme satır yazmadı');
+    yakin((float) $stok['KDV_ORANI'], (float) $yeni['KDV_ORANI'], 'çoklu eklenen satırın KDV\'si');
+    $pdo->exec("DELETE FROM LMV_ORFLINE WHERE LOGICALREF = {$yeni['ID']}");
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */

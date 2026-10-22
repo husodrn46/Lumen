@@ -73,6 +73,14 @@ belge_sayfa_basla(($irsaliyeden ? 'İrsaliyeden Fatura · ' : 'Siparişten Belge
                 <span class="soluk">Fatura günü döviz alış kuru önerilir; sipariş kuru: <?= bh(number_format((float) $sip['KUR'], 4, ',', '.')) ?></span></label>
         <?php endif; ?>
     </div>
+    <?php
+    // Siparişte KDV %0 kalmış satır (ör. eski sipariş ekranından girilmiş) ürün kartının KDV'siyle önerilir
+    $kdvOnerisi = static fn(array $r): float => (float) $r['KDV_ORANI'] <= 0 && (float) $r['URUN_KDV'] > 0 ? (float) $r['URUN_KDV'] : (float) $r['KDV_ORANI'];
+    $kdvDuzeltilen = count(array_filter($satirlar, static fn($r) => $kdvOnerisi($r) !== (float) $r['KDV_ORANI']));
+    if ($kdvDuzeltilen > 0): ?>
+        <div class="bildirim hata" role="alert"><i class="fa-solid fa-triangle-exclamation"></i>
+            <?= $kdvDuzeltilen ?> satırda siparişteki KDV %0; ürün kartındaki oran önerildi. Belgeyi kesmeden önce KDV sütununu kontrol edin.</div>
+    <?php endif; ?>
     <div class="kart tablo-sar">
         <table class="liste">
             <thead><tr><th>Ürün</th><th class="sag"><?= $irsaliyeden ? 'İrsaliye' : 'Sipariş' ?></th><th class="sag"><?= $irsaliyeden ? 'Faturalanan' : 'Teslim edilen' ?></th><th style="width:130px">Bu belgede</th>
@@ -86,13 +94,16 @@ belge_sayfa_basla(($irsaliyeden ? 'İrsaliyeden Fatura · ' : 'Siparişten Belge
                         <input type="hidden" name="satir[kaynak_satir_id][]" value="<?= (int) $r['ID'] ?>">
                         <input type="hidden" name="satir[fiyat][]" value="<?= bh($satirFiyat($r)) ?>">
                         <input type="hidden" name="satir[iskonto][]" value="<?= bh($r['ISKONTO']) ?>">
-                        <input type="hidden" name="satir[kdv][]" value="<?= bh($r['KDV_ORANI']) ?>"></td>
+                        </td>
                     <td class="sag"><?= bmiktar($r['MIKTAR']) ?> <?= bh($r['BIRIM']) ?></td>
                     <td class="sag"><?= bmiktar($r['TESLIM_MIKTAR']) ?></td>
                     <td><input name="satir[miktar][]" inputmode="decimal" value="<?= bh(str_replace('.', ',', rtrim(rtrim(number_format((float) $r['KALAN'], 6, '.', ''), '0'), '.'))) ?>"></td>
                     <td class="sag"><?= $para($satirFiyat($r)) ?></td>
                     <td class="sag"><?= bmiktar($r['ISKONTO']) ?></td>
-                    <td class="sag"><?= bmiktar($r['KDV_ORANI']) ?></td>
+                    <td class="sag"><?php $kdv = $kdvOnerisi($r); $secenek = array_unique([0.0, 1.0, 10.0, 20.0, $kdv, (float) $r['KDV_ORANI']]); sort($secenek); ?>
+                        <select name="satir[kdv][]" style="width:auto" <?= $kdv !== (float) $r['KDV_ORANI'] ? 'class="kdv-onerildi" title="Siparişte %0"' : '' ?>>
+                            <?php foreach ($secenek as $o): ?><option value="<?= bh((string) $o) ?>" <?= $o === $kdv ? 'selected' : '' ?>><?= bh(bmiktar($o)) ?></option><?php endforeach; ?>
+                        </select></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
