@@ -73,7 +73,7 @@ $sayfalar = [
 ];
 // Sınırlar: ekran 2/5 sn; indirilen PDF/Excel 5/15 sn; toplu işlem (yedek, Excel aktarma) 10/30 sn
 $sinir = static fn(string $ad): array => match (true) {
-    str_starts_with($ad, 'Yedek') || str_starts_with($ad, 'Excel') => [10, 30],
+    str_starts_with($ad, 'Yedek') || str_starts_with($ad, 'Excel') || str_starts_with($ad, 'Toplu') => [10, 30],
     str_contains($ad, 'PDF') || str_contains($ad, 'Excel') => [5, 15],
     default => [2, 5],
 };
@@ -83,7 +83,7 @@ $olc = static function (callable $is): array {
     $kod = 0;
     for ($i = 0; $i < 3; $i++) {
         $t = microtime(true);
-        $kod = $is();
+        $kod = max($kod, $is());   // üç denemeden biri bile hatalıysa hata sayılır
         $sureler[] = microtime(true) - $t;
     }
     sort($sureler);
@@ -132,6 +132,14 @@ $yaz = microtime(true) - $t;
 $sonuc[] = ['Excel 5.000 cari: önizleme', $on, $g['kod']];
 $sonuc[] = ['Excel 5.000 cari: aktarma', $yaz, str_contains($a['govde'], '5000 yeni cari') ? 200 : 500];
 printf("  %-36s %6.2f sn\n  %-36s %6.2f sn %s\n", 'Excel 5.000 cari: önizleme', $on, 'Excel 5.000 cari: aktarma', $yaz, str_contains($a['govde'], '5000 yeni cari') ? '' : '✗ aktarılmadı');
+
+// Toplu fiyat güncelleme: bütün ürünlerin satış fiyatı %1
+$tf = ['tur' => '1', 'grup' => '', 'kod' => '', 'yontem' => 'yuzde', 'deger' => '1', 'yuvarla' => '0', 'tarih' => date('Y-m-d')];
+$t = microtime(true);
+$r = $y->istek('tanimlar/toplu_fiyat.php', ['csrf_token' => $y->belirtec('tanimlar/toplu_fiyat.php'), 'islem' => 'uygula'] + $tf);
+$sure = microtime(true) - $t;
+$sonuc[] = ['Toplu fiyat güncelleme (tüm ürünler)', $sure, $r['kod'] === 303 ? 200 : 500];
+printf("  %-36s %6.2f sn %s\n", 'Toplu fiyat (tüm ürünler)', $sure, $r['kod'] === 303 ? '' : '✗ uygulanmadı');
 
 $cokYavas = array_filter($sonuc, static fn($s) => $s[1] >= $sinir($s[0])[1] || $s[2] >= 500);
 $yavas = array_filter($sonuc, static fn($s) => $s[1] >= $sinir($s[0])[0] && $s[1] < $sinir($s[0])[1]);

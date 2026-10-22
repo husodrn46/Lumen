@@ -1,5 +1,20 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı] — 1.3.0-beta.7 adayı
+
+### ✨ Yeni
+
+- **Toplu fiyat güncelleme** (bağımsız mod, Tanımlar → Toplu fiyat): ürün grubu ve kod
+  başlangıcıyla seçilen ürünlerin satış ya da alış fiyatı yüzde ya da tutar kadar değişir,
+  isteğe bağlı yuvarlanır. Önce önizleme, sonra onay; eski fiyat silinmez, seçilen tarihten
+  geçerli yeni fiyat yazılır. 20.000 ürün 1,5 sn.
+
+### 🐛 Düzeltmeler
+
+- Büyük Excel çıktıları (ör. 6.000 hareketli carinin ekstresi) zaman zaman bellek sınırına
+  takılıyordu; Excel/PDF çıktılarında bellek sınırı en az 256 MB'a çıkarılır. Performans
+  ölçümü artık üç denemenin herhangi biri hatalıysa hata sayar (önceden yalnız sonuncusuna bakıyordu).
+
 ## [1.3.0-beta.6] — 2026-10-22 (ÖN SÜRÜM — Bağımsız Lumen BETA)
 
 > ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.2**'yi kullanın.

@@ -126,6 +126,7 @@ try {
 // Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
 require_once __DIR__ . '/../includes/xlsx_guvenli.php';
 lumen_xlsx_guvenli_baglayici();
+lumen_bellek_en_az(256);   // çok satırlı listede tablo kütüphanesi 128 MB'ı aşabiliyor
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator($firmaAdi)

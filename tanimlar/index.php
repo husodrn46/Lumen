@@ -29,6 +29,7 @@ belge_sayfa_basla('Tanımlar', 'fa-sliders', '../index.php');
         <a href="?sekme=<?= bh($k) ?>" class="<?= $k === $sekme ? 'aktif' : '' ?>"><i class="fa-solid <?= bh($ikon) ?>"></i><?= bh($ad) ?></a>
     <?php endforeach; ?>
     <a href="ice_aktar.php"><i class="fa-solid fa-file-excel"></i>Excel'den aktar</a>
+    <a href="toplu_fiyat.php"><i class="fa-solid fa-percent"></i>Toplu fiyat</a>
 </nav>
 <?php
 $durumDugmesi = static function (string $tur, int $id, bool $aktif): string {

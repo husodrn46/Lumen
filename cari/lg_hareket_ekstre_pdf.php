@@ -54,7 +54,7 @@ if ($kesilenHareket > 0) {
     $toplam_borc = array_sum(array_map(static fn($h) => (float) $h['BORC'], $hareketler));
     $toplam_alacak = array_sum(array_map(static fn($h) => (float) $h['ALACAK'], $hareketler));
 }
-@ini_set('memory_limit', '256M');
+lumen_bellek_en_az(256);
 @set_time_limit(120);
 $islem_net_etki = $toplam_borc - $toplam_alacak;
 $baslangic_bakiye = $resmi_bakiye - $islem_net_etki;

@@ -576,6 +576,39 @@ function fatura_kes_hata(array $r): bool
     return $r['id'] === 0 && ($r['hata'] ?? '') !== '';
 }
 
+akis('toplu fiyat: önizleme değiştirmez; grup ve yüzdeyle yuvarlayarak bugünden geçerli yeni fiyat; eski fiyat kalır; yetkisiz giremez', function () use ($yonetici, $pdo, $URL): void {
+    $grup = (string) tek($pdo, "SELECT TOP 1 GRUP FROM LM_STOK WHERE GRUP IS NOT NULL AND AKTIF = 1 GROUP BY GRUP ORDER BY COUNT(*) DESC");
+    $fiyatlar = static fn(): array => $pdo->query("SELECT S.ID, (SELECT TOP 1 FIYAT FROM LM_FIYAT F WHERE F.STOK_ID = S.ID AND F.TUR = 1
+        AND F.BIRIM_ID = S.ANA_BIRIM_ID AND F.BASLANGIC <= CAST(GETDATE() AS DATE) ORDER BY F.BASLANGIC DESC, F.ID DESC) AS F
+        FROM LM_STOK S WHERE S.AKTIF = 1 AND S.GRUP = N'{$grup}'")->fetchAll(PDO::FETCH_KEY_PAIR);
+    $once = array_filter($fiyatlar(), static fn($f) => $f !== null);
+    $digerOnce = (float) tek($pdo, "SELECT SUM(FIYAT) FROM LM_FIYAT F JOIN LM_STOK S ON S.ID = F.STOK_ID WHERE ISNULL(S.GRUP, '') <> N'{$grup}'");
+    $satirOnce = (int) tek($pdo, 'SELECT COUNT(*) FROM LM_FIYAT');
+    $alan = ['tur' => '1', 'grup' => $grup, 'kod' => '', 'yontem' => 'yuzde', 'deger' => '10', 'yuvarla' => '0.5', 'tarih' => date('Y-m-d')];
+    $on = $yonetici->istek('tanimlar/toplu_fiyat.php', ['csrf_token' => $yonetici->belirtec('tanimlar/toplu_fiyat.php'), 'islem' => 'onizle'] + $alan);
+    bekle(str_contains($on['govde'], count($once) . ' ürün değişecek'), 'önizleme ürün sayısı yanlış (' . count($once) . ' bekleniyordu)');
+    bekle((int) tek($pdo, 'SELECT COUNT(*) FROM LM_FIYAT') === $satirOnce, 'önizleme fiyat yazdı');
+    $r = $yonetici->istek('tanimlar/toplu_fiyat.php', ['csrf_token' => $yonetici->belirtec('tanimlar/toplu_fiyat.php'), 'islem' => 'uygula'] + $alan);
+    bekle($r['kod'] === 303, 'toplu fiyat uygulanmadı');
+    $sonra = $fiyatlar();
+    foreach ($once as $id => $f) {
+        yakin(round((float) $f * 1.1 / 0.5) * 0.5, (float) $sonra[$id], "ürün {$id} yeni fiyat (%10, 0,50 yuvarlama)");
+    }
+    yakin($digerOnce, (float) tek($pdo, "SELECT SUM(FIYAT) FROM LM_FIYAT F JOIN LM_STOK S ON S.ID = F.STOK_ID WHERE ISNULL(S.GRUP, '') <> N'{$grup}'"), 'başka gruptaki fiyatlar değişmemeli');
+    bekle((int) tek($pdo, 'SELECT COUNT(*) FROM LM_FIYAT') >= $satirOnce, 'eski fiyat satırları silinmemeli');
+    // Aynı gün ikinci uygulama yeni satır açmaz, bugünkü satırı günceller
+    $sayi = (int) tek($pdo, 'SELECT COUNT(*) FROM LM_FIYAT');
+    $yonetici->istek('tanimlar/toplu_fiyat.php', ['csrf_token' => $yonetici->belirtec('tanimlar/toplu_fiyat.php'), 'islem' => 'uygula'] + ['deger' => '-5', 'yontem' => 'tutar'] + $alan);
+    bekle((int) tek($pdo, 'SELECT COUNT(*) FROM LM_FIYAT') === $sayi, 'aynı gün ikinci güncelleme yeni satır açtı');
+    $id = array_key_first($once);
+    yakin(max(0, round((float) $once[$id] * 1.1 / 0.5) * 0.5 - 5), (float) $fiyatlar()[$id], 'tutar düşüşü');
+    // Geçersiz değer ve yetki
+    $h = $yonetici->istek('tanimlar/toplu_fiyat.php', ['csrf_token' => $yonetici->belirtec('tanimlar/toplu_fiyat.php'), 'islem' => 'uygula', 'deger' => '-100'] + $alan);
+    bekle(str_contains($h['govde'], 'Yüzde -100 ile 1000'), '-%100 kabul edildi');
+    $satis = (new Tarayici($URL))->giris('SATIS1');
+    bekle($satis->istek('tanimlar/toplu_fiyat.php')['kod'] === 403, 'M16 olmayan kullanıcı toplu fiyat ekranını açtı');
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */

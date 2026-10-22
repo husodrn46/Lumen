@@ -229,6 +229,24 @@ Listede her kullanıcının yanında "Düzenle", "Pasife al" / "Aktife al" ve "S
 - TCMB'ye ulaşılamazsa ekran bunu söyler; o durumda kuru elle girin.
 - Dövizli fatura keseceğiniz günlerde kuru girmeyi alışkanlık edinin.
 
+### Toplu fiyat güncelleme [Bağımsız mod]
+
+**Ne işe yarar:** Zam ya da indirim dönemlerinde çok sayıda ürünün fiyatını tek seferde değiştirir.
+
+1. "Tanımlar" → "Toplu fiyat" sekmesine girin.
+2. "Fiyat" (satış ya da alış), isterseniz "Ürün grubu" ve "Kodu şununla başlayan" seçin; boş bırakırsanız bütün ürünler.
+3. "Değişiklik" olarak "Yüzde (%)" ya da "Tutar (₺)" seçip "Miktar" yazın: zam için 10, indirim için -5 gibi.
+4. İsterseniz "Yuvarla" ile fiyatları 0,50 ₺ ya da 1 ₺ gibi yuvarlak sayılara çekin.
+5. "Geçerlilik tarihi" seçin (genellikle bugün) ve "Önizle"ye basın: hangi ürünün fiyatı neye dönüşecek, liste halinde görünür.
+6. Doğruysa "… ürünün fiyatını güncelle" düğmesine basın.
+
+**Dikkat**
+
+- Önizleme hiçbir şeyi değiştirmez; güncelleme düğmesine basana kadar fiyatlar aynı kalır.
+- Eski fiyat silinmez; yeni fiyat seçilen tarihten geçerli olur. Geçmiş belgeler etkilenmez.
+- Aynı gün ikinci kez uygularsanız o günün fiyatı yeniden hesaplanır (önceki toplu değişikliğin üzerine).
+- Yalnız ana birimde TL fiyatı olan aktif ürünler değişir; fiyatı hiç girilmemiş ürün atlanır.
+
 ### Excel'den aktar [Bağımsız mod]
 
 **Ne işe yarar:** Çok sayıda cari ya da ürün kartını tek seferde yükler. İsterseniz açılış bakiyesini ve açılış stokunu da birlikte girersiniz.

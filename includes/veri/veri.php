@@ -256,3 +256,24 @@ if (!function_exists('lumen_tutar_coz')) {
         return is_numeric($s) ? (float) $s : 0.0;
     }
 }
+
+if (!function_exists('lumen_bellek_en_az')) {
+    /**
+     * Bellek sınırını en az $mb MB'a çıkarır (düşürmez; -1 sınırsızsa dokunmaz). Büyük Excel/PDF
+     * çıktılarında tablo kütüphaneleri varsayılan 128 MB'ı aşabiliyor.
+     */
+    function lumen_bellek_en_az(int $mb): void
+    {
+        $simdi = trim((string) ini_get('memory_limit'));
+        if ($simdi === '-1') {
+            return;
+        }
+        $sayi = (int) $simdi;
+        $mbSimdi = match (strtoupper(substr($simdi, -1))) {
+            'G' => $sayi * 1024, 'M' => $sayi, 'K' => intdiv($sayi, 1024), default => intdiv($sayi, 1048576),
+        };
+        if ($mbSimdi < $mb) {
+            @ini_set('memory_limit', $mb . 'M');
+        }
+    }
+}
