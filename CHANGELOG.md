@@ -1,5 +1,29 @@
 # Değişiklik Günlüğü
 
+## [1.3.0] — 2026-10-22 (KARARLI — Bağımsız Lumen)
+
+**Bağımsız Lumen kararlı sürümü.** Lumen LOGO Tiger olmadan, kendi veritabanıyla ön muhasebe
+programı olarak çalışır; LOGO'ya bağlı kullanım aynen devam eder (`.env` `LUMEN_VERI_KAYNAGI`,
+varsayılan `logo`).
+
+- **Bağımsız modda:** cari ve ürün kartları (ekleme/düzenleme), satış ve alış siparişi,
+  irsaliye ve fatura (dövizli dahil; siparişten/irsaliyeden kısmi), kasa/banka, çek, vade takibi,
+  toplu fiyat, raporlar, yedekleme ve geri yükleme, Excel'den aktarma, dönem kilidi, LOGO'dan
+  geçiş aracı (`scripts/logo_aktar.php`).
+- **Her iki modda:** v1.2.x'e göre güvenlik ve performans düzeltmeleri (ayrıntı: aşağıdaki
+  sürüm adayları ve betalar; v1.2.3 ve v1.2.4 kararlı düzeltmeleri dahil).
+- **Kabul:** sürüm adayları, kodu GitHub'dan çeken bağımsız bir yapay zekâ ajanıyla
+  `docs/test/KABUL_TESTI.md`'ye göre denendi (rc.1 koşullu → düzeltildi; rc.2 kabul).
+
+**Yükseltme (v1.2.x → v1.3.0, LOGO modu):** dosyaları güncelleyip `composer install`, sonra bir
+kez `php scripts/sema_guncelle.php`. LOGO tablolarına dokunulmaz; davranış değişmez.
+Bağımsız moda geçiş: `docs/mimari/bagimsiz-lumen.md` → "Kurulum ve LOGO'dan geçiş".
+Kullanım: `docs/kullanim/KILAVUZ.md`. Bilinen sınırlar: `docs/mimari/bagimsiz-lumen.md`.
+
+**Bilinen küçük konular** (sonraki bakım sürümü): belgede para birimi gidiş-dönüşünde fiyat
+kuruş kayması; Günlük İşlemler'de saat 00:00; telefonda yüzen göz düğmesi tabloların üstüne
+biniyor; sipariş ekranında kısmi teslim miktarı gösterilmiyor; aynı vergi no ikinci caride uyarı vermiyor.
+
 ## [1.3.0-rc.3] — 2026-10-22 (SÜRÜM ADAYI)
 
 > ⚠️ **Sürüm adayıdır.** Üretimde LOGO'ya bağlı kullanım için kararlı **v1.2.4**'ü kullanın.

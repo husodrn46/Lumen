@@ -2,7 +2,7 @@
 
 Bu kılavuz Lumen'i her gün kullanan muhasebe, satış ve depo personeli ile işletme sahibi için yazıldı. Ekranlardaki adlar ve düğme yazıları, programda gördüğünüz şekliyle **tırnak içinde** verilmiştir.
 
-> **İki çalışma modu vardır.** Lumen ya **LOGO Tiger'a bağlı** çalışır (kayıtlar LOGO'dadır, Lumen ön yüzdür) ya da **Bağımsız** çalışır (fatura, kasa/banka ve tanımlar Lumen'in içindedir; LOGO gerekmez). Hangi modda olduğunuzu "Sistem Ayarları" → "Sistem ve Yedek" → "Çalışma modu" bölümünde görürsünüz. Bağımsız mod şu an **BETA** (deneme) aşamasındadır.
+> **İki çalışma modu vardır.** Lumen ya **LOGO Tiger'a bağlı** çalışır (kayıtlar LOGO'dadır, Lumen ön yüzdür) ya da **Bağımsız** çalışır (fatura, kasa/banka ve tanımlar Lumen'in içindedir; LOGO gerekmez). Hangi modda olduğunuzu "Sistem Ayarları" → "Sistem ve Yedek" → "Çalışma modu" bölümünde görürsünüz.
 >
 > Yalnız bağımsız modda olan bölümler bu kılavuzda **[Bağımsız mod]** diye işaretlidir. Bu bölümler LOGO'ya bağlı modda menüde hiç görünmez.
 

@@ -315,7 +315,7 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
                         <label class="mod"><input type="radio" name="mod" value="logo" <?php echo $modSec === 'logo' ? 'checked' : ''; ?>>
                             <span><b><i class="fa-solid fa-link"></i> LOGO'ya bağlı</b><small>Veriler LOGO Tiger veritabanında; Lumen ön yüz olarak çalışır.</small></span></label>
                         <label class="mod"><input type="radio" name="mod" value="lumen" <?php echo $modSec === 'lumen' ? 'checked' : ''; ?>>
-                            <span><b><i class="fa-solid fa-database"></i> Bağımsız <span class="beta">BETA</span></b><small>LOGO gerekmez; cari, stok, fatura, kasa Lumen'in kendi veritabanında.</small></span></label>
+                            <span><b><i class="fa-solid fa-database"></i> Bağımsız</b><small>LOGO gerekmez; cari, stok, fatura, kasa Lumen'in kendi veritabanında.</small></span></label>
                     </div>
                     <div class="grid2">
                         <div class="alan"><label>SQL Server</label><input name="db_server" value="<?php echo $val('db_server', 'localhost'); ?>" required></div>

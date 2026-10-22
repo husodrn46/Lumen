@@ -168,7 +168,7 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
             <h2><i class="fa-solid fa-database"></i> Çalışma modu</h2>
             <div class="bilgi">
                 <div><div class="k">Mod</div><div class="v">
-                    <?php if ($bagimsiz): ?>Bağımsız <span class="rozet beta">BETA</span>
+                    <?php if ($bagimsiz): ?>Bağımsız
                     <?php else: ?>LOGO'ya bağlı <span class="rozet logo">LOGO</span><?php endif; ?></div></div>
                 <div><div class="k">Veritabanı</div><div class="v"><?= $h($veritabani) ?></div></div>
                 <div><div class="k">Veriler</div><div class="v"><?= $bagimsiz ? 'Lumen veritabanında' : 'LOGO Tiger tablolarında' ?></div></div>
