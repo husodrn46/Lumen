@@ -172,12 +172,17 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
     function satirEkle(u) {
         var bos = tbody.querySelector('tr.bos'); if (bos) bos.remove();
         var tr = document.createElement('tr'); tr.className = 'satir';
-        var birimler = u.birimler.map(function (b) { return '<option value="' + b.id + '">' + esc(b.kod) + (b.carpan !== 1 ? ' (' + b.carpan + ')' : '') + '</option>'; }).join('');
+        // Fiyat ana birim içindir; satır birimi değişince çarpanla çevrilir (1 KOLİ = 12 ADET → fiyat × 12).
+        // Barkodla bulunduysa barkodun birimi (ör. koli barkodu) seçili gelir.
+        var secBirim = u.barkod_birim || (u.birimler[0] ? u.birimler[0].id : 0);
+        var carpanOf = function (id) { var b = u.birimler.filter(function (x) { return x.id === id; })[0]; return b ? b.carpan : 1; };
+        var birimler = u.birimler.map(function (b) { return '<option value="' + b.id + '"' + (b.id === secBirim ? ' selected' : '') + '>' + esc(b.kod) + (b.carpan !== 1 ? ' (' + b.carpan + ')' : '') + '</option>'; }).join('');
+        var ilkFiyat = cevir(u.fiyat, u.pb || 'TRY') * carpanOf(secBirim);
         tr.innerHTML = '<td><input type="hidden" name="satir[stok_id][]" value="' + u.id + '"><span class="koyu">' + esc(u.kod) + '</span> ' + esc(u.ad)
             + (u.eldeki === null ? '' : '<div class="soluk">Eldeki: ' + u.eldeki.toLocaleString('tr-TR') + '</div>') + '</td>'
             + '<td><input name="satir[miktar][]" inputmode="decimal" value="1"></td>'
             + '<td><select name="satir[birim_id][]">' + birimler + '</select></td>'
-            + '<td><input name="satir[fiyat][]" inputmode="decimal" value="' + String(Math.round(cevir(u.fiyat, u.pb || 'TRY') * 10000) / 10000).replace('.', ',') + '"></td>'
+            + '<td><input name="satir[fiyat][]" inputmode="decimal" value="' + String(Math.round(ilkFiyat * 10000) / 10000).replace('.', ',') + '"></td>'
             + '<td><input name="satir[iskonto][]" inputmode="decimal" value="0"></td>'
             + '<td><input name="satir[kdv][]" inputmode="decimal" value="' + u.kdv + '"></td>'
             + '<td class="sag koyu tutar"></td>'
@@ -185,6 +190,13 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
         tbody.appendChild(tr);
         tr.querySelectorAll('input').forEach(function (i) { i.addEventListener('input', hesapla); });
         tr.querySelector('.sil').addEventListener('click', function () { tr.remove(); hesapla(); });
+        var birimSec = tr.querySelector('[name="satir[birim_id][]"]'), oncekiCarpan = carpanOf(secBirim);
+        birimSec.addEventListener('change', function () {
+            var yeniCarpan = carpanOf(parseInt(birimSec.value, 10)), fg = tr.querySelector('[name="satir[fiyat][]"]');
+            if (oncekiCarpan > 0) { fg.value = String(Math.round(sayi(fg.value) / oncekiCarpan * yeniCarpan * 10000) / 10000).replace('.', ','); }
+            oncekiCarpan = yeniCarpan;
+            hesapla();
+        });
         hesapla();
         tr.querySelector('[name="satir[miktar][]"]').select();
     }

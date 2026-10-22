@@ -63,6 +63,7 @@ $barkodlar = isset($hataMesaj)
 $ekBirimler[] = [0, ''];
 $ekBirimler[] = [0, ''];
 $barkodlar[] = ['', 0];
+$barkodlar[] = ['', 0];
 $fiyatYaz = static fn(?float $f): string => $f === null ? '' : number_format($f, 2, ',', '');
 $anaBirim = (int) ($k['ANA_BIRIM_ID'] ?? $deger('ana_birim_id', $adet));
 $kdvSecenek = [0, 1, 10, 20];
@@ -143,7 +144,7 @@ if (isset($hataMesaj)) {
                 <div class="s"><input name="barkod[]" maxlength="60" placeholder="barkod" value="<?= bh((string) $bk) ?>"><?= $birimSecim('barkod_birim[]', (int) $bb) ?></div>
                 <?php endforeach; ?>
             </div>
-            <div class="not">Birim boşsa barkod ana birime aittir. Daha fazla satır için kaydedip yeniden açın.</div>
+            <div class="not">Birim boşsa barkod ana birime aittir; koli barkodunun yanında KOLİ'yi seçin. Daha fazla satır için kaydedip yeniden açın.</div>
         </div>
     </div>
 

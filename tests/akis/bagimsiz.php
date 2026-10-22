@@ -506,6 +506,8 @@ akis('ürün kartı: ekle (birim, barkod, fiyat) → düzenle → aramada ve bel
     $ara = json_decode($yonetici->istek('stok/urun_arama_ajax.php', ['barkod' => "869{$kod}K"])['govde'], true);
     bekle(str_contains((string) ($ara['html'] ?? ''), "kart/stok.php?id={$id}"), 'koli barkoduyla stok aramasında çıkmadı');
     bekle(str_contains($yonetici->istek('belge/stok_ara.php?yon=1&q=' . rawurlencode($kod))['govde'], $kod), 'belge ürün aramasında çıkmadı');
+    $koliAra = json_decode($yonetici->istek('belge/stok_ara.php?yon=1&q=' . rawurlencode("869{$kod}K"))['govde'], true);
+    bekle(($koliAra[0]['barkod_birim'] ?? null) === $birim('KOLI'), 'koli barkoduyla aramada barkodun birimi (KOLI) gelmedi');
     // Aynı kod ve başka üründeki barkod reddedilir
     $gonder(['kod' => $kod, 'ad' => 'Kopya', 'ana_birim_id' => $birim('ADET')]);
     bekle((int) tek($pdo, "SELECT COUNT(*) FROM LM_STOK WHERE KOD = '{$kod}'") === 1, 'aynı kodla ikinci ürün açıldı');
