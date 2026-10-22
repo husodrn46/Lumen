@@ -1473,6 +1473,17 @@ if (!function_exists('m_p_bakiye_erisim_var_mi')) {
   }
 }
 
+if (!function_exists('m_p_cari_finans_erisim_var_mi')) {
+  /**
+   * Bir carinin finans bilgilerini (kart, ekstre, fatura/nakit detayı) görme: bakiye (M4/M20)
+   * ya da cari bakiye/ekstre (CR1/CR2) yetkisi. Yönetici her zaman. Özel cari kısıtı ayrıca uygulanır.
+   */
+  function m_p_cari_finans_erisim_var_mi(int|string $id): bool
+  {
+    return m_p_yetki_kodlarindan_birine_sahip_mi($id, ['M4', 'M20', 'CR1', 'CR2']);
+  }
+}
+
 if (!function_exists('m_p_yetki_etiketleri')) {
   /**
    * Teşhis ve yönetim ekranlarında ortak kullanılacak yetki etiketleri.

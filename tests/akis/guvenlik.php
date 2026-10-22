@@ -230,6 +230,19 @@ akis('kasa/banka açılış fişi: yönetici keser, diğer kullanıcı kesemez',
     $y->istek('finans/islem.php', ['csrf_token' => $y->belirtec("finans/goster.php?id={$fis}"), 'islem' => 'iptal', 'id' => $fis]);
 });
 
+akis('cari finans bilgisi: bakiye/ekstre yetkisi olmayan kullanıcı cari kartı, ekstre ve PDF/Excel açamaz; sipariş özet tutarları fiyat yetkisiz gizli', function () use ($pdo, $URL): void {
+    $d = (new Tarayici($URL))->giris('DEPO1');   // M15 + ST1; M4/CR yok
+    foreach (['kart/cari.php?id=2', 'cari/lg_hareket.php?cariid=2', 'cari/lg_hareket_ekstre_pdf.php?cariid=2', 'cari/lg_hareket_ekstre_excel.php?cariid=2'] as $yol) {
+        bekle($d->istek($yol)['kod'] === 403, "yetkisiz kullanıcı {$yol} açtı");
+    }
+    $s = (new Tarayici($URL))->giris('SATIS1');  // M4 + CR1/CR2
+    bekle($s->istek('cari/lg_hareket.php?cariid=2')['kod'] === 200, 'bakiye yetkili kullanıcı ekstreyi açamadı');
+    $sip = (int) tek($pdo, 'SELECT TOP 1 ID FROM LM_BELGE WHERE TUR = 1 AND YON = 1 AND DURUM = 1 AND NET > 0 ORDER BY ID');
+    $net = number_format((float) tek($pdo, "SELECT NET FROM LM_BELGE WHERE ID = {$sip}"), 2, ',', '.');
+    $g = $d->istek("siparis/lg_fis.php?stokhareket={$sip}");
+    bekle($g['kod'] !== 200 || !str_contains($g['govde'], $net), 'fiyat yetkisiz kullanıcı sipariş genel toplamını görüyor');
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);
