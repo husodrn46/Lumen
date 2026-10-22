@@ -308,9 +308,10 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
     <title><?php echo htmlspecialchars((string)$siparis['FICHENO']); ?> - Dövizli Sipariş</title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <script>
         if (typeof tailwind !== 'undefined') {
-            tailwind.config = { corePlugins: { preflight: false } };
+            tailwind.config = { darkMode: 'class', corePlugins: { preflight: false } };
         } else {
             // CDN fallback
             var s = document.createElement('script');

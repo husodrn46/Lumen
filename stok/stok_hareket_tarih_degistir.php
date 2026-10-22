@@ -78,21 +78,9 @@ if (isset($_POST['yeni_tarih'])) {
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
         }
@@ -105,21 +93,6 @@ if (isset($_POST['yeni_tarih'])) {
                 var(--bg);
             color: var(--text-1);
             min-height: 100vh;
-        }
-
-        /* TOP HEADER */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-            padding: 12px 18px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
         }
         .top-header .back-btn {
             width: 38px;
@@ -314,7 +287,6 @@ if (isset($_POST['yeni_tarih'])) {
 
         /* RESPONSIVE */
         @media (max-width: 480px) {
-            .top-header { padding: 10px 14px; }
             .top-header .header-title { font-size: 13.5px; }
             .main-wrap { padding: 22px 14px 32px; }
             .glass-card { padding: 28px 20px 24px; border-radius: 16px; }

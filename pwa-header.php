@@ -266,7 +266,17 @@ if (function_exists('kisisel_ayarlar')) {
       uygula(yeni);
     });
     /* Başlık çubuğu varsa düğme orada durur (içeriğin üstüne binmez); yoksa sağ altta, içeriğe yer bırakarak */
-    var baslik=document.querySelector('.top-header .header-inner');
+    var esnek=function(e){return e&&getComputedStyle(e).display.indexOf('flex')>=0?e:null;};
+    var baslik=document.querySelector('.top-header .header-right, .top-header .header-eylem, .top-header .header-actions, body > header .aksiyon, body > header .actions')
+      ||document.querySelector('.top-header .header-inner, .top-header-inner')
+      ||(function(){var hd=document.querySelector('body > header, header');if(!hd)return null;
+          return esnek(hd.querySelector(':scope > div'))||esnek(hd);})();
+    /* Başlık satırı "iki uç" düzenindeyse (sol grup … sağ grup) düğme sağ gruba girer */
+    if(baslik&&baslik.lastElementChild&&getComputedStyle(baslik).justifyContent.indexOf('space-between')>=0){
+      var son=baslik.lastElementChild;
+      if(esnek(son)&&!son.matches('a,button')){baslik=son;}
+      else{var grup=document.createElement('div');grup.className='header-eylem';baslik.insertBefore(grup,son);grup.appendChild(son);baslik=grup;}
+    }
     if(baslik){b.classList.add('baslikta');baslik.appendChild(b);}
     else{document.body.appendChild(b);document.body.classList.add('gizli-btn-yuzen');}
     var acik=false;try{acik=localStorage.getItem(KEY)==='1';}catch(e){}

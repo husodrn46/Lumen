@@ -109,30 +109,16 @@ $toplam = count($urunler);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiyat Listesi</title>
     <link rel="icon" type="image/png" href="icon.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <?php if (file_exists(__DIR__ . '/../tailwind.local.css')): ?>
         <link rel="stylesheet" href="../tailwind.local.css">
     <?php else: ?>
         <script src="https://cdn.tailwindcss.com"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <?php endif; ?>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
         }
 
         * { box-sizing: border-box; }
@@ -150,18 +136,6 @@ $toplam = count($urunler);
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 16px 32px;
-        }
-
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: saturate(180%) blur(12px);
-            -webkit-backdrop-filter: saturate(180%) blur(12px);
-            border-bottom: 1px solid var(--border);
-            margin: 0 -16px 20px;
-            padding: 14px 16px;
         }
 
         .top-header-inner {
@@ -203,19 +177,6 @@ $toplam = count($urunler);
             color: var(--red);
             font-size: 18px;
             flex-shrink: 0;
-        }
-
-        .header-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-1);
-            margin: 0;
-            line-height: 1.2;
-            flex: 1;
-            min-width: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .header-count {
@@ -413,8 +374,6 @@ $toplam = count($urunler);
 
         @media (max-width: 768px) {
             .page { padding: 0 12px 24px; }
-            .top-header { margin: 0 -12px 16px; padding: 12px; }
-            .header-title { font-size: 17px; }
             .filter-panel { padding: 12px; }
             .search-wrap { flex: 1 1 100%; }
             .btn { flex: 1 1 auto; }

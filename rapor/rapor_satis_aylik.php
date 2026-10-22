@@ -258,7 +258,7 @@ $yoyHtml = static function (float $simdiki, float $onceki): string {
             display: inline-flex; align-items: center; gap: 6px;
             font-size: 11.5px; font-weight: 700; padding: 6px 11px; border-radius: 999px;
             background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .16);
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px); color: inherit;
         }
         .rozet.up   { background: rgba(52, 211, 153, .22); border-color: rgba(110, 231, 183, .45); color: #d1fae5; }
         .rozet.down { background: rgba(248, 113, 113, .2); border-color: rgba(252, 165, 165, .4); color: #fecaca; }

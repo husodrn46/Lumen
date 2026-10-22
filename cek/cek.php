@@ -202,21 +202,9 @@ if ($mod === 'bordro') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#f9fafb; --card:#fff; --text-1:#1f2937; --text-2:#6b7280; --text-3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; }
         * { box-sizing: border-box; margin: 0; }
         body { font-family: 'Avenir Next', 'Montserrat', sans-serif; background: var(--bg); color: var(--text-1); min-height: 100vh; font-size: 14px; }
-
-        .top-header { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
-        .header-inner { max-width: 560px; margin: 0 auto; padding: 11px 16px; display: flex; align-items: center; gap: 12px; }
-        .header-back { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 9px; color: var(--text-2); text-decoration: none; transition: all 0.18s ease; flex-shrink: 0; }
-        .header-back:hover { background: rgba(0,0,0,0.05); color: var(--red); }
-        .header-title { font-size: 15px; font-weight: 600; flex: 1 1 auto; display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-        .header-title i { color: var(--red); }
         .btn-print { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--red); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.18s ease; flex-shrink: 0; }
         .btn-print:hover { background: #b91c1c; }
 
@@ -325,7 +313,6 @@ if ($mod === 'bordro') {
         .cek-up { font-size:12px; color:#b45309; padding:0 18px 12px; display:none; }
 
         @media (max-width: 560px) {
-            .header-inner { padding: 10px 12px; }
             main { padding: 14px 10px 40px; }
             .hero { padding: 15px 15px 13px; }
             .hero-tutar { font-size: 25px; }
@@ -339,7 +326,6 @@ if ($mod === 'bordro') {
         }
         @media print {
             body { background: #fff; }
-            .top-header { position: static; }
             .btn-print, .header-back, .cek-chevron, .akor-bas .ico { display: none !important; }
             .akor-icerik { display: block !important; }
             .card { border: 1px solid #ccc; break-inside: avoid; }

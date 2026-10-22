@@ -28,6 +28,7 @@ if (!function_exists('printer_open')) {
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
         <script src="https://cdn.tailwindcss.com"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
         <script>
           // Tailwind CDN fallback (offline / CSP)
           window.addEventListener('load', function(){

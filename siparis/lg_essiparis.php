@@ -465,26 +465,12 @@ foreach ($resultRows as $r) {
     <title>Siparis Listesi</title>
     <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" onerror="(function(){var s=document.createElement('script');s.defer=true;s.src='https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f9fafb;
             --surface: #ffffff;
-            --text-1: #1f2937;
-            --text-2: #4b5563;
-            --text-3: #6b7280;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
             --red-border: rgba(248, 113, 113, 0.25);
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
         }
@@ -500,62 +486,10 @@ foreach ($resultRows as $r) {
 
         [x-cloak]:not(.print-dropdown) { display: none !important; }
 
-        /* ═══════════ HEADER ═══════════ */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-            animation: headerSlide 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
-        .header-inner {
-            max-width: 1280px;
-            margin: 0 auto;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-        }
-
         .header-left {
             display: flex;
             align-items: center;
             gap: 14px;
-        }
-
-        .header-back {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            color: var(--text-2);
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-        .header-back:hover {
-            background: rgba(0,0,0,0.04);
-            color: var(--red);
-        }
-
-        .header-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-1);
-        }
-
-        .header-divider {
-            width: 1px;
-            height: 24px;
-            background: var(--border);
         }
 
         /* ═══════════ SUMMARY CARDS ═══════════ */
@@ -620,11 +554,6 @@ foreach ($resultRows as $r) {
         }
 
         @media (max-width: 767px) {
-            .top-header { height: 50px; }
-            .header-inner { padding: 0 12px; }
-            .header-title { font-size: 15px; }
-            .header-back { width: 30px; height: 30px; border-radius: 8px; }
-            .header-divider { height: 18px; }
 
             .summary-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
             .summary-card {

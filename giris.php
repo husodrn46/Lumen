@@ -251,6 +251,7 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
     <title>Lumen - Giris</title>
     <?php include_once(__DIR__ . '/pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
             --font-sans: "Segoe UI", Roboto, Arial, sans-serif;

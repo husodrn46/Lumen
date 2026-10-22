@@ -130,29 +130,14 @@ $mevcut_trcode = (int)$fis['TRCURR'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Döviz Seç</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="tailwind.local.js" onerror="var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);"></script>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include __DIR__ . '/../pwa-header.php'; } ?>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
         }
 
         * { box-sizing: border-box; }
@@ -164,16 +149,6 @@ $mevcut_trcode = (int)$fis['TRCURR'];
             margin: 0;
             padding: 0;
             -webkit-font-smoothing: antialiased;
-        }
-
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 30;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: saturate(180%) blur(14px);
-            -webkit-backdrop-filter: saturate(180%) blur(14px);
-            border-bottom: 1px solid var(--border);
         }
 
         .top-header-inner {
@@ -219,13 +194,6 @@ $mevcut_trcode = (int)$fis['TRCURR'];
         }
 
         .header-titles { flex: 1; min-width: 0; }
-        .header-title {
-            font-size: 17px;
-            font-weight: 600;
-            color: var(--text-1);
-            letter-spacing: -0.01em;
-            line-height: 1.2;
-        }
         .header-subtitle {
             font-size: 12px;
             color: var(--text-2);

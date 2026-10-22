@@ -115,23 +115,11 @@ function paraformat(float|int|string|null $kusurat): string
     <title><?php echo htmlspecialchars($fatura_baslik); ?></title>
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="/tm/css/tailwind.js"
             onerror="var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --purple: #7c3aed;
             --purple-soft: #f5f3ff;
             --sky: #0284c7;
@@ -144,33 +132,6 @@ function paraformat(float|int|string|null $kusurat): string
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(124, 58, 237, 0.18);
-            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.04);
-        }
-        .header-inner {
-            max-width: 980px; margin: 0 auto;
-            padding: 12px 22px;
-            display: flex; align-items: center; gap: 12px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 34px; height: 34px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--purple); }
-        .header-divider { width: 1px; height: 22px; background: var(--border); }
-        .header-title {
-            font-size: 15px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 7px;
-            flex: 1 1 auto;
-        }
-        .header-title i { color: var(--purple); font-size: 13px; }
         .btn-print {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 8px 14px; background: var(--red,#ef4444); color: #fff;
@@ -363,8 +324,6 @@ function paraformat(float|int|string|null $kusurat): string
         }
 
         @media (max-width: 767px) {
-            .header-inner { padding: 10px 14px; gap: 10px; }
-            .header-title { font-size: 13px; }
             .btn-print { padding: 7px 12px; font-size: 11.5px; }
 
             main { padding: 14px 12px 40px; }
@@ -406,7 +365,6 @@ function paraformat(float|int|string|null $kusurat): string
 
         @media print {
             body { background: #fff; }
-            .top-header { position: static; box-shadow: none; border-bottom: 2px solid #000; }
             .btn-print, .header-back { display: none !important; }
             .glass-card { box-shadow: none; border: 1px solid #ccc; animation: none; }
             .hizmet-table tbody tr:hover { background: transparent; }

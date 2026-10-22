@@ -275,26 +275,13 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $selectedYear; ?> Yıllık Özet Raporu</title>
+    <?php include_once __DIR__ . '/../pwa-header.php'; ?>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -307,29 +294,6 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(124, 58, 237, 0.18);
-            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.04);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-            flex-wrap: wrap;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; min-width: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--purple); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title { min-width: 0; flex: 1 1 auto; }
         .header-title h1 {
             font-size: 16px; font-weight: 700; color: var(--text-1);
             display: flex; align-items: center; gap: 8px; margin: 0;
@@ -523,7 +487,6 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
             .charts-grid, .top-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
             .header-title h1 { font-size: 14px; }
             .header-title p { font-size: 10.5px; }
             main { padding: 14px 12px 40px; }
@@ -555,7 +518,7 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
         </a>
         <div class="header-divider"></div>
         <div class="header-title">
-            <h1><span class="material-icons">summarize</span> Yillik Ozet Raporu</h1>
+            <h1><span class="material-icons">summarize</span> Yıllık Özet Raporu</h1>
             <p><?php echo $selectedYear; ?> yılı genel performans özeti</p>
         </div>
         <div class="header-actions">

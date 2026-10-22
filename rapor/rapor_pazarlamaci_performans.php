@@ -317,24 +317,11 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pazarlamaci Performans – <?php echo htmlspecialchars($cariPrefix, ENT_QUOTES, 'UTF-8'); ?> – <?php echo $year; ?></title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -348,36 +335,6 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             min-height: 100vh;
             margin: 0;
         }
-
-        /* HEADER */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            min-height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(5, 150, 105, 0.18);
-            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.04);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            min-height: 64px;
-            display: flex; align-items: center; gap: 14px;
-            padding: 10px 24px;
-            flex-wrap: wrap;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: var(--emerald-soft); color: var(--emerald); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            font-size: 18px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 10px;
-        }
-        .header-title i { color: var(--emerald); font-size: 16px; }
         .header-sub {
             font-size: 11.5px; color: var(--text-3);
             margin-left: 4px; font-weight: 500;
@@ -389,7 +346,6 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             font-family: 'Courier New', monospace;
             font-size: 11px; font-weight: 700;
         }
-        .header-spacer { flex: 1; }
         .header-form { display: flex; gap: 6px; align-items: center; }
         .header-form input {
             padding: 8px 12px 8px 34px;
@@ -741,11 +697,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             .split-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 767px) {
-            .top-header { min-height: 52px; }
-            .header-inner { padding: 8px 14px; gap: 10px; }
-            .header-title { font-size: 14px; }
             .header-sub { display: none; }
-            .header-back { width: 32px; height: 32px; border-radius: 8px; }
             .header-form input { width: 160px; }
 
             main.page { padding: 14px 12px 40px; }
@@ -769,7 +721,6 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             .no-print { display: none !important; }
             body { background: white !important; }
             .glass-card, .stat-card { box-shadow: none !important; animation: none !important; }
-            .top-header { position: static; }
         }
     </style>
 </head>

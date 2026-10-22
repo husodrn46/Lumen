@@ -75,27 +75,14 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Son 30 Gun Urun Performansi &ndash; Top 20</title>
+    <title>Son 30 Gün Ürün Performansı &ndash; En İyi 20</title>
+    <?php include_once __DIR__ . '/../pwa-header.php'; ?>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --amber-deep: #92400e;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
@@ -109,30 +96,6 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(217, 119, 6, 0.22);
-            box-shadow: 0 2px 8px rgba(217, 119, 6, 0.05);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-            flex-wrap: wrap;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover { background: var(--amber-soft); color: var(--amber); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-title { min-width: 0; flex: 1 1 auto; }
         .header-title h1 {
             font-size: 16px; font-weight: 700; color: var(--text-1);
             display: flex; align-items: center; gap: 8px; margin: 0;
@@ -315,7 +278,6 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
             .chart-box { height: 420px; }
         }
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
             .header-title h1 { font-size: 14px; }
             .header-actions { width: 100%; justify-content: flex-start; }
             main { padding: 14px 12px 40px; }
@@ -333,7 +295,6 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
 
         @media print {
             body { background: #fff; }
-            .top-header { position: static; box-shadow: none; border-bottom: 2px solid #000; }
             .no-print, .header-actions { display: none !important; }
             .stat-card, .glass-card { box-shadow: none; border: 1px solid #ccc; animation: none; }
             .chart-box { max-height: 320px; }

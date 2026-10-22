@@ -216,9 +216,11 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
    <title>Stok Hareket</title>
    <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
    <script src="/tm/css/tailwind.js"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
    <script>
       if (typeof tailwind !== 'undefined') {
          tailwind.config = {
+            darkMode: 'class',
             corePlugins: { preflight: false }
          };
       }

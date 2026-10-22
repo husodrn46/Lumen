@@ -404,28 +404,18 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
     <title>Lumen - Ana Sayfa</title>
     <?php include_once(__DIR__ . '/pwa-header.php'); ?>
     <script src="tm/css/tailwind.js"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
             --font-sans: "Segoe UI", Roboto, Arial, sans-serif;
-            --bg: #f9fafb;
             --surface: #ffffff;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
             --border-hover: #d1d5db;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
             --red-border: rgba(248, 113, 113, 0.25);
             --red-hover: rgba(239, 68, 68, 0.5);
             --red-shadow: rgba(111, 16, 34, 0.45);
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --amber-border: rgba(251, 191, 36, 0.3);
             --amber-hover: rgba(245, 158, 11, 0.5);
             --amber-shadow: rgba(217, 119, 6, 0.36);
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --emerald-border: rgba(16, 185, 129, 0.3);
             --emerald-hover: rgba(5, 150, 105, 0.5);
             --emerald-shadow: rgba(5, 150, 105, 0.35);
@@ -450,29 +440,9 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
             min-height: 100vh;
         }
 
-        /* ═══════════ HEADER ═══════════ */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-            animation: headerSlide 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
-        .header-inner {
-            max-width: 1280px;
-            margin: 0 auto;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-        }
+        /* Ana sayfa başlığı: ortak başlık (lumen.css) + logo/tarih solda, menü sağda */
+        .header-inner { max-width: 1280px; justify-content: space-between; }
+        .header-divider { display: block; width: 1px; height: 24px; background: var(--border); }
 
         .header-left {
             display: flex;
@@ -481,12 +451,6 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
         }
 
         .header-logo { height: 34px; width: auto; }
-
-        .header-divider {
-            width: 1px;
-            height: 24px;
-            background: var(--border);
-        }
 
         .header-date {
             font-size: 13px;
@@ -1273,7 +1237,6 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
 
         /* ═══════════ RESPONSIVE ═══════════ */
         @media (max-width: 768px) {
-            .top-header { height: 56px; }
             .h-btn-text { display: none; }
             .h-btn-badge { position: absolute; top: 4px; right: 2px; }
             .h-btn { padding: 10px 12px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }

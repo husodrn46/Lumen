@@ -687,27 +687,12 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Musteri Odeme Hizi</title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f9fafb;
             --surface: #ffffff;
-            --text-1: #1f2937;
-            --text-2: #4b5563;
-            --text-3: #6b7280;
-            --border: #dfe4ea;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -720,33 +705,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             color: var(--text-1);
             min-height: 100vh;
         }
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.9);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(79, 70, 229, 0.18);
-            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.05);
-        }
-        .header-inner {
-            max-width: 1240px; margin: 0 auto;
-            height: 100%; display: flex; align-items: center; gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all .2s ease;
-        }
-        .header-back:hover { background: var(--indigo-soft); color: var(--indigo); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            display: inline-flex; align-items: center; gap: 8px;
-            font-size: 18px; font-weight: 700; color: var(--text-1);
-        }
         .header-title .material-icons { color: var(--indigo); font-size: 20px; }
-        .header-spacer { flex: 1; }
         .header-chip {
             padding: 6px 11px; border-radius: 999px;
             background: var(--indigo-soft); color: var(--indigo);
@@ -1072,9 +1031,6 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             .header-chip { display: none; }
         }
         @media (max-width: 640px) {
-            .top-header { height: 54px; }
-            .header-inner { padding: 0 12px; gap: 10px; }
-            .header-title { font-size: 15px; }
             main.page { padding: 16px 12px 40px; }
             .selected-strip { align-items: flex-start; flex-direction: column; }
         }

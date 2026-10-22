@@ -53,26 +53,12 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (is_file(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
             --indigo-hover: #4338ca;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -93,30 +79,6 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding-bottom: 120px;
         }
         .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
-
-        /* ============ STICKY INDIGO TOP HEADER ============ */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            height: 64px;
-            background: rgba(79, 70, 229, 0.96);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            box-shadow: 0 2px 10px rgba(79, 70, 229, 0.2);
-            color: #fff;
-        }
-        .header-inner {
-            max-width: 1400px; margin: 0 auto;
-            height: 100%; display: flex; align-items: center; gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 40px; height: 40px; border-radius: 12px;
-            color: rgba(255,255,255,0.92); text-decoration: none;
-            transition: all 0.2s ease;
-            background: rgba(255,255,255,0.1);
-        }
-        .header-back:hover { background: rgba(255,255,255,0.22); color: #fff; }
         .header-icon {
             width: 40px; height: 40px;
             border-radius: 12px;
@@ -125,7 +87,6 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 16px; color: #fff;
         }
         .header-title-wrap { min-width: 0; flex: 1; }
-        .header-title { font-size: 17px; font-weight: 700; color: #fff; line-height: 1.2; }
         .header-sub { font-size: 11.5px; color: rgba(255,255,255,0.78); margin-top: 1px; }
         .header-badge {
             margin-left: auto;
@@ -611,8 +572,6 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
         /* ============ RESPONSIVE ============ */
         @media (max-width: 768px) {
             .wrap { padding: 14px; }
-            .header-inner { padding: 0 14px; gap: 10px; }
-            .header-title { font-size: 15px; }
             .header-sub { font-size: 10.5px; }
             .header-badge { display: none; }
             .card-head { padding: 14px 16px 12px; }

@@ -79,18 +79,10 @@ $csrfToken = function_exists('csrf_token') ? csrf_token() : '';
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
-        :root { --bg:#f9fafb; --text-1:#1f2937; --text-2:#6b7280; --text-3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; --amber:#d97706; --amber-soft:#fffbeb; }
         * { box-sizing:border-box; margin:0; }
         body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--text-1); min-height:100vh; }
-        .top-header { position:sticky; top:0; z-index:40; height:60px; background:rgba(255,255,255,0.92); backdrop-filter:blur(6px); border-bottom:1px solid rgba(248,113,113,0.18); }
-        .header-inner { max-width:900px; margin:0 auto; height:100%; display:flex; align-items:center; gap:12px; padding:0 18px; }
-        .header-back { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; color:var(--text-2); text-decoration:none; }
-        .header-back:hover { background:rgba(0,0,0,0.04); color:var(--red); }
-        .header-title { font-size:17px; font-weight:700; display:inline-flex; align-items:center; gap:8px; }
-        .header-title i { color:var(--red,#ef4444); }
         main { max-width:900px; margin:0 auto; padding:18px 18px 60px; }
         .ozet { display:flex; align-items:center; gap:10px; padding:13px 16px; border-radius:12px; margin-bottom:16px; font-size:14px; font-weight:600; }
         .ozet.uyari { background:var(--amber-soft); color:#92400e; border:1px solid #fde68a; }

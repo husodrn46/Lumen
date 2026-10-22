@@ -181,29 +181,16 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
             /* Ana tema kirmizi: --emerald* degiskenleri (header/hero/buton) kirmiziya cevrildi */
             --emerald: var(--red,#6F1022);
             --emerald-dark: #b91c1c;
-            --emerald-soft: #fef2f2;
             /* Gercek basari/pozitif gostergeler icin yesil korunur */
             --success: #059669;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: var(--red,#6F1022);
             --sky-soft: #fef2f2;
         }
@@ -217,19 +204,6 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
             color: var(--text-1);
             min-height: 100vh;
             padding-bottom: 40px;
-        }
-
-        /* STICKY EMERALD HEADER */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 30;
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-            padding: 12px 18px;
-            margin-bottom: 18px;
         }
         .top-header-inner {
             max-width: 640px;
@@ -646,7 +620,6 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
 
         /* RESPONSIVE */
         @media (max-width: 767px) {
-            .top-header { padding: 10px 14px; margin-bottom: 14px; }
             .top-header-title { font-size: 14px; }
             .top-header-sub { font-size: 11px; }
             .top-header-icon { width: 36px; height: 36px; font-size: 14px; }
