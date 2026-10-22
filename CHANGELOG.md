@@ -1,5 +1,24 @@
 # Değişiklik Günlüğü
 
+## [1.3.0-rc.1] — 2026-10-22 (SÜRÜM ADAYI)
+
+> ⚠️ **Sürüm adayıdır.** Kabul testi tamamlanınca v1.3.0 olarak yayımlanacak. Üretimde
+> LOGO'ya bağlı kullanım için kararlı **v1.2.3**'ü kullanın.
+
+**v1.3.0 = Bağımsız Lumen:** LOGO olmadan, kendi veritabanıyla ön muhasebe — cari ve ürün
+kartları, satış/alış siparişi, irsaliye ve fatura (dövizli dahil), kasa/banka, çek, vade
+takibi, toplu fiyat, raporlar, yedekleme, Excel'den aktarma ve LOGO'dan geçiş aracı.
+LOGO'ya bağlı kullanım aynen devam eder (`.env` `LUMEN_VERI_KAYNAGI`, varsayılan `logo`).
+
+- beta.1–beta.7'deki her şey (aşağıda) ve v1.2.3'e kadarki kararlı düzeltmeler.
+- Vade takibinde carinin vade günü yalnız faturalara uygulanır (avans/fazla tahsilat kendi
+  tarihiyle görünür). Kabul testi keşif listesine yeni ekranlar eklendi.
+
+**Yükseltme (v1.2.x → v1.3.0, LOGO modu):** dosyaları güncelleyip `composer install`, sonra
+bir kez `php scripts/sema_guncelle.php`. LOGO tablolarına dokunulmaz; davranış değişmez.
+Bağımsız moda geçiş: `docs/mimari/bagimsiz-lumen.md` → "Kurulum ve LOGO'dan geçiş".
+Kullanım: `docs/kullanim/KILAVUZ.md`. Bilinen sınırlar: `docs/mimari/bagimsiz-lumen.md`.
+
 ## [1.3.0-beta.7] — 2026-10-22 (ÖN SÜRÜM — Bağımsız Lumen BETA)
 
 > ⚠️ **Ön sürümdür (beta).** Üretim için kararlı **v1.2.2**'yi kullanın.
