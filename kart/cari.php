@@ -99,6 +99,7 @@ belge_sayfa_basla($c['UNVAN'], 'fa-address-card', '../cari/lg_bakiye.php?q=' . r
 </div>
 <div class="eylemler">
     <a class="btn btn-ikincil" href="../cari/lg_hareket.php?cariid=<?= $id ?>"><i class="fa-solid fa-list"></i> Ekstre</a>
+    <?php if ((int) $yetkidurum === 0 || (int) m_p_yetki($terminalkullanici, 'M12') === 1): ?><a class="btn btn-ikincil" href="cari_duzenle.php?id=<?= $id ?>"><i class="fa-solid fa-pen"></i> Düzenle</a><?php endif; ?>
     <?php if ($belgeYetki): ?><a class="btn btn-ikincil" href="../belge/yeni.php?tur=satis_fatura&cari=<?= $id ?>"><i class="fa-solid fa-file-invoice"></i> Fatura kes</a><?php endif; ?>
     <?php if ($finansYetki): ?><a class="btn btn-ikincil" href="../finans/yeni.php?tur=1&cari=<?= $id ?>"><i class="fa-solid fa-arrow-down"></i> Tahsilat</a>
         <a class="btn btn-ikincil" href="../finans/yeni.php?tur=2&cari=<?= $id ?>"><i class="fa-solid fa-arrow-up"></i> Ödeme</a><?php endif; ?>

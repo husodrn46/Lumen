@@ -868,13 +868,16 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                         <a href="../stok/stok_hareket_tarih_degistir.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-calendar" style="color:#8b5cf6;"></i> Tarih Değiştir
                         </a>
+                        <?php // Teklif çıktıları ayrı kurulur (açık kaynakta yok): dosya varsa bağlantı görünür
+                        $teklifler = array_filter(['resimsizteklif.php' => ['fa-file-alt', '#6b7280', 'Resimsiz Teklif'], 'resimliteklif.php' => ['fa-image', '#6366f1', 'Resimli Teklif']],
+                            static fn($d) => is_file(__DIR__ . '/' . $d), ARRAY_FILTER_USE_KEY);
+                        if ($teklifler): ?>
                         <div class="dropdown-divider"></div>
-                        <a href="resimsizteklif.php?stokhareket=<?php echo $stokhareket; ?>&yazdir=yazdir">
-                           <i class="fa fa-file-alt" style="color:#6b7280;"></i> Resimsiz Teklif
+                        <?php foreach ($teklifler as $dosya => [$ikon, $renk, $ad]): ?>
+                        <a href="<?php echo $dosya; ?>?stokhareket=<?php echo $stokhareket; ?>&yazdir=yazdir">
+                           <i class="fa <?php echo $ikon; ?>" style="color:<?php echo $renk; ?>;"></i> <?php echo $ad; ?>
                         </a>
-                        <a href="resimliteklif.php?stokhareket=<?php echo $stokhareket; ?>&yazdir=yazdir">
-                           <i class="fa fa-image" style="color:#6366f1;"></i> Resimli Teklif
-                        </a>
+                        <?php endforeach; endif; ?>
                      </div>
                   </div>
                </div>

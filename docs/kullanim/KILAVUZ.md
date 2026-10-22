@@ -157,6 +157,19 @@ Listede her kullanıcının yanında "Düzenle", "Pasife al" / "Aktife al" ve "S
 
 **Dikkat:** Vergi bilgileri, adres ve açılış bakiyesiyle çok sayıda cari girmek için "Excel'den aktar" kullanın (aşağıda).
 
+### Cari kartını düzenlemek [Bağımsız mod]
+
+1. Cari kartını açın (bakiye listesinde ya da aramada cariye tıklayın) ve "Düzenle"ye basın ("Yeni Cari" yetkisi ya da yönetici gerekir).
+2. Unvan, tür (alıcı / satıcı / ikisi), vergi dairesi ve vergi no / TCKN, adres, telefon, e-posta, vade günü, risk limiti, özel kod ve pazarlamacıyı girin.
+3. "Kaydet"e basın.
+
+**Dikkat**
+
+- Cari kodu değişmez.
+- Vergi no 10, TCKN 11 hanedir; son hanesi (kontrol basamağı) tutmayan numara kabul edilmez.
+- Vade günü, vadesi girilmeyen faturaların vadesini belirler (vade takibi bu tarihe bakar).
+- Kullanmadığınız cariyi silmek yerine "Aktif" işaretini kaldırın.
+
 ### Ürün (stok kartı)
 
 **[Bağımsız mod] Tek ürün eklemek:**

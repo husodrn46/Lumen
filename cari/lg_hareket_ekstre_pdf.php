@@ -81,7 +81,7 @@ function ekstre_tarih(?string $t): string
 }
 
 $bakiyeMutlak = abs($resmi_bakiye);
-$bakiyeDurum = abs($resmi_bakiye) < 0.01 ? '' : ($resmi_bakiye > 0 ? 'Borclu' : 'Alacakli');
+$bakiyeDurum = abs($resmi_bakiye) < 0.01 ? '' : ($resmi_bakiye > 0 ? 'Borçlu' : 'Alacaklı');
 $bakiyeRenk = $resmi_bakiye > 0 ? '#b91c1c' : ($resmi_bakiye < 0 ? '#059669' : '#374151');
 
 // --- Cari iletisim/adres/vergi (bos alanlar gizlenir) ---
@@ -140,7 +140,7 @@ table.summary td {
 }
 table.summary td.bakiye-cell { background: #fef2f2; border: 1px solid #fca5a5; }
 .summary .lbl {
-    font-size: 7.5pt; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px;
+    font-size: 7.5pt; color: #6b7280; letter-spacing: 0.4px;
     font-weight: bold; display: block;
 }
 .summary .val { font-size: 11pt; font-weight: bold; display: block; margin-top: 3px; color: #374151; }
@@ -235,19 +235,19 @@ table.footer-wrap td { vertical-align: bottom; font-size: 7.5pt; color: #9ca3af;
 <table class="summary">
     <tr>
         <td>
-            <span class="lbl">Önceki Dönem Devri</span>
+            <span class="lbl">ÖNCEKİ DÖNEM DEVRİ</span>
             <span class="val"><?php echo ekstre_para($baslangic_bakiye); ?> TL</span>
         </td>
         <td>
-            <span class="lbl">Toplam Çıkış (Borç)</span>
+            <span class="lbl">TOPLAM ÇIKIŞ (BORÇ)</span>
             <span class="val cikis"><?php echo ekstre_para($toplam_borc); ?> TL</span>
         </td>
         <td>
-            <span class="lbl">Toplam Giris (Alacak)</span>
+            <span class="lbl">TOPLAM GİRİŞ (ALACAK)</span>
             <span class="val giris"><?php echo ekstre_para($toplam_alacak); ?> TL</span>
         </td>
         <td class="bakiye-cell">
-            <span class="lbl">Guncel Bakiye</span>
+            <span class="lbl">GÜNCEL BAKİYE</span>
             <span class="val"><?php echo ekstre_para($bakiyeMutlak); ?> TL</span>
             <?php if ($bakiyeDurum !== ''): ?><span class="durum">(<?php echo $bakiyeDurum; ?>)</span><?php endif; ?>
         </td>
@@ -334,7 +334,7 @@ if (empty($hareketler) && abs($baslangic_bakiye) <= 0.01) {
 
 <table class="footer-wrap">
     <tr>
-        <td>Bu ekstre <?php echo date('d.m.Y H:i'); ?> tarihinde olusturulmustur.</td>
+        <td>Bu ekstre <?php echo date('d.m.Y H:i'); ?> tarihinde oluşturulmuştur.</td>
         <td class="imza-box"><div class="imza-line">Kase / Imza</div></td>
     </tr>
 </table>

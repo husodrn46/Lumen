@@ -163,7 +163,7 @@ function _str(mixed $s): string{ return trcevir($s); }
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Taslak Siparisler</title>
+  <title>Taslak Siparişler</title>
   <link rel="icon" type="image/png" href="../icon.png">
   <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
@@ -474,7 +474,7 @@ function _str(mixed $s): string{ return trcevir($s); }
       </a>
       <div class="header-divider"></div>
       <span class="header-title">
-        <i class="fa-solid fa-recycle"></i>Taslak Siparisler
+        <i class="fa-solid fa-recycle"></i>Taslak Siparişler
         <span class="badge-info">NETTOTAL = 0</span>
         <?php if ($isAdmin): ?><span class="badge-info" style="background:#eef2ff;color:#4f46e5;border-color:rgba(79,70,229,0.22);"><i class="fa-solid fa-users-gear"></i> Tüm personel</span><?php endif; ?>
       </span>

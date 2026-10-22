@@ -51,7 +51,8 @@ belge_sayfa_basla('Vade takibi', 'fa-calendar-check', 'dashboard.php');
     .ozet .red b { color: var(--red); } .ozet .amber b { color: var(--amber); }
     .gec { color: var(--red); font-weight: 700; } .yakin { color: var(--amber); font-weight: 600; }
     /* Telefonda belge tarihi ve ilk tutar gizlenir: vade, cari, açık tutar ve durum sığsın */
-    @media (max-width: 640px) { .tel-gizle { display: none; } table.liste td, table.liste th { padding-left: 6px; padding-right: 6px; } }
+    @media (max-width: 640px) { .tel-gizle { display: none; } table.liste { font-size: 12px; } table.liste td, table.liste th { padding-left: 5px; padding-right: 5px; }
+        table.liste td:nth-child(2) .koyu { display: block; } .gec, .yakin { white-space: normal; } }
 </style>
 <nav class="sekmeler">
     <a href="?yon=tahsil" class="<?= $yon === 'tahsil' ? 'aktif' : '' ?>"><i class="fa-solid fa-hand-holding-dollar"></i> Tahsil edilecek</a>

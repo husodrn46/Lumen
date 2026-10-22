@@ -551,6 +551,11 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
         $is_hizli_miktar_processed = false;
 $stmt_barcode = $dbh->prepare("SELECT TOP 1 B.ITEMREF FROM {$firma}UNITBARCODE B INNER JOIN {$firma}ITEMS S ON B.ITEMREF=S.LOGICALREF WHERE B.BARCODE = :barkod AND S.ACTIVE=0 ");
 $stmt_barcode->execute([':barkod' => $a_barkod]);
+// Okutulan barkod bir KOLİ birimine aitse o ürünün satırı "Koli" kipinde açılır (1 okutma = 1 koli)
+$stmtKoliBarkod = $dbh->prepare("SELECT TOP 1 B.ITEMREF FROM {$firma}UNITBARCODE B JOIN {$firma}UNITSETL U ON U.LOGICALREF = B.UNITLINEREF
+                                 WHERE B.BARCODE = :barkod AND U.CODE = 'KOLI'");
+$stmtKoliBarkod->execute([':barkod' => $a_barkod]);
+$koliBarkodUrun = (int) ($stmtKoliBarkod->fetchColumn() ?: 0);
 $barcode_match = $stmt_barcode->fetch(PDO::FETCH_ASSOC);
 if ($barcode_match) {
   $stokid_match = intcevir($barcode_match['ITEMREF']);
@@ -747,14 +752,15 @@ while ($row = $stmt_list->fetch(PDO::FETCH_ASSOC)) {
         <input type="hidden" name="cstok_fiyati[]" value="<?php echo kusuratpara($fiyati); ?>">
         <?php endif; ?>
 
-        <div class="qty-field"<?php echo $koliVar ? ' data-koli-field data-mode="adet"' : ''; ?>>
+        <?php $koliKip = $koliVar && $koliBarkodUrun === $stokidx; ?>
+        <div class="qty-field"<?php echo $koliVar ? ' data-koli-field data-mode="' . ($koliKip ? 'koli' : 'adet') . '"' : ''; ?>>
           <?php if ($koliVar): ?>
           <div class="unit-toggle" role="group" aria-label="Birim seçimi">
-            <button type="button" class="ut-btn on" data-mode="adet">Adet</button>
-            <button type="button" class="ut-btn" data-mode="koli">Koli</button>
+            <button type="button" class="ut-btn<?php echo $koliKip ? '' : ' on'; ?>" data-mode="adet">Adet</button>
+            <button type="button" class="ut-btn<?php echo $koliKip ? ' on' : ''; ?>" data-mode="koli">Koli</button>
           </div>
-          <input type="number" step="any" class="qty-input qty-koli" data-koli="<?php echo $koliGoster; ?>"
-                 placeholder="Miktar" inputmode="decimal" aria-label="Miktar"
+          <input type="number" step="any" class="qty-input qty-koli<?php echo $koliKip ? ' mode-koli' : ''; ?>" data-koli="<?php echo $koliGoster; ?>"
+                 placeholder="<?php echo $koliKip ? 'Kaç koli?' : 'Miktar'; ?>" inputmode="decimal" aria-label="Miktar"
                  oninput="kbSync(this.closest('.qty-field'))">
           <input type="hidden" name="cstok_miktari[]" class="qty-real" value="">
           <div class="koli-hint"><span class="kref">1 koli = <?php echo $koliGoster; ?> adet</span><span class="kcalc"></span></div>

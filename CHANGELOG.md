@@ -1,5 +1,23 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı] — 1.3.0-rc.3 adayı
+
+rc.2'nin yeniden kabul denemesinde (yapay zekâ ajanı) karar **KABUL**; bildirilen küçük konular:
+
+### ✨ Yeni
+- **Cari kartı düzenleme** (bağımsız mod, cari kartında "Düzenle"): unvan, tür, vergi bilgileri,
+  adres, iletişim, vade günü, risk limiti, özel kod, pazarlamacı, aktiflik. Önceden yalnız Excel'le.
+
+### 🔒 Güvenlik
+- Yazdırma tasarım ekranı sunucu dosya yolunu ve veritabanı hata metnini her kullanıcıya
+  gösteriyordu (`?debug=1` ile ayrıntı da); artık yalnız yöneticiye.
+
+### 🐛 Düzeltmeler
+- Sipariş ekranında koli barkodu okutulunca satır "Koli" kipinde açılır.
+- Sipariş ekranında var olmayan "Resimli/Resimsiz Teklif" bağlantıları gizlendi (dosya varsa görünür).
+- Ekstre ekranı ve PDF'inde Türkçe harfler ("İŞLEM TÜRÜ", "TOPLAM GİRİŞ", "Borçlu"); bazı başlıklar.
+- Vade takibi telefonda daha sığar; Yeni Cari ekranı bağımsız modda doğru yönlendirir.
+
 ## [1.3.0-rc.2] — 2026-10-22 (SÜRÜM ADAYI)
 
 > ⚠️ **Sürüm adayıdır.** Üretimde LOGO'ya bağlı kullanım için kararlı **v1.2.4**'ü kullanın.

@@ -181,7 +181,7 @@ $csrf = function_exists('csrf_field') ? csrf_field() : '';
                     <div class="form-row">
                         <label class="form-label">Cari Kodu (otomatik)</label>
                         <input type="text" class="form-input" value="<?php echo htmlspecialchars($sonrakiKod, ENT_QUOTES, 'UTF-8'); ?>" readonly>
-                        <div class="kod-hint">Kod otomatik atanir. Diger bilgileri (adres, vergi vb.) sonradan LOGO'dan tamamlayabilirsiniz.</div>
+                        <div class="kod-hint">Kod otomatik atanır. Diğer bilgileri (adres, vergi, vade vb.) sonradan <?php echo lumen_bagimsiz_mi() ? 'cari kartındaki &quot;Düzenle&quot; ile' : 'LOGO\'dan'; ?> tamamlayabilirsiniz.</div>
                     </div>
 
                     <button type="submit" class="btn-primary"><i class="fa-solid fa-floppy-disk"></i> Cariyi Olustur</button>

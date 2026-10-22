@@ -736,6 +736,31 @@ akis('siparişte KDV %0 kalmış satır: Faturala ekranı ürün KDV\'sini öner
     $pdo->exec("DELETE FROM LMV_ORFLINE WHERE LOGICALREF = {$yeni['ID']}");
 });
 
+akis('cari kartı düzenle: adres, vergi, vade, risk; geçersiz vergi no reddedilir; yetkisiz giremez', function () use ($yonetici, $pdo, $URL): void {
+    $kod = 'CD.' . random_int(10000, 99999);
+    $pdo->exec("INSERT INTO LM_CARI (KOD, UNVAN) VALUES ('{$kod}', N'Düzenleme deneme')");
+    $id = (int) tek($pdo, "SELECT ID FROM LM_CARI WHERE KOD = '{$kod}'");
+    $gonder = static fn(array $a): array => $yonetici->istek('kart/cari_duzenle.php', ['csrf_token' => $yonetici->belirtec("kart/cari_duzenle.php?id={$id}"), 'id' => $id] + $a);
+    $alan = ['unvan' => 'Düzenlendi Ltd.', 'tur' => '1', 'vergi_dairesi' => 'Kadıköy', 'vergi_no' => '4829103755', 'il' => 'İstanbul', 'ilce' => 'Kadıköy',
+        'adres' => 'Moda Cd. 1', 'telefon' => '0216 000 00 00', 'eposta' => 'muhasebe@ornek.test', 'vade_gun' => '45', 'risk_limiti' => '50.000', 'aktif' => '1'];
+    $r = $gonder($alan);
+    bekle($r['kod'] === 303, 'cari kartı kaydedilmedi');
+    $c = $pdo->query("SELECT * FROM LM_CARI WHERE ID = {$id}")->fetch(PDO::FETCH_ASSOC);
+    bekle($c['UNVAN'] === 'Düzenlendi Ltd.' && (int) $c['TUR'] === 1 && $c['VERGI_NO'] === '4829103755' && $c['TC_NO'] === null && (int) $c['VADE_GUN'] === 45
+        && $c['IL'] === 'İstanbul' && $c['EPOSTA'] === 'muhasebe@ornek.test', 'alanlar yazılmadı');
+    yakin(50000.0, (float) $c['RISK_LIMITI'], 'risk limiti');
+    $h = $gonder(['vergi_no' => '4829103751'] + $alan);
+    bekle($h['kod'] === 200 && str_contains($h['govde'], 'geçersiz'), 'kontrol basamağı tutmayan vergi no kabul edildi');
+    $pasif = ['vergi_no' => '10000000146'] + $alan;
+    unset($pasif['aktif']);   // işaretsiz kutu tarayıcıdan hiç gönderilmez
+    $gonder($pasif);
+    $c = $pdo->query("SELECT VERGI_NO, TC_NO, AKTIF FROM LM_CARI WHERE ID = {$id}")->fetch(PDO::FETCH_ASSOC);
+    bekle($c['TC_NO'] === '10000000146' && $c['VERGI_NO'] === null && (int) $c['AKTIF'] === 0, 'TCKN / pasifleştirme yazılmadı');
+    bekle(str_contains($yonetici->istek('kart/cari.php?id=2')['govde'], 'cari_duzenle.php?id=2'), 'cari kartında Düzenle yok');
+    $depo = (new Tarayici($URL))->giris('DEPO1');
+    bekle($depo->istek("kart/cari_duzenle.php?id={$id}")['kod'] === 403, 'yetkisiz kullanıcı cari düzenleme ekranını açtı');
+});
+
 // ---------------------------------------------------------------- kasa / banka / çek (Faz 5)
 
 /** Kasa/banka fişi formunu gönderir; sonuçtaki fiş kimliğini (yönlendirmeden) döndürür. */

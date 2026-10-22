@@ -549,21 +549,21 @@ function paraformat(float|int|string|null $kusurat): string
             <div class="stat-card emerald">
                 <span class="icon-box"><i class="fa-solid fa-arrow-down"></i></span>
                 <div class="stat-body">
-                    <span class="stat-label">Toplam Giris (Alacak)</span>
+                    <span class="stat-label">Toplam Giriş (Alacak)</span>
                     <span class="stat-value"><?php echo paraformat($toplam_alacak); ?> &#8378;</span>
                 </div>
             </div>
             <div class="stat-card red">
                 <span class="icon-box"><i class="fa-solid fa-arrow-up"></i></span>
                 <div class="stat-body">
-                    <span class="stat-label">Toplam Cikis (Borc)</span>
+                    <span class="stat-label">Toplam Çıkış (Borç)</span>
                     <span class="stat-value"><?php echo paraformat($toplam_borc); ?> &#8378;</span>
                 </div>
             </div>
             <?php
             $bakiye_pozitif = $resmi_bakiye > 0;
             $bakiyeClass = $bakiye_pozitif ? 'emerald' : 'red';
-            $bakiyeLabel = $bakiye_pozitif ? 'Borclu' : 'Alacakli';
+            $bakiyeLabel = $bakiye_pozitif ? 'Borçlu' : 'Alacaklı';
             if (abs($resmi_bakiye) < 0.01) {
                 $bakiyeClass = 'indigo';
                 $bakiyeLabel = '';
@@ -584,10 +584,10 @@ function paraformat(float|int|string|null $kusurat): string
                     <thead>
                         <tr>
                             <th>Tarih</th>
-                            <th>Islem Turu</th>
+                            <th>İşlem Türü</th>
                             <th>Aciklama</th>
-                            <th class="right">Giris</th>
-                            <th class="right">Cikis</th>
+                            <th class="right">Giriş</th>
+                            <th class="right">Çıkış</th>
                             <th class="right">Bakiye</th>
                         </tr>
                     </thead>

@@ -585,7 +585,7 @@ if (!$hasSearch) {
         <div class="topcari-panel">
             <div class="topcari-head">
                 <i class="fa-solid fa-crown"></i>
-                <span>En Cok Islem Goren Musteriler</span>
+                <span>En Çok İşlem Gören Müşteriler</span>
             </div>
             <div class="topcari-list">
                 <?php foreach ($enCokCariler as $tcIx => $tc): ?>

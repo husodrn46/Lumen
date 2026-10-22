@@ -163,12 +163,12 @@ if (!function_exists('cari_ekstre_donem_etiketi')) {
     function cari_ekstre_donem_etiketi(string $donemSecim): string
     {
         if (lumen_bagimsiz_mi()) {
-            return 'Tum Hareketler';
+            return 'Tüm Hareketler';
         }
         return match ($donemSecim) {
-            'onceki' => 'Onceki Donem',
-            'tumu' => 'Tum Donemler',
-            default => 'Aktif Donem',
+            'onceki' => 'Önceki Dönem',
+            'tumu' => 'Tüm Dönemler',
+            default => 'Aktif Dönem',
         };
     }
 }
