@@ -62,6 +62,12 @@ if ($filtreDoviz > 0) {
     $params[':doviz'] = $filtreDoviz;
 }
 
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'F.CLIENTREF', 'doviz_siparisler');
+if ($ozelCariFiltresi['sql'] !== '') {
+    $sql .= ' AND ' . $ozelCariFiltresi['sql'];
+    $params = array_merge($params, $ozelCariFiltresi['params']);
+}
+
 $sql .= " ORDER BY F.DATE_ DESC, F.LOGICALREF DESC";
 
 $stmt = $dbh->prepare($sql);

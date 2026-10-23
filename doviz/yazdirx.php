@@ -13,6 +13,10 @@ require_once __DIR__ . '/doviz_guard.php';
 doviz_require_m21($terminalkullanici);
 
 $reqId = (int)($_GET['id'] ?? 0);
+if ($reqId <= 0 || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $reqId)) {
+    lumen_hata_sayfasi('Erişim reddedildi', 'Bu siparişi görüntüleme yetkiniz bulunmuyor.', 403);
+    exit;
+}
 
 // Windows printer extension kontrolü
 if (!function_exists('printer_open')) {
@@ -223,12 +227,7 @@ if (!function_exists('printer_open')) {
     exit;
 }
 
-if(!isset($_GET['id'])){
-    echo '<div class="notification msgerror">Lütfen bir fiş numarası belirtin.</div>';
-    exit;
-}
-
-$stokhareket = (int)$_GET['id'];
+$stokhareket = $reqId;
 
 // Sipariş bilgilerini çek (döviz dahil)
 $stmtFis = $dbh->prepare("SELECT

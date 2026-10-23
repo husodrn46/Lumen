@@ -45,12 +45,22 @@ if ($o['kaynak'] === $o['hedef']) {
     exit(2);
 }
 $sunucu = (string) (getenv('AKL_DB_SERVER') ?: 'localhost');
-$baglan = static fn(string $db): PDO => new PDO(
-    "sqlsrv:server={$sunucu};database={$db};TrustServerCertificate=1",
-    (string) getenv('AKL_DB_USER'),
-    (string) getenv('AKL_DB_PASS'),
-    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-);
+$encrypt = (string) getenv('AKL_DB_ENCRYPT');
+$trustCert = (string) getenv('AKL_DB_TRUST_CERT') === '1' ? '1' : '0';
+$baglan = static function (string $db) use ($sunucu, $encrypt, $trustCert): PDO {
+    $dsn = "sqlsrv:server={$sunucu};database={$db}";
+    if ($encrypt === '0' || $encrypt === '1') {
+        $dsn .= ";Encrypt={$encrypt}";
+    }
+    $dsn .= ";TrustServerCertificate={$trustCert}";
+
+    return new PDO(
+        $dsn,
+        (string) getenv('AKL_DB_USER'),
+        (string) getenv('AKL_DB_PASS'),
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
+};
 
 try {
     $kaynak = $baglan((string) $o['kaynak']);
