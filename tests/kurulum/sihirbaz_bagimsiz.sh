@@ -37,10 +37,14 @@ CSRF=$(curl -s -c "$CEREZ" -b "$CEREZ" "$URL/kurulum.php" | grep -o 'name="csrf"
 [ -n "$CSRF" ] || hata "sihirbaz açılmadı"
 G=$(curl -s -c "$CEREZ" -b "$CEREZ" "$URL/kurulum.php" --data-urlencode "csrf=$CSRF" -d adim=1 -d mod=lumen \
     -d db_server="$AKL_DB_SERVER" -d db_name="$DB" --data-urlencode "db_user=$AKL_DB_USER" --data-urlencode "db_pass=$AKL_DB_PASS" \
-    --data-urlencode "firma_baslik=Kurulum Testi A.Ş." -d magaza_cari=0)
+    --data-urlencode "firma_baslik=Kurulum Testi A.Ş." -d magaza_cari=0 -d db_trust_cert=1)
 echo "$G" | grep -q 'veritabanı oluşturuldu' || hata "veritabanı oluşturulmadı: $(echo "$G" | grep -o 'mesaj err.\{0,300\}')"
 echo "$G" | grep -q 'Lumen veritabanı hazırlandı' || hata "şema kurulmadı: $(echo "$G" | grep -o 'mesaj err.\{0,300\}')"
 grep -q '^LUMEN_VERI_KAYNAGI=lumen$' "$KOPYA/.env" || hata ".env bağımsız modu yazmadı"
+grep -q '^AKL_DB_ENCRYPT=1$' "$KOPYA/.env" || hata ".env şifreli DB bağlantısını yazmadı"
+# Demo SQL Server kendinden imzalı sertifika kullanır; sihirbazda bu istisna açıkça
+# seçilir ve kaydedildiği doğrulanır. Üretim varsayılanı TrustServerCertificate=0 kalır.
+grep -q '^AKL_DB_TRUST_CERT=1$' "$KOPYA/.env" || hata ".env demo sertifika tercihini yazmadı"
 echo "  ✓ adım 1: veritabanı oluşturuldu, şema kuruldu, .env bağımsız"
 
 G=$(curl -s -c "$CEREZ" -b "$CEREZ" "$URL/kurulum.php" --data-urlencode "csrf=$CSRF" -d adim=2 -d admin_kod=patron \
