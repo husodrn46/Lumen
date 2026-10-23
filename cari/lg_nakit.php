@@ -149,7 +149,7 @@ if ($kasa) {
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -159,7 +159,7 @@ if ($kasa) {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 8px 14px; background: var(--red,#ef4444); color: #fff;
             border: none; border-radius: 9px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12px; font-weight: 700;
+            font-family: var(--font); font-size: 12px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
         }

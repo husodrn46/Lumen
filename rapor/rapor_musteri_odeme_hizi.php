@@ -685,12 +685,11 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Musteri Odeme Hizi</title>
+    <title>Müşteri Ödeme Hızı</title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         :root {
-            --surface: #ffffff;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
             --sky: #0284c7;
@@ -700,7 +699,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -714,9 +713,9 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
         }
         main.page { max-width: 1240px; margin: 0 auto; padding: 22px 24px 60px; }
         .filter-card, .panel, .leader-card, .stat-card {
-            background: rgba(255,255,255,.94);
+            background: var(--card);
             border: 1px solid rgba(203,213,225,.92);
-            box-shadow: 0 10px 26px rgba(15,23,42,.055);
+            box-shadow: var(--golge-1);
         }
         .filter-card {
             border-radius: 16px;
@@ -745,7 +744,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             border-radius: 10px;
             background: #fff;
             color: var(--text-1);
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             padding: 0 12px;
             outline: none;
@@ -763,7 +762,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             align-items: center;
             justify-content: center;
             gap: 8px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-weight: 700;
             font-size: 13px;
             cursor: pointer;
@@ -929,7 +928,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             border: 0;
             background: transparent;
             color: var(--indigo);
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-weight: 700;
             cursor: pointer;
             padding: 0;
@@ -1045,7 +1044,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
     <div class="header-inner">
         <a class="header-back" href="dashboard.php" title="Geri"><i class="fa-solid fa-arrow-left"></i></a>
         <div class="header-divider"></div>
-        <div class="header-title"><span class="material-icons">speed</span> Musteri Odeme Hizi</div>
+        <div class="header-title"><span class="material-icons">speed</span> Müşteri Ödeme Hızı</div>
         <div class="header-spacer"></div>
         <div class="header-chip"><?php echo (int) $year; ?> performansi</div>
     </div>
@@ -1065,7 +1064,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             <div class="field">
                 <label for="cariid">Musteri sec</label>
                 <select class="control" id="cariid" name="cariid">
-                    <option value="0">Musteri seciniz</option>
+                    <option value="0">Müşteri seçiniz</option>
                     <?php foreach ($customerChoices as $choice): ?>
                         <option value="<?php echo (int) $choice['CARIID']; ?>" <?php echo (int) $choice['CARIID'] === $selectedCariId ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars((string) $choice['KODU'] . ' - ' . (string) $choice['UNVANI'], ENT_QUOTES, 'UTF-8'); ?>

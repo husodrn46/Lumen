@@ -85,7 +85,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="icon" type="image/png" href="icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toplu Koli Olcusu Duzenleme</title>
+    <title>Toplu Koli Ölçüsü Düzenleme</title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
@@ -98,7 +98,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -110,7 +110,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 16px; font-weight: 700; color: var(--text-1);
             display: flex; align-items: center; gap: 8px; margin: 0;
         }
-        .header-title h1 i { color: var(--sky); font-size: 14px; }
+        .header-title h1 i { color: var(--red); font-size: 14px; }
         .header-title p {
             margin: 2px 0 0; font-size: 11.5px; color: var(--text-2); font-weight: 500;
         }
@@ -122,7 +122,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
             gap: 8px;
             align-items: center;
         }
-        .search-wrap { position: relative; }
+        .search-wrap { position: relative; min-width: 0; }
         .search-wrap i.fa-search {
             position: absolute; top: 50%; left: 12px;
             transform: translateY(-50%);
@@ -132,7 +132,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .search-input {
             width: 220px;
             padding: 9px 14px 9px 36px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             color: var(--text-1);
             background: #fff;
@@ -150,7 +150,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 9px 14px;
             background: var(--red,#ef4444); color: #fff;
             border: none; border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
+            font-family: var(--font); font-size: 13px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.18);
         }
@@ -168,15 +168,13 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         /* ═══════ TABLE CARD ═══════ */
         .table-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
         }
         .koli-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
         .koli-table thead { background: linear-gradient(180deg, #fff, #fffafa); }
@@ -219,7 +217,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .input-name {
             width: 100%;
             padding: 8px 36px 8px 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px;
             color: var(--text-1);
             background: #fff;
@@ -261,7 +259,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .input-num {
             width: 86px;
             padding: 8px 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px;
             font-weight: 600;
             color: var(--text-1);
@@ -383,7 +381,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 12px 18px;
             color: #fff;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             box-shadow: 0 8px 24px rgba(0,0,0,0.15);
@@ -405,6 +403,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         /* ═══════ MOBILE ═══════ */
         @media (max-width: 900px) {
             .header-search { width: 100%; }
+            .header-search .search-wrap { flex: 1; }
             .search-input { width: 100%; flex: 1 1 auto; }
         }
         @media (max-width: 767px) {
@@ -414,7 +413,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
             main { padding: 14px 12px 40px !important; }
 
             .search-input { font-size: 16px; }
-            .btn-search { padding: 9px 12px; font-size: 12px; }
+            .btn-search { padding: 9px 12px; font-size: 12px; min-width: var(--dokun); min-height: var(--dokun); }
 
             .koli-table thead { display: none; }
             .koli-table, .koli-table tbody, .koli-table tr, .koli-table td {
@@ -468,20 +467,20 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </a>
             <div class="header-divider"></div>
             <div class="header-title">
-                <h1><i class="fa-solid fa-box-open"></i>Toplu Koli Olcusu Duzenleme</h1>
+                <h1><i class="fa-solid fa-box-open"></i>Toplu Koli Ölçüsü Düzenleme</h1>
                 <p>Toplam <strong><?= $toplam ?></strong> urun &middot; Sayfa <strong><?= $sayfa ?> / <?= $toplamSayfa ?></strong></p>
             </div>
-            <form method="GET" class="header-search">
+            <form method="GET" class="header-search header-eylem">
                 <div class="search-wrap">
                     <i class="fa-solid fa-search"></i>
                     <input type="text" name="arama" value="<?= htmlspecialchars($arama) ?>"
                            class="search-input" placeholder="Kod veya isim ara..." autocomplete="off">
                 </div>
-                <button type="submit" class="btn-search" title="Ara">
+                <button type="submit" class="btn-search btn btn-birincil btn-ikon" title="Ara">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </button>
                 <?php if ($arama): ?>
-                <a href="koli_olcu_toplu.php" class="btn-clear" title="Aramayi temizle">
+                <a href="koli_olcu_toplu.php" class="btn-clear btn btn-ikincil btn-ikon" title="Aramayı temizle">
                     <i class="fa-solid fa-xmark"></i>
                 </a>
                 <?php endif; ?>

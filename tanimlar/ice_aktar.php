@@ -132,7 +132,7 @@ belge_sayfa_basla('Excel\'den aktar', 'fa-file-excel', 'index.php');
     .sekmeler { display: flex; gap: 4px; overflow-x: auto; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
     .sekmeler a { padding: 10px 14px; font-weight: 600; font-size: 13.5px; color: var(--text-2); text-decoration: none; border-bottom: 2.5px solid transparent; margin-bottom: -1px; white-space: nowrap; display: inline-flex; gap: 7px; align-items: center; }
     .sekmeler a.aktif { color: var(--red); border-bottom-color: var(--red); }
-    .ikili { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .ikili { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
     .ipucu { font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
     .sayilar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 12px 0; }
     .sayilar div { background: #fafafa; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
@@ -197,8 +197,8 @@ belge_sayfa_basla('Excel\'den aktar', 'fa-file-excel', 'index.php');
             <div style="display:grid; gap:10px">
                 <input type="file" name="dosya" accept=".xlsx,.xls,.csv" required>
                 <label class="alan">Açılış tarihi <input type="date" name="tarih" value="<?= date('Y-m-d') ?>"></label>
-                <label style="display:flex; gap:6px; align-items:center; font-size:13px"><input type="checkbox" name="guncelle" style="width:auto">
-                    Var olan kodların kart bilgilerini güncelle <span class="soluk">(bakiye/miktar yalnız yeni kartlara)</span></label>
+                <label class="alan kutu" style="font-weight:400"><input type="checkbox" name="guncelle">
+                    <span>Var olan kodların kart bilgilerini güncelle <span class="soluk" style="display:block">Bakiye/miktar yalnız yeni kartlara aktarılır.</span></span></label>
                 <div><button class="btn btn-birincil" type="submit"><i class="fa-solid fa-upload"></i> Yükle ve kontrol et</button></div>
             </div>
         </form>

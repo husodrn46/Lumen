@@ -323,29 +323,20 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f8fafc;
-            --surface: #ffffff;
-            --text-1: #0f172a;
-            --text-2: #475569;
-            --text-3: #94a3b8;
-            --border: #e2e8f0;
             /* Ana tema kirmizi: --sky* degisken degerleri kirmiziya cevrildi (ad korundu) */
             --sky: var(--red);
             --sky-600: var(--red,#6F1022);
-            --sky-700: #b91c1c;
-            --sky-soft: #fef2f2;
+            --sky-700: var(--red);
+            --sky-soft: var(--red-soft);
             --sky-border: rgba(248, 113, 113, 0.22);
-            --emerald: #10b981;
             --emerald-600: #059669;
-            --amber: #f59e0b;
             --purple: #8b5cf6;
-            --red: #6F1022;
         }
 
         * { box-sizing: border-box; margin: 0; }
 
         body {
-            font-family: 'Avenir Next', 'Montserrat', 'Segoe UI', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -367,53 +358,6 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
         }
 
         /* ═══════════ STICKY HEADER (SKY) ═══════════ */
-        .sky-header {
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border-bottom: 1px solid var(--sky-border);
-            box-shadow: 0 2px 10px rgba(111, 16, 34, 0.06);
-            animation: headerSlide 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
-        .sky-header-inner {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 12px 20px;
-            flex-wrap: wrap;
-        }
-
-        .header-back {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #fee2e2, #fecaca);
-            color: var(--sky-700);
-            text-decoration: none;
-            flex-shrink: 0;
-            transition: transform .2s ease, box-shadow .2s ease;
-        }
-        .header-back:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(111, 16, 34, 0.2); }
-
-        .header-icon {
-            width: 44px; height: 44px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--sky), var(--sky-700));
-            color: #fff;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 18px;
-            flex-shrink: 0;
-            box-shadow: 0 6px 18px rgba(111, 16, 34, 0.25);
-        }
 
         .header-titles { display: flex; flex-direction: column; min-width: 0; flex: 1; }
         .header-titles h1 {
@@ -456,28 +400,17 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
 
         /* ═══════════ GLASS CARD ═══════════ */
         .glass-card {
-            background: rgba(255, 255, 255, 0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid var(--sky-border);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 6px 22px rgba(111, 16, 34, 0.06);
-            will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
+
             position: relative;
             overflow: hidden;
         }
-        .glass-card::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(120deg, transparent 15%, rgba(255,255,255,0.45) 45%, transparent 75%);
-            transform: translateX(-130%);
-            transition: transform 0.85s ease;
-            pointer-events: none;
-            z-index: 1;
-        }
-        .glass-card:hover::before { transform: translateX(130%); }
+
         .glass-card-body { padding: 20px 24px; position: relative; z-index: 2; }
 
         .stagger-1 { animation-delay: .05s; }
@@ -487,7 +420,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
 
         /* ═══════════ HERO CARD ═══════════ */
         .hero-card {
-            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 55%, #ffffff 100%);
+            background: var(--card);
             border: 1px solid var(--sky-border);
             border-radius: 20px;
             padding: 22px 24px;
@@ -495,7 +428,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             position: relative;
             overflow: hidden;
             will-change: transform, opacity;
-            animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+
         }
         .hero-card::after {
             content: "";
@@ -641,7 +574,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             align-items: center;
             gap: 12px;
             will-change: transform, opacity;
-            animation: cardIn .45s cubic-bezier(0.22,1,0.36,1) both;
+
             transition: transform .2s ease, box-shadow .2s ease;
         }
         .info-tile:hover {
@@ -673,10 +606,11 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             border-radius: 14px;
             box-shadow: 0 4px 14px rgba(0,0,0,0.03);
             will-change: transform, opacity;
-            animation: cardIn .45s cubic-bezier(0.22,1,0.36,1) both;
+
         }
 
         .btn-flat {
+            min-height: var(--dokun);
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -686,30 +620,17 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             border-radius: 12px;
             font-size: 13.5px;
             font-weight: 600;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             border: none;
             cursor: pointer;
             text-decoration: none;
             transition: transform .18s ease, box-shadow .2s ease, background .2s ease;
             white-space: nowrap;
         }
-        .btn-flat:hover { transform: translateY(-1px); }
+        .action-bar .btn-ikincil { border: 1px solid var(--border-strong); box-shadow: none; }
+        .action-bar .btn-birincil { background: var(--red); border: 1px solid var(--red); box-shadow: none; }
+        .btn-flat:hover { filter: brightness(.98); }
         .btn-flat:active { transform: translateY(0); }
-
-        .btn-emerald { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25); }
-        .btn-emerald:hover { box-shadow: 0 8px 22px rgba(16, 185, 129, 0.35); color: #fff; }
-
-        .btn-sky { background: linear-gradient(135deg, var(--red), var(--red,#6F1022)); color: #fff; box-shadow: 0 4px 14px rgba(111, 16, 34, 0.25); }
-        .btn-sky:hover { box-shadow: 0 8px 22px rgba(111, 16, 34, 0.35); color: #fff; }
-
-        .btn-amber { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25); }
-        .btn-amber:hover { box-shadow: 0 8px 22px rgba(245, 158, 11, 0.35); color: #fff; }
-
-        .btn-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25); }
-        .btn-purple:hover { box-shadow: 0 8px 22px rgba(139, 92, 246, 0.35); color: #fff; }
-
-        .btn-slate { background: #fff; color: var(--text-1); border: 1px solid var(--border); }
-        .btn-slate:hover { background: var(--sky-soft); border-color: var(--sky-border); color: var(--sky-700); }
 
         /* ═══════════ LINES LAYOUT ═══════════ */
         .content-grid {
@@ -729,7 +650,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             overflow: hidden;
             box-shadow: 0 6px 22px rgba(111, 16, 34, 0.05);
             will-change: transform, opacity;
-            animation: cardIn .45s cubic-bezier(0.22,1,0.36,1) both;
+
         }
 
         .lines-head {
@@ -844,7 +765,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             position: sticky;
             top: 96px;
             will-change: transform, opacity;
-            animation: cardIn .45s cubic-bezier(0.22,1,0.36,1) both;
+
             animation-delay: .1s;
         }
         .summary-card h3 {
@@ -914,7 +835,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
             gap: 10px;
             font-size: 13.5px;
             font-weight: 500;
-            animation: fadeUp .35s ease both;
+
         }
         .alert.success { background: #ecfdf5; color: #065f46; border: 1px solid rgba(16,185,129,0.22); }
         .alert.error { background: #fef2f2; color: #991b1b; border: 1px solid rgba(111, 16, 34,0.22); }
@@ -923,8 +844,9 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
         .lines-mobile { display: none; }
 
         @media (max-width: 767px) {
-            .sky-header-inner { padding: 10px 12px; gap: 10px; }
+
             .header-titles h1 { font-size: 15px; }
+            .header-kur { display: none; }
             .header-titles .sub { font-size: 11.5px; }
             .header-kur { padding: 4px 10px; }
             .header-kur .k-value { font-size: 12.5px; }
@@ -973,15 +895,15 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
 <body>
 
     <!-- ═══════════ STICKY SKY HEADER ═══════════ -->
-    <header class="sky-header">
-        <div class="sky-header-inner">
+    <header class="sky-header top-header">
+        <div class="sky-header-inner header-inner">
             <a href="<?php echo htmlspecialchars($dovizFisBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Geri">
                 <i class="fa fa-arrow-left"></i>
             </a>
             <div class="header-icon">
                 <i class="fa-solid fa-file-invoice-dollar"></i>
             </div>
-            <div class="header-titles">
+            <div class="header-titles header-title header-title-detay">
                 <h1>Dövizli Sipariş</h1>
                 <div class="sub">
                     <?php echo htmlspecialchars((string)$siparis['FICHENO']); ?>
@@ -1083,27 +1005,27 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
 
         <!-- ═══════════ ACTION BAR ═══════════ -->
         <div class="action-bar">
-            <a href="stok_bul.php?fisid=<?php echo $siparisId; ?>" class="btn-flat btn-emerald">
+            <a href="stok_bul.php?fisid=<?php echo $siparisId; ?>" class="btn-flat btn btn-birincil">
                 <i class="fa-solid fa-plus"></i>
                 <span>Ürün Ekle</span>
             </a>
-            <a href="yazdir.php?id=<?php echo $siparisId; ?>" target="_blank" class="btn-flat btn-sky">
+            <a href="yazdir.php?id=<?php echo $siparisId; ?>" target="_blank" class="btn-flat btn btn-ikincil">
                 <i class="fa-solid fa-print"></i>
                 <span>Yazdır</span>
             </a>
-            <a href="yazdirx.php?id=<?php echo $siparisId; ?>" class="btn-flat btn-amber">
+            <a href="yazdirx.php?id=<?php echo $siparisId; ?>" class="btn-flat btn btn-ikincil">
                 <i class="fa-solid fa-bolt"></i>
                 <span>Hızlı Yazdır</span>
             </a>
-            <a href="fis_excel_xlsx.php?id=<?php echo $siparisId; ?>" class="btn-flat btn-emerald">
+            <a href="fis_excel_xlsx.php?id=<?php echo $siparisId; ?>" class="btn-flat btn btn-ikincil">
                 <i class="fa-solid fa-file-excel"></i>
                 <span>Excel</span>
             </a>
-            <a href="dizayn.php?id=<?php echo $siparisId; ?>" class="btn-flat btn-purple">
+            <a href="dizayn.php?id=<?php echo $siparisId; ?>" class="btn-flat btn btn-ikincil">
                 <i class="fa-solid fa-palette"></i>
                 <span>Dizayn</span>
             </a>
-            <a href="<?php echo htmlspecialchars($dovizFisBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn-flat btn-slate">
+            <a href="<?php echo htmlspecialchars($dovizFisBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn-flat btn btn-ikincil">
                 <i class="fa-solid fa-list"></i>
                 <span>Tüm Siparişler</span>
             </a>

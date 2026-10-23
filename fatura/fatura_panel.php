@@ -91,7 +91,7 @@ try {
     <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
     <style>
         * { box-sizing: border-box; margin: 0; }
-        body { font-family: 'Avenir Next', 'Montserrat', sans-serif; background: var(--bg); color: var(--text-1); min-height: 100vh; font-size: 14px; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text-1); min-height: 100vh; font-size: 14px; }
         .beta-rozet { font-size: 10.5px; font-weight: 700; letter-spacing: .5px; padding: 3px 9px; border-radius: 8px; background: var(--amber-soft); color: var(--amber); }
 
         main { max-width: 820px; margin: 0 auto; padding: 22px 24px 60px; }

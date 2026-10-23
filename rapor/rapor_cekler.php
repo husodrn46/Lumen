@@ -176,26 +176,14 @@ $rozet = static function (int $gun, $vade): array {
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:#f7f6f8; --card:#fff; --text-1:#1c1522; --text-2:#6b6472; --text-3:#9b93a3; --border:#eae5ee;
-            --red:#6F1022; --red-koyu:#7f1d1d; --red-orta:#b91c1c; --red-soft:#fdf0f0;
-            --emerald:#059669; --emerald-soft:#ecfdf5;
-            --amber:#d97706; --amber-soft:#fffbeb;
-            --golge:0 12px 32px -20px rgba(28,21,34,.35);
+            --red-koyu:var(--red); --red-orta:var(--red);
         }
         * { box-sizing:border-box; margin:0; }
         body {
-            font-family:'Avenir Next','Montserrat',sans-serif; color:var(--text-1); min-height:100vh; font-size:14px;
-            background:
-                radial-gradient(800px 280px at 100% -80px, rgba(111,16,34,.07), transparent 60%),
-                radial-gradient(600px 240px at -60px 30%, rgba(111,16,34,.05), transparent 55%),
-                var(--bg);
+            font-family: var(--font); color:var(--text-1); min-height:100vh; font-size:14px;
+            background: var(--bg);
         }
 
-        .top { position:sticky; top:0; z-index:40; background:rgba(255,255,255,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--border); }
-        .top-in { max-width:1180px; margin:0 auto; padding:12px 22px; display:flex; align-items:center; gap:12px; }
-        .geri { width:38px; height:38px; border-radius:11px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; color:var(--text-2); background:#fff; border:1px solid var(--border); text-decoration:none; transition:.18s; }
-        .geri:hover { color:var(--red); border-color:var(--red); transform:translateX(-2px); }
-        .t-ico { width:40px; height:40px; border-radius:12px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:17px; background:linear-gradient(135deg,var(--red-orta),var(--red-koyu)); color:#fff; box-shadow:0 6px 14px -6px rgba(185,28,28,.5); }
         .t-baslik h1 { font-size:16px; font-weight:700; line-height:1.2; }
         .t-baslik p { font-size:11.5px; color:var(--text-2); }
 
@@ -203,7 +191,7 @@ $rozet = static function (int $gun, $vade): array {
 
         /* ═══ ÜST ŞERİT: bu ay + geciken ═══ */
         .ust-serit { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:12px; margin-bottom:16px; }
-        .kok-kart { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:15px 17px; box-shadow:var(--golge); animation:giris .5s cubic-bezier(.22,1,.36,1) both; }
+        .kok-kart { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:15px 17px; box-shadow:var(--golge); }
         .kok-bas { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--text-3); display:flex; align-items:center; gap:7px; margin-bottom:10px; }
         .kok-bas i { color:var(--red); }
 
@@ -216,13 +204,13 @@ $rozet = static function (int $gun, $vade): array {
         .mini b { font-weight:800; white-space:nowrap; }
         .mini .etiket { color:var(--text-2); }
 
-        .uyari-geciken { display:flex; align-items:center; gap:10px; background:var(--red-soft); border:1px solid #f5c6c6; border-radius:14px; padding:12px 14px; font-size:12px; color:#7f1d1d; animation:giris .5s cubic-bezier(.22,1,.36,1) .1s both; }
+        .uyari-geciken { display:flex; align-items:center; gap:10px; background:var(--red-soft); border:1px solid #f5c6c6; border-radius:14px; padding:12px 14px; font-size:12px; color:#7f1d1d; }
         .uyari-geciken i { font-size:16px; color:var(--red); }
         .uyari-geciken b { font-weight:800; }
 
         /* ═══ SAĞ: VADE ZAMAN ÇİZELGESİ ═══ */
         .akis { min-width:0; }
-        .filtreler { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; animation:giris .5s cubic-bezier(.22,1,.36,1) .08s both; }
+        .filtreler { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
         .cip { display:inline-flex; align-items:center; gap:7px; padding:9px 15px; border-radius:99px; border:1.5px solid var(--border); background:#fff; color:var(--text-2); font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer; transition:.16s; }
         .cip .n { font-size:11px; padding:1px 7px; border-radius:99px; background:#f1edf4; }
         .cip:hover { border-color:var(--red); color:var(--red); }
@@ -231,7 +219,7 @@ $rozet = static function (int $gun, $vade): array {
 
         .zaman { position:relative; padding-left:26px; }
         .zaman::before { content:''; position:absolute; left:8px; top:8px; bottom:8px; width:2px; background:linear-gradient(180deg,var(--red) 0%,#e8d8dc 30%,#e8e2ec 100%); border-radius:2px; }
-        .grup { margin-bottom:18px; animation:giris .45s cubic-bezier(.22,1,.36,1) both; }
+        .grup { margin-bottom:18px; }
         .grup-bas { position:relative; display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
         .grup-nokta { position:absolute; left:-26px; top:50%; transform:translateY(-50%); width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid var(--text-3); display:flex; align-items:center; justify-content:center; }
         .grup-nokta::after { content:''; width:6px; height:6px; border-radius:50%; background:var(--text-3); }
@@ -274,8 +262,6 @@ $rozet = static function (int $gun, $vade): array {
         .bos-genel i { font-size:38px; display:block; margin-bottom:12px; color:#e3d5da; }
         .bos-genel b { display:block; color:var(--text-2); font-size:15px; margin-bottom:4px; }
 
-        @keyframes giris { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
-
         @media (max-width:560px) {
             main { padding:14px 14px 50px; }
             .mini-satirlar { flex-direction:column; }
@@ -285,17 +271,17 @@ $rozet = static function (int $gun, $vade): array {
         }
         @media print {
             body { background:#fff; }
-            .top, .filtreler { display:none !important; }
+            .top-header, .filtreler { display:none !important; }
             .cekler, .kok-kart { box-shadow:none; break-inside:avoid; }
         }
         html.lumen-dark .kok-kart, html.lumen-dark .cekler, html.lumen-dark .cip, html.lumen-dark .geri { background:var(--card); }
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
-            <a href="dashboard.php" class="geri" title="Rapor listesine dön"><i class="fa-solid fa-arrow-left"></i></a>
-            <span class="t-ico"><i class="fa-solid fa-money-check-dollar"></i></span>
+    <header class="top-header">
+        <div class="header-inner">
+            <a href="dashboard.php" class="header-back" title="Rapor listesine dön"><i class="fa-solid fa-arrow-left"></i></a>
+            <span class="header-icon"><i class="fa-solid fa-money-check-dollar"></i></span>
             <div class="t-baslik">
                 <h1>Çekler — Nakit Akışı</h1>
                 <p>alınan + kendi çekler · vade zaman çizelgesi</p>
@@ -342,7 +328,7 @@ $rozet = static function (int $gun, $vade): array {
 
                     <div class="zaman">
                         <?php $gi = 0; foreach ($gruplar as $g): ?>
-                        <div class="grup <?php echo $h($g['sinif']); ?>" style="animation-delay:<?php echo min(300, $gi * 60); ?>ms;">
+                        <div class="grup <?php echo $h($g['sinif']); ?>">
                             <div class="grup-bas">
                                 <span class="grup-nokta"></span>
                                 <span class="grup-adi"><i class="fa-solid <?php echo $h($g['ikon']); ?>"></i> <?php echo $h($g['baslik']); ?></span>

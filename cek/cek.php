@@ -204,7 +204,7 @@ if ($mod === 'bordro') {
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <style>
         * { box-sizing: border-box; margin: 0; }
-        body { font-family: 'Avenir Next', 'Montserrat', sans-serif; background: var(--bg); color: var(--text-1); min-height: 100vh; font-size: 14px; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text-1); min-height: 100vh; font-size: 14px; }
         .btn-print { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--red); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.18s ease; flex-shrink: 0; }
         .btn-print:hover { background: #b91c1c; }
 

@@ -11,7 +11,6 @@ include(__DIR__ . "/kontrol.php");
 ob_end_clean();
 include_once(__DIR__ . "/gorev/gorev_lib.php");
 
-
 // Çıkış işlemi: oturumu sonlandır ve giriş sayfasına yönlendir
 if (isset($_GET['cikis'])) {
     // Çıkışı logla (session destroy'dan önce)
@@ -407,7 +406,7 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
     <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --font-sans: "Segoe UI", Roboto, Arial, sans-serif;
+            --font-sans: var(--font);
             --surface: #ffffff;
             --border-hover: #d1d5db;
             --red-border: rgba(248, 113, 113, 0.25);

@@ -95,7 +95,7 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -116,14 +116,12 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
 
         /* GLASS CARD */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid var(--sky-border);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
+            box-shadow: var(--golge-1);
         }
 
         /* KUR PANEL */
@@ -259,7 +257,7 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
         .search-input {
             width: 100%;
             padding: 12px 14px 12px 40px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -283,7 +281,7 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
             color: #fff;
             border: none;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -860,7 +858,7 @@ if (isset($_GET['q']) && strlen(trim($_GET['q'])) >= 2) {
     <style>
         .km-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.45); z-index:9999; align-items:center; justify-content:center; padding:16px; }
         .km-overlay.acik { display:flex; }
-        .km-dialog { background:#fff; border-radius:16px; max-width:380px; width:100%; box-shadow:0 20px 50px rgba(0,0,0,0.25); font-family:'Avenir Next','Montserrat',sans-serif; overflow:hidden; }
+        .km-dialog { background:#fff; border-radius:16px; max-width:380px; width:100%; box-shadow:0 20px 50px rgba(0,0,0,0.25); font-family: var(--font); overflow:hidden; }
         .km-head { display:flex; align-items:center; justify-content:space-between; padding:15px 18px; border-bottom:1px solid #e5e7eb; }
         .km-head h3 { font-size:15px; font-weight:700; color:#1f2937; display:flex; align-items:center; gap:8px; margin:0; }
         .km-head h3 i { color:var(--red,#6F1022); }

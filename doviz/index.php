@@ -55,7 +55,7 @@ $desteklenenDovizler = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doviz Islemleri</title>
+    <title>Döviz İşlemleri</title>
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
@@ -71,7 +71,7 @@ $desteklenenDovizler = [
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -148,13 +148,11 @@ $desteklenenDovizler = [
             margin-bottom: 18px;
         }
         .stat-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 14px 16px;
             display: flex; align-items: center; gap: 12px;
-            animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
         }
         .stat-ico {
             width: 40px; height: 40px; border-radius: 10px;
@@ -348,7 +346,7 @@ $desteklenenDovizler = [
             </a>
             <div class="header-divider"></div>
             <span class="header-title">
-                <i class="fa-solid fa-globe"></i>Doviz Islemleri
+                <i class="fa-solid fa-globe"></i>Döviz İşlemleri
             </span>
             <span class="header-sub"><?php echo htmlspecialchars($dovizSubtitle, ENT_QUOTES, 'UTF-8'); ?></span>
         </div>
@@ -360,8 +358,8 @@ $desteklenenDovizler = [
         <div class="hero-card">
             <span class="hero-ico"><i class="fa-solid fa-dollar-sign"></i></span>
             <div class="hero-text">
-                <h1>Dovizli Siparis Merkezi</h1>
-                <p>USD, EUR ve diger doviz cinslerinde siparis olusturun, listeyin ve yonetin.</p>
+                <h1>Dövizli Sipariş Merkezi</h1>
+                <p>USD, EUR ve diğer para birimlerinde sipariş oluşturun, listeleyin ve yönetin.</p>
             </div>
             <div class="currency-chips">
                 <?php foreach ($desteklenenDovizler as $d): ?>
@@ -427,7 +425,7 @@ $desteklenenDovizler = [
         <!-- Supported currencies panel -->
         <div class="glass-panel" style="animation-delay: 240ms;">
             <div class="panel-title">
-                <i class="fa-solid fa-coins"></i>Desteklenen Doviz Tipleri
+                <i class="fa-solid fa-coins"></i>Desteklenen Döviz Tipleri
             </div>
             <div class="cur-grid">
                 <?php foreach ($desteklenenDovizler as $bilgi): ?>

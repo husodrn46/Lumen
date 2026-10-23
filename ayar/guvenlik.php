@@ -244,7 +244,7 @@ $aktif    = $modDurum['aktif'] === true;
             --sky-soft: #eff6ff;
         }
         * { box-sizing: border-box; margin: 0; }
-        body { font-family: 'Avenir Next', 'Montserrat', sans-serif; background: var(--bg); color: var(--text-1); min-height: 100vh; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text-1); min-height: 100vh; }
 
         main { max-width: 880px; margin: 0 auto; padding: 22px 24px 60px; }
 
@@ -311,7 +311,7 @@ $aktif    = $modDurum['aktif'] === true;
         .manuel-form input[type="text"] {
             flex: 1; min-width: 200px; padding: 12px 14px;
             border: 1px solid var(--border); border-radius: 11px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 16px; font-weight: 500;
+            font-family: var(--font); font-size: 16px; font-weight: 500;
             color: var(--text-1); background: #fff; outline: none; text-transform: uppercase;
             transition: all 0.2s ease;
         }
@@ -321,7 +321,7 @@ $aktif    = $modDurum['aktif'] === true;
         .btn-ac {
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
             padding: 12px 20px; border: none; border-radius: 11px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13.5px; font-weight: 600; color: #fff;
+            font-family: var(--font); font-size: 13.5px; font-weight: 600; color: #fff;
             background: var(--emerald); cursor: pointer; white-space: nowrap;
             box-shadow: 0 4px 14px rgba(5,150,105,0.25); transition: all 0.2s ease;
         }
@@ -390,7 +390,7 @@ $aktif    = $modDurum['aktif'] === true;
 
         .btn-big {
             width: 100%; padding: 16px; border: none; border-radius: 14px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 15px; font-weight: 700; color: #fff;
+            font-family: var(--font); font-size: 15px; font-weight: 700; color: #fff;
             cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
             transition: all 0.2s ease;
         }

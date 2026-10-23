@@ -35,7 +35,6 @@ if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4
     exit;
 }
 
-
 function paraformat(float|int|string|null $kusurat): string
 {
     global $parakusurat;
@@ -67,7 +66,7 @@ function paraformat(float|int|string|null $kusurat): string
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -89,7 +88,7 @@ function paraformat(float|int|string|null $kusurat): string
         .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .donem-select {
             padding: 9px 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 600; color: var(--text-1);
             background: #fff; border: 1px solid var(--border); border-radius: 10px;
             outline: none; cursor: pointer; transition: all 0.2s ease;
@@ -107,7 +106,7 @@ function paraformat(float|int|string|null $kusurat): string
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 16px; background: var(--red,#ef4444); color: #fff;
             border: none; border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700;
+            font-family: var(--font); font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
         }
@@ -116,7 +115,7 @@ function paraformat(float|int|string|null $kusurat): string
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 16px; background: #fff; color: var(--text-1);
             border: 1px solid var(--border); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700;
+            font-family: var(--font); font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
         }
         .btn-ekstre:hover { background: var(--indigo-soft); color: var(--indigo); border-color: rgba(79, 70, 229, 0.3); transform: translateY(-1px); }
@@ -177,7 +176,7 @@ function paraformat(float|int|string|null $kusurat): string
             background: #fff;
             cursor: pointer;
             transition: all 0.2s ease;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             color: var(--text-1);
             text-decoration: none;
         }
@@ -207,17 +206,15 @@ function paraformat(float|int|string|null $kusurat): string
             margin-bottom: 18px;
         }
         .stat-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 16px 18px;
             display: flex; align-items: center; gap: 14px;
             position: relative; overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
         }
         .stat-card:nth-child(2) { animation-delay: 60ms; }
         .stat-card:nth-child(3) { animation-delay: 120ms; }
@@ -254,15 +251,13 @@ function paraformat(float|int|string|null $kusurat): string
         .stat-card.red .stat-value     { color: var(--red); }
 
         .table-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
-            will-change: transform, opacity;
         }
         .hareket-table { width: 100%; border-collapse: collapse; }
         .hareket-table thead { background: linear-gradient(180deg, #fff, #fffafa); }
@@ -404,7 +399,7 @@ function paraformat(float|int|string|null $kusurat): string
                     <i class="fa-solid fa-file-export"></i> Ekstre
                 </button>
                 <button onclick="window.print()" class="btn-print" type="button">
-                    <i class="fa-solid fa-print"></i> Yazdir
+                    <i class="fa-solid fa-print"></i> Yazdır
                 </button>
             </div>
         </div>

@@ -11,7 +11,7 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 }
 // 1) stockref parametresi
 if (!isset($_GET['stockref']) || !is_numeric($_GET['stockref'])) {
-    die('Geçerli bir stok referansı giriniz.');
+    lumen_hata_sayfasi('Stok seçilmedi', 'Hareket raporu için stok kartından tekrar açın.');
 }
 $stockref = (int)$_GET['stockref'];
 
@@ -94,10 +94,10 @@ $toplamIslem = count($rows);
         --sky-deep: #075985;
         --purple: #7c3aed;
         --purple-soft: #f5f3ff;
-    }
+        }
     * { box-sizing: border-box; margin: 0; }
     body {
-        font-family: 'Avenir Next', 'Montserrat', sans-serif;
+        font-family: var(--font);
         background: var(--bg);
         color: var(--text-1);
         min-height: 100vh;
@@ -106,7 +106,7 @@ $toplamIslem = count($rows);
         font-size: 16px; font-weight: 700; color: var(--text-1);
         display: flex; align-items: center; gap: 8px; margin: 0;
     }
-    .header-title h1 .material-icons { color: var(--sky); font-size: 20px; }
+    .header-title h1 .material-icons { color: var(--red); font-size: 20px; }
     .header-title p {
         margin: 2px 0 0; font-size: 11.5px; color: var(--text-2); font-weight: 500;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -121,7 +121,7 @@ $toplamIslem = count($rows);
         display: inline-flex; align-items: center; gap: 7px;
         padding: 9px 14px; background: #fff;
         border: 1px solid var(--border); border-radius: 10px;
-        font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 600;
+        font-family: var(--font); font-size: 12.5px; font-weight: 600;
         color: var(--text-1); cursor: pointer; transition: all 0.2s ease;
         min-height: 44px; text-decoration: none;
     }
@@ -141,16 +141,15 @@ $toplamIslem = count($rows);
         margin-bottom: 18px;
     }
     .stat-card {
-        background: rgba(255,255,255,0.94);
+        background: var(--card);
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
         border: 1px solid var(--border);
         border-radius: 14px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        box-shadow: var(--golge-1);
         padding: 16px 18px;
         display: flex; align-items: center; gap: 14px;
         position: relative; overflow: hidden;
-        animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
     .stat-card:nth-child(2) { animation-delay: 60ms; }
     .stat-card:nth-child(3) { animation-delay: 120ms; }
@@ -192,15 +191,14 @@ $toplamIslem = count($rows);
     }
 
     .glass-card {
-        background: rgba(255,255,255,0.94);
+        background: var(--card);
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
         border: 1px solid rgba(2, 132, 199, 0.16);
         border-radius: 16px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        box-shadow: var(--golge-1);
         padding: 20px 22px;
         margin-bottom: 18px;
-        animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
     }
     .card-title {
         font-size: 13.5px; font-weight: 700; color: var(--text-1);
@@ -344,12 +342,12 @@ $toplamIslem = count($rows);
         <span class="kod"><?=htmlspecialchars((string) $stok['CODE'])?></span>
       </p>
     </div>
-    <div class="header-actions">
-      <button onclick="window.print()" class="btn-action btn-print" type="button" title="Yazdir">
+    <div class="header-actions header-eylem">
+      <button onclick="window.print()" class="btn-action btn-print btn btn-ikincil" type="button" title="Yazdır">
         <span class="material-icons">print</span>
-        <span>Yazdir</span>
+        <span>Yazdır</span>
       </button>
-      <button onclick="exportXLS()" class="btn-action btn-excel" type="button" title="Excel">
+      <button onclick="exportXLS()" class="btn-action btn-excel btn btn-ikincil" type="button" title="Excel">
         <span class="material-icons">download</span>
         <span>Excel</span>
       </button>

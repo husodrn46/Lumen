@@ -82,7 +82,7 @@ $sureFormat = static function ($saat): string {
     <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         * { box-sizing: border-box; margin: 0; }
-        body { font-family: 'Avenir Next', 'Montserrat', sans-serif; background: var(--bg); color: var(--text-1); min-height: 100vh; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text-1); min-height: 100vh; }
         main { max-width: 1200px; margin: 0 auto; padding: 22px 24px 60px; }
 
         .ozet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 26px; }

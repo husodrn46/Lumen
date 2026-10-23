@@ -35,6 +35,9 @@
     --r-sm: 8px; --r-md: 10px; --r-lg: 14px;
     --golge-1: 0 1px 2px rgba(31, 26, 34, .05);
     --golge-2: 0 8px 24px rgba(31, 26, 34, .08);
+    /* Eski ekranların kısa adları da aynı paleti kullanır. */
+    --t1: var(--text-1); --t2: var(--text-2); --t3: var(--text-3);
+    --golge: var(--golge-1);
     --sayfa-genislik: 1200px;
     --sayfa-genis: 1320px;
     --baslik-yukseklik: 60px;
@@ -47,6 +50,8 @@ body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--
 .sayi, td.sag, th.sag, .tutar { font-variant-numeric: tabular-nums; }
 :focus-visible { outline: 3px solid rgba(var(--red-rgb), .55); outline-offset: 2px; border-radius: 4px; }
 ::placeholder { color: var(--text-3); opacity: 1; }
+:where(input[type=file]) { max-width: 100%; min-width: 0; font-family: inherit; font-size: var(--yazi-md); color: var(--text-2); }
+:where(input[type=file])::file-selector-button { min-height: var(--dokun); margin-right: 8px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--card); color: var(--text-1); font: inherit; font-weight: 600; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 
 /* ---------- Başlık çubuğu (tek tip) ---------- */
@@ -61,8 +66,17 @@ body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--
 .header-title > h1 { margin: 0; font-size: var(--yazi-lg); font-weight: 700; } .header-title > p { margin: 0; }
 .header-title i { color: var(--red); font-size: 16px; }
 .header-spacer { flex: 1 1 auto; }
+.header-title ~ .header-spacer { display: none; }
+.header-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; color: var(--red); font-size: 16px; }
+.header-title-detay { display: block; }
+.header-title-detay small, .header-inner > .t-baslik p { display: block; color: var(--text-2); font-size: var(--yazi-sm); font-weight: 400; }
 .header-inner > .t-baslik { flex: 1 1 0; min-width: 0; }   /* rapor başlıklarında başlık bloğu */
 .header-eylem { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+/* Eski rapor sınıfları JS kancalarını korur; görünüm ortak düğme rolünden gelir. */
+.top-header .header-eylem .btn.btn-ikincil { background: var(--card); color: var(--text-1); border: 1px solid var(--border-strong); border-radius: var(--r-md); box-shadow: none; }
+.top-header .header-eylem .btn.btn-ikincil:hover { background: var(--red-soft); color: var(--red); border-color: rgba(var(--red-rgb), .4); }
+.top-header .header-eylem .btn.btn-birincil { background: var(--red); color: #fff; border-color: var(--red); box-shadow: none; }
+.top-header .header-eylem .btn.btn-ikon { width: var(--dokun); min-width: var(--dokun); height: var(--dokun); padding: 0; }
 
 /* ---------- Sayfa ---------- */
 :where(main.sayfa, body > main) { max-width: var(--sayfa-genislik); margin: 0 auto; padding: 22px 24px 64px; }
@@ -92,13 +106,13 @@ main.sayfa.genis { max-width: var(--sayfa-genis); }
     background: var(--card); color: var(--text-1); min-height: var(--dokun); max-width: 100%;
 }
 /* Tam genişlik yalnız form düzeninde (başlık/araç çubuğundaki seçim kutuları içeriği kadar kalır) */
-label.alan :where(input, select, textarea), .izgara :where(input, select, textarea), .kart-ic > :where(input, select, textarea) { width: 100%; }
+label.alan :where(input:not([type=checkbox]):not([type=radio]), select, textarea), .izgara :where(input:not([type=checkbox]):not([type=radio]), select, textarea), .kart-ic > :where(input:not([type=checkbox]):not([type=radio]), select, textarea) { width: 100%; }
 :where(input, select, textarea):focus { outline: none; border-color: rgba(var(--red-rgb), .5); box-shadow: 0 0 0 3px rgba(var(--red-rgb), .12); }
 :where(input[type=checkbox], input[type=radio]) { accent-color: var(--red); width: 18px; height: 18px; }
 .izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 label.alan { display: flex; flex-direction: column; gap: 5px; font-size: var(--yazi-sm); font-weight: 600; color: var(--text-2); }
-label.alan.kutu { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; }
-label.alan.kutu input { width: auto; flex: 0 0 auto; }
+label.alan.kutu { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; min-height: var(--dokun); }
+label.alan.kutu :is(input[type=checkbox], input[type=radio]) { width: 18px; flex: 0 0 auto; }
 .alan-ipucu, .ipucu { font-size: var(--yazi-sm); color: var(--text-3); font-weight: 400; line-height: 1.5; }
 
 /* ---------- Tablo ---------- */
@@ -143,8 +157,11 @@ body.gizli-btn-yuzen { padding-bottom: 76px; }
 @media (max-width: 767px) {
     :root { --dokun: 44px; --baslik-yukseklik: 54px; }
     .header-inner { padding: 6px 12px; gap: 6px 8px; }
+    .top-header .back-btn, .top-header .btn-print, .top-header .btn { min-width: var(--dokun); min-height: var(--dokun); }
     :where(main.sayfa, body > main) { padding: 14px 12px 40px; }
-    .btn span.metin { display: none; }
+    /* Başlık okunur kalır; işlemler metinleriyle birlikte ikinci satıra geçer. */
+    .header-inner > .header-eylem { flex-basis: 100%; flex-wrap: wrap; margin-left: 0; max-width: 100%; order: 1; }
+    .header-eylem .btn { white-space: normal; }
     .btn { padding: 10px 14px; }
     :where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file])), :where(select, textarea) { font-size: 16px; }  /* iOS yakınlaştırmasın */
     .kart { border-radius: 16px; }
@@ -152,7 +169,9 @@ body.gizli-btn-yuzen { padding-bottom: 76px; }
     .izgara { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }   /* telefonda alanlar tam genişlik */
     .izgara > * { grid-column: auto !important; }   /* "iki sütun kapla" telefonda geçersiz */
     .header-title { font-size: 15px; }
-    .header-title-metin { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; }   /* uzun başlık iki satıra kadar */
+    .header-title > h1 { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+    .header-title-metin { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; }   /* uzun başlık iki satıra kadar */
+    .header-inner > .t-baslik h1 { font-size: var(--yazi-lg); }
     /* Tablolar kart listesine döner (th metni her hücrenin başına; data-label'ı pwa-header yazar) */
     table.liste.kartla thead { display: none; }
     table.liste.kartla, table.liste.kartla tbody, table.liste.kartla tr, table.liste.kartla td { display: block; width: 100%; }

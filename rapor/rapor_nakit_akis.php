@@ -313,7 +313,7 @@ foreach ($cek_vade_data as $row) {
         }
         * { box-sizing: border-box; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -328,7 +328,7 @@ foreach ($cek_vade_data as $row) {
         .year-select {
             padding: 8px 12px; min-height: 40px;
             border-radius: 10px; border: 1px solid var(--border);
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
+            font-family: var(--font); font-size: 13px; font-weight: 600;
             color: var(--text-1); background: #fff;
             transition: all 0.2s ease; cursor: pointer;
         }
@@ -342,7 +342,7 @@ foreach ($cek_vade_data as $row) {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 8px 14px; min-height: 40px;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
             border: none; text-decoration: none; white-space: nowrap;
@@ -357,14 +357,12 @@ foreach ($cek_vade_data as $row) {
 
         /* Glass card base */
         .glass-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(5, 150, 105, 0.18);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             margin-bottom: 16px;
             overflow: hidden;
         }
@@ -554,9 +552,9 @@ foreach ($cek_vade_data as $row) {
         <div class="header-divider"></div>
         <h1 class="header-title">
             <span class="material-icons">account_balance</span>
-            <span class="title-text">Nakit Akis Raporu</span>
+            <span class="title-text">Nakit Akış Raporu</span>
         </h1>
-        <div class="header-actions no-print">
+        <div class="header-actions no-print header-eylem">
             <form method="GET" style="display: inline-block;">
                 <select name="yil" onchange="this.form.submit()" class="year-select">
                     <?php for ($y = date('Y'); $y >= 2020; $y--): ?>
@@ -564,11 +562,11 @@ foreach ($cek_vade_data as $row) {
                     <?php endfor; ?>
                 </select>
             </form>
-            <button onclick="window.print()" class="btn-print" type="button">
+            <button onclick="window.print()" class="btn-print btn btn-ikincil" type="button">
                 <span class="material-icons">print</span>
-                <span>Yazdir</span>
+                <span>Yazdır</span>
             </button>
-            <a href="rapor_nakit_akis_excel.php?yil=<?php echo $selected_year; ?>" class="btn-excel">
+            <a href="rapor_nakit_akis_excel.php?yil=<?php echo $selected_year; ?>" class="btn-excel btn btn-ikincil">
                 <span class="material-icons">download</span>
                 <span>Excel</span>
             </a>

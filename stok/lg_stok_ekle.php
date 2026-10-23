@@ -177,10 +177,10 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
       --indigo-soft: #eef2ff;
       --sky: #0284c7;
       --sky-soft: #eff6ff;
-    }
+        }
     * { box-sizing: border-box; margin: 0; }
     body {
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--text-1);
       min-height: 100vh;
@@ -191,14 +191,12 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
 
     /* ═══════ CARD ═══════ */
     .glass-card {
-      background: rgba(255,255,255,0.92);
+      background: var(--card);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
-      border: 1px solid rgba(248, 113, 113, 0.18);
+      border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-      will-change: transform, opacity;
-      animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+      box-shadow: var(--golge-1);
       overflow: hidden;
       margin-bottom: 16px;
     }
@@ -246,7 +244,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
       border: 1px solid var(--border);
       cursor: pointer;
       transition: all 0.2s ease;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     .price-pill:hover {
@@ -340,7 +338,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     .doviz-grid .d-item input {
       width: 100%;
       padding: 8px 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 13px;
       font-weight: 600;
       color: var(--text-1);
@@ -376,7 +374,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     .field-control {
       width: 100%;
       padding: 11px 14px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 14px;
       font-weight: 600;
       color: var(--text-1);
@@ -476,7 +474,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
       color: #fff;
       border: none;
       border-radius: 12px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
@@ -497,7 +495,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
       color: var(--indigo);
       border: 1px solid rgba(79, 70, 229, 0.25);
       border-radius: 12px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
@@ -792,7 +790,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     .btn-modal-close {
       padding: 9px 20px; background: #64748b; color: #fff;
       border: none; border-radius: 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-weight: 600; font-size: 13px;
+      font-family: var(--font); font-weight: 600; font-size: 13px;
       cursor: pointer; transition: all 0.15s ease;
     }
     .btn-modal-close:hover { background: #475569; }
@@ -850,7 +848,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
 
   <header class="top-header">
     <div class="header-inner">
-      <a href="<?php echo htmlspecialchars($lgStokEkleBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Geri Don">
+      <a href="<?php echo htmlspecialchars($lgStokEkleBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Geri Dön">
         <i class="fa fa-arrow-left"></i>
       </a>
       <div class="header-divider"></div>
@@ -1290,7 +1288,6 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     {
       var f = document.getElementById("iskontoartir").value;
 
-
       document.getElementById("stkfyt").value = f;
     }
   }
@@ -1298,29 +1295,23 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
   function degistir1() {
     var f = document.getElementById("yenifiyat1").value;
 
-
     document.getElementById("stkfyt").value = f;
   }
   function degistir2() {
     var f = document.getElementById("yenifiyat2").value;
-
 
     document.getElementById("stkfyt").value = f;
   }
   function degistir3() {
     var f = document.getElementById("yenifiyat3").value;
 
-
     document.getElementById("stkfyt").value = f;
   }
   function degistir4() {
     var f = document.getElementById("yenifiyat4").value;
 
-
     document.getElementById("stkfyt").value = f;
   }
-
-
 
   function dovizkuruhesapla() {
     var stokkdv = document.getElementById('stkkdv').value;
@@ -1329,7 +1320,6 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     var stokadet = document.getElementById('stkadt').value;
     var dovizli = (stokadet * fiyattl) / fiyatdoviz;
     document.getElementById('dovizlif').value = (dovizli).toFixed(2);
-
 
     var dovizlikdvoran = dovizli * (stokkdv / 100);
     document.getElementById('dovizlikdvtutar').innerHTML = "%" + stokkdv + " kdv =" + (dovizlikdvoran).toFixed(2);

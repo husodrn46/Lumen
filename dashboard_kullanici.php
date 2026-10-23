@@ -289,7 +289,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kullanici Aktivite Dashboard</title>
+    <title>Kullanıcı Aktivitesi</title>
     <?php include_once(__DIR__ . '/pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
@@ -305,7 +305,7 @@ try {
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -324,13 +324,12 @@ try {
 
         /* GLASS CARD */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             margin-bottom: 18px;
         }
         .card-head {
@@ -377,7 +376,7 @@ try {
             padding: 10px 12px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             color: var(--text-1);
             background: #fff;
@@ -399,7 +398,7 @@ try {
             color: #fff;
             border: none;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
@@ -430,13 +429,12 @@ try {
         }
         .stat-card {
             position: relative;
-            background: #fff;
+            background: var(--card);
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 16px 18px 16px 22px;
             overflow: hidden;
             transition: all 0.25s ease;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
             display: flex;
             align-items: center;
             gap: 14px;
@@ -581,7 +579,9 @@ try {
         .empty p { font-size: 12.5px; color: var(--text-2); }
 
         /* TWO COL */
-        .two-col {
+
+        .two-col > *, .card-head > div { min-width: 0; }
+.two-col {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 18px;
@@ -734,7 +734,7 @@ try {
             border: none;
             background: var(--red);
             color: #fff;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px;
             font-weight: 600;
             cursor: pointer;
@@ -791,9 +791,9 @@ try {
         <div class="header-divider"></div>
         <span class="header-title">
             <i class="fa-solid fa-chart-line"></i>
-            Kullanici Aktivite Dashboard
+            Kullanıcı Aktivitesi
         </span>
-        <span class="header-sub">Satis ekibi performans ve kullanim analizi</span>
+        <span class="header-sub">Satış ekibinin performans ve kullanım analizi</span>
     </div>
 </header>
 
@@ -804,7 +804,7 @@ try {
             <span class="icon-box"><i class="fa-solid fa-sliders"></i></span>
             <div>
                 <h2>Filtreler</h2>
-                <p>Donem, gun ve kullanici secimi</p>
+                <p>Dönem, gün ve kullanıcı seçimi</p>
             </div>
         </div>
         <div class="card-body">

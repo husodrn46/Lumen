@@ -208,7 +208,6 @@ elseif ($role === 1) { $roleChipClass = 'chip-amber'; }
     <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --surface: #ffffff;
             --border-soft: #f1f5f9;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
@@ -220,7 +219,7 @@ elseif ($role === 1) { $roleChipClass = 'chip-amber'; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { -webkit-text-size-adjust: 100%; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -252,12 +251,12 @@ elseif ($role === 1) { $roleChipClass = 'chip-amber'; }
 
         /* Glass card */
         .glass-card {
-            background: rgba(255,255,255,0.85);
+            background: var(--card);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(226, 232, 240, 0.9);
             border-radius: 16px;
-            box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 20px -12px rgba(15,23,42,0.08);
+            box-shadow: var(--golge-1);
             overflow: hidden;
             opacity: 0;
             transform: translateY(8px);
@@ -520,7 +519,7 @@ elseif ($role === 1) { $roleChipClass = 'chip-amber'; }
         <div class="header-title-wrap">
             <div class="header-title">
                 <i class="fa-solid fa-user-shield"></i>
-                Yetki Denetim Detay
+                Yetki Denetim Detayı
             </div>
             <span class="header-sub">
                 <?php echo htmlspecialchars($userKodu, ENT_QUOTES, 'UTF-8'); ?>

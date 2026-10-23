@@ -124,7 +124,7 @@ $toplam = count($urunler);
         * { box-sizing: border-box; }
 
         body {
-            font-family: 'Avenir Next', 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             margin: 0;
@@ -136,47 +136,6 @@ $toplam = count($urunler);
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 16px 32px;
-        }
-
-        .top-header-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: #fff;
-            border: 1px solid var(--border);
-            color: var(--text-1);
-            text-decoration: none;
-            transition: all 0.15s ease;
-            flex-shrink: 0;
-        }
-        .back-btn:hover {
-            background: var(--red-soft);
-            border-color: var(--red);
-            color: var(--red);
-        }
-
-        .header-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: var(--red-soft);
-            color: var(--red);
-            font-size: 18px;
-            flex-shrink: 0;
         }
 
         .header-count {
@@ -194,12 +153,12 @@ $toplam = count($urunler);
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.85);
+            background: var(--card);
             backdrop-filter: saturate(180%) blur(12px);
             -webkit-backdrop-filter: saturate(180%) blur(12px);
             border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+            box-shadow: var(--golge-1);
             margin-bottom: 16px;
             overflow: hidden;
         }
@@ -422,8 +381,8 @@ $toplam = count($urunler);
     ?>
     <div class="page">
         <div class="top-header">
-            <div class="top-header-inner">
-                <a href="../index.php" class="back-btn" aria-label="Geri">
+            <div class="top-header-inner header-inner">
+                <a href="../index.php" class="back-btn header-back" aria-label="Geri">
                     <i class="fa-solid fa-arrow-left"></i>
                 </a>
                 <span class="header-icon"><i class="fa-solid fa-tags"></i></span>

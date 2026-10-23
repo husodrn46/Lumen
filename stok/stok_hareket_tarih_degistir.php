@@ -86,7 +86,7 @@ if (isset($_POST['yeni_tarih'])) {
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background:
                 radial-gradient(1200px 600px at 8% -10%, rgba(56, 189, 248, .14), transparent 60%),
                 radial-gradient(900px 500px at 92% 110%, rgba(99, 102, 241, .08), transparent 55%),
@@ -157,14 +157,13 @@ if (isset($_POST['yeni_tarih'])) {
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(56, 189, 248, 0.22);
             border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+            box-shadow: var(--golge-1);
             padding: 36px 28px 30px;
-            animation: cardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
 
         /* HERO */
@@ -228,7 +227,7 @@ if (isset($_POST['yeni_tarih'])) {
             padding: 13px 14px 13px 42px;
             border: 1px solid var(--border);
             border-radius: 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 500;
             color: var(--text-1);
@@ -249,7 +248,7 @@ if (isset($_POST['yeni_tarih'])) {
             padding: 14px 22px;
             border: none;
             border-radius: 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 700;
             color: #fff;
@@ -318,7 +317,7 @@ if (isset($_POST['yeni_tarih'])) {
         <span class="divider"></span>
         <div class="header-title">
             <span class="title-icon"><i class="fa-solid fa-calendar-day"></i></span>
-            <span>Tarih Degistir</span>
+            <span>Tarih Değiştir</span>
         </div>
     </header>
 
@@ -327,8 +326,8 @@ if (isset($_POST['yeni_tarih'])) {
 
             <div class="hero">
                 <span class="icon-box"><i class="fa-solid fa-calendar-day"></i></span>
-                <h1>Tarih Degistir</h1>
-                <div class="subtitle">Stok hareket tarihini guncelleyin</div>
+                <h1>Tarih Değiştir</h1>
+                <div class="subtitle">Stok hareket tarihini güncelleyin</div>
             </div>
 
             <form method="POST" action="">

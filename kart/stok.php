@@ -18,7 +18,6 @@ if (!lumen_bagimsiz_mi()) {
     lumen_hata_sayfasi('Modül kullanılamıyor', 'Bu ekran yalnız bağımsız modda (Lumen veritabanı) kullanılır.', 501, 'fa-person-digging');
 }
 
-
 // Kart miktar gösterir: stok aramadaki kuralla aynı (M7 + ST1 miktar görme) ya da yönetici.
 if ((int) $yetkidurum !== 0 && ((int) m_p_yetki($terminalkullanici, 'M7') !== 1 || (int) m_p_yetki($terminalkullanici, 'ST1') !== 1)) {
     lumen_hata_sayfasi('Yetkiniz yok', 'Stok kartı için M7 (Stok Ara) ve ST1 (miktar görme) yetkisi gerekir.', 403, 'fa-lock');
@@ -69,7 +68,7 @@ belge_sayfa_basla($s['KOD'] . ' · ' . $s['AD'], 'fa-box', '../index.php', $duze
     .ozet { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
     .ozet .kart { margin: 0; padding: 14px 16px; }
     .ozet b { display: block; font-size: 19px; margin-top: 4px; }
-    .ikili { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .ikili { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
     .ikili .kart { margin: 0; }
     .eksi { color: var(--red); } .arti { color: var(--emerald); }
 </style>

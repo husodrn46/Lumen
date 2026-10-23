@@ -170,7 +170,7 @@ if ($tip == 'siparis') {
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -191,13 +191,12 @@ if ($tip == 'siparis') {
         main { max-width: 900px; margin: 0 auto; padding: 20px 22px 50px; }
 
         .glass-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(2, 132, 199, 0.18);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             margin-bottom: 16px;
             overflow: hidden;
         }
@@ -431,7 +430,7 @@ if ($tip == 'siparis') {
             body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .top-header, .readonly-banner { display: none !important; }
             main { max-width: none; padding: 0; margin: 0; }
-            .glass-card { box-shadow: none; border: 1px solid #999; animation: none; backdrop-filter: none; background: #fff; }
+            .glass-card { box-shadow: none; border: 1px solid #999; animation: none; backdrop-filter: none; background: var(--card); }
             .hero { background: #fef2f2 !important; }
             .lines-table { min-width: 0; }
             .lines-table tbody tr { page-break-inside: avoid; }
@@ -447,7 +446,7 @@ if ($tip == 'siparis') {
             </button>
             <div class="header-divider"></div>
             <span class="header-title">
-                <i class="fa-solid fa-receipt"></i>Fis Goruntule
+                <i class="fa-solid fa-receipt"></i>Fiş Görüntüle
             </span>
             <span class="header-badge">
                 <i class="fa-solid fa-lock"></i>Salt Okunur

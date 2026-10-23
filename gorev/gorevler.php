@@ -243,39 +243,37 @@ $kanbanSutunlar = [
     <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         * { box-sizing: border-box; margin: 0; }
-        body { font-family: 'Avenir Next', 'Montserrat', sans-serif; background: var(--bg); color: var(--text-1); min-height: 100vh; }
-        .btn-yeni { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; background: var(--red,#ef4444); color: #fff; border: none; border-radius: 10px; font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.08); white-space: nowrap; }
-        .btn-yeni:hover { background: var(--red); box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25); transform: translateY(-1px); }
+        body { font-family: var(--font); background: var(--bg); color: var(--text-1); min-height: 100vh; }
 
         main { max-width: 1280px; margin: 0 auto; padding: 22px 24px 60px; }
 
         .sekme-bar { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
         .sekme { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; color: var(--text-2); background: #fff; border: 1px solid var(--border); transition: all 0.2s ease; }
-        .sekme:hover { border-color: rgba(239, 68, 68, 0.35); color: var(--red); }
-        .sekme.aktif { background: var(--red,#ef4444); color: #fff; border-color: var(--red,#ef4444); box-shadow: 0 2px 8px rgba(239,68,68,0.20); }
+        .sekme:hover { border-color: rgba(var(--red-rgb), 0.35); color: var(--red); }
+        .sekme.aktif { background: var(--red,#ef4444); color: #fff; border-color: var(--red,#ef4444); box-shadow: 0 2px 8px rgba(var(--red-rgb), 0.20); }
 
         .arac-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
         .arama-wrap { position: relative; flex: 1 1 240px; }
         .arama-wrap i { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: var(--text-3); font-size: 13px; pointer-events: none; }
-        .arama-input { width: 100%; padding: 10px 13px 10px 36px; font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 14px; background: #fff; border: 1px solid var(--border); border-radius: 10px; outline: none; transition: all 0.2s ease; }
-        .arama-input:focus { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
-        .arac-select { padding: 10px 13px; font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 14px; background: #fff; border: 1px solid var(--border); border-radius: 10px; outline: none; cursor: pointer; }
-        .arac-select:focus { border-color: rgba(239, 68, 68, 0.5); }
+        .arama-input { width: 100%; padding: 10px 13px 10px 36px; font-family: var(--font); font-size: 14px; background: #fff; border: 1px solid var(--border); border-radius: 10px; outline: none; transition: all 0.2s ease; }
+        .arama-input:focus { border-color: rgba(var(--red-rgb), 0.5); box-shadow: 0 0 0 3px rgba(var(--red-rgb), 0.1); }
+        .arac-select { padding: 10px 13px; font-family: var(--font); font-size: 14px; background: #fff; border: 1px solid var(--border); border-radius: 10px; outline: none; cursor: pointer; }
+        .arac-select:focus { border-color: rgba(var(--red-rgb), 0.5); }
         .gorunum-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #fff; }
         .gorunum-toggle a { display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; font-size: 13px; font-weight: 600; color: var(--text-2); text-decoration: none; transition: all 0.18s ease; }
         .gorunum-toggle a.aktif { background: var(--red,#ef4444); color: #fff; }
 
         .metrik-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 22px; }
-        .metrik { background: rgba(255,255,255,0.92); border: 1px solid rgba(248, 113, 113, 0.18); border-radius: 14px; padding: 14px 16px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.04); text-decoration: none; display: block; }
-        .metrik:hover { transform: translateY(-2px); border-color: rgba(239, 68, 68, 0.35); }
-        .metrik.aktif { border-color: var(--red,#ef4444); box-shadow: 0 6px 16px rgba(239, 68, 68, 0.14); }
+        .metrik { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.04); text-decoration: none; display: block; }
+        .metrik:hover { transform: translateY(-2px); border-color: rgba(var(--red-rgb), 0.35); }
+        .metrik.aktif { border-color: var(--red,#ef4444); box-shadow: 0 6px 16px rgba(var(--red-rgb), 0.14); }
         .metrik .m-label { font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.4px; }
         .metrik .m-num { margin-top: 4px; font-size: 26px; font-weight: 700; line-height: 1.1; color: var(--text-1); }
         .metrik.geciken .m-num, .metrik.geciken .m-label { color: var(--red); }
 
         .gorev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
-        .gorev-card { background: rgba(255,255,255,0.94); border: 1px solid rgba(248, 113, 113, 0.18); border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); padding: 16px 18px; cursor: pointer; display: flex; flex-direction: column; gap: 10px; transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease; animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
-        .gorev-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(239, 68, 68, 0.10); border-color: rgba(239, 68, 68, 0.35); }
+        .gorev-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); padding: 16px 18px; cursor: pointer; display: flex; flex-direction: column; gap: 10px; transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease; animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .gorev-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(var(--red-rgb), 0.10); border-color: rgba(var(--red-rgb), 0.35); }
         .gorev-card.bitmis { opacity: 0.62; }
         .gorev-card.bitmis:hover { opacity: 1; }
         .gorev-card.suruklenuyor { opacity: 0.4; }
@@ -303,8 +301,8 @@ $kanbanSutunlar = [
         .ikon-sayi { font-size: 12px; color: var(--text-3); }
         .ikon-sayi i { font-size: 12px; margin-right: 2px; }
 
-        .durum-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 9px; font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text-1); transition: all 0.18s ease; }
-        .durum-btn:hover { border-color: rgba(239,68,68,0.4); color: var(--red); }
+        .durum-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 9px; font-family: var(--font); font-size: 12.5px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text-1); transition: all 0.18s ease; }
+        .durum-btn:hover { border-color: rgba(var(--red-rgb), 0.4); color: var(--red); }
         .durum-btn.ileri { background: var(--red,#ef4444); color: #fff; border-color: var(--red,#ef4444); }
         .durum-btn.ileri:hover { background: var(--red); }
         .durum-btn.bitir { background: var(--emerald); color: #fff; border-color: var(--emerald); }
@@ -313,7 +311,7 @@ $kanbanSutunlar = [
         /* Kanban */
         .kanban-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
         .kanban-sutun { background: rgba(243,244,246,0.7); border: 1px solid var(--border); border-radius: 14px; padding: 12px; min-height: 140px; transition: background 0.18s ease, border-color 0.18s ease; }
-        .kanban-sutun.uzerinde { background: var(--red-soft); border-color: rgba(239,68,68,0.4); }
+        .kanban-sutun.uzerinde { background: var(--red-soft); border-color: rgba(var(--red-rgb), 0.4); }
         .kanban-hayalet { opacity: 0.45; background: var(--red-soft) !important; border-style: dashed !important; }
         .kanban-surukle .gorev-card { cursor: grab; }
         .kanban-surukle .gorev-card:active { cursor: grabbing; }
@@ -322,7 +320,7 @@ $kanbanSutunlar = [
         .kanban-sutun .gorev-card { margin-bottom: 12px; }
         .kanban-bos { font-size: 12px; color: var(--text-3); text-align: center; padding: 16px 0; }
 
-        .empty-state { grid-column: 1 / -1; background: rgba(255,255,255,0.92); border: 1px dashed rgba(248, 113, 113, 0.30); border-radius: 16px; padding: 48px 24px; text-align: center; }
+        .empty-state { grid-column: 1 / -1; background: var(--card); border: 1px dashed rgba(248, 113, 113, 0.30); border-radius: 16px; padding: 48px 24px; text-align: center; }
         .empty-state .big-icon { width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 16px; background: var(--red-soft); color: var(--red); display: flex; align-items: center; justify-content: center; font-size: 24px; }
         .empty-state .title { font-size: 15px; font-weight: 700; }
         .empty-state .desc { margin-top: 4px; font-size: 13px; color: var(--text-2); }
@@ -341,8 +339,8 @@ $kanbanSutunlar = [
         .form-label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-2); margin: 14px 0 6px; }
         .form-label:first-child { margin-top: 0; }
         .form-label .req { color: var(--red); }
-        .form-ctrl { width: 100%; padding: 11px 13px; font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 14px; color: var(--text-1); background: #fff; border: 1px solid var(--border); border-radius: 10px; outline: none; transition: all 0.2s ease; }
-        .form-ctrl:focus { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
+        .form-ctrl { width: 100%; padding: 11px 13px; font-family: var(--font); font-size: 14px; color: var(--text-1); background: #fff; border: 1px solid var(--border); border-radius: 10px; outline: none; transition: all 0.2s ease; }
+        .form-ctrl:focus { border-color: rgba(var(--red-rgb), 0.5); box-shadow: 0 0 0 3px rgba(var(--red-rgb), 0.1); }
         textarea.form-ctrl { resize: vertical; min-height: 84px; }
         .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
         .form-row > div { flex: 1 1 150px; }
@@ -354,7 +352,7 @@ $kanbanSutunlar = [
         .kendi-not { background: var(--red-soft); border-radius: 10px; padding: 11px 14px; font-size: 13px; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
         .kendi-not i { color: var(--red); }
         .modal-foot { display: flex; gap: 10px; margin-top: 22px; }
-        .btn-modal { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 10px; font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text-1); transition: all 0.2s ease; }
+        .btn-modal { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 10px; font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text-1); transition: all 0.2s ease; }
         .btn-modal:hover { background: #f9fafb; }
         .btn-modal.primary { background: var(--red,#ef4444); color: #fff; border-color: var(--red,#ef4444); }
         .btn-modal.primary:hover { background: var(--red); }
@@ -390,11 +388,11 @@ $kanbanSutunlar = [
         .alt-ekle-form .form-ctrl, .yorum-form .form-ctrl { flex: 1; }
         .ek-liste { display: flex; flex-direction: column; gap: 6px; }
         .ek-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fafafa; border: 1px solid var(--border); border-radius: 9px; text-decoration: none; color: var(--text-1); font-size: 13px; transition: all 0.18s ease; }
-        .ek-item:hover { border-color: rgba(239,68,68,0.4); color: var(--red); }
+        .ek-item:hover { border-color: rgba(var(--red-rgb), 0.4); color: var(--red); }
         .ek-item i { color: var(--red,#ef4444); flex-shrink: 0; }
         .ek-ad { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ek-bos { font-size: 13px; color: var(--text-3); }
-        .ek-yukle-alan { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 9px 14px; border: 1px dashed rgba(239,68,68,0.4); border-radius: 9px; color: var(--red); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s ease; }
+        .ek-yukle-alan { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 9px 14px; border: 1px dashed rgba(var(--red-rgb), 0.4); border-radius: 9px; color: var(--red); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s ease; }
         .ek-yukle-alan:hover { background: var(--red-soft); }
         .timeline { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
         .tl-item { display: flex; gap: 12px; }
@@ -408,9 +406,8 @@ $kanbanSutunlar = [
 
         @media (max-width: 900px) { .kanban-board { grid-template-columns: 1fr 1fr; } }
         @media (max-width: 767px) {
-            .btn-yeni { padding: 8px 12px; font-size: 12.5px; }
-            .btn-yeni span { display: none; }
             main { padding: 14px 12px 40px; }
+            .arama-input, .arac-select, .form-ctrl { font-size: 16px; }
             .gorev-grid { grid-template-columns: 1fr; gap: 14px; }
             .metrik-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
             .kanban-board { grid-template-columns: 1fr; }
@@ -427,11 +424,12 @@ $kanbanSutunlar = [
             <a href="../index.php" class="header-back" title="Geri"><i class="fa fa-arrow-left"></i></a>
             <div class="header-divider"></div>
             <span class="header-title"><i class="fa-solid fa-clipboard-list"></i>Görevler</span>
-            <div class="header-spacer"></div>
+            <div class="header-eylem">
             <?php if ($yonetici): ?>
-                <a href="gorev_rapor.php" class="btn-yeni" style="background:#fff;color:var(--text-1);border:1px solid var(--border);margin-right:8px;"><i class="fa-solid fa-chart-column"></i><span>Rapor</span></a>
+                <a href="gorev_rapor.php" class="btn btn-ikincil"><i class="fa-solid fa-chart-column"></i><span>Rapor</span></a>
             <?php endif; ?>
-            <button type="button" class="btn-yeni" onclick="yeniGorevAc()"><i class="fa-solid fa-plus"></i><span>Yeni Görev</span></button>
+            <button type="button" class="btn btn-birincil" onclick="yeniGorevAc()"><i class="fa-solid fa-plus"></i><span>Yeni Görev</span></button>
+            </div>
         </div>
     </header>
 

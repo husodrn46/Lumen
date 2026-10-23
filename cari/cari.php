@@ -153,7 +153,7 @@ if (!$hasSearch) {
     <style>
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -193,7 +193,7 @@ if (!$hasSearch) {
         .search-input {
             width: 100%;
             padding: 12px 14px 12px 40px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -216,7 +216,7 @@ if (!$hasSearch) {
             color: #fff;
             border: none;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;

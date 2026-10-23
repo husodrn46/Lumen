@@ -63,14 +63,12 @@ if ($erisim && $cariRef > 0) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; --amber:#b45309; --amber-soft:#fffbeb; --indigo:#4f46e5; --indigo-soft:#eef2ff; }
+        :root {
+             --indigo:#4f46e5; --indigo-soft:#eef2ff;
+        }
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--t1); font-size:14px; }
-        .top { position:sticky; top:0; z-index:30; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--border); }
-        .top-in { max-width:760px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; gap:12px; }
-        .top-in a.geri { width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); text-decoration:none; border:1px solid var(--border); background:#fff; }
-        .top-title { font-size:15px; font-weight:600; flex:1; display:flex; align-items:center; gap:8px; }
-        .top-title i { color:var(--red); }
+        body { font-family: var(--font); background:var(--bg); color:var(--t1); font-size:14px; }
+
         main { max-width:760px; margin:0 auto; padding:18px 16px 60px; }
         .card { background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden; }
         .kapali { padding:40px 20px; text-align:center; color:var(--t2); }
@@ -106,8 +104,8 @@ if ($erisim && $cariRef > 0) {
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
+    <header class="top-header">
+        <div class="header-inner">
             <?php
             // Deterministik geri hedefi: history.back() panellerden donuste
             // ping-pong yapiyordu (panel -> islemler -> geri -> panel).
@@ -115,8 +113,8 @@ if ($erisim && $cariRef > 0) {
                 ? 'lg_bakiye.php?q=' . rawurlencode(trim((string) $cari['CODE']))
                 : 'lg_bakiye.php';
             ?>
-            <a href="<?php echo htmlspecialchars($geriHref, ENT_QUOTES, 'UTF-8'); ?>" class="geri" title="Müşteri bakiyesine dön"><i class="fa fa-arrow-left"></i></a>
-            <span class="top-title"><i class="fa-solid fa-right-left"></i> Cari İşlemleri</span>
+            <a href="<?php echo htmlspecialchars($geriHref, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Müşteri bakiyesine dön"><i class="fa fa-arrow-left"></i></a>
+            <span class="header-title"><i class="fa-solid fa-right-left"></i> Cari İşlemleri</span>
         </div>
     </header>
     <main>

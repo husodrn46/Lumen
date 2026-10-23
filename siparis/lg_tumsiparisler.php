@@ -211,7 +211,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -267,7 +267,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .field select {
             width: 100%;
             padding: 10px 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             color: var(--text-1);
             background: #fff;
@@ -319,7 +319,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: #fff;
             border: 1px solid var(--red,#6F1022);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
@@ -337,7 +337,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 10px 16px;
             background: #fff; color: var(--text-2);
             border: 1px solid var(--border); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 600;
+            font-family: var(--font); font-size: 12.5px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
             text-decoration: none;
             white-space: nowrap;
@@ -357,7 +357,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .live-search-input {
             width: 100%;
             padding: 11px 14px 11px 40px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;

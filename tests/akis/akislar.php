@@ -418,6 +418,19 @@ akis('cari finans bilgisi: bakiye/ekstre yetkisi olmayan kullanıcı ekstre, PDF
     bekle($satis->istek('cari/lg_hareket.php?cariid=2')['kod'] === 200, 'bakiye yetkili kullanıcı ekstreyi açamadı');
 });
 
+akis('üretim: geçersiz fiş HTML hata kartı, ürün araması JSON döndürür', function () use ($yonetici): void {
+    if (lumen_bagimsiz_mi()) {
+        return; // Üretim ekranı yalnız LOGO modunda açıktır.
+    }
+    $r = $yonetici->istek('stok/uretim_giris.php?fis=2147483647');
+    bekle($r['kod'] === 404, 'geçersiz üretim fişi 404 dönmedi');
+    bekle(str_contains($r['govde'], 'Üretim fişi bulunamadı') && str_contains($r['govde'], 'class="top-header"'), 'ortak hata kartı gösterilmedi');
+    bekle(!str_contains($r['govde'], '{"ok":false'), 'HTML sayfasına JSON karıştı');
+    $r = $yonetici->istek('stok/uretim_giris.php?ajax=item&value=LUMEN_TASARIM_YOK_2147483647');
+    $json = json_decode($r['govde'], true);
+    bekle(is_array($json) && ($json['ok'] ?? null) === false, 'ürün araması JSON yanıtını kaybetti');
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

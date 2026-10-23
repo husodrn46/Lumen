@@ -98,7 +98,7 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -213,7 +213,7 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
         .search-wrap input {
             width: 100%;
             padding: 9px 12px 9px 34px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; color: var(--text-1);
             background: #fff;
             border: 1px solid var(--border);
@@ -246,7 +246,7 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
             padding: 9px 14px;
             background: var(--emerald); color: #fff;
             border: 1px solid var(--emerald); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
             white-space: nowrap;
@@ -381,7 +381,7 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
             background: var(--amber); color: #fff;
             padding: 9px 20px; border-radius: 10px;
             border: none;
-            font-weight: 700; font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-weight: 700; font-family: var(--font);
             font-size: 12.5px; cursor: pointer;
             transition: background 0.15s ease;
             min-height: 44px;

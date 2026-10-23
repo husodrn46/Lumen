@@ -267,7 +267,9 @@ if (function_exists('kisisel_ayarlar')) {
     });
     /* Başlık çubuğu varsa düğme orada durur (içeriğin üstüne binmez); yoksa sağ altta, içeriğe yer bırakarak */
     var esnek=function(e){return e&&getComputedStyle(e).display.indexOf('flex')>=0?e:null;};
-    var baslik=document.querySelector('.top-header .header-right, .top-header .header-eylem, .top-header .header-actions, body > header .aksiyon, body > header .actions')
+    /* Ortak araç çubuğunda göz başlık satırında kalır; mobilde işlemler alt satıra geçer. */
+    var baslik=document.querySelector('.top-header .header-inner:has(> .header-eylem)')
+      ||document.querySelector('.top-header .header-right, .top-header .header-eylem, .top-header .header-actions, body > header .aksiyon, body > header .actions')
       ||document.querySelector('.top-header .header-inner, .top-header-inner')
       ||(function(){var hd=document.querySelector('body > header, header');if(!hd)return null;
           return esnek(hd.querySelector(':scope > div'))||esnek(hd);})();

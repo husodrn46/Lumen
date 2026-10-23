@@ -340,8 +340,6 @@ function resolve_item_from_inputs(PDO $dbh, string $firma, mixed $barcode, mixed
     return fetch_item_by_ref($dbh, $firma, $fallbackRef);
 }
 
-
-
 function copy_logo_defaults(PDO $dbh, string $tableName, int|string $templateId, int|string $targetId): void
 
 {
@@ -534,7 +532,7 @@ if ($fis_id > 0) {
             $depogiris = (int) $fiche['DESTINDEX'];
         }
     } else {
-        echo json_encode(['ok' => false, 'message' => 'Ürün bulunamadı.']);
+        lumen_hata_sayfasi('Üretim fişi bulunamadı', 'Fiş numarası geçersiz veya bu kayıt bir üretim fişi değil. Üretim listesinden tekrar açın.', 404);
     }
 }
 // --- SATIR EKLE ---
@@ -997,7 +995,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
 
 <head>
     <meta charset="utf-8">
-    <title>Üretimden Giriş Fişi (TRCODE:13)</title>
+    <title>Üretimden Giriş Fişi</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
@@ -1016,7 +1014,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { overflow-x: hidden; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -1036,7 +1034,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             padding: 9px 14px;
             background: var(--emerald); color: #fff;
             border: 1px solid var(--emerald); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
             text-decoration: none;
@@ -1048,14 +1046,12 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
 
         /* Glass card base */
         .glass-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             margin-bottom: 14px;
         }
         .glass-card:nth-of-type(1) { animation-delay: 0ms; }
@@ -1205,7 +1201,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             border-radius: 10px;
             color: var(--text-1);
             font-size: 13px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             transition: all 0.18s ease;
             min-height: 44px;
             width: 100%;
@@ -1278,7 +1274,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             text-align: left; cursor: pointer;
             transition: background-color 0.15s ease;
             color: var(--text-1);
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
         }
         .autocomplete-item:last-child { border-bottom: none; }
         .autocomplete-item:focus,
@@ -1335,7 +1331,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             background: var(--emerald); color: #fff;
             border: 1px solid var(--emerald);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
             min-height: 44px;
@@ -1422,7 +1418,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             border-radius: 8px;
             border: 1px solid var(--border);
             background: #fff;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 11.5px; font-weight: 600;
             text-decoration: none;
             cursor: pointer;
@@ -1464,7 +1460,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             color: var(--text-2);
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 600;
             text-decoration: none;
             cursor: pointer; transition: all 0.2s ease;

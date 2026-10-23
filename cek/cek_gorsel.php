@@ -82,7 +82,7 @@ $csrfToken = function_exists('csrf_token') ? csrf_token() : '';
     <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--text-1); min-height:100vh; }
+        body { font-family: var(--font); background:var(--bg); color:var(--text-1); min-height:100vh; }
         main { max-width:900px; margin:0 auto; padding:18px 18px 60px; }
         .ozet { display:flex; align-items:center; gap:10px; padding:13px 16px; border-radius:12px; margin-bottom:16px; font-size:14px; font-weight:600; }
         .ozet.uyari { background:var(--amber-soft); color:#92400e; border:1px solid #fde68a; }
@@ -112,7 +112,7 @@ $csrfToken = function_exists('csrf_token') ? csrf_token() : '';
         .gorsel-item .etiket { position:absolute; top:6px; left:6px; padding:2px 7px; border-radius:6px; background:rgba(0,0,0,0.6); color:#fff; font-size:10px; font-weight:600; }
         .gorsel-item .sil { position:absolute; top:6px; right:6px; width:24px; height:24px; border-radius:50%; background:rgba(111,16,34,0.92); color:#fff; border:none; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; }
         .yukle-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; }
-        .yukle-btn { flex:1 1 auto; min-width:130px; min-height:48px; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 14px; border-radius:10px; border:1px dashed #fca5a5; background:var(--red-soft); color:var(--red); font-family:'Avenir Next','Montserrat',sans-serif; font-size:13.5px; font-weight:600; cursor:pointer; }
+        .yukle-btn { flex:1 1 auto; min-width:130px; min-height:48px; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 14px; border-radius:10px; border:1px dashed #fca5a5; background:var(--red-soft); color:var(--red); font-family: var(--font); font-size:13.5px; font-weight:600; cursor:pointer; }
         .yukle-btn.ek { border-color:var(--border); background:#f9fafb; color:var(--text-2); }
         .yukle-btn:active { transform:scale(0.98); }
         .empty { text-align:center; padding:50px 20px; color:var(--text-3); }

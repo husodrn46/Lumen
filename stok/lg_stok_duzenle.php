@@ -28,11 +28,11 @@ try {
     // Düzenlenecek stok satırının bilgilerini çek
     $stokara_stmt = $dbh->prepare(
         "SELECT O.LOGICALREF AS ID, O.STOCKREF, O.AMOUNT, O.PRICE, O.VAT, O.LINEEXP, O.UOMREF,
-                I.CODE, I.NAME, 
-                U.CODE AS BIRIM 
-         FROM {$firmadonem}ORFLINE O 
-         LEFT JOIN {$firma}ITEMS I ON O.STOCKREF = I.LOGICALREF 
-         LEFT JOIN {$firma}UNITSETL U ON O.UOMREF = U.LOGICALREF 
+                I.CODE, I.NAME,
+                U.CODE AS BIRIM
+         FROM {$firmadonem}ORFLINE O
+         LEFT JOIN {$firma}ITEMS I ON O.STOCKREF = I.LOGICALREF
+         LEFT JOIN {$firma}UNITSETL U ON O.UOMREF = U.LOGICALREF
          WHERE O.ORDFICHEREF = :fisid AND O.STOCKREF = :stokid"
     );
     $stokara_stmt->execute([':fisid' => $fisid, ':stokid' => $stokid]);
@@ -78,7 +78,7 @@ function kusuratadet1(float|int|string|null $kusurata): string
     <link rel="icon" type="image/png" href="icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stok Kalemi Duzenle</title>
+    <title>Sipariş Satırını Düzenle</title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
@@ -91,7 +91,7 @@ function kusuratadet1(float|int|string|null $kusurata): string
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -102,14 +102,12 @@ function kusuratadet1(float|int|string|null $kusurata): string
 
         /* ═══════ CARD ═══════ */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             overflow: hidden;
         }
         .glass-card + .glass-card { margin-top: 16px; }
@@ -155,7 +153,7 @@ function kusuratadet1(float|int|string|null $kusurata): string
         .field-control {
             width: 100%;
             padding: 11px 14px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 600;
             color: var(--text-1);
@@ -258,7 +256,7 @@ function kusuratadet1(float|int|string|null $kusurata): string
             color: #fff;
             border: none;
             border-radius: 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 700;
             cursor: pointer;
@@ -622,12 +620,12 @@ function kusuratadet1(float|int|string|null $kusurata): string
 
     <header class="top-header">
         <div class="header-inner">
-            <a href="<?php echo htmlspecialchars($lgStokDuzenleBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Geri Don">
+            <a href="<?php echo htmlspecialchars($lgStokDuzenleBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Geri Dön">
                 <i class="fa fa-arrow-left"></i>
             </a>
             <div class="header-divider"></div>
             <span class="header-title">
-                <i class="fa-solid fa-pen-to-square"></i>Stok Kalemi Duzenle
+                <i class="fa-solid fa-pen-to-square"></i>Sipariş Satırını Düzenle
             </span>
         </div>
     </header>

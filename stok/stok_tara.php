@@ -60,7 +60,7 @@ $link = getSafeReturnLink($rawLink);
     }
     * { box-sizing: border-box; margin: 0; }
     body {
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--text-1);
       min-height: 100vh;
@@ -91,7 +91,7 @@ $link = getSafeReturnLink($rawLink);
     .search-input {
       width: 100%;
       padding: 13px 14px 13px 40px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 14px;
       color: var(--text-1);
       background: #fff;
@@ -180,7 +180,7 @@ $link = getSafeReturnLink($rawLink);
       color: #fff;
       border: none;
       border-radius: 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;

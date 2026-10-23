@@ -389,7 +389,6 @@ foreach ($rows as $r) {
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         :root {
-            --surface: #ffffff;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
             --amber-border: rgba(217, 119, 6, 0.22);
@@ -400,12 +399,12 @@ foreach ($rows as $r) {
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-        .header-title .material-icons { color: var(--amber); font-size: 20px; }
+        .header-title .material-icons { color: var(--red); font-size: 20px; }
         .header-actions {
             margin-left: auto;
             display: inline-flex; align-items: center; gap: 8px;
@@ -431,14 +430,12 @@ foreach ($rows as $r) {
 
         /* Glass card */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
         }
 
         /* Filter panel */
@@ -472,7 +469,7 @@ foreach ($rows as $r) {
             padding: 10px 12px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13.5px;
             color: var(--text-1);
             background: #fff;
@@ -499,7 +496,7 @@ foreach ($rows as $r) {
             gap: 6px;
             padding: 10px 18px;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px; font-weight: 600;
             border: none; cursor: pointer;
             text-decoration: none;
@@ -766,6 +763,8 @@ foreach ($rows as $r) {
         input, select, textarea { font-size: 16px; }
 
         /* Print */
+        @media (max-width: 480px) { .stat-grid { grid-template-columns: 1fr; } .stat-value { font-size: 16px; } }
+
         @media print {
             .no-print { display: none !important; }
             body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -788,10 +787,10 @@ foreach ($rows as $r) {
         </a>
         <div class="header-divider"></div>
         <span class="header-title">
-            <span class="material-icons">schedule</span>Cari Yaslandirma
+            <span class="material-icons">schedule</span>Cari Yaşlandırma
         </span>
-        <div class="header-actions">
-            <button type="button" onclick="window.print()" class="icon-btn" title="Yazdir">
+        <div class="header-actions header-eylem">
+            <button type="button" onclick="window.print()" class="icon-btn btn btn-ikincil btn-ikon" title="Yazdır">
                 <span class="material-icons">print</span>
             </button>
             <?php
@@ -805,7 +804,7 @@ foreach ($rows as $r) {
                 ]);
             ?>
             <a href="rapor_cari_yaslandirma_excel_xlsx.php?<?php echo htmlspecialchars($excelQuery, ENT_QUOTES, 'UTF-8'); ?>"
-               class="icon-btn icon-excel" title="Excel">
+               class="icon-btn icon-excel btn btn-ikincil btn-ikon" title="Excel">
                 <span class="material-icons">download</span>
             </a>
         </div>

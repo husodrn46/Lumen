@@ -86,10 +86,9 @@ if (isset($hataMesaj)) {
 ?>
 <style>
     .satirlar { display: grid; gap: 8px; }
-    .satirlar .s { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .satirlar .s { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+    .satirlar .s > :is(input, select) { min-width: 0; width: 100%; }
     .not { font-size: 12px; color: var(--text-2); margin-top: 6px; }
-    label.alan.kutu { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; }
-    label.alan.kutu input { width: auto; flex: 0 0 auto; }
 </style>
 <form method="post" action="stok_duzenle.php">
     <?= csrf_field() ?>
@@ -127,7 +126,7 @@ if (isset($hataMesaj)) {
     </div>
     <?php endif; ?>
 
-    <div class="ikili" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+    <div class="ikili" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px">
         <div class="kart kart-ic">
             <div class="kart-baslik" style="padding:0 0 10px"><i class="fa-solid fa-ruler"></i>Diğer birimler</div>
             <div class="satirlar">

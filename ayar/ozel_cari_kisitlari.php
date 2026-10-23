@@ -638,7 +638,7 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ozel Cari Kisitlari</title>
+    <title>Özel Cari Kısıtları</title>
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
@@ -652,7 +652,7 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -662,12 +662,7 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
             0% { opacity: 0; transform: translateY(8px); }
             100% { opacity: 1; transform: translateY(0); }
         }
-        .header-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            background: var(--indigo-soft); color: var(--indigo);
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 15px; flex-shrink: 0;
-        }
+
         .header-titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
         .header-subtitle {
             font-size: 11.5px; color: var(--text-2);
@@ -697,14 +692,13 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
 
         /* Glass card */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(99, 102, 241, 0.16);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             will-change: opacity, transform;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
 
         /* Alert */
@@ -740,7 +734,7 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
         .field input[type="text"] {
             width: 100%;
             padding: 11px 14px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 16px;
             color: var(--text-1);
             background: #fff;
@@ -775,7 +769,7 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
             color: #fff;
             border: 1px solid var(--indigo);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px; font-weight: 700;
             cursor: pointer; transition: all 0.18s ease;
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
@@ -793,11 +787,10 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
         }
         .stat-card {
             padding: 14px 16px;
-            background: #fff;
+            background: var(--card);
             border-radius: 12px;
             border: 1px solid var(--border);
             display: flex; align-items: center; gap: 12px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
             will-change: opacity, transform;
         }
         .stat-card.ind { border-color: rgba(79,70,229,0.22); background: linear-gradient(135deg, var(--indigo-soft) 0%, #fff 60%); animation-delay: 0.08s; }
@@ -903,7 +896,7 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
             text-decoration: none; cursor: pointer;
             transition: all 0.15s ease;
             font-size: 12.5px; font-weight: 600;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             gap: 7px;
         }
         .btn-icon:hover { border-color: var(--indigo); color: var(--indigo); background: var(--indigo-soft); }
@@ -1209,7 +1202,7 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
                         <thead>
                             <tr>
                                 <th>Cari</th>
-                                <th>Sehir</th>
+                                <th>Şehir</th>
                                 <th class="right">Islem</th>
                             </tr>
                         </thead>
@@ -1288,7 +1281,7 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
                         <thead>
                             <tr>
                                 <th>Cari</th>
-                                <th>Sehir</th>
+                                <th>Şehir</th>
                                 <th>Kisitlar</th>
                                 <th>Ekleyen</th>
                                 <th>Tarih</th>
@@ -1341,7 +1334,7 @@ $buildTabUrl = static function (string $sekme) use ($selectedPersonelId, $search
                     <thead>
                         <tr>
                             <th>Cari</th>
-                            <th>Sehir</th>
+                            <th>Şehir</th>
                             <th>Kisitlar</th>
                             <th>Ekleyen</th>
                             <th>Tarih</th>

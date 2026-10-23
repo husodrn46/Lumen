@@ -71,7 +71,7 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         * { box-sizing: border-box; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -79,13 +79,7 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding-bottom: 120px;
         }
         .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
-        .header-icon {
-            width: 40px; height: 40px;
-            border-radius: 12px;
-            background: rgba(255,255,255,0.15);
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 16px; color: #fff;
-        }
+
         .header-title-wrap { min-width: 0; flex: 1; }
         .header-sub { font-size: 11.5px; color: rgba(255,255,255,0.78); margin-top: 1px; }
         .header-badge {
@@ -169,7 +163,7 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
             letter-spacing: 0.4px;
         }
         .form-select {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             padding: 10px 14px;
             min-height: 44px;
@@ -375,7 +369,7 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
             display: flex; flex-direction: column; align-items: center; gap: 6px;
         }
         .preset-select {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 11.5px;
             padding: 5px 8px;
             min-height: 30px;
@@ -504,7 +498,7 @@ $kullanicilar = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .save-info .sub { font-size: 11.5px; color: rgba(255,255,255,0.82); margin-top: 2px; }
         .save-actions { display: flex; gap: 10px; }
         .btn {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13.5px;
             font-weight: 600;
             padding: 11px 20px;

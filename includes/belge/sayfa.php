@@ -38,8 +38,7 @@ function belge_sayfa_basla(string $baslik, string $ikon, string $geri = '../inde
         <a href="<?= bh($geri) ?>" class="header-back" title="Geri" aria-label="Geri"><i class="fa fa-arrow-left"></i></a>
         <div class="header-divider"></div>
         <span class="header-title"><i class="fa-solid <?= bh($ikon) ?>"></i><span class="header-title-metin"><?= bh($baslik) ?></span></span>
-        <div class="header-spacer"></div>
-        <?= $sag ?>
+        <?php if ($sag !== ''): ?><div class="header-eylem"><?= $sag ?></div><?php endif; ?>
     </div>
 </header>
 <main class="sayfa">

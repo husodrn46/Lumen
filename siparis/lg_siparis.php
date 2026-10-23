@@ -147,7 +147,7 @@ $printActions = [
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Siparis Islemleri</title>
+  <title>Sipariş İşlemleri</title>
   <link rel="icon" type="image/png" href="icon.png">
   <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
@@ -155,10 +155,10 @@ $printActions = [
   <style>
     :root {
       --indigo: #4f46e5;
-    }
+        }
     * { box-sizing: border-box; margin: 0; }
     body {
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--text-1);
       min-height: 100vh;
@@ -166,14 +166,12 @@ $printActions = [
 
     /* ═══════ CARD ═══════ */
     .glass-card {
-      background: rgba(255,255,255,0.92);
+      background: var(--card);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
-      border: 1px solid rgba(248, 113, 113, 0.18);
+      border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-      will-change: transform, opacity;
-      animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+      box-shadow: var(--golge-1);
       padding: 22px;
     }
     .glass-card + .glass-card { margin-top: 18px; }
@@ -221,7 +219,7 @@ $printActions = [
     .field-control {
       width: 100%;
       padding: 11px 14px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 14px;
       color: var(--text-1);
       background: #fff;
@@ -245,7 +243,7 @@ $printActions = [
       gap: 8px;
       padding: 11px 18px;
       border-radius: 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 13px;
       font-weight: 600;
       border: none;
@@ -282,7 +280,7 @@ $printActions = [
       border: 1px solid var(--border);
       border-radius: 14px;
       color: var(--text-1);
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
@@ -366,7 +364,7 @@ $printActions = [
       </a>
       <div class="header-divider"></div>
       <span class="header-title">
-        <i class="fa-solid fa-file-pen"></i>Siparis Islemleri
+        <i class="fa-solid fa-file-pen"></i>Sipariş İşlemleri
       </span>
     </div>
   </header>
@@ -381,7 +379,7 @@ $printActions = [
         <div class="card-head">
           <span class="icon-box"><i class="fa-solid fa-pencil"></i></span>
           <div>
-            <h2>Siparis Aciklamalari</h2>
+            <h2>Sipariş Açıklamaları</h2>
             <p>Bu alandaki degisiklikler tum yazdirma ve kaydetme islemlerinde uygulanir.</p>
           </div>
         </div>

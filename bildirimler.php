@@ -45,10 +45,11 @@ $ikon = [
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (is_file(__DIR__ . '/pwa-header.php')) { include_once(__DIR__ . '/pwa-header.php'); } ?>
     <style>
-        :root { --indigo-soft: #eef2ff;
+        :root {
+ --indigo-soft: #eef2ff;
         }
         * { box-sizing: border-box; margin: 0; }
-        body { font-family: 'Avenir Next', 'Montserrat', sans-serif; background: var(--bg); color: var(--text-1); min-height: 100vh; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text-1); min-height: 100vh; }
         .header-sayac { font-size: 12px; font-weight: 600; color: var(--text-2); background: var(--red-soft); border-radius: 8px; padding: 3px 9px; }
         .header-sayac.yeni { color: var(--red); }
         .btn-ikincil { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--card); color: var(--text-1); border: 1px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }

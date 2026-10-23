@@ -112,9 +112,8 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; --amber:#b45309; --amber-soft:#fffbeb; }
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; letter-spacing:-0.02em; background:var(--bg); color:var(--t1); font-size:14px; }
+        body { font-family: var(--font); letter-spacing:-0.02em; background:var(--bg); color:var(--t1); font-size:14px; }
         main { max-width:860px; margin:0 auto; padding:20px 16px 60px; display:flex; flex-direction:column; gap:16px; }
         .kart { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
         .kart h2 { font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
@@ -132,6 +131,8 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
         .btn-red { background:var(--red); color:#fff; } .btn-red:hover { filter:brightness(1.08); }
         .btn-kucuk { padding:6px 10px; font-size:12.5px; }
         .satir { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+        .satir > form { min-width:0; max-width:100%; }
+        .aciklama code { overflow-wrap:anywhere; }
         input[type=text], input[type=number], input[type=file] { padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; }
         input:focus { border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft); }
         label.alan { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:600; color:var(--t2); }

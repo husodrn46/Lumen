@@ -336,21 +336,13 @@ $print_actions = [
         * { box-sizing: border-box; margin: 0; }
 
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
-        .header-icon {
-            width: 42px; height: 42px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #f5f3ff, #ede9fe);
-            color: var(--purple);
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 18px;
-            flex-shrink: 0;
-        }
+
         .header-titles { flex: 1; min-width: 0; }
         .header-subtitle {
             font-size: 12px; color: var(--text-2); margin-top: 2px;
@@ -448,16 +440,14 @@ $print_actions = [
 
         /* ═══════ GLASS CARD ═══════ */
         .glass-card {
-            background: rgba(255, 255, 255, 0.88);
+            background: var(--card);
             backdrop-filter: saturate(180%) blur(10px);
             -webkit-backdrop-filter: saturate(180%) blur(10px);
             border: 1px solid var(--border);
             border-radius: 18px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-            animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
+            box-shadow: var(--golge-1);
         }
         .section-title {
             font-size: 11px; font-weight: 600; color: var(--text-3);
@@ -589,7 +579,7 @@ $print_actions = [
 
         /* ═══════ MOBILE ═══════ */
         @media (max-width: 767px) {
-            .header-icon { width: 38px; height: 38px; font-size: 16px; border-radius: 11px; }
+
             .header-subtitle { font-size: 11px; }
             .header-badge { padding: 7px 10px; font-size: 12px; }
 

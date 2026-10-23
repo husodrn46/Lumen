@@ -101,7 +101,7 @@ $enHizli = $rows[0] ?? null;
     <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--text-1); font-size:14px; }
+        body { font-family: var(--font); background:var(--bg); color:var(--text-1); font-size:14px; }
         .gun-sec { padding:8px 12px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; background:#fff; }
         main { max-width:1100px; margin:0 auto; padding:18px 18px 60px; }
         .ozet { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px; }

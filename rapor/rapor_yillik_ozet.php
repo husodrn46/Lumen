@@ -289,7 +289,7 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -298,13 +298,13 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
             font-size: 16px; font-weight: 700; color: var(--text-1);
             display: flex; align-items: center; gap: 8px; margin: 0;
         }
-        .header-title h1 .material-icons { color: var(--purple); font-size: 18px; }
+        .header-title h1 .material-icons { color: var(--red); font-size: 18px; }
         .header-title p {
             margin: 2px 0 0; font-size: 11.5px; color: var(--text-2); font-weight: 500;
         }
         .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .year-select {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px; font-weight: 600;
             color: var(--text-1); background: #fff;
             border: 1px solid var(--border); border-radius: 10px;
@@ -318,7 +318,7 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
         .btn-ghost-print {
             display: inline-flex; align-items: center; gap: 7px;
             padding: 10px 14px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 600;
             border-radius: 10px; min-height: 44px;
             background: var(--purple); color: #fff;
@@ -354,15 +354,14 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
             margin-bottom: 18px;
         }
         .stat-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 18px 18px;
             position: relative; overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .stat-card:nth-child(2) { animation-delay: 60ms; }
         .stat-card:nth-child(3) { animation-delay: 120ms; }
@@ -414,14 +413,13 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
         }
 
         .glass-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 18px 20px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
         }
         .glass-card.purple-border { border-color: rgba(124, 58, 237, 0.18); }
         .glass-card h3 {
@@ -432,7 +430,8 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
         .glass-card h3 .material-icons.emerald-ic { color: var(--emerald); }
         .glass-card h3 .material-icons.sky-ic { color: var(--sky); }
 
-        .charts-grid {
+        .charts-grid > *, .top-grid > * { min-width: 0; }
+.charts-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px;
@@ -521,7 +520,7 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
             <h1><span class="material-icons">summarize</span> Yıllık Özet Raporu</h1>
             <p><?php echo $selectedYear; ?> yılı genel performans özeti</p>
         </div>
-        <div class="header-actions">
+        <div class="header-actions header-eylem">
             <select onchange="window.location.href='?year='+this.value" class="year-select">
                 <?php for ($y = (int) date('Y'); $y >= 2020; $y--): ?>
                     <option value="<?php echo $y; ?>" <?php echo $y == $selectedYear ? 'selected' : ''; ?>>
@@ -529,7 +528,7 @@ $newCustomers['NEW_CUSTOMER_COUNT'] = (int) ($newCustomers['NEW_CUSTOMER_COUNT']
                     </option>
                 <?php endfor; ?>
             </select>
-            <button onclick="window.print()" class="btn-ghost-print" title="Yazdır">
+            <button onclick="window.print()" class="btn-ghost-print btn btn-ikincil" title="Yazdır">
                 <span class="material-icons">print</span>
                 <span>Yazdır</span>
             </button>

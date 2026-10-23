@@ -214,7 +214,7 @@ foreach ($tumDegisiklikler as $d) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Degisiklik Gecmisi</title>
+    <title>Değişiklik Geçmişi</title>
     <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
     <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
@@ -224,7 +224,7 @@ foreach ($tumDegisiklikler as $d) {
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -402,12 +402,12 @@ foreach ($tumDegisiklikler as $d) {
     <header class="top-header">
         <div class="header-inner">
             <div class="header-left">
-                <a href="<?php echo htmlspecialchars($fisGecmisBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Geri Don">
+                <a href="<?php echo htmlspecialchars($fisGecmisBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Geri Dön">
                     <i class="fa fa-arrow-left"></i>
                 </a>
                 <div class="header-divider"></div>
                 <div>
-                    <span class="header-title">Degisiklik Gecmisi</span>
+                    <span class="header-title">Değişiklik Geçmişi</span>
                     <div class="header-sub">
                         <span><i class="fa-solid fa-hashtag" style="color:var(--red,#ef4444);margin-right:2px;"></i><?php echo htmlspecialchars((string) $fisInfo['FICHENO']); ?></span>
                         <span><i class="fa-regular fa-calendar-alt" style="margin-right:2px;"></i><?php echo date('d.m.Y', strtotime((string) $fisInfo['DATE_'])); ?></span>

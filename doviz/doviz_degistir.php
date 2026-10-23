@@ -143,54 +143,12 @@ $mevcut_trcode = (int)$fis['TRCURR'];
         * { box-sizing: border-box; }
 
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             margin: 0;
             padding: 0;
             -webkit-font-smoothing: antialiased;
-        }
-
-        .top-header-inner {
-            max-width: 760px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 14px 18px;
-        }
-
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: #fff;
-            border: 1px solid var(--border);
-            color: var(--text-1);
-            text-decoration: none;
-            transition: all .18s ease;
-            flex-shrink: 0;
-        }
-
-        .back-btn:hover {
-            border-color: var(--text-3);
-            transform: translateX(-2px);
-        }
-
-        .header-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--sky-soft);
-            color: var(--sky);
-            font-size: 18px;
-            flex-shrink: 0;
         }
 
         .header-titles { flex: 1; min-width: 0; }
@@ -235,14 +193,14 @@ $mevcut_trcode = (int)$fis['TRCURR'];
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.7);
+            background: var(--card);
             backdrop-filter: saturate(180%) blur(10px);
             -webkit-backdrop-filter: saturate(180%) blur(10px);
             border: 1px solid var(--border);
             border-radius: 18px;
             padding: 18px 20px;
             margin-bottom: 18px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            box-shadow: var(--golge-1);
         }
 
         .section-title {
@@ -475,8 +433,8 @@ $mevcut_trcode = (int)$fis['TRCURR'];
 </head>
 <body>
     <header class="top-header">
-        <div class="top-header-inner">
-            <a href="../siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="back-btn" aria-label="Geri">
+        <div class="top-header-inner header-inner">
+            <a href="../siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="back-btn header-back" aria-label="Geri">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <span class="header-icon"><i class="fas fa-money-bill-transfer"></i></span>

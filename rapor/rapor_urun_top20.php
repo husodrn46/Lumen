@@ -91,7 +91,7 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -100,7 +100,7 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
             font-size: 16px; font-weight: 700; color: var(--text-1);
             display: flex; align-items: center; gap: 8px; margin: 0;
         }
-        .header-title h1 .material-icons { color: var(--amber); font-size: 22px; }
+        .header-title h1 .material-icons { color: var(--red); font-size: 22px; }
         .header-title p {
             margin: 2px 0 0; font-size: 11.5px; color: var(--text-2); font-weight: 500;
         }
@@ -114,7 +114,7 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 14px; background: #fff;
             border: 1px solid var(--border); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 600;
+            font-family: var(--font); font-size: 12.5px; font-weight: 600;
             color: var(--text-1); cursor: pointer; transition: all 0.2s ease;
             min-height: 44px; text-decoration: none;
         }
@@ -134,16 +134,15 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
             margin-bottom: 20px;
         }
         .stat-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 16px 18px;
             display: flex; align-items: center; gap: 14px;
             position: relative; overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .stat-card:nth-child(1) { animation-delay: 0ms; }
         .stat-card:nth-child(2) { animation-delay: 60ms; }
@@ -188,21 +187,22 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
             font-size: 11px; font-weight: 500; color: var(--text-3); margin-left: 4px;
         }
 
-        .content-row {
+        .content-row > * { min-width: 0; }
+        .chart-head { flex-wrap: wrap; }
+.content-row {
             display: grid;
             grid-template-columns: 7fr 5fr;
             gap: 18px;
             margin-bottom: 20px;
         }
         .glass-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(217, 119, 6, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 20px 22px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
         }
         .card-title {
             font-size: 13.5px; font-weight: 700; color: var(--text-1);
@@ -218,7 +218,7 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
         .chart-toggle { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
         .chart-toggle button {
             padding: 8px 14px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12px; font-weight: 600; color: var(--text-2);
             background: #fff; border: none; border-right: 1px solid var(--border);
             cursor: pointer; transition: all 0.15s ease;
@@ -311,18 +311,18 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
         </a>
         <div class="header-divider"></div>
         <div class="header-title">
-            <h1><span class="material-icons">emoji_events</span>Son 30 Gun Urun Performansi</h1>
+            <h1><span class="material-icons">emoji_events</span>Son 30 Gün Ürün Performansı</h1>
             <p>
-                Ciroya gore en iyi 20 urun
+                Ciroya göre en iyi 20 ürün
                 <span class="badge">TOP 20</span>
             </p>
         </div>
-        <div class="header-actions">
-            <button onclick="window.print()" class="btn-action btn-print" type="button" title="Yazdir">
+        <div class="header-actions header-eylem">
+            <button onclick="window.print()" class="btn-action btn-print btn btn-ikincil" type="button" title="Yazdır">
                 <span class="material-icons">print</span>
-                <span>Yazdir</span>
+                <span>Yazdır</span>
             </button>
-            <button id="exportCSV" class="btn-action btn-excel" type="button" title="CSV">
+            <button id="exportCSV" class="btn-action btn-excel btn btn-ikincil" type="button" title="CSV">
                 <span class="material-icons">download</span>
                 <span>CSV</span>
             </button>

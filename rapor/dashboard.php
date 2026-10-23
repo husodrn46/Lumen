@@ -63,21 +63,12 @@ if (lumen_bagimsiz_mi()) {
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             color: var(--text-1);
             min-height: 100vh;
-            background:
-                radial-gradient(820px 280px at 100% -70px, rgba(111,16,34,.06), transparent 60%),
-                radial-gradient(560px 220px at -60px 25%, rgba(245,158,11,.05), transparent 55%),
-                var(--bg);
+            background: var(--bg);
         }
-        .t-ico {
-            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 17px; color: #fff;
-            background: linear-gradient(135deg, var(--red-orta), var(--red-koyu));
-            box-shadow: 0 6px 14px -6px rgba(185, 28, 28, 0.5);
-        }
+
         .t-baslik h1 { font-size: 16px; font-weight: 700; line-height: 1.2; }
         .t-baslik p { font-size: 11.5px; color: var(--text-2); }
         .header-user {
@@ -133,7 +124,6 @@ if (lumen_bagimsiz_mi()) {
             position: relative; overflow: hidden;
             transition: all 0.25s ease;
             will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
             min-height: 130px;
         }
         .tile-card::before {
@@ -201,11 +191,6 @@ if (lumen_bagimsiz_mi()) {
         .tone-purple:hover       { border-color: rgba(124, 58, 237, 0.35); }
         .tone-purple:hover .tile-title { color: var(--purple); }
 
-        @keyframes cardIn {
-            from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.985); }
-            to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-        }
-
         /* Responsive */
         @media (max-width: 900px) {
             .tile-grid { grid-template-columns: repeat(2, 1fr); }
@@ -213,7 +198,7 @@ if (lumen_bagimsiz_mi()) {
         @media (max-width: 767px) {
             .t-baslik h1 { font-size: 14.5px; }
             .t-baslik p { font-size: 10.5px; }
-            .t-ico { width: 34px; height: 34px; border-radius: 10px; font-size: 14px; }
+
             .header-user { padding: 6px 10px; }
             .header-user span { display: none; }
 
@@ -258,7 +243,7 @@ if (lumen_bagimsiz_mi()) {
         <a href="<?php echo APP_ROOT_URL; ?>/index.php" class="header-back" title="Ana Sayfa">
             <i class="fa-solid fa-arrow-left"></i>
         </a>
-        <span class="t-ico"><i class="fa-solid fa-chart-pie"></i></span>
+        <span class="header-icon"><i class="fa-solid fa-chart-pie"></i></span>
         <div class="t-baslik">
             <h1>Raporlar</h1>
             <p>Finans · satış · stok · KDV</p>
@@ -283,8 +268,7 @@ if (lumen_bagimsiz_mi()) {
         <div class="tile-grid">
             <?php $delay = 0; foreach ($group['reports'] as $report): ?>
                 <a href="<?php echo htmlspecialchars($report['href'], ENT_QUOTES, 'UTF-8'); ?>"
-                   class="tile-card tone-<?php echo htmlspecialchars($report['tone'], ENT_QUOTES, 'UTF-8'); ?>"
-                   style="animation-delay: <?php echo min($delay, 280); ?>ms;">
+                   class="tile-card tone-<?php echo htmlspecialchars($report['tone'], ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="tile-head">
                         <span class="tile-ico">
                             <i class="fa-solid <?php echo htmlspecialchars($report['icon'], ENT_QUOTES, 'UTF-8'); ?>"></i>

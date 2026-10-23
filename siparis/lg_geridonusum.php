@@ -86,7 +86,6 @@ if ($csrf_ok && isset($_POST['bulk_delete']) && !empty($_POST['ids']) && is_arra
 		$ids = array_map('intval', $ids);
 		$ids = array_filter($ids, fn($v): bool => $v > 0);
 		$ids = array_values(array_unique($ids, SORT_NUMERIC));
-		
 
     if ($ids !== []) {
         // Güvenlik/performans için üst limit
@@ -171,7 +170,7 @@ function _str(mixed $s): string{ return trcevir($s); }
   <style>
     * { box-sizing: border-box; margin: 0; }
     body {
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--text-1);
       min-height: 100vh;
@@ -200,15 +199,14 @@ function _str(mixed $s): string{ return trcevir($s); }
     .alert-bar i { font-size: 14px; flex-shrink: 0; }
 
     .filter-panel {
-      background: rgba(255,255,255,0.92);
+      background: var(--card);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
-      border: 1px solid rgba(248, 113, 113, 0.18);
+      border: 1px solid var(--border);
       border-radius: 14px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+      box-shadow: var(--golge-1);
       padding: 16px;
       margin-bottom: 16px;
-      animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
     .filter-grid {
       display: grid;
@@ -226,7 +224,7 @@ function _str(mixed $s): string{ return trcevir($s); }
     .search-input {
       width: 100%;
       padding: 11px 14px 11px 40px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 14px;
       color: var(--text-1);
       background: #fff;
@@ -247,7 +245,7 @@ function _str(mixed $s): string{ return trcevir($s); }
       padding: 9px 14px;
       background: #fff; color: var(--text-2);
       border: 1px solid var(--border); border-radius: 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12px; font-weight: 600;
+      font-family: var(--font); font-size: 12px; font-weight: 600;
       cursor: pointer; transition: all 0.2s ease;
       white-space: nowrap;
     }
@@ -255,14 +253,13 @@ function _str(mixed $s): string{ return trcevir($s); }
     .btn-ghost i { font-size: 11px; }
 
     .table-card {
-      background: rgba(255,255,255,0.92);
+      background: var(--card);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
-      border: 1px solid rgba(248, 113, 113, 0.18);
+      border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+      box-shadow: var(--golge-1);
       overflow: hidden;
-      animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
     }
     .table-toolbar {
       padding: 12px 16px;
@@ -285,7 +282,7 @@ function _str(mixed $s): string{ return trcevir($s); }
       padding: 9px 16px;
       background: var(--red,#ef4444); color: #fff;
       border: none; border-radius: 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700;
+      font-family: var(--font); font-size: 12.5px; font-weight: 700;
       cursor: pointer; transition: all 0.2s ease;
       box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
     }
@@ -348,7 +345,7 @@ function _str(mixed $s): string{ return trcevir($s); }
       background: var(--red-soft); color: var(--red);
       border: 1px solid rgba(239, 68, 68, 0.22);
       border-radius: 8px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 11px; font-weight: 600;
+      font-family: var(--font); font-size: 11px; font-weight: 600;
       cursor: pointer; transition: all 0.15s ease;
     }
     .btn-row-del:hover { background: var(--red); color: #fff; border-color: var(--red); }
@@ -408,11 +405,11 @@ function _str(mixed $s): string{ return trcevir($s); }
       .gd-table tbody td.date  { grid-column: 2; font-size: 11px; }
       .gd-table tbody td.ficheno { grid-column: 2; font-size: 10.5px; padding-top: 2px; }
       .gd-table tbody td.ficheno::before {
-        content: 'Fis: '; color: var(--text-3); font-weight: 400; font-family: 'Avenir Next', 'Montserrat', sans-serif;
+        content: 'Fis: '; color: var(--text-3); font-weight: 400; font-family: var(--font);
       }
       .gd-table tbody td.personel { grid-column: 2; font-size: 11px; max-width: none; }
       .gd-table tbody td.personel::before {
-        content: 'Personel: '; color: var(--text-3); font-weight: 400; font-family: 'Avenir Next', 'Montserrat', sans-serif;
+        content: 'Personel: '; color: var(--text-3); font-weight: 400; font-family: var(--font);
       }
       .gd-table tbody td.actions { grid-column: 3; grid-row: 2; width: auto; }
 
@@ -430,7 +427,7 @@ function _str(mixed $s): string{ return trcevir($s); }
       <div class="header-divider"></div>
       <span class="header-title">
         <i class="fa-solid fa-recycle"></i>Taslak Siparişler
-        <span class="badge-info">NETTOTAL = 0</span>
+        <span class="badge-info">Boş siparişler</span>
         <?php if ($isAdmin): ?><span class="badge-info" style="background:#eef2ff;color:#4f46e5;border-color:rgba(79,70,229,0.22);"><i class="fa-solid fa-users-gear"></i> Tüm personel</span><?php endif; ?>
       </span>
     </div>

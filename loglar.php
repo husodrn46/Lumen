@@ -1635,8 +1635,6 @@ foreach ($filtrelenmisLoglar as $log) {
 }
 arsort($islemTipleri);
 
-
-
 // Tüm kullanıcılar (dropdown için)
 $tumKullanicilar = [];
 foreach ($tumLoglar as $log) {
@@ -1709,7 +1707,7 @@ $islemRenkleri = [
         }
         * { box-sizing: border-box; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             margin: 0;
@@ -1723,14 +1721,13 @@ $islemRenkleri = [
 
         /* Glass card */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             margin-bottom: 18px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .card-head {
             padding: 14px 20px;
@@ -2339,7 +2336,7 @@ $islemRenkleri = [
         .cihaz-badge.b-on { background: var(--emerald-soft); color: #065f46; }
         .cihaz-badge.b-multi { background: var(--amber-soft); color: #92400e; }
         .cihaz-user-spacer { flex: 1; }
-        .cihaz-logout-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--red-soft); color: var(--red); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
+        .cihaz-logout-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--red-soft); color: var(--red); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; font-family: var(--font); font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
         .cihaz-logout-btn:hover { background: var(--red); color: #fff; border-color: var(--red); }
         .cihaz-logout-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .cihaz-logout-btn i { font-size: 11px; }

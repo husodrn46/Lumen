@@ -129,7 +129,7 @@ $totalPageAudits = count($pageAuditItems);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yetki Denetim</title>
+    <title>Yetki Denetimi</title>
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
@@ -145,17 +145,12 @@ $totalPageAudits = count($pageAuditItems);
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-        .header-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            background: var(--indigo-soft); color: var(--indigo);
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 15px; flex-shrink: 0;
-        }
+
         .header-titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
         .header-subtitle {
             font-size: 11.5px; color: var(--text-2);
@@ -172,14 +167,13 @@ $totalPageAudits = count($pageAuditItems);
 
         /* Glass card base */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(99, 102, 241, 0.16);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             will-change: opacity, transform;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
 
         /* Info note */
@@ -217,7 +211,7 @@ $totalPageAudits = count($pageAuditItems);
         .field input[type="text"] {
             width: 100%;
             padding: 11px 14px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             color: var(--text-1);
             background: #fff;
@@ -247,7 +241,7 @@ $totalPageAudits = count($pageAuditItems);
             color: #fff;
             border: 1px solid var(--indigo);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px; font-weight: 700;
             cursor: pointer; transition: all 0.18s ease;
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
@@ -261,7 +255,7 @@ $totalPageAudits = count($pageAuditItems);
             color: var(--text-2);
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px; font-weight: 600;
             cursor: pointer; transition: all 0.18s ease;
             text-decoration: none; height: 42px;
@@ -277,11 +271,10 @@ $totalPageAudits = count($pageAuditItems);
         }
         .stat-card {
             padding: 14px 16px;
-            background: #fff;
+            background: var(--card);
             border-radius: 12px;
             border: 1px solid var(--border);
             display: flex; align-items: center; gap: 12px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .stat-card.in { border-color: rgba(99,102,241,0.22); background: linear-gradient(135deg, var(--indigo-soft) 0%, #fff 60%); animation-delay: 0.06s; }
         .stat-card.em { border-color: rgba(5,150,105,0.22); background: linear-gradient(135deg, var(--emerald-soft) 0%, #fff 60%); animation-delay: 0.12s; }
@@ -302,15 +295,14 @@ $totalPageAudits = count($pageAuditItems);
 
         /* Table card */
         .table-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(99, 102, 241, 0.16);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             overflow: hidden;
             will-change: opacity, transform;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
         }
         .table-head {
             padding: 14px 18px;
@@ -379,7 +371,7 @@ $totalPageAudits = count($pageAuditItems);
             font-size: 11px; font-weight: 700;
             text-transform: uppercase; letter-spacing: 0.3px;
             border: 1px solid transparent;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             white-space: nowrap;
         }
         .chip .dot { width: 6px; height: 6px; border-radius: 50%; }
@@ -436,7 +428,7 @@ $totalPageAudits = count($pageAuditItems);
             color: var(--sky);
             border: 1px solid rgba(2,132,199,0.25);
             border-radius: 9px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12px; font-weight: 700;
             text-decoration: none; cursor: pointer;
             transition: all 0.18s ease;
@@ -470,7 +462,6 @@ $totalPageAudits = count($pageAuditItems);
         }
         @media (max-width: 767px) {
             .header-subtitle { font-size: 10.5px; }
-            .header-icon { width: 32px; height: 32px; font-size: 13px; }
 
             main { padding: 14px 12px 40px; }
 
