@@ -26,6 +26,11 @@ if ($fisid <= 0 || $stokid <= 0) {
     die(json_encode(['error' => 'Invalid ID values']));
 }
 
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisid)) {
+    http_response_code(403);
+    die(json_encode(['error' => 'Forbidden']));
+}
+
 // Yetkilendirme kontrolü - Kullanıcı bu fişe erişebilir mi?
 $stmt_auth = $dbh->prepare("SELECT CLIENTREF FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :fisid");
 $stmt_auth->execute([':fisid' => $fisid]);

@@ -76,6 +76,10 @@ if (isset($_GET['id'])) {
 if ($stokhareket <= 0) {
     die("Sipariş ID eksik!");
 }
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+    lumen_hata_sayfasi('Erişim reddedildi', 'Bu siparişi dışa aktarma yetkiniz bulunmuyor.', 403);
+    exit;
+}
 
 // Veritabanı sorguları
 try {

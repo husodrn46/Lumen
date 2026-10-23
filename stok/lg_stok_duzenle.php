@@ -21,6 +21,15 @@ $lgStokDuzenleBackUrl = safeLocalReturnUrl(
 
 if ($stokid <= 0 || $fisid <= 0) {
     lumen_hata_sayfasi('Satır seçilmedi', 'Düzenlenecek sipariş satırı bilgisi eksik. Siparişten tekrar açın.');
+    exit;
+}
+
+if (
+    !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum)
+    || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisid)
+) {
+    lumen_hata_sayfasi('Erişim reddedildi', 'Bu sipariş satırını düzenleme yetkiniz bulunmuyor.', 403);
+    exit;
 }
 
 // Veritabanı işlemleri

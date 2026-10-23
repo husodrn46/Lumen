@@ -50,7 +50,8 @@ $csrf = $_SESSION['kurulum_csrf'];
 $adim   = 1;
 $hata   = '';
 $notlar = [];
-$gd_dsn = static fn(string $srv, string $db): string => "sqlsrv:server={$srv};database={$db};TrustServerCertificate=1;LoginTimeout=8";
+$gd_dsn = static fn(string $srv, string $db, bool $trustCert = false): string =>
+    "sqlsrv:server={$srv};database={$db};Encrypt=1;TrustServerCertificate=" . ($trustCert ? '1' : '0') . ';LoginTimeout=8';
 
 /** LOGO tablo önekleri (firma+dönem no'dan). */
 function kurulum_onekler(int $firma, int $donem): array
@@ -98,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $bas   = trim((string) ($_POST['firma_baslik'] ?? '')) ?: 'Lumen';
         $mcari = max(0, (int) ($_POST['magaza_cari'] ?? 0));
         $bagimsiz = ($_POST['mod'] ?? 'logo') === 'lumen';
+        $trustCert = (string) ($_POST['db_trust_cert'] ?? '') === '1';
 
         if ($srv === '' || $db === '' || $usr === '') {
             $hata = 'Sunucu, veritabanı ve kullanıcı adı zorunludur.';
@@ -108,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // ---- Bağımsız mod: LOGO yok; veritabanı yoksa oluşturulur ----
             try {
                 [$test, $yeniDb] = kurulum_bagimsiz_veritabani(
-                    static fn(string $d): PDO => new PDO($gd_dsn($srv, $d), $usr, $pss, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]),
+                    static fn(string $d): PDO => new PDO($gd_dsn($srv, $d, $trustCert), $usr, $pss, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]),
                     $db
                 );
                 $env = [
@@ -116,6 +118,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'AKL_DB_NAME'        => $db,
                     'AKL_DB_USER'        => $usr,
                     'AKL_DB_PASS'        => $pss,
+                    'AKL_DB_ENCRYPT'     => '1',
+                    'AKL_DB_TRUST_CERT'  => $trustCert ? '1' : '0',
                     'LUMEN_VERI_KAYNAGI' => 'lumen',
                     'FIRMA_NO'           => '1',
                     'FIRMA_BASLIK'       => $bas,
@@ -130,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!is_file($HEDEF_BAG) && is_file($ORNEK_BAG)) {
                         @copy($ORNEK_BAG, $HEDEF_BAG);
                     }
-                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'bagimsiz' => true];
+                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'trust' => $trustCert, 'bagimsiz' => true];
                     $adim = 2;
                     $notlar[] = $yeniDb ? "'{$db}' veritabanı oluşturuldu, yapılandırma kaydedildi." : 'Bağlantı başarılı, yapılandırma kaydedildi.';
                     $sema = kurulum_sema_uygula($test, $KOK . '/sql', true);
@@ -149,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             try {
-                $test = new PDO($gd_dsn($srv, $db), $usr, $pss, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                $test = new PDO($gd_dsn($srv, $db, $trustCert), $usr, $pss, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                 // LOGO tablosu var mı? (kritik doğrulama)
                 $onek = kurulum_onekler($fno, $dno);
                 $clcard = $onek['FIRMA_PREFIX'] . 'CLCARD';
@@ -160,6 +164,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'AKL_DB_NAME'   => $db,
                     'AKL_DB_USER'   => $usr,
                     'AKL_DB_PASS'   => $pss,
+                    'AKL_DB_ENCRYPT' => '1',
+                    'AKL_DB_TRUST_CERT' => $trustCert ? '1' : '0',
                     'FIRMA_NO'      => (string) $fno,
                 ] + $onek + [
                     'FIRMA_BASLIK'      => $bas,
@@ -175,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!is_file($HEDEF_BAG) && is_file($ORNEK_BAG)) {
                         @copy($ORNEK_BAG, $HEDEF_BAG);
                     }
-                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'onek' => $onek, 'bagimsiz' => false];
+                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'trust' => $trustCert, 'onek' => $onek, 'bagimsiz' => false];
                     $adim = 2;
                     $notlar[] = 'Bağlantı başarılı, yapılandırma kaydedildi.';
 
@@ -207,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hata = 'Parolalar eşleşmiyor.';
         } else {
             try {
-                $pdo = new PDO($gd_dsn($cfg['srv'], $cfg['db']), $cfg['usr'], $cfg['pss'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                $pdo = new PDO($gd_dsn($cfg['srv'], $cfg['db'], (bool) ($cfg['trust'] ?? false)), $cfg['usr'], $cfg['pss'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                 $r = kurulum_yonetici_olustur($pdo, (bool) ($cfg['bagimsiz'] ?? false), $kod, (string) ($_POST['admin_ad'] ?? ''), $p1);
                 if (!$r['ok']) {
                     $hata = $r['mesaj'];
@@ -264,6 +270,8 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
         .alan input { width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; }
         .alan input:focus { border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft); }
         .alan .ip { font-size:11px; color:var(--t3); margin-top:4px; }
+        .secenek { display:flex; align-items:flex-start; gap:9px; margin:-2px 0 15px; font-size:12px; color:var(--t2); line-height:1.45; cursor:pointer; }
+        .secenek input { width:auto; margin-top:3px; accent-color:var(--red); }
         .btn { width:100%; background:var(--red); color:#fff; border:none; padding:13px; border-radius:11px; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:6px; }
         .btn:hover { filter:brightness(1.08); }
         .mesaj { padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:13px; display:flex; align-items:flex-start; gap:9px; line-height:1.45; }
@@ -325,6 +333,9 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
                         <div class="alan"><label>Kullanıcı</label><input name="db_user" value="<?php echo $val('db_user', 'sa'); ?>" required></div>
                         <div class="alan"><label>Parola</label><input type="password" name="db_pass" value=""></div>
                     </div>
+                    <label class="secenek"><input type="checkbox" name="db_trust_cert" value="1" <?php echo (string) ($_POST['db_trust_cert'] ?? '') === '1' ? 'checked' : ''; ?>>
+                        <span><b>Sunucu sertifikasına doğrulamadan güven</b><br>Yalnızca kendinden imzalı sertifika kullanan, kimliğini başka yolla doğruladığınız yerel SQL Server için açın.</span>
+                    </label>
                     <div class="grid2 yalniz-logo">
                         <div class="alan"><label>Firma No</label><input type="number" name="firma_no" value="<?php echo $val('firma_no', '1'); ?>" min="1" required><div class="ip">LG_<b>001</b>_...</div></div>
                         <div class="alan"><label>Dönem No</label><input type="number" name="donem_no" value="<?php echo $val('donem_no', '2'); ?>" min="1" required><div class="ip">LG_001_<b>02</b>_...</div></div>

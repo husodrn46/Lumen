@@ -62,6 +62,15 @@ $lgStokEkleBackUrl = safeLocalReturnUrl(
   '../siparis/lg_fis.php?stokhareket=' . $fisid
 );
 
+if (
+  $fisid <= 0
+  || !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum)
+  || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisid)
+) {
+  lumen_hata_sayfasi('Erişim reddedildi', 'Bu siparişe ürün ekleme yetkiniz bulunmuyor.', 403);
+  exit;
+}
+
 if ($stokid > 0 && $fisid > 0) {
   include_once(__DIR__ . "/../fiyat/fiyatgrup.php");
 

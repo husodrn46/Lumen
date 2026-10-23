@@ -58,7 +58,7 @@ services:
       - ../_baglanti_.inc.example:/var/www/html/_baglanti_.inc:ro
 
   web:
-    image: nginx:1.27-alpine
+    image: nginx:stable-alpine@sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951
     depends_on:
       - app
     ports:

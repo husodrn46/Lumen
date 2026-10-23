@@ -18,6 +18,10 @@ if (!isset($_GET['id'])) {
 }
 
 $stokhareket = (int)$_GET['id'];
+if ($stokhareket <= 0 || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+    lumen_hata_sayfasi('Erişim reddedildi', 'Bu siparişi görüntüleme yetkiniz bulunmuyor.', 403);
+    exit;
+}
 
 // Sipariş bilgilerini çek (döviz dahil)
 $stmtFis = $dbh->prepare("

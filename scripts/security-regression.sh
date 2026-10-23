@@ -48,6 +48,46 @@ zorunlu "document.getElementById('transferForm').requestSubmit();" barkod/ean13.
 zorunlu "m_p_yetki(\$terminalkullanici, 'M6')" barkod/ean13.php \
   "EAN üretici M6 barkod yetkisini doğrulamıyor."
 
+# Yetki denetimi gerçek bir kullanıcı oturumu taşır; hedef request Host ile
+# değiştirilememeli ve yalnızca loopback olmalıdır. TLS doğrulaması kapatılamaz.
+zorunlu 'denetimBaseUrlGuvenliMi($baseUrl)' ayar/yetki_denetim_helper.php \
+  "Yetki denetimi probe hedefini loopback ile sınırlamıyor."
+yasak "\$_SERVER['HTTP_HOST']" ayar/yetki_denetim_helper.php \
+  "Yetki denetimi probe hedefini güvenilmeyen Host başlığından üretiyor."
+yasak 'CURLOPT_SSL_VERIFYPEER => false' ayar/yetki_denetim_helper.php \
+  "Yetki denetiminde TLS eş sertifikası doğrulaması kapalı."
+yasak 'CURLOPT_SSL_VERIFYHOST => 0' ayar/yetki_denetim_helper.php \
+  "Yetki denetiminde TLS sunucu adı doğrulaması kapalı."
+yasak "'verify_peer' => false" ayar/yetki_denetim_helper.php \
+  "Yetki denetimi stream taşımasında TLS eş doğrulaması kapalı."
+yasak "'verify_peer_name' => false" ayar/yetki_denetim_helper.php \
+  "Yetki denetimi stream taşımasında TLS sunucu adı doğrulaması kapalı."
+
+# Özel cari kısıtı liste ve doğrudan sipariş/stok uçlarında da uygulanmalıdır.
+zorunlu 'm_p_ozel_cari_sql_filtresi($terminalkullanici' doviz/siparisler.php \
+  "Döviz sipariş listesi özel cari filtresini uygulamıyor."
+for dosya in doviz/yazdir.php doviz/yazdirx.php doviz/fis_excel_xlsx.php \
+             stok/lg_stoksonalisx.php stok/lg_stok_ekle.php stok/lg_stok_duzenle.php stok/lg_stok_bul.php; do
+  zorunlu 'm_p_siparis_goruntulebilir_mi($dbh' "$dosya" \
+    "${dosya} sipariş görünürlük denetimini uygulamıyor."
+done
+for dosya in stok/lg_stok_ekle.php stok/lg_stok_duzenle.php stok/lg_stok_bul.php; do
+  zorunlu 'm_p_siparis_duzenleyebilir_mi($terminalkullanici' "$dosya" \
+    "${dosya} sipariş düzenleme yetkisini doğrulamıyor."
+done
+
+# SQL Server sertifika kimliği doğrulaması açıkça kapatılmadıkça etkin kalmalıdır.
+zorunlu "\$trust === '1' ? '1' : '0'" ayr.php \
+  "SQL Server TrustServerCertificate güvenli varsayılanı kaybolmuş."
+zorunlu 'AKL_DB_TRUST_CERT=0' .env.example \
+  ".env örneği SQL Server sertifika doğrulamasını varsayılan olarak kapatıyor."
+yasak 'TrustServerCertificate=1' scripts/logo_aktar.php \
+  "LOGO aktarım aracı SQL Server sertifika doğrulamasını koşulsuz kapatıyor."
+
+# Demo ters vekili eski sürüme veya değişken bir etikete geri dönmemelidir.
+zorunlu 'image: nginx:stable-alpine@sha256:' demo/docker-compose.yml \
+  "Demo nginx imajı güncel stable-alpine digest'ine sabitlenmemiş."
+
 # Temiz kurulumda brute-force kontrollerinin ihtiyaç duyduğu şema bulunmalı.
 zorunlu "CREATE TABLE dbo.M_GIRIS_LOG" sql/m_giris_log.sql \
   "M_GIRIS_LOG kurulum şeması eksik."

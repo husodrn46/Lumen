@@ -752,12 +752,10 @@ $fatura_irsaliye_prefix ??= 'LMI';
 if (!function_exists('lumen_db_dsn')) {
   /**
    * SQL Server DSN'i. Microsoft ODBC Driver 18 varsayılan olarak şifreli bağlantı ve
-   * GEÇERLİ bir sunucu sertifikası ister; LOGO kurulumlarının çoğu kendinden imzalı
-   * sertifika kullandığından bu durumda bağlantı reddedilir. Kurulum sihirbazı
-   * bağlantıyı TrustServerCertificate=1 ile test ettiğinden sihirbaz başarılı olup
-   * uygulama bağlanamıyordu. Davranış .env ile yönetilir:
+   * GEÇERLİ bir sunucu sertifikası ister. Sertifika kimliği doğrulamasını kapatmak
+   * açıkça seçilmedikçe güvenli varsayılan korunur. Davranış .env ile yönetilir:
    *   AKL_DB_ENCRYPT=0|1        → Encrypt (boş: sürücü varsayılanı)
-   *   AKL_DB_TRUST_CERT=0|1     → TrustServerCertificate (varsayılan 1: sihirbazla aynı)
+   *   AKL_DB_TRUST_CERT=0|1     → TrustServerCertificate (varsayılan 0)
    */
   function lumen_db_dsn(string $sunucu, string $veritabani): string
   {
@@ -767,7 +765,7 @@ if (!function_exists('lumen_db_dsn')) {
       $dsn .= ";Encrypt={$encrypt}";
     }
     $trust = (string) getenv('AKL_DB_TRUST_CERT');
-    $dsn .= ';TrustServerCertificate=' . ($trust === '0' ? '0' : '1');
+    $dsn .= ';TrustServerCertificate=' . ($trust === '1' ? '1' : '0');
     return $dsn;
   }
 }
