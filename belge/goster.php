@@ -73,15 +73,15 @@ belge_sayfa_basla($turAd . ' ' . $b['NO'], 'fa-file-invoice', 'index.php',
 </div>
 
 <div class="kart tablo-sar">
-    <table class="liste">
-        <thead><tr><th>#</th><th>Ürün</th><th class="sag">Miktar</th>
+    <table class="liste kartla ozel-baslik">
+        <thead><tr><th class="tel-gizle">#</th><th>Ürün</th><th class="sag">Miktar</th>
             <?php if ($belgeTam): ?><th class="sag">Fiyat</th><th class="sag">İsk. %</th>
             <th class="sag">KDV %</th><th class="sag">Tutar (KDV hariç)</th><?php endif; ?></tr></thead>
         <tbody>
         <?php foreach ($satirlar as $r): ?>
             <tr>
-                <td><?= (int) $r['SIRA'] ?></td>
-                <td><a class="koyu" style="color:inherit" href="../kart/stok.php?id=<?= (int) $r['STOK_ID'] ?>"><?= bh($r['KOD']) ?></a> <?= bh($r['AD']) ?>
+                <td class="tel-gizle"><?= (int) $r['SIRA'] ?></td>
+                <td class="kart-ad"><a class="koyu" style="color:inherit" href="../kart/stok.php?id=<?= (int) $r['STOK_ID'] ?>"><?= bh($r['KOD']) ?></a> <?= bh($r['AD']) ?>
                     <?php if ($r['ACIKLAMA']): ?><div class="soluk"><?= bh($r['ACIKLAMA']) ?></div><?php endif; ?></td>
                 <td class="sag"><?= bmiktar($r['MIKTAR']) ?> <?= bh($r['BIRIM'] ?? '') ?></td>
 <?php if ($belgeTam): ?>

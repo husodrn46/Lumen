@@ -49,28 +49,13 @@ if (lumen_bagimsiz_mi()) {
     <title>Raporlar</title>
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f8f6f7;
             --surface: #ffffff;
-            --text-1: #1c1220;
-            --text-2: #4b5563;
-            --text-3: #6b7280;
-            --border: #ebe4ea;
-            --red: #6F1022;
             --red-orta: #b91c1c;
             --red-koyu: #7f1d1d;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -78,43 +63,12 @@ if (lumen_bagimsiz_mi()) {
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             color: var(--text-1);
             min-height: 100vh;
-            background:
-                radial-gradient(820px 280px at 100% -70px, rgba(111,16,34,.06), transparent 60%),
-                radial-gradient(560px 220px at -60px 25%, rgba(245,158,11,.05), transparent 55%),
-                var(--bg);
+            background: var(--bg);
         }
 
-        /* Sticky header — Lumen bordo krom */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.86);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            display: flex; align-items: center; gap: 12px;
-            padding: 12px 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
-            color: var(--text-2); text-decoration: none;
-            background: #fff; border: 1px solid var(--border);
-            transition: all 0.18s ease;
-        }
-        .header-back:hover { color: var(--red); border-color: var(--red); transform: translateX(-2px); }
-        .t-ico {
-            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 17px; color: #fff;
-            background: linear-gradient(135deg, var(--red-orta), var(--red-koyu));
-            box-shadow: 0 6px 14px -6px rgba(185, 28, 28, 0.5);
-        }
         .t-baslik h1 { font-size: 16px; font-weight: 700; line-height: 1.2; }
         .t-baslik p { font-size: 11.5px; color: var(--text-2); }
         .header-user {
@@ -170,7 +124,6 @@ if (lumen_bagimsiz_mi()) {
             position: relative; overflow: hidden;
             transition: all 0.25s ease;
             will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
             min-height: 130px;
         }
         .tile-card::before {
@@ -238,21 +191,14 @@ if (lumen_bagimsiz_mi()) {
         .tone-purple:hover       { border-color: rgba(124, 58, 237, 0.35); }
         .tone-purple:hover .tile-title { color: var(--purple); }
 
-        @keyframes cardIn {
-            from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.985); }
-            to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-        }
-
         /* Responsive */
         @media (max-width: 900px) {
             .tile-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 767px) {
-            .header-inner { padding: 9px 12px; gap: 9px; }
             .t-baslik h1 { font-size: 14.5px; }
             .t-baslik p { font-size: 10.5px; }
-            .t-ico { width: 34px; height: 34px; border-radius: 10px; font-size: 14px; }
-            .header-back { width: 32px; height: 32px; border-radius: 9px; }
+
             .header-user { padding: 6px 10px; }
             .header-user span { display: none; }
 
@@ -278,7 +224,6 @@ if (lumen_bagimsiz_mi()) {
 
         /* Touch targets */
         a { min-height: 44px; }
-        .header-back { min-height: 0; }
 
         /* iOS zoom fix */
         input, select, textarea { font-size: 16px; }
@@ -298,7 +243,7 @@ if (lumen_bagimsiz_mi()) {
         <a href="<?php echo APP_ROOT_URL; ?>/index.php" class="header-back" title="Ana Sayfa">
             <i class="fa-solid fa-arrow-left"></i>
         </a>
-        <span class="t-ico"><i class="fa-solid fa-chart-pie"></i></span>
+        <span class="header-icon"><i class="fa-solid fa-chart-pie"></i></span>
         <div class="t-baslik">
             <h1>Raporlar</h1>
             <p>Finans · satış · stok · KDV</p>
@@ -323,8 +268,7 @@ if (lumen_bagimsiz_mi()) {
         <div class="tile-grid">
             <?php $delay = 0; foreach ($group['reports'] as $report): ?>
                 <a href="<?php echo htmlspecialchars($report['href'], ENT_QUOTES, 'UTF-8'); ?>"
-                   class="tile-card tone-<?php echo htmlspecialchars($report['tone'], ENT_QUOTES, 'UTF-8'); ?>"
-                   style="animation-delay: <?php echo min($delay, 280); ?>ms;">
+                   class="tile-card tone-<?php echo htmlspecialchars($report['tone'], ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="tile-head">
                         <span class="tile-ico">
                             <i class="fa-solid <?php echo htmlspecialchars($report['icon'], ENT_QUOTES, 'UTF-8'); ?>"></i>

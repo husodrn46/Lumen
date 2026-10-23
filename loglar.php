@@ -1635,8 +1635,6 @@ foreach ($filtrelenmisLoglar as $log) {
 }
 arsort($islemTipleri);
 
-
-
 // Tüm kullanıcılar (dropdown için)
 $tumKullanicilar = [];
 foreach ($tumLoglar as $log) {
@@ -1697,25 +1695,11 @@ $islemRenkleri = [
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (is_file(__DIR__ . '/pwa-header.php')) { include_once(__DIR__ . '/pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -1723,7 +1707,7 @@ $islemRenkleri = [
         }
         * { box-sizing: border-box; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             margin: 0;
@@ -1732,47 +1716,18 @@ $islemRenkleri = [
         .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
         a { color: inherit; }
 
-        /* Sticky top header */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            height: 100%; display: flex; align-items: center; gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            font-size: 18px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 10px;
-        }
-        .header-title i { color: var(--red,#ef4444); font-size: 16px; }
-
         /* Main layout */
         main.page { max-width: 1280px; margin: 0 auto; padding: 22px 24px 60px; }
 
         /* Glass card */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             margin-bottom: 18px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .card-head {
             padding: 14px 20px;
@@ -2302,10 +2257,6 @@ $islemRenkleri = [
             .kv-list dt { padding-top: 8px; }
         }
         @media (max-width: 767px) {
-            .top-header { height: 52px; }
-            .header-inner { padding: 0 14px; gap: 10px; }
-            .header-title { font-size: 14px; }
-            .header-back { width: 30px; height: 30px; border-radius: 8px; }
             main.page { padding: 14px 12px 50px; }
 
             .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -2385,7 +2336,7 @@ $islemRenkleri = [
         .cihaz-badge.b-on { background: var(--emerald-soft); color: #065f46; }
         .cihaz-badge.b-multi { background: var(--amber-soft); color: #92400e; }
         .cihaz-user-spacer { flex: 1; }
-        .cihaz-logout-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--red-soft); color: var(--red); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
+        .cihaz-logout-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--red-soft); color: var(--red); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; font-family: var(--font); font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
         .cihaz-logout-btn:hover { background: var(--red); color: #fff; border-color: var(--red); }
         .cihaz-logout-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .cihaz-logout-btn i { font-size: 11px; }

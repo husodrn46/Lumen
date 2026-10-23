@@ -114,25 +114,14 @@ $kisa = static function ($v): string {
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:#f8f6f7; --card:#fff; --text-1:#1c1220; --text-2:#6d6276; --text-3:#9c92a5; --border:#ebe4ea;
-            --red:#6F1022; --red-koyu:#7f1d1d; --red-orta:#b91c1c; --red-soft:#fdf0f0;
-            --emerald:#059669; --amber:#d97706; --amber-soft:#fffbeb;
-            --golge:0 12px 30px -20px rgba(28,18,32,.35);
+            --red-koyu:var(--red); --red-orta:var(--red);
         }
         * { box-sizing:border-box; margin:0; }
         body {
-            font-family:'Avenir Next','Montserrat',sans-serif; color:var(--text-1); min-height:100vh; font-size:14px;
-            background:
-                radial-gradient(820px 280px at 100% -70px, rgba(111,16,34,.07), transparent 60%),
-                radial-gradient(560px 220px at -60px 25%, rgba(111,16,34,.05), transparent 55%),
-                var(--bg);
+            font-family: var(--font); color:var(--text-1); min-height:100vh; font-size:14px;
+            background: var(--bg);
         }
 
-        .top { position:sticky; top:0; z-index:40; background:rgba(255,255,255,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--border); }
-        .top-in { max-width:1060px; margin:0 auto; padding:12px 22px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-        .geri { width:38px; height:38px; border-radius:11px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; color:var(--text-2); background:#fff; border:1px solid var(--border); text-decoration:none; transition:.18s; }
-        .geri:hover { color:var(--red); border-color:var(--red); transform:translateX(-2px); }
-        .t-ico { width:40px; height:40px; border-radius:12px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:17px; background:linear-gradient(135deg,var(--red-orta),var(--red-koyu)); color:#fff; box-shadow:0 6px 14px -6px rgba(185,28,28,.5); }
         .t-baslik h1 { font-size:16px; font-weight:700; line-height:1.2; }
         .t-baslik p { font-size:11.5px; color:var(--text-2); }
         .aksiyon { margin-left:auto; display:flex; gap:8px; }
@@ -142,8 +131,8 @@ $kisa = static function ($v): string {
         main { max-width:1060px; margin:0 auto; padding:20px 22px 56px; }
 
         .vurgular { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px; margin-bottom:18px; }
-        .vurgu { background:var(--card); border:1px solid var(--border); border-radius:15px; padding:13px 16px; display:flex; align-items:center; gap:12px; box-shadow:var(--golge); animation:giris .5s cubic-bezier(.22,1,.36,1) both; }
-        .vurgu:nth-child(2) { animation-delay:50ms; } .vurgu:nth-child(3) { animation-delay:100ms; } .vurgu:nth-child(4) { animation-delay:150ms; }
+        .vurgu { background:var(--card); border:1px solid var(--border); border-radius:15px; padding:13px 16px; display:flex; align-items:center; gap:12px; box-shadow:var(--golge); }
+
         .vurgu-ico { width:40px; height:40px; border-radius:12px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:16px; }
         .vurgu.kir .vurgu-ico { background:var(--red-soft); color:var(--red); }
         .vurgu.yes .vurgu-ico { background:#ecfdf5; color:var(--emerald); }
@@ -163,7 +152,6 @@ $kisa = static function ($v): string {
         .kasa {
             background:var(--card); border:1px solid var(--border); border-radius:14px;
             box-shadow:var(--golge); overflow:hidden; cursor:pointer; transition:border-color .18s, transform .18s;
-            animation:giris .45s cubic-bezier(.22,1,.36,1) both; animation-delay:calc(var(--i,0) * 35ms);
         }
         .kasa:hover { border-color:rgba(111,16,34,.35); }
         .kasa.eksi { border-color:rgba(111,16,34,.35); background:linear-gradient(180deg,#fff8f8,#fff); }
@@ -205,7 +193,6 @@ $kisa = static function ($v): string {
 
         .dip-not { margin-top:14px; font-size:11px; color:var(--text-3); line-height:1.6; }
 
-        @keyframes giris { from { opacity:0; transform:translateY(9px); } to { opacity:1; transform:none; } }
         @keyframes spin { to { transform:rotate(360deg); } }
 
         @media (max-width:640px) {
@@ -216,7 +203,7 @@ $kisa = static function ($v): string {
         }
         @media print {
             body { background:#fff; }
-            .top { display:none !important; }
+
             .vurgu, .kasa { box-shadow:none; break-inside:avoid; }
             .k-detay { display:none !important; }
         }
@@ -224,16 +211,16 @@ $kisa = static function ($v): string {
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
-            <a href="dashboard.php" class="geri" title="Rapor listesine dön"><i class="fa-solid fa-arrow-left"></i></a>
-            <span class="t-ico"><i class="fa-solid fa-vault"></i></span>
+    <header class="top-header">
+        <div class="header-inner">
+            <a href="dashboard.php" class="header-back" title="Rapor listesine dön"><i class="fa-solid fa-arrow-left"></i></a>
+            <span class="header-icon"><i class="fa-solid fa-vault"></i></span>
             <div class="t-baslik">
                 <h1>Kasa Paneli</h1>
                 <p>anlık bakiyeler · satıra dokun, son 30 hareketi gör</p>
             </div>
-            <div class="aksiyon">
-                <button onclick="window.print()" class="btn" title="Yazdır"><i class="fa-solid fa-print"></i><span>Yazdır</span></button>
+            <div class="aksiyon header-eylem">
+                <button onclick="window.print()" class="btn btn-ikincil" title="Yazdır"><i class="fa-solid fa-print"></i><span>Yazdır</span></button>
             </div>
         </div>
     </header>

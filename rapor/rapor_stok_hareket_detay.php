@@ -11,7 +11,7 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 }
 // 1) stockref parametresi
 if (!isset($_GET['stockref']) || !is_numeric($_GET['stockref'])) {
-    die('Geçerli bir stok referansı giriniz.');
+    lumen_hata_sayfasi('Stok seçilmedi', 'Hareket raporu için stok kartından tekrar açın.');
 }
 $stockref = (int)$_GET['stockref'];
 
@@ -79,71 +79,34 @@ $toplamIslem = count($rows);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stok Hareket Detayi &ndash; <?=htmlspecialchars($stok['CODE'].' - '.$stok['NAME'])?></title>
+  <title>Stok Hareket Detayı &ndash; <?=htmlspecialchars($stok['CODE'].' - '.$stok['NAME'])?></title>
+    <?php include_once __DIR__ . '/../pwa-header.php'; ?>
 
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/charts/loader.js"></script>
 
   <style>
     :root {
-        --bg: #f9fafb;
-        --text-1: #1f2937;
-        --text-2: #6b7280;
-        --text-3: #9ca3af;
-        --border: #e5e7eb;
-        --red: #6F1022;
-        --red-soft: #fef2f2;
-        --emerald: #059669;
-        --emerald-soft: #ecfdf5;
         --indigo: #4f46e5;
         --indigo-soft: #eef2ff;
-        --amber: #d97706;
-        --amber-soft: #fffbeb;
         --sky: #0284c7;
         --sky-soft: #eff6ff;
         --sky-deep: #075985;
         --purple: #7c3aed;
         --purple-soft: #f5f3ff;
-    }
+        }
     * { box-sizing: border-box; margin: 0; }
     body {
-        font-family: 'Avenir Next', 'Montserrat', sans-serif;
+        font-family: var(--font);
         background: var(--bg);
         color: var(--text-1);
         min-height: 100vh;
     }
-
-    .top-header {
-        position: sticky; top: 0; z-index: 40;
-        background: rgba(255,255,255,0.92);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        border-bottom: 1px solid rgba(2, 132, 199, 0.2);
-        box-shadow: 0 2px 8px rgba(2, 132, 199, 0.05);
-    }
-    .header-inner {
-        max-width: 1280px; margin: 0 auto;
-        padding: 14px 24px;
-        display: flex; align-items: center; gap: 14px;
-        flex-wrap: wrap;
-    }
-    .header-back {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 36px; height: 36px; border-radius: 10px;
-        color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        flex-shrink: 0;
-    }
-    .header-back:hover { background: var(--sky-soft); color: var(--sky); }
-    .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-    .header-title { min-width: 0; flex: 1 1 auto; }
     .header-title h1 {
         font-size: 16px; font-weight: 700; color: var(--text-1);
         display: flex; align-items: center; gap: 8px; margin: 0;
     }
-    .header-title h1 .material-icons { color: var(--sky); font-size: 20px; }
+    .header-title h1 .material-icons { color: var(--red); font-size: 20px; }
     .header-title p {
         margin: 2px 0 0; font-size: 11.5px; color: var(--text-2); font-weight: 500;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -158,7 +121,7 @@ $toplamIslem = count($rows);
         display: inline-flex; align-items: center; gap: 7px;
         padding: 9px 14px; background: #fff;
         border: 1px solid var(--border); border-radius: 10px;
-        font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 600;
+        font-family: var(--font); font-size: 12.5px; font-weight: 600;
         color: var(--text-1); cursor: pointer; transition: all 0.2s ease;
         min-height: 44px; text-decoration: none;
     }
@@ -178,16 +141,15 @@ $toplamIslem = count($rows);
         margin-bottom: 18px;
     }
     .stat-card {
-        background: rgba(255,255,255,0.94);
+        background: var(--card);
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
         border: 1px solid var(--border);
         border-radius: 14px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        box-shadow: var(--golge-1);
         padding: 16px 18px;
         display: flex; align-items: center; gap: 14px;
         position: relative; overflow: hidden;
-        animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
     .stat-card:nth-child(2) { animation-delay: 60ms; }
     .stat-card:nth-child(3) { animation-delay: 120ms; }
@@ -229,15 +191,14 @@ $toplamIslem = count($rows);
     }
 
     .glass-card {
-        background: rgba(255,255,255,0.94);
+        background: var(--card);
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
         border: 1px solid rgba(2, 132, 199, 0.16);
         border-radius: 16px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        box-shadow: var(--golge-1);
         padding: 20px 22px;
         margin-bottom: 18px;
-        animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
     }
     .card-title {
         font-size: 13.5px; font-weight: 700; color: var(--text-1);
@@ -290,7 +251,6 @@ $toplamIslem = count($rows);
     }
 
     @media (max-width: 767px) {
-        .header-inner { padding: 12px 14px; gap: 10px; }
         .header-title h1 { font-size: 14px; }
         .header-title p { font-size: 10.5px; }
         .header-actions { width: 100%; justify-content: flex-start; }
@@ -331,7 +291,6 @@ $toplamIslem = count($rows);
 
     @media print {
         body { background: #fff; }
-        .top-header { position: static; box-shadow: none; border-bottom: 2px solid #000; }
         .no-print, .header-actions { display: none !important; }
         .stat-card, .glass-card { box-shadow: none; border: 1px solid #ccc; animation: none; }
         .hareket-table tbody tr:hover { background: transparent; }
@@ -383,12 +342,12 @@ $toplamIslem = count($rows);
         <span class="kod"><?=htmlspecialchars((string) $stok['CODE'])?></span>
       </p>
     </div>
-    <div class="header-actions">
-      <button onclick="window.print()" class="btn-action btn-print" type="button" title="Yazdir">
+    <div class="header-actions header-eylem">
+      <button onclick="window.print()" class="btn-action btn-print btn btn-ikincil" type="button" title="Yazdır">
         <span class="material-icons">print</span>
-        <span>Yazdir</span>
+        <span>Yazdır</span>
       </button>
-      <button onclick="exportXLS()" class="btn-action btn-excel" type="button" title="Excel">
+      <button onclick="exportXLS()" class="btn-action btn-excel btn btn-ikincil" type="button" title="Excel">
         <span class="material-icons">download</span>
         <span>Excel</span>
       </button>

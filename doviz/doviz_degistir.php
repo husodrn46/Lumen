@@ -130,35 +130,20 @@ $mevcut_trcode = (int)$fis['TRCURR'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Döviz Seç</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="tailwind.local.js" onerror="var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);"></script>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include __DIR__ . '/../pwa-header.php'; } ?>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
         }
 
         * { box-sizing: border-box; }
 
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             margin: 0;
@@ -166,66 +151,7 @@ $mevcut_trcode = (int)$fis['TRCURR'];
             -webkit-font-smoothing: antialiased;
         }
 
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 30;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: saturate(180%) blur(14px);
-            -webkit-backdrop-filter: saturate(180%) blur(14px);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .top-header-inner {
-            max-width: 760px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 14px 18px;
-        }
-
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: #fff;
-            border: 1px solid var(--border);
-            color: var(--text-1);
-            text-decoration: none;
-            transition: all .18s ease;
-            flex-shrink: 0;
-        }
-
-        .back-btn:hover {
-            border-color: var(--text-3);
-            transform: translateX(-2px);
-        }
-
-        .header-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--sky-soft);
-            color: var(--sky);
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-
         .header-titles { flex: 1; min-width: 0; }
-        .header-title {
-            font-size: 17px;
-            font-weight: 600;
-            color: var(--text-1);
-            letter-spacing: -0.01em;
-            line-height: 1.2;
-        }
         .header-subtitle {
             font-size: 12px;
             color: var(--text-2);
@@ -267,14 +193,14 @@ $mevcut_trcode = (int)$fis['TRCURR'];
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.7);
+            background: var(--card);
             backdrop-filter: saturate(180%) blur(10px);
             -webkit-backdrop-filter: saturate(180%) blur(10px);
             border: 1px solid var(--border);
             border-radius: 18px;
             padding: 18px 20px;
             margin-bottom: 18px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            box-shadow: var(--golge-1);
         }
 
         .section-title {
@@ -507,8 +433,8 @@ $mevcut_trcode = (int)$fis['TRCURR'];
 </head>
 <body>
     <header class="top-header">
-        <div class="top-header-inner">
-            <a href="../siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="back-btn" aria-label="Geri">
+        <div class="top-header-inner header-inner">
+            <a href="../siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="back-btn header-back" aria-label="Geri">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <span class="header-icon"><i class="fas fa-money-bill-transfer"></i></span>

@@ -181,35 +181,21 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
             /* Ana tema kirmizi: --emerald* degiskenleri (header/hero/buton) kirmiziya cevrildi */
-            --emerald: var(--red,#6F1022);
             --emerald-dark: #b91c1c;
-            --emerald-soft: #fef2f2;
             /* Gercek basari/pozitif gostergeler icin yesil korunur */
             --success: #059669;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: var(--red,#6F1022);
             --sky-soft: #fef2f2;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background:
                 radial-gradient(1200px 600px at 8% -10%, rgba(111, 16, 34, .12), transparent 60%),
                 radial-gradient(900px 500px at 92% 110%, rgba(111, 16, 34, .06), transparent 55%),
@@ -219,44 +205,6 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
             padding-bottom: 40px;
         }
 
-        /* STICKY EMERALD HEADER */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 30;
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-            padding: 12px 18px;
-            margin-bottom: 18px;
-        }
-        .top-header-inner {
-            max-width: 640px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .back-btn {
-            width: 38px;
-            height: 38px;
-            min-width: 38px;
-            border-radius: 10px;
-            background: var(--emerald-soft);
-            color: var(--emerald);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            border: 1px solid rgba(248, 113, 113, 0.22);
-        }
-        .back-btn:hover {
-            background: #fee2e2;
-            transform: translateX(-2px);
-        }
         .top-header-icon {
             width: 40px;
             height: 40px;
@@ -294,15 +242,13 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
 
         /* GLASS CARD */
         .glass-card {
-            background: rgba(255, 255, 255, 0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.16);
+            border: 1px solid var(--border);
             border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+            box-shadow: var(--golge-1);
             padding: 26px 24px;
-            animation: cardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
             margin-bottom: 18px;
         }
         .glass-card:nth-of-type(2) { animation-delay: 0.08s; }
@@ -517,7 +463,7 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
             min-height: 46px;
             border: 1px solid var(--border);
             border-radius: 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 500;
             color: var(--text-1);
@@ -575,7 +521,7 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
             min-height: 48px;
             border: none;
             border-radius: 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14.5px;
             font-weight: 700;
             color: #fff;
@@ -646,7 +592,6 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
 
         /* RESPONSIVE */
         @media (max-width: 767px) {
-            .top-header { padding: 10px 14px; margin-bottom: 14px; }
             .top-header-title { font-size: 14px; }
             .top-header-sub { font-size: 11px; }
             .top-header-icon { width: 36px; height: 36px; font-size: 14px; }
@@ -661,7 +606,7 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
                 min-height: 48px;
             }
             .btn-submit { font-size: 15px; padding: 14px 20px; min-height: 48px; }
-            .back-btn { width: 44px; height: 44px; min-width: 44px; }
+
             .doviz-chip-big .sym { font-size: 28px; }
             .kur-box .kur-val { font-size: 18px; }
         }
@@ -679,8 +624,8 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
 <body>
 
     <header class="top-header">
-        <div class="top-header-inner">
-            <a href="cari.php" class="back-btn" aria-label="Geri">
+        <div class="top-header-inner header-inner">
+            <a href="cari.php" class="back-btn header-back" aria-label="Geri">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <span class="top-header-icon"><i class="fa-solid fa-file-circle-plus"></i></span>
@@ -728,7 +673,7 @@ $kurFormatli = $dovizKuru > 0 ? number_format($dovizKuru, 4, ',', '.') : '';
                     <div class="info-value mono"><?= htmlspecialchars((string)$musteri['CODE'], ENT_QUOTES, 'UTF-8') ?></div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label"><i class="fa-solid fa-location-dot"></i> Sehir</div>
+                    <div class="info-label"><i class="fa-solid fa-location-dot"></i> Şehir</div>
                     <div class="info-value"><?= $musteri['CITY'] ? htmlspecialchars((string)$musteri['CITY'], ENT_QUOTES, 'UTF-8') : '-' ?></div>
                 </div>
                 <div class="info-item full">

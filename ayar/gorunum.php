@@ -113,11 +113,10 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb;
             --red:<?php echo $aktifHex; ?>; --red-soft:<?php echo $aktifSoft; ?>;
         }
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--t1); min-height:100vh; }
+        body { font-family: var(--font); background:var(--bg); color:var(--t1); min-height:100vh; }
         /* Bu sayfada canlı önizleme için görünüm sınıfları (diğer sayfalarda pwa-header basar) */
         html.lumen-buyuk, html.lumen-yazi-buyuk { zoom:1.12; }
         html.lumen-yazi-kucuk { zoom:.92; }
@@ -125,13 +124,7 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
         @media print { html.lumen-buyuk, html[class*="lumen-yazi"] { zoom:1 !important; } }
         html.lumen-hiz .stok-img { display:none !important; }
         html.lumen-kompakt table td, html.lumen-kompakt table th { padding-top:6px !important; padding-bottom:6px !important; }
-        .top { position:sticky; top:0; z-index:40; height:60px; background:rgba(255,255,255,.9); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); }
-        .top-in { max-width:820px; margin:0 auto; height:100%; display:flex; align-items:center; gap:12px; padding:0 20px; }
-        .top-in a.geri { width:36px; height:36px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); text-decoration:none; border:1px solid var(--border); background:#fff; }
-        .top-in a.geri:hover { color:var(--red); border-color:var(--red); }
-        .top-ico { width:38px; height:38px; border-radius:11px; background:var(--red-soft); color:var(--red); display:inline-flex; align-items:center; justify-content:center; font-size:16px; }
-        .top-title { font-size:16px; font-weight:600; flex:1; }
-        .top-title small { display:block; font-size:11.5px; color:var(--t2); font-weight:400; }
+
         main { max-width:820px; margin:0 auto; padding:20px; }
         .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:16px; }
         .sec { font-size:11px; font-weight:600; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:14px; display:flex; align-items:center; gap:7px; }
@@ -189,11 +182,11 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
-            <a href="../index.php" class="geri" aria-label="Geri"><i class="fa fa-arrow-left"></i></a>
-            <span class="top-ico"><i class="fa-solid fa-sliders"></i></span>
-            <span class="top-title">Kişiselleştirme <small>Sadece senin ekranın · yönetici ayarı değil</small></span>
+    <header class="top-header">
+        <div class="header-inner">
+            <a href="../index.php" class="header-back" aria-label="Geri"><i class="fa fa-arrow-left"></i></a>
+            <span class="header-icon"><i class="fa-solid fa-sliders"></i></span>
+            <span class="header-title header-title-detay">Kişiselleştirme <small>Sadece senin ekranın · yönetici ayarı değil</small></span>
         </div>
     </header>
     <main>

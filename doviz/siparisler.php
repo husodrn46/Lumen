@@ -98,75 +98,26 @@ $toplamSiparis = count($siparisler);
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
             --sky: var(--red,#6F1022);
             --sky-soft: #fef2f2;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
             --purple: #7c3aed;
             --purple-soft: #f5f3ff;
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
             will-change: transform;
         }
 
-        /* Sticky red header */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(111, 16, 34, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.05);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            padding: 14px 20px;
-            display: flex; align-items: center; gap: 14px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 40px; height: 40px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover { background: var(--sky-soft); color: var(--sky); }
-        .header-icon {
-            width: 40px; height: 40px; flex-shrink: 0;
-            display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 12px;
-            background: linear-gradient(180deg, #fee2e2, #fecaca);
-            color: var(--sky);
-            font-size: 16px;
-            border: 1px solid rgba(111, 16, 34, 0.22);
-        }
         .header-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
-        .header-title {
-            font-size: 16px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 8px;
-            line-height: 1.15;
-        }
         .header-subtitle {
             font-size: 11.5px;
             color: var(--text-2);
@@ -186,14 +137,12 @@ $toplamSiparis = count($siparisler);
         }
 
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(111, 16, 34, 0.14);
+            border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
+            box-shadow: var(--golge-1);
         }
 
         /* Filter panel */
@@ -217,7 +166,7 @@ $toplamSiparis = count($siparisler);
         .field select {
             width: 100%;
             padding: 11px 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -239,7 +188,7 @@ $toplamSiparis = count($siparisler);
             color: #fff;
             border: 1px solid var(--red,#6F1022);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
@@ -264,14 +213,12 @@ $toplamSiparis = count($siparisler);
         .stat-card {
             padding: 14px 16px;
             border-radius: 14px;
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             display: flex; align-items: center; gap: 12px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
         }
         .stat-card .ic {
             width: 42px; height: 42px; flex-shrink: 0;
@@ -292,15 +239,13 @@ $toplamSiparis = count($siparisler);
 
         /* Table card */
         .table-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(111, 16, 34, 0.14);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.26s both;
-            will-change: transform, opacity;
         }
         .table-wrap { overflow-x: auto; }
         .gd-table { width: 100%; border-collapse: collapse; }
@@ -405,9 +350,7 @@ $toplamSiparis = count($siparisler);
             .stat-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 640px) {
-            .header-inner { padding: 12px 16px; gap: 10px; }
-            .header-icon { width: 36px; height: 36px; font-size: 15px; }
-            .header-title { font-size: 15px; }
+
             main { padding: 16px 16px 40px; }
             .filter-panel { padding: 14px; }
             .filter-grid { grid-template-columns: 1fr; gap: 10px; }

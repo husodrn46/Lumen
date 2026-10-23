@@ -109,25 +109,15 @@ $kisa = static function ($v): string {
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:#f8f6f7; --card:#fff; --text-1:#1c1220; --text-2:#6d6276; --text-3:#9c92a5; --border:#ebe4ea;
-            --red:#6F1022; --red-koyu:#7f1d1d; --red-orta:#b91c1c; --red-soft:#fdf0f0;
-            --emerald:#059669; --amber:#d97706; --amber-soft:#fffbeb; --altin:#f59e0b;
-            --golge:0 12px 30px -20px rgba(28,18,32,.35);
+            --red-koyu:var(--red); --red-orta:var(--red);
+              --altin:#f59e0b;
         }
         * { box-sizing:border-box; margin:0; }
         body {
-            font-family:'Avenir Next','Montserrat',sans-serif; color:var(--text-1); min-height:100vh; font-size:14px;
-            background:
-                radial-gradient(820px 280px at 100% -70px, rgba(111,16,34,.07), transparent 60%),
-                radial-gradient(560px 220px at -60px 25%, rgba(245,158,11,.06), transparent 55%),
-                var(--bg);
+            font-family: var(--font); color:var(--text-1); min-height:100vh; font-size:14px;
+            background: var(--bg);
         }
 
-        .top { position:sticky; top:0; z-index:40; background:rgba(255,255,255,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--border); }
-        .top-in { max-width:1180px; margin:0 auto; padding:12px 22px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-        .geri { width:38px; height:38px; border-radius:11px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; color:var(--text-2); background:#fff; border:1px solid var(--border); text-decoration:none; transition:.18s; }
-        .geri:hover { color:var(--red); border-color:var(--red); transform:translateX(-2px); }
-        .t-ico { width:40px; height:40px; border-radius:12px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:17px; background:linear-gradient(135deg,var(--red-orta),var(--red-koyu)); color:#fff; box-shadow:0 6px 14px -6px rgba(185,28,28,.5); }
         .t-baslik h1 { font-size:16px; font-weight:700; line-height:1.2; }
         .t-baslik p { font-size:11.5px; color:var(--text-2); }
         .aksiyon { margin-left:auto; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -142,8 +132,8 @@ $kisa = static function ($v): string {
 
         /* ── Vurgular ── */
         .vurgular { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; margin-bottom:16px; }
-        .vurgu { background:var(--card); border:1px solid var(--border); border-radius:15px; padding:13px 16px; display:flex; align-items:center; gap:12px; box-shadow:var(--golge); animation:giris .5s cubic-bezier(.22,1,.36,1) both; }
-        .vurgu:nth-child(2) { animation-delay:50ms; } .vurgu:nth-child(3) { animation-delay:100ms; } .vurgu:nth-child(4) { animation-delay:150ms; }
+        .vurgu { background:var(--card); border:1px solid var(--border); border-radius:15px; padding:13px 16px; display:flex; align-items:center; gap:12px; box-shadow:var(--golge); }
+
         .vurgu-ico { width:40px; height:40px; border-radius:12px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:16px; }
         .vurgu.kir .vurgu-ico { background:var(--red-soft); color:var(--red); }
         .vurgu.alt .vurgu-ico { background:var(--amber-soft); color:var(--amber); }
@@ -158,11 +148,8 @@ $kisa = static function ($v): string {
         .pod {
             position:relative; background:var(--card); border:1px solid var(--border); border-radius:18px;
             padding:18px 16px 15px; text-align:center; box-shadow:var(--golge);
-            animation:giris .55s cubic-bezier(.22,1,.36,1) both;
         }
-        .pod.p1 { animation-delay:60ms; border-color:rgba(245,158,11,.45); background:linear-gradient(180deg,#fffdf5,#fff); padding-top:24px; padding-bottom:22px; }
-        .pod.p2 { animation-delay:120ms; }
-        .pod.p3 { animation-delay:180ms; }
+        .pod.p1 { border-color:rgba(245,158,11,.45); background:linear-gradient(180deg,#fffdf5,#fff); padding-top:24px; padding-bottom:22px; }
         .pod-rozet {
             position:absolute; top:-13px; left:50%; transform:translateX(-50%);
             width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
@@ -180,7 +167,7 @@ $kisa = static function ($v): string {
         .pod-alt b { color:var(--text-2); }
 
         /* ── LİG TABLOSU ── */
-        .lig-kart { background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--golge); overflow:hidden; animation:giris .5s cubic-bezier(.22,1,.36,1) .15s both; }
+        .lig-kart { background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--golge); overflow:hidden; }
         .lig-bas { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
         .lig-bas .baslik { font-size:13.5px; font-weight:700; display:inline-flex; align-items:center; gap:8px; }
         .lig-bas .baslik i { color:var(--red); }
@@ -226,12 +213,9 @@ $kisa = static function ($v): string {
         .bos-genel { padding:56px 20px; text-align:center; color:var(--text-3); }
         .bos-genel i { font-size:38px; display:block; margin-bottom:12px; color:#e6d8de; }
 
-        @keyframes giris { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
-
         @media (max-width:760px) {
             main { padding:14px 12px 46px; }
             .aksiyon { margin-left:0; width:100%; }
-            .aksiyon .btn span { display:none; }
             .podyum { grid-template-columns:1fr; align-items:stretch; }
             .pod.p1 { order:-1; }
             .ara-kutu { flex:1 1 100%; margin-left:0; }
@@ -240,7 +224,7 @@ $kisa = static function ($v): string {
         }
         @media print {
             body { background:#fff; }
-            .top, .siralayici, .ara-kutu, .sayfalar { display:none !important; }
+            .top-header, .siralayici, .ara-kutu, .sayfalar { display:none !important; }
             .vurgu, .pod, .lig-kart { box-shadow:none; break-inside:avoid; }
             .deger-hucre .dolgu { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
         }
@@ -248,15 +232,15 @@ $kisa = static function ($v): string {
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
-            <a href="dashboard.php" class="geri" title="Rapor listesine dön"><i class="fa-solid fa-arrow-left"></i></a>
-            <span class="t-ico"><i class="fa-solid fa-ranking-star"></i></span>
+    <header class="top-header">
+        <div class="header-inner">
+            <a href="dashboard.php" class="header-back" title="Rapor listesine dön"><i class="fa-solid fa-arrow-left"></i></a>
+            <span class="header-icon"><i class="fa-solid fa-ranking-star"></i></span>
             <div class="t-baslik">
                 <h1>Ürün Ligi</h1>
                 <p><?php echo $year; ?> · Firma 1 · net satış (iadeler düşülmüş)</p>
             </div>
-            <div class="aksiyon">
+            <div class="aksiyon header-eylem">
                 <form method="get">
                     <select name="year" class="yil-sec" onchange="this.form.submit()" aria-label="Yıl seç">
                         <?php for ($y = $currentYear; $y >= 2020; $y--): ?>
@@ -264,8 +248,8 @@ $kisa = static function ($v): string {
                         <?php endfor; ?>
                     </select>
                 </form>
-                <button onclick="window.print()" class="btn" title="Yazdır"><i class="fa-solid fa-print"></i><span>Yazdır</span></button>
-                <a href="rapor_urun_performans_excel_xlsx.php?year=<?php echo (int) $year; ?>" class="btn birincil" title="Excel indir"><i class="fa-solid fa-file-excel"></i><span>Excel</span></a>
+                <button onclick="window.print()" class="btn btn-ikincil" title="Yazdır"><i class="fa-solid fa-print"></i><span>Yazdır</span></button>
+                <a href="rapor_urun_performans_excel_xlsx.php?year=<?php echo (int) $year; ?>" class="btn birincil btn-ikincil" title="Excel indir"><i class="fa-solid fa-file-excel"></i><span>Excel</span></a>
             </div>
         </div>
     </header>

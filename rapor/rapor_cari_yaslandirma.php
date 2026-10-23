@@ -386,27 +386,11 @@ foreach ($rows as $r) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cari Yaşlandırma</title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f9fafb;
-            --surface: #ffffff;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --amber-border: rgba(217, 119, 6, 0.22);
             --sky: #0284c7;
             --sky-soft: #eff6ff;
@@ -415,41 +399,12 @@ foreach ($rows as $r) {
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        /* Sticky header (amber) */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid var(--amber-border);
-            box-shadow: 0 2px 8px rgba(217, 119, 6, 0.05);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            height: 100%;
-            display: flex; align-items: center; gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none;
-            transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(217,119,6,0.08); color: var(--amber); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            font-size: 18px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 8px;
-        }
-        .header-title .material-icons { color: var(--amber); font-size: 20px; }
+        .header-title .material-icons { color: var(--red); font-size: 20px; }
         .header-actions {
             margin-left: auto;
             display: inline-flex; align-items: center; gap: 8px;
@@ -475,14 +430,12 @@ foreach ($rows as $r) {
 
         /* Glass card */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
         }
 
         /* Filter panel */
@@ -516,7 +469,7 @@ foreach ($rows as $r) {
             padding: 10px 12px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13.5px;
             color: var(--text-1);
             background: #fff;
@@ -543,7 +496,7 @@ foreach ($rows as $r) {
             gap: 6px;
             padding: 10px 18px;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px; font-weight: 600;
             border: none; cursor: pointer;
             text-decoration: none;
@@ -747,10 +700,6 @@ foreach ($rows as $r) {
             .form-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 767px) {
-            .top-header { height: 50px; }
-            .header-inner { padding: 0 12px; gap: 10px; }
-            .header-title { font-size: 14.5px; }
-            .header-back { width: 30px; height: 30px; border-radius: 8px; }
             .icon-btn { width: 36px; height: 36px; }
 
             main { padding: 14px 12px 40px; }
@@ -814,6 +763,8 @@ foreach ($rows as $r) {
         input, select, textarea { font-size: 16px; }
 
         /* Print */
+        @media (max-width: 480px) { .stat-grid { grid-template-columns: 1fr; } .stat-value { font-size: 16px; } }
+
         @media print {
             .no-print { display: none !important; }
             body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -836,10 +787,10 @@ foreach ($rows as $r) {
         </a>
         <div class="header-divider"></div>
         <span class="header-title">
-            <span class="material-icons">schedule</span>Cari Yaslandirma
+            <span class="material-icons">schedule</span>Cari Yaşlandırma
         </span>
-        <div class="header-actions">
-            <button type="button" onclick="window.print()" class="icon-btn" title="Yazdir">
+        <div class="header-actions header-eylem">
+            <button type="button" onclick="window.print()" class="icon-btn btn btn-ikincil btn-ikon" title="Yazdır">
                 <span class="material-icons">print</span>
             </button>
             <?php
@@ -853,7 +804,7 @@ foreach ($rows as $r) {
                 ]);
             ?>
             <a href="rapor_cari_yaslandirma_excel_xlsx.php?<?php echo htmlspecialchars($excelQuery, ENT_QUOTES, 'UTF-8'); ?>"
-               class="icon-btn icon-excel" title="Excel">
+               class="icon-btn icon-excel btn btn-ikincil btn-ikon" title="Excel">
                 <span class="material-icons">download</span>
             </a>
         </div>

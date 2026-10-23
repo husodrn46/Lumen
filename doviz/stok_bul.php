@@ -123,33 +123,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
   <title>Ürün Ara - <?php echo htmlspecialchars((string)$siparis['FICHENO']); ?></title>
   <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
   <style>
     :root {
-      --bg: #f0f9ff;
-      --text-1: #0f172a;
-      --text-2: #475569;
-      --text-3: #94a3b8;
-      --border: #e2e8f0;
       --sky: #0ea5e9;
       --sky-soft: #e0f2fe;
       --sky-deep: #0284c7;
-      --emerald: #059669;
-      --emerald-soft: #ecfdf5;
       --emerald-deep: #047857;
-      --amber: #d97706;
-      --amber-soft: #fffbeb;
-      --red: #6F1022;
-      --red-soft: #fef2f2;
       --indigo: #4f46e5;
       --indigo-soft: #eef2ff;
-    }
+        }
     * { box-sizing: border-box; margin: 0; }
     body {
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       background: linear-gradient(180deg, #f0f9ff 0%, #f8fafc 100%);
       background-attachment: fixed;
       color: var(--text-1);
@@ -159,54 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
-
-    /* HEADER */
-    .top-header {
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      height: 64px;
-      background: rgba(255,255,255,0.88);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(14,165,233,0.18);
-      box-shadow: 0 2px 8px rgba(14,165,233,0.05);
-    }
-    .header-inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 0 24px;
-    }
-    .header-back {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 40px; height: 40px; border-radius: 10px;
-      color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-      background: rgba(14,165,233,0.06);
-    }
-    .header-back:hover { background: var(--sky-soft); color: var(--sky-deep); }
-    .header-divider { width: 1px; height: 26px; background: var(--border); }
     .header-title-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-    .header-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--text-1);
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      line-height: 1.1;
-    }
-    .header-title i {
-      color: var(--sky);
-      font-size: 18px;
-      width: 28px; height: 28px;
-      display: inline-flex; align-items: center; justify-content: center;
-      background: var(--sky-soft);
-      border-radius: 8px;
-    }
     .header-sub {
       font-size: 11.5px; color: var(--text-3); font-weight: 500;
       display: inline-flex; align-items: center; gap: 8px;
@@ -290,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
     .search-input {
       width: 100%; height: 46px;
       padding: 0 14px 0 40px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 14px; font-weight: 500;
+      font-family: var(--font); font-size: 14px; font-weight: 500;
       color: var(--text-1); background: #fff;
       border: 1px solid var(--border); border-radius: 11px;
       outline: none; transition: all 0.2s ease;
@@ -305,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
       padding: 0 22px; height: 46px;
       background: var(--sky); color: #fff;
       border: none; border-radius: 11px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13.5px; font-weight: 600;
+      font-family: var(--font); font-size: 13.5px; font-weight: 600;
       cursor: pointer; transition: all 0.2s ease;
       box-shadow: 0 4px 12px rgba(14,165,233,0.25);
       white-space: nowrap;
@@ -424,7 +363,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
       width: 100%; height: 40px;
       padding: 0 10px;
       text-align: center;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 700;
+      font-family: var(--font); font-size: 13px; font-weight: 700;
       color: var(--text-1); background: #fff;
       border: 1px solid var(--border); border-radius: 10px;
       outline: none; transition: all 0.2s ease;
@@ -439,7 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
       height: 40px; padding: 0 16px;
       background: var(--emerald); color: #fff;
       border: none; border-radius: 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 700;
+      font-family: var(--font); font-size: 13px; font-weight: 700;
       cursor: pointer; transition: all 0.2s ease;
       box-shadow: 0 2px 8px rgba(5,150,105,0.22);
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -480,12 +419,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
 
     /* RESPONSIVE */
     @media (max-width: 767px) {
-      .top-header { height: 58px; }
-      .header-inner { padding: 0 12px; gap: 10px; }
-      .header-title { font-size: 15px; }
-      .header-title i { width: 26px; height: 26px; font-size: 15px; }
       .header-sub { display: none; }
-      .header-back { width: 38px; height: 38px; }
       main { padding: 12px 12px 40px !important; }
 
       .info-bar { padding: 12px; gap: 8px 14px; }
@@ -517,8 +451,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['stokid'])) {
         /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
         .search-btn { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
         .search-btn:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
-        .header-back { background: transparent; color: #6b7280; border-color: transparent; }
-        .header-back:hover { background: rgba(0, 0, 0, 0.04); color: var(--red, #6F1022); }
     </style>
 </head>
 <body>

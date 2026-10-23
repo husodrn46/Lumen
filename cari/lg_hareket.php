@@ -35,7 +35,6 @@ if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4
     exit;
 }
 
-
 function paraformat(float|int|string|null $kusurat): string
 {
     global $parakusurat;
@@ -55,21 +54,9 @@ function paraformat(float|int|string|null $kusurat): string
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
             --sky: #0284c7;
@@ -79,35 +66,11 @@ function paraformat(float|int|string|null $kusurat): string
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-            flex-wrap: wrap;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-title { min-width: 0; flex: 1 1 auto; }
         .header-title h1 {
             font-size: 16px; font-weight: 700; color: var(--text-1);
             display: flex; align-items: center; gap: 8px; margin: 0;
@@ -125,7 +88,7 @@ function paraformat(float|int|string|null $kusurat): string
         .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .donem-select {
             padding: 9px 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 600; color: var(--text-1);
             background: #fff; border: 1px solid var(--border); border-radius: 10px;
             outline: none; cursor: pointer; transition: all 0.2s ease;
@@ -143,7 +106,7 @@ function paraformat(float|int|string|null $kusurat): string
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 16px; background: var(--red,#ef4444); color: #fff;
             border: none; border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700;
+            font-family: var(--font); font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
         }
@@ -152,7 +115,7 @@ function paraformat(float|int|string|null $kusurat): string
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 16px; background: #fff; color: var(--text-1);
             border: 1px solid var(--border); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700;
+            font-family: var(--font); font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
         }
         .btn-ekstre:hover { background: var(--indigo-soft); color: var(--indigo); border-color: rgba(79, 70, 229, 0.3); transform: translateY(-1px); }
@@ -213,7 +176,7 @@ function paraformat(float|int|string|null $kusurat): string
             background: #fff;
             cursor: pointer;
             transition: all 0.2s ease;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             color: var(--text-1);
             text-decoration: none;
         }
@@ -243,17 +206,15 @@ function paraformat(float|int|string|null $kusurat): string
             margin-bottom: 18px;
         }
         .stat-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 16px 18px;
             display: flex; align-items: center; gap: 14px;
             position: relative; overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
         }
         .stat-card:nth-child(2) { animation-delay: 60ms; }
         .stat-card:nth-child(3) { animation-delay: 120ms; }
@@ -290,15 +251,13 @@ function paraformat(float|int|string|null $kusurat): string
         .stat-card.red .stat-value     { color: var(--red); }
 
         .table-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
-            will-change: transform, opacity;
         }
         .hareket-table { width: 100%; border-collapse: collapse; }
         .hareket-table thead { background: linear-gradient(180deg, #fff, #fffafa); }
@@ -365,10 +324,8 @@ function paraformat(float|int|string|null $kusurat): string
         }
 
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
             .header-title h1 { font-size: 14px; }
             .header-title p { font-size: 10.5px; }
-            .header-back { width: 30px; height: 30px; border-radius: 8px; }
             .header-actions { width: 100%; justify-content: flex-start; }
             .donem-select { font-size: 12px; padding: 8px 32px 8px 10px; }
             .btn-print { padding: 8px 14px; font-size: 12px; }
@@ -406,7 +363,6 @@ function paraformat(float|int|string|null $kusurat): string
 
         @media print {
             body { background: #fff; }
-            .top-header { position: static; box-shadow: none; border-bottom: 2px solid #000; }
             .header-actions, .no-print { display: none !important; }
             .stat-card, .table-card { box-shadow: none; border: 1px solid #ccc; animation: none; }
             .hareket-table tbody tr:hover { background: transparent; }
@@ -443,7 +399,7 @@ function paraformat(float|int|string|null $kusurat): string
                     <i class="fa-solid fa-file-export"></i> Ekstre
                 </button>
                 <button onclick="window.print()" class="btn-print" type="button">
-                    <i class="fa-solid fa-print"></i> Yazdir
+                    <i class="fa-solid fa-print"></i> Yazdır
                 </button>
             </div>
         </div>

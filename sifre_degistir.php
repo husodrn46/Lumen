@@ -60,29 +60,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Lumen - Sifre Degistir</title>
+    <title>Lumen - Şifre Değiştir</title>
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (is_file(__DIR__ . '/pwa-header.php')) { include_once(__DIR__ . '/pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
-        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background:
                 radial-gradient(1200px 600px at 8% -10%, rgba(248, 113, 113, .14), transparent 60%),
                 radial-gradient(900px 500px at 92% 110%, rgba(99, 102, 241, .08), transparent 55%),
@@ -102,14 +93,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.22);
+            border: 1px solid var(--border);
             border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+            box-shadow: var(--golge-1);
             padding: 38px 30px 32px;
-            animation: cardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
 
         /* HERO */
@@ -202,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 13px 14px 13px 42px;
             border: 1px solid var(--border);
             border-radius: 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 500;
             color: var(--text-1);
@@ -224,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 14px 22px;
             border: none;
             border-radius: 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 700;
             color: #fff;
@@ -324,8 +314,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="hero">
                 <span class="lock-box"><i class="fa-solid fa-lock"></i></span>
-                <h1>Sifre Degistir</h1>
-                <div class="subtitle">Guvenli yeni sifrenizi belirleyin</div>
+                <h1>Şifre Değiştir</h1>
+                <div class="subtitle">Güvenli yeni şifrenizi belirleyin</div>
             </div>
 
             <?php if ($error !== '' && $error !== '0'): ?>
@@ -346,7 +336,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php echo csrf_field(); ?>
 
                 <div class="field">
-                    <label for="eski_sifre" class="field-label">Eski Sifre</label>
+                    <label for="eski_sifre" class="field-label">Eski Şifre</label>
                     <div class="input-wrap">
                         <input type="password" id="eski_sifre" name="eski_sifre" required
                                class="field-control" placeholder="Mevcut sifreniz"
@@ -356,7 +346,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="field">
-                    <label for="yeni_sifre" class="field-label">Yeni Sifre</label>
+                    <label for="yeni_sifre" class="field-label">Yeni Şifre</label>
                     <div class="input-wrap">
                         <input type="password" id="yeni_sifre" name="yeni_sifre" required
                                class="field-control" placeholder="En az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter"
@@ -366,7 +356,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="field">
-                    <label for="yeni_sifre2" class="field-label">Yeni Sifre (Tekrar)</label>
+                    <label for="yeni_sifre2" class="field-label">Yeni Şifre (Tekrar)</label>
                     <div class="input-wrap">
                         <input type="password" id="yeni_sifre2" name="yeni_sifre2" required
                                class="field-control" placeholder="Yeni sifreyi tekrar girin"

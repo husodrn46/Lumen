@@ -248,9 +248,10 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="googlebot" content="noindex, nofollow">
-    <title>Lumen - Giris</title>
+    <title>Lumen - Giriş</title>
     <?php include_once(__DIR__ . '/pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
             --font-sans: "Segoe UI", Roboto, Arial, sans-serif;
@@ -583,8 +584,8 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
             <div class="logo-area">
                 <span class="lock-box"><i class="fa-solid fa-lock"></i></span>
                 <img src="logo.png" alt="Lumen" onerror="this.style.display='none'">
-                <h1>Lumen Siparis Sistemi</h1>
-                <div class="subtitle">Guvenli Giris</div>
+                <h1>Lumen Sipariş Sistemi</h1>
+                <div class="subtitle">Güvenli Giriş</div>
             </div>
 
             <!-- Hata mesaji -->
@@ -598,7 +599,7 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
             <!-- Giris formu -->
             <form method="POST" action="">
                 <div class="field">
-                    <label for="kullaniciadi" class="field-label">Kullanici Adi</label>
+                    <label for="kullaniciadi" class="field-label">Kullanıcı Adı</label>
                     <div class="input-wrap">
                         <i class="fa-solid fa-user input-icon"></i>
                         <input type="text"
@@ -606,7 +607,7 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
                                name="kullaniciadi"
                                value="<?php echo htmlspecialchars((string) $ck_kullanici, ENT_QUOTES, 'UTF-8'); ?>"
                                required
-                               placeholder="Kullanici adiniz"
+                               placeholder="Kullanıcı adınız"
                                autocomplete="username"
                                autocapitalize="characters"
                                spellcheck="false"
@@ -616,16 +617,16 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
                 </div>
 
                 <div class="field">
-                    <label for="kullanicisifre" class="field-label">Sifre</label>
+                    <label for="kullanicisifre" class="field-label">Şifre</label>
                     <div class="input-wrap">
                         <i class="fa-solid fa-lock input-icon"></i>
                         <input type="password"
                                id="kullanicisifre"
                                name="kullanicisifre"
                                required
-                               placeholder="Sifreniz"
+                               placeholder="Şifreniz"
                                autocomplete="current-password">
-                        <button type="button" id="togglePassword" class="toggle-pw" aria-label="Sifreyi goster/gizle">
+                        <button type="button" id="togglePassword" class="toggle-pw" aria-label="Şifreyi göster/gizle">
                             <i class="fa-solid fa-eye" id="eyeIcon"></i>
                         </button>
                     </div>
@@ -633,11 +634,11 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
 
                 <div class="remember-row">
                     <input type="checkbox" id="hatirla" name="hatirla" <?php echo $hatirlakontrol; ?>>
-                    <label for="hatirla">Beni Hatirla (30 gun)</label>
+                    <label for="hatirla">Beni Hatırla (30 gün)</label>
                 </div>
 
                 <button type="submit" class="btn-giris">
-                    <span>Giris Yap</span>
+                    <span>Giriş Yap</span>
                     <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </form>
@@ -645,7 +646,7 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
         </div>
 
         <div class="login-footer">
-            &copy; <?php echo date('Y'); ?> Lumen &middot; Tum haklari saklidir
+            &copy; <?php echo date('Y'); ?> Lumen &middot; Tüm hakları saklıdır
         </div>
     </div>
 

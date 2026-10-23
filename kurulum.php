@@ -249,7 +249,7 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
     <style>
         :root { --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; }
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; letter-spacing:-0.02em; background:
+        body { font-family:'Montserrat','Avenir Next',sans-serif; letter-spacing:-0.02em; background:
             radial-gradient(1000px 500px at 10% -10%, rgba(111,16,34,.06), transparent 60%), var(--bg);
             color:var(--t1); min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; }
         .wrap { width:100%; max-width:560px; }

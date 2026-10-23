@@ -162,55 +162,20 @@ $yoyHtml = static function (float $simdiki, float $onceki): string {
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f6f8fb;
-            --card: #ffffff;
-            --text-1: #0f172a;
-            --text-2: #5b6b83;
-            --text-3: #94a3b8;
-            --border: #e5eaf1;
-            --red: #6F1022;
-            --emerald: #059669;
             --emerald-2: #10b981;
-            --emerald-soft: #ecfdf5;
-            --amber: #d97706;  --amber-soft: #fffbeb;
             --indigo: #4f46e5; --indigo-soft: #eef2ff;
             --sky: #0284c7;    --sky-soft: #f0f9ff;
-            --golge: 0 10px 30px -18px rgba(15, 23, 42, .25);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             color: var(--text-1);
             min-height: 100vh;
-            background:
-                radial-gradient(900px 300px at 85% -60px, rgba(16, 185, 129, .10), transparent 60%),
-                radial-gradient(700px 260px at -10% 0, rgba(2, 132, 199, .07), transparent 55%),
-                var(--bg);
+            background: var(--bg);
         }
 
         /* ── Üst çubuk ── */
-        .top {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255, 255, 255, .82);
-            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-        }
-        .top-in {
-            max-width: 1180px; margin: 0 auto; padding: 12px 22px;
-            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-        }
-        .geri {
-            width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
-            display: inline-flex; align-items: center; justify-content: center;
-            color: var(--text-2); background: #fff; border: 1px solid var(--border);
-            text-decoration: none; transition: .18s;
-        }
-        .geri:hover { color: var(--emerald); border-color: var(--emerald); transform: translateX(-2px); }
-        .t-ico {
-            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-            display: inline-flex; align-items: center; justify-content: center; font-size: 17px;
-            background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #047857;
-        }
+
         .t-baslik { min-width: 0; }
         .t-baslik h1 { font-size: 16px; font-weight: 700; line-height: 1.2; }
         .t-baslik p  { font-size: 11.5px; color: var(--text-2); }
@@ -229,19 +194,19 @@ $yoyHtml = static function (float $simdiki, float $onceki): string {
             background: #fff; color: var(--text-2); transition: .18s;
         }
         .btn:hover { color: var(--emerald); border-color: var(--emerald); transform: translateY(-1px); }
-        .btn.birincil { background: var(--emerald); border-color: var(--emerald); color: #fff; box-shadow: 0 6px 16px -8px rgba(5, 150, 105, .5); }
-        .btn.birincil:hover { background: #047857; color: #fff; }
+        .btn.birincil { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 6px 16px -8px rgba(5, 150, 105, .5); }
+        .btn.birincil:hover { background: var(--red); color: #fff; }
 
         main { max-width: 1180px; margin: 0 auto; padding: 22px 22px 46px; }
 
         /* ── HERO ── */
         .hero {
             position: relative; overflow: hidden;
-            background: linear-gradient(120deg, #052e22 0%, #064e3b 45%, #065f46 100%);
+            background: var(--red);
             border-radius: 20px; color: #fff;
             padding: 26px 28px;
             display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
-            box-shadow: 0 18px 40px -22px rgba(6, 78, 59, .55);
+            box-shadow: var(--golge-2);
             animation: giris .5s cubic-bezier(.22, 1, .36, 1) both;
         }
         .hero::after {
@@ -258,7 +223,7 @@ $yoyHtml = static function (float $simdiki, float $onceki): string {
             display: inline-flex; align-items: center; gap: 6px;
             font-size: 11.5px; font-weight: 700; padding: 6px 11px; border-radius: 999px;
             background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .16);
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px); color: inherit;
         }
         .rozet.up   { background: rgba(52, 211, 153, .22); border-color: rgba(110, 231, 183, .45); color: #d1fae5; }
         .rozet.down { background: rgba(248, 113, 113, .2); border-color: rgba(252, 165, 165, .4); color: #fecaca; }
@@ -380,15 +345,15 @@ $yoyHtml = static function (float $simdiki, float $onceki): string {
 </head>
 <body>
 
-<header class="top no-print">
-    <div class="top-in">
-        <a href="dashboard.php" class="geri" title="Rapor listesine dön"><i class="fa-solid fa-arrow-left"></i></a>
-        <span class="t-ico"><i class="fa-solid fa-calendar-days"></i></span>
+<header class="top-header no-print">
+    <div class="header-inner">
+        <a href="dashboard.php" class="header-back" title="Rapor listesine dön"><i class="fa-solid fa-arrow-left"></i></a>
+        <span class="header-icon"><i class="fa-solid fa-calendar-days"></i></span>
         <div class="t-baslik">
             <h1>Aylık Satış Raporu</h1>
             <p>KDV dahil net ciro (iadeler düşülmüş) · geçen yıl kıyası</p>
         </div>
-        <div class="aksiyon">
+        <div class="aksiyon header-eylem">
             <form method="get">
                 <select name="year" class="yil-sec" onchange="this.form.submit()" aria-label="Yıl seç">
                     <?php for ($y = $currentYear; $y >= 2020; $y--): ?>
@@ -396,8 +361,8 @@ $yoyHtml = static function (float $simdiki, float $onceki): string {
                     <?php endfor; ?>
                 </select>
             </form>
-            <button onclick="window.print()" class="btn" title="Yazdır"><i class="fa-solid fa-print"></i><span>Yazdır</span></button>
-            <a href="rapor_satis_aylik_excel_xlsx.php?year=<?php echo (int) $year; ?>" class="btn birincil" title="Excel indir"><i class="fa-solid fa-file-excel"></i><span>Excel</span></a>
+            <button onclick="window.print()" class="btn btn-ikincil" title="Yazdır"><i class="fa-solid fa-print"></i><span>Yazdır</span></button>
+            <a href="rapor_satis_aylik_excel_xlsx.php?year=<?php echo (int) $year; ?>" class="btn birincil btn-ikincil" title="Excel indir"><i class="fa-solid fa-file-excel"></i><span>Excel</span></a>
         </div>
     </div>
 </header>
@@ -427,12 +392,12 @@ $yoyHtml = static function (float $simdiki, float $onceki): string {
             <svg viewBox="0 0 <?php echo $spW; ?> <?php echo $spH; ?>" preserveAspectRatio="none" aria-hidden="true">
                 <defs>
                     <linearGradient id="spg" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0" stop-color="#6ee7b7" stop-opacity=".55"/>
-                        <stop offset="1" stop-color="#6ee7b7" stop-opacity="0"/>
+                        <stop offset="0" stop-color="#ffffff" stop-opacity=".55"/>
+                        <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
                     </linearGradient>
                 </defs>
                 <polygon points="<?php echo $spArea; ?>" fill="url(#spg)"/>
-                <polyline points="<?php echo $spLine; ?>" fill="none" stroke="#a7f3d0" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                <polyline points="<?php echo $spLine; ?>" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
                 <?php if ($mx['M'] > 0): $pk = explode(',', $spPts[$mx['M'] - 1]); ?>
                     <circle cx="<?php echo $pk[0]; ?>" cy="<?php echo $pk[1]; ?>" r="4" fill="#fff"/>
                     <circle cx="<?php echo $pk[0]; ?>" cy="<?php echo $pk[1]; ?>" r="7" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/>

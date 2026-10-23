@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($stokhareket > 0) {
         $islem_basarili = false;
         $hata_mesaji = '';
-        
+
         try {
             // Açıklamaları güncelle (önce ORFICHE, yoksa STFICHE)
             $stmt_update = $dbh->prepare("
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // M_MOBIL_DIZAYN tablosunun var olup olmadığını kontrol et
             $tableCheck = $dbh->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'M_MOBIL_DIZAYN'");
             $tableExists = $tableCheck->fetchColumn() > 0;
-            
+
             if (!$tableExists) {
                 $hata_mesaji = "M_MOBIL_DIZAYN tablosu bulunamadı. Tabloyu oluşturmanız gerekiyor.";
                 logError("M_MOBIL_DIZAYN tablosu yok!");
@@ -137,15 +137,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // 1. M_MOBIL_DIZAYN'a ekle (mobilyazlogo.exe için)
                 // Önce sütunların var olup olmadığını kontrol et
                 $columnCheck = $dbh->query("
-                    SELECT COLUMN_NAME 
-                    FROM INFORMATION_SCHEMA.COLUMNS 
+                    SELECT COLUMN_NAME
+                    FROM INFORMATION_SCHEMA.COLUMNS
                     WHERE TABLE_NAME = 'M_MOBIL_DIZAYN'
                 ");
                 $existingColumns = [];
                 while ($col = $columnCheck->fetch(PDO::FETCH_ASSOC)) {
                     $existingColumns[] = $col['COLUMN_NAME'];
                 }
-                
+
                 // Mevcut sütunlara göre INSERT sorgusu oluştur
                 $columns = ['DURUM', 'DIZAYN', 'MIKTAR', 'FIS', 'ISLEM', 'YAZICI', 'LOKASYON', 'MAIL'];
                 $values = [':durum', ':dizayn', ':miktar', ':fis', ':islem', ':yazici', ':lokasyon', ':mail'];
@@ -186,15 +186,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $values[] = ':trrate';
                     $params[':trrate'] = $trrate;
                 }
-                
+
                 $sql = "INSERT INTO M_MOBIL_DIZAYN (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $values) . ")";
                 $stmt_insert = $dbh->prepare($sql);
                 $stmt_insert->execute($params);
-                
+
                 // M_MOBIL_DIZAYN_LOG tablosunun var olup olmadığını kontrol et
                 $tableCheckLog = $dbh->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'M_MOBIL_DIZAYN_LOG'");
                 $tableLogExists = $tableCheckLog->fetchColumn() > 0;
-                
+
                 if ($tableLogExists) {
                     // 2. M_MOBIL_DIZAYN_LOG'a da ekle (kalıcı kayıt için)
                     // LOG tablosu için de sütun kontrolü yap
@@ -270,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt_log = $dbh->prepare($sqlLog);
                     $stmt_log->execute($paramsLog);
                 }
-                
+
                 $islem_basarili = true;
             }
 
@@ -279,7 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hata_mesaji = 'Yazdırma kaydı oluşturulamadı; yöneticinize bildirin.';
             error_log("Yazdırma kuyruğu ekleme hatası: " . $e->getMessage());
         }
-        
+
         // Hata varsa session'a kaydet (sonra gösterilecek)
         if (!empty($hata_mesaji)) {
             $_SESSION['yazdirma_hata'] = $hata_mesaji;
@@ -412,79 +412,31 @@ $aktif_secenekler[$tipdurum] = 'selected';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yazdirma Yoneticisi</title>
+  <title>Yazdırma Yöneticisi</title>
   <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
   <style>
     :root {
-      --bg: #f9fafb;
-      --text-1: #1f2937;
-      --text-2: #6b7280;
-      --text-3: #9ca3af;
-      --border: #e5e7eb;
-      --red: #6F1022;
-      --red-soft: #fef2f2;
       --red-border: rgba(248, 113, 113, 0.25);
-      --emerald: #059669;
       --indigo: #4f46e5;
-      --amber: #d97706;
-    }
+        }
     * { box-sizing: border-box; margin: 0; }
     body {
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--text-1);
       min-height: 100vh;
     }
 
-    /* ═══════ HEADER ═══════ */
-    .top-header {
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      height: 64px;
-      background: rgba(255,255,255,0.88);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-      box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-    }
-    .header-inner {
-      max-width: 720px;
-      margin: 0 auto;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 0 24px;
-    }
-    .header-back {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 36px; height: 36px; border-radius: 10px;
-      color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-    }
-    .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-    .header-divider { width: 1px; height: 24px; background: var(--border); }
-    .header-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-1);
-    }
-
     /* ═══════ CARD ═══════ */
     .glass-card {
-      background: rgba(255,255,255,0.92);
+      background: var(--card);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
-      border: 1px solid rgba(248, 113, 113, 0.18);
+      border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-      will-change: transform, opacity;
-      animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+      box-shadow: var(--golge-1);
       padding: 22px;
     }
     .section-divider {
@@ -518,7 +470,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
     .field-control {
       width: 100%;
       padding: 11px 14px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 14px;
       color: var(--text-1);
       background: #fff;
@@ -552,7 +504,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
       width: 100%;
       padding: 13px 18px;
       border-radius: 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 14px;
       font-weight: 600;
       border: none;
@@ -622,7 +574,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
       background: transparent;
       border: none;
       cursor: pointer;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 12px;
       font-weight: 600;
       color: var(--text-2);
@@ -690,11 +642,6 @@ $aktif_secenekler[$tipdurum] = 'selected';
 
     /* ═══════ MOBILE ═══════ */
     @media (max-width: 767px) {
-      .top-header { height: 50px; }
-      .header-inner { padding: 0 12px; gap: 10px; }
-      .header-title { font-size: 15px; }
-      .header-back { width: 30px; height: 30px; border-radius: 8px; }
-      .header-divider { height: 18px; }
 
       main { padding: 14px 12px !important; }
       .glass-card { padding: 16px; border-radius: 12px; }
@@ -715,7 +662,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
       </a>
       <div class="header-divider"></div>
       <span class="header-title">
-        <i class="fa-solid fa-print" style="color:var(--red,#ef4444);margin-right:6px;"></i>Yazdirma Yoneticisi
+        <i class="fa-solid fa-print" style="color:var(--red,#ef4444);margin-right:6px;"></i>Yazdırma Yöneticisi
       </span>
     </div>
   </header>
@@ -738,7 +685,7 @@ $aktif_secenekler[$tipdurum] = 'selected';
       <div class="glass-card">
         <!-- HERO: Dizayn Dosyasi (en sik degisen) -->
         <div class="hero-design">
-          <label for="dizayn" class="field-label"><i class="fa-solid fa-file-lines"></i> Dizayn Dosyasi</label>
+          <label for="dizayn" class="field-label"><i class="fa-solid fa-file-lines"></i> Yazdırma Tasarımı</label>
           <select name="dizayn" id="dizayn" class="field-control">
             <?php
             // Debug bilgileri
@@ -748,18 +695,17 @@ $aktif_secenekler[$tipdurum] = 'selected';
             $debug_info['dizaynyolu'] = $dizaynyolu ?? 'TANIMLI DEĞİL';
             $debug_info['dizaynyolu_exists'] = isset($dizaynyolu) && is_dir($dizaynyolu) ? 'EVET' : 'HAYIR';
             $debug_info['dizaynyolu_readable'] = isset($dizaynyolu) && is_readable($dizaynyolu) ? 'EVET' : 'HAYIR';
-            
+
             // Hata mesajı oluştur
             $hata_mesaji = '';
             if (!isset($dizaynyolu) || empty($dizaynyolu)) {
-                $hata_mesaji = 'Dizayn yolu tanımlı değil';
+                $hata_mesaji = 'Yazdırma tasarımı tanımlanmamış';
             } elseif (!is_dir($dizaynyolu)) {
-                // Sunucu yolu yalnız yöneticiye (kurulum için); diğer kullanıcıya genel mesaj
-                $hata_mesaji = 'Dizayn klasörü bulunamadı' . ((int) ($yetkidurum ?? 1) === 0 ? ': ' . $dizaynyolu : '; yöneticinize bildirin.');
+                $hata_mesaji = 'Yazdırma tasarımları henüz kurulmamış';
             } elseif (!is_readable($dizaynyolu)) {
-                $hata_mesaji = 'Dizayn klasörü okunamıyor (izin hatası)' . ((int) ($yetkidurum ?? 1) === 0 ? ': ' . $dizaynyolu : '; yöneticinize bildirin.');
+                $hata_mesaji = 'Yazdırma tasarımları okunamıyor';
             }
-            
+
             if (is_dir($dizaynyolu) && is_readable($dizaynyolu)) {
                 if (!empty($dizaynDosyalari)) {
                     // Onceden taranan liste uzerinden render — varsayilan secim de bu
@@ -770,12 +716,12 @@ $aktif_secenekler[$tipdurum] = 'selected';
                              htmlspecialchars($dosya, ENT_QUOTES) . '</option>';
                     }
                 } else {
-                    echo '<option value="">Klasör boş - Dizayn dosyası yok</option>';
+                    echo '<option value="">Henüz tasarım dosyası yok</option>';
                 }
             } else {
                 // Hata durumunda detaylı bilgi göster
                 echo '<option value="">' . htmlspecialchars($hata_mesaji ?: 'Dizayn bulunamadı', ENT_QUOTES) . '</option>';
-                
+
                 // Debug modunda detaylı bilgi göster
                 if ((isset($_GET['debug']) || isset($_GET['debug_dizayn'])) && (int) ($yetkidurum ?? 1) === 0) {
                     echo '<!-- DEBUG BİLGİLERİ: ';
@@ -789,6 +735,9 @@ $aktif_secenekler[$tipdurum] = 'selected';
             }
             ?>
           </select>
+          <?php if ($dizaynDosyalari === []): ?>
+            <p class="ipucu" role="status" style="margin-top:10px">Yazdırmak için önce bir tasarım dosyası kurulmalı. Kurulum için sistem yöneticinize başvurun.</p>
+          <?php endif; ?>
           <?php if ((isset($_GET['debug']) || isset($_GET['debug_dizayn'])) && (int) ($yetkidurum ?? 1) === 0): ?>
             <div class="debug-box">
               <strong>Debug Bilgileri:</strong><br>
@@ -884,11 +833,11 @@ $aktif_secenekler[$tipdurum] = 'selected';
 
         <!-- Butonlar -->
         <div class="button-stack" style="margin-top:22px;">
-          <button type="submit" class="btn-flat btn-red">
-            <i class="fa-solid fa-print"></i> Yazdirma Kuyruguna Ekle
+          <button type="submit" class="btn-flat btn-red btn btn-birincil" <?= $dizaynDosyalari === [] ? 'disabled' : '' ?>>
+            <i class="fa-solid fa-print"></i> Yazdırma Kuyruğuna Ekle
           </button>
           <a href="../siparis/lg_siparis.php?stokhareket=<?php echo $stokhareket; ?>&sipariskaydet" class="btn-flat btn-light">
-            <i class="fa-solid fa-xmark"></i> Iptal
+            <i class="fa-solid fa-xmark"></i> İptal
           </a>
         </div>
       </div>

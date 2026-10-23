@@ -89,24 +89,9 @@ try {
     <meta name="robots" content="noindex, nofollow">
     <title>Lumen - Faturalama (BETA)</title>
     <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #f9fafb; --card: #fff; --text-1: #1f2937; --text-2: #6b7280; --text-3: #9ca3af;
-            --border: #e5e7eb; --red: #6F1022; --red-soft: #fef2f2; --amber: #b45309; --amber-soft: #fffbeb;
-            --emerald: #047857; --emerald-soft: #ecfdf5;
-        }
         * { box-sizing: border-box; margin: 0; }
-        body { font-family: 'Avenir Next', 'Montserrat', sans-serif; background: var(--bg); color: var(--text-1); min-height: 100vh; font-size: 14px; }
-
-        .top-header { position: sticky; top: 0; z-index: 40; height: 64px; background: rgba(255,255,255,0.88); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-bottom: 1px solid rgba(248, 113, 113, 0.18); box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04); }
-        .header-inner { max-width: 820px; margin: 0 auto; height: 100%; display: flex; align-items: center; gap: 14px; padding: 0 24px; }
-        .header-back { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; color: var(--text-2); text-decoration: none; }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title { font-size: 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
-        .header-title i { color: var(--red); font-size: 16px; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text-1); min-height: 100vh; font-size: 14px; }
         .beta-rozet { font-size: 10.5px; font-weight: 700; letter-spacing: .5px; padding: 3px 9px; border-radius: 8px; background: var(--amber-soft); color: var(--amber); }
 
         main { max-width: 820px; margin: 0 auto; padding: 22px 24px 60px; }
@@ -152,9 +137,6 @@ try {
         .btnrow .btn { flex: 1; justify-content: center; padding: 12px; }
 
         @media (max-width: 767px) {
-            .top-header { height: 50px; }
-            .header-inner { padding: 0 12px; gap: 10px; }
-            .header-title { font-size: 15px; }
             main { padding: 14px 12px 40px; }
             .satir { flex-wrap: wrap; }
             .satir .btn { width: 100%; justify-content: center; }

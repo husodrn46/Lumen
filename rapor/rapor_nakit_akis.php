@@ -298,25 +298,14 @@ foreach ($cek_vade_data as $row) {
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -324,39 +313,11 @@ foreach ($cek_vade_data as $row) {
         }
         * { box-sizing: border-box; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
             margin: 0;
-        }
-
-        /* Sticky header */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(5, 150, 105, 0.18);
-            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.04);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none;
-            transition: all 0.2s ease; flex-shrink: 0;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--emerald); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-title {
-            font-size: 16px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 8px;
-            flex: 1 1 auto; min-width: 0; margin: 0;
         }
         .header-title .material-icons { color: var(--emerald); font-size: 20px; }
         .header-title .title-text {
@@ -367,7 +328,7 @@ foreach ($cek_vade_data as $row) {
         .year-select {
             padding: 8px 12px; min-height: 40px;
             border-radius: 10px; border: 1px solid var(--border);
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
+            font-family: var(--font); font-size: 13px; font-weight: 600;
             color: var(--text-1); background: #fff;
             transition: all 0.2s ease; cursor: pointer;
         }
@@ -381,7 +342,7 @@ foreach ($cek_vade_data as $row) {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 8px 14px; min-height: 40px;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
             border: none; text-decoration: none; white-space: nowrap;
@@ -396,14 +357,12 @@ foreach ($cek_vade_data as $row) {
 
         /* Glass card base */
         .glass-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(5, 150, 105, 0.18);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             margin-bottom: 16px;
             overflow: hidden;
         }
@@ -550,8 +509,6 @@ foreach ($cek_vade_data as $row) {
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
-            .header-title { font-size: 14px; }
             .header-title .material-icons { font-size: 18px; }
             .btn-print, .btn-excel { padding: 7px 10px; font-size: 11.5px; }
             .btn-print span:not(.material-icons), .btn-excel span:not(.material-icons) { display: none; }
@@ -569,7 +526,6 @@ foreach ($cek_vade_data as $row) {
         @media print {
             body { background: #fff; }
             .no-print { display: none !important; }
-            .top-header { position: static; box-shadow: none; border-bottom: 2px solid #000; }
             .glass-card { box-shadow: none; border: 1px solid #ccc; animation: none; break-inside: avoid; }
             .kpi-card { background: #fff !important; }
             .chart-inner { height: 260px; }
@@ -596,9 +552,9 @@ foreach ($cek_vade_data as $row) {
         <div class="header-divider"></div>
         <h1 class="header-title">
             <span class="material-icons">account_balance</span>
-            <span class="title-text">Nakit Akis Raporu</span>
+            <span class="title-text">Nakit Akış Raporu</span>
         </h1>
-        <div class="header-actions no-print">
+        <div class="header-actions no-print header-eylem">
             <form method="GET" style="display: inline-block;">
                 <select name="yil" onchange="this.form.submit()" class="year-select">
                     <?php for ($y = date('Y'); $y >= 2020; $y--): ?>
@@ -606,11 +562,11 @@ foreach ($cek_vade_data as $row) {
                     <?php endfor; ?>
                 </select>
             </form>
-            <button onclick="window.print()" class="btn-print" type="button">
+            <button onclick="window.print()" class="btn-print btn btn-ikincil" type="button">
                 <span class="material-icons">print</span>
-                <span>Yazdir</span>
+                <span>Yazdır</span>
             </button>
-            <a href="rapor_nakit_akis_excel.php?yil=<?php echo $selected_year; ?>" class="btn-excel">
+            <a href="rapor_nakit_akis_excel.php?yil=<?php echo $selected_year; ?>" class="btn-excel btn btn-ikincil">
                 <span class="material-icons">download</span>
                 <span>Excel</span>
             </a>

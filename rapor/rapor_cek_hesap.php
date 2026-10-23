@@ -216,26 +216,15 @@ $kisa = static function ($v): string {
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:#f8f6f7; --card:#fff; --text-1:#1c1220; --text-2:#6d6276; --text-3:#9c92a5; --border:#ebe4ea;
-            --red:#6F1022; --red-koyu:#7f1d1d; --red-orta:#b91c1c; --red-soft:#fdf0f0;
-            --emerald:#059669; --emerald-soft:#ecfdf5; --amber:#d97706; --amber-soft:#fffbeb;
+            --red-koyu:var(--red); --red-orta:var(--red);
             --sky:#0284c7; --sky-soft:#eff6ff; --mor:#7c3aed; --mor-soft:#f5f3ff;
-            --golge:0 12px 30px -20px rgba(28,18,32,.35);
         }
         * { box-sizing:border-box; margin:0; }
         body {
-            font-family:'Avenir Next','Montserrat',sans-serif; color:var(--text-1); min-height:100vh; font-size:14px;
-            background:
-                radial-gradient(820px 280px at 100% -70px, rgba(111,16,34,.07), transparent 60%),
-                radial-gradient(560px 220px at -60px 25%, rgba(245,158,11,.06), transparent 55%),
-                var(--bg);
+            font-family: var(--font); color:var(--text-1); min-height:100vh; font-size:14px;
+            background: var(--bg);
         }
 
-        .top { position:sticky; top:0; z-index:40; background:rgba(255,255,255,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--border); }
-        .top-in { max-width:1220px; margin:0 auto; padding:12px 22px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-        .geri { width:38px; height:38px; border-radius:11px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; color:var(--text-2); background:#fff; border:1px solid var(--border); text-decoration:none; transition:.18s; }
-        .geri:hover { color:var(--red); border-color:var(--red); transform:translateX(-2px); }
-        .t-ico { width:40px; height:40px; border-radius:12px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:17px; background:linear-gradient(135deg,var(--red-orta),var(--red-koyu)); color:#fff; box-shadow:0 6px 14px -6px rgba(185,28,28,.5); }
         .t-baslik h1 { font-size:16px; font-weight:700; line-height:1.2; }
         .t-baslik p { font-size:11.5px; color:var(--text-2); }
         .aksiyon { margin-left:auto; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -256,8 +245,8 @@ $kisa = static function ($v): string {
 
         /* Vurgular */
         .vurgular { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:12px; margin-bottom:16px; }
-        .vurgu { background:var(--card); border:1px solid var(--border); border-radius:15px; padding:13px 16px; display:flex; align-items:center; gap:12px; box-shadow:var(--golge); animation:giris .5s cubic-bezier(.22,1,.36,1) both; }
-        .vurgu:nth-child(2) { animation-delay:50ms; } .vurgu:nth-child(3) { animation-delay:100ms; } .vurgu:nth-child(4) { animation-delay:150ms; }
+        .vurgu { background:var(--card); border:1px solid var(--border); border-radius:15px; padding:13px 16px; display:flex; align-items:center; gap:12px; box-shadow:var(--golge); }
+
         .vurgu-ico { width:40px; height:40px; border-radius:12px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:16px; }
         .vurgu.kir .vurgu-ico { background:var(--red-soft); color:var(--red); }
         .vurgu.mor .vurgu-ico { background:var(--mor-soft); color:var(--mor); }
@@ -270,7 +259,7 @@ $kisa = static function ($v): string {
         .vurgu-s { font-size:10.5px; color:var(--text-3); }
 
         /* Aylık vade dağılımı — dolgulu liste */
-        .ay-kart { background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--golge); margin-bottom:16px; overflow:hidden; animation:giris .5s cubic-bezier(.22,1,.36,1) .1s both; }
+        .ay-kart { background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--golge); margin-bottom:16px; overflow:hidden; }
         .ay-bas { padding:13px 18px; border-bottom:1px solid var(--border); font-size:13.5px; font-weight:700; display:flex; align-items:center; gap:8px; }
         .ay-bas i { color:var(--red); }
         .ay-liste { padding:10px 18px 14px; }
@@ -285,7 +274,7 @@ $kisa = static function ($v): string {
         .ay-tutar { font-size:12px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
 
         /* Liste kartı */
-        .lig-kart { background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--golge); overflow:hidden; animation:giris .5s cubic-bezier(.22,1,.36,1) .15s both; }
+        .lig-kart { background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--golge); overflow:hidden; }
         .lig-bas { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
         .lig-bas .baslik { font-size:13.5px; font-weight:700; display:inline-flex; align-items:center; gap:8px; }
         .lig-bas .baslik i { color:var(--red); }
@@ -357,12 +346,9 @@ $kisa = static function ($v): string {
         .yukleniyor .halka { width:36px; height:36px; border:3px solid #fecaca; border-top-color:var(--red); border-radius:50%; animation:spin .8s linear infinite; }
         .yukleniyor p { font-size:12px; color:var(--text-2); margin-top:12px; }
 
-        @keyframes giris { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
-
         @media (max-width:760px) {
             main { padding:14px 12px 46px; }
             .aksiyon { margin-left:0; width:100%; }
-            .aksiyon .btn span { display:none; }
             .ay-satir { grid-template-columns:72px 1fr 108px; }
             .ay-adet { display:none; }
             .ara-kutu { flex:1 1 100%; margin-left:0; }
@@ -373,7 +359,7 @@ $kisa = static function ($v): string {
         }
         @media print {
             body { background:#fff; }
-            .top, .sekmeler, .siralayici, .ara-kutu, .sayfalar, .modal-arka { display:none !important; }
+            .top-header, .sekmeler, .siralayici, .ara-kutu, .sayfalar, .modal-arka { display:none !important; }
             .vurgu, .ay-kart, .lig-kart { box-shadow:none; break-inside:avoid; }
             .deger-hucre .dolgu, .ay-bar span { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
         }
@@ -381,17 +367,17 @@ $kisa = static function ($v): string {
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
-            <a href="dashboard.php" class="geri" title="Rapor listesine dön"><i class="fa-solid fa-arrow-left"></i></a>
-            <span class="t-ico"><i class="fa-solid fa-file-invoice"></i></span>
+    <header class="top-header">
+        <div class="header-inner">
+            <a href="dashboard.php" class="header-back" title="Rapor listesine dön"><i class="fa-solid fa-arrow-left"></i></a>
+            <span class="header-icon"><i class="fa-solid fa-file-invoice"></i></span>
             <div class="t-baslik">
                 <h1>Çek Hesap Dökümü</h1>
                 <p><?php echo $h($durumBaslik); ?> · müşteri çekleri</p>
             </div>
-            <div class="aksiyon">
-                <button onclick="window.print()" class="btn" title="Yazdır"><i class="fa-solid fa-print"></i><span>Yazdır</span></button>
-                <a href="rapor_cek_hesap_excel_xlsx.php?durum=<?php echo urlencode($durum); ?>" class="btn birincil" title="Excel indir"><i class="fa-solid fa-file-excel"></i><span>Excel</span></a>
+            <div class="aksiyon header-eylem">
+                <button onclick="window.print()" class="btn btn-ikincil" title="Yazdır"><i class="fa-solid fa-print"></i><span>Yazdır</span></button>
+                <a href="rapor_cek_hesap_excel_xlsx.php?durum=<?php echo urlencode($durum); ?>" class="btn birincil btn-ikincil" title="Excel indir"><i class="fa-solid fa-file-excel"></i><span>Excel</span></a>
             </div>
         </div>
     </header>

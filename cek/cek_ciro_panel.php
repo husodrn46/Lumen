@@ -78,14 +78,10 @@ $csrf = function_exists('csrf_token') ? csrf_token() : '';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --amber:#b45309; --amber-soft:#fffbeb; }
+
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--t1); font-size:14px; }
-        .top { position:sticky; top:0; z-index:30; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--border); }
-        .top-in { max-width:860px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; gap:12px; }
-        .top-in a.geri { width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); text-decoration:none; border:1px solid var(--border); background:#fff; }
-        .top-title { font-size:15px; font-weight:600; flex:1; display:flex; align-items:center; gap:8px; }
-        .top-title i { color:var(--red); }
+        body { font-family: var(--font); background:var(--bg); color:var(--t1); font-size:14px; }
+
         .rozet { font-size:10.5px; font-weight:700; letter-spacing:.5px; padding:3px 9px; border-radius:7px; background:var(--amber-soft); color:var(--amber); }
         main { max-width:860px; margin:0 auto; padding:18px 16px 60px; }
         .card { background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden; }
@@ -136,10 +132,10 @@ $csrf = function_exists('csrf_token') ? csrf_token() : '';
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
-            <a href="<?php echo $cariRef > 0 ? '../cari/cari_islemleri.php?cari=' . $cariRef : APP_ROOT_URL . '/index.php'; ?>" class="geri" title="<?php echo $cariRef > 0 ? 'Cari işlemlerine dön' : 'Ana sayfa'; ?>"><i class="fa fa-arrow-left"></i></a>
-            <span class="top-title"><i class="fa-solid fa-share-from-square"></i> Çek Çıkışı / Ciro</span>
+    <header class="top-header">
+        <div class="header-inner">
+            <a href="<?php echo $cariRef > 0 ? '../cari/cari_islemleri.php?cari=' . $cariRef : APP_ROOT_URL . '/index.php'; ?>" class="header-back" title="<?php echo $cariRef > 0 ? 'Cari işlemlerine dön' : 'Ana sayfa'; ?>"><i class="fa fa-arrow-left"></i></a>
+            <span class="header-title"><i class="fa-solid fa-share-from-square"></i> Çek Çıkışı / Ciro</span>
         </div>
     </header>
     <main>

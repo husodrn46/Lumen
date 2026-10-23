@@ -234,26 +234,12 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
 
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -261,47 +247,23 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(2, 132, 199, 0.18);
-            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.04);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-            flex-wrap: wrap;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--sky); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-title { min-width: 0; flex: 1 1 auto; }
         .header-title h1 {
             font-size: 16px; font-weight: 700; color: var(--text-1);
             display: flex; align-items: center; gap: 8px; margin: 0;
         }
-        .header-title h1 i { color: var(--sky); font-size: 14px; }
+        .header-title h1 i { color: var(--red); font-size: 14px; }
         .header-title p {
             margin: 2px 0 0; font-size: 11.5px; color: var(--text-2); font-weight: 500;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .header-title p .kod {
             display: inline-block; padding: 1px 7px;
-            background: var(--sky-soft); color: var(--sky);
+            background: var(--sky-soft); color: var(--red);
             border-radius: 100px; font-size: 10px; font-weight: 700; margin-left: 4px;
         }
         .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -309,7 +271,7 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 16px; background: var(--emerald); color: #fff;
             border: none; border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700;
+            font-family: var(--font); font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease; text-decoration: none;
             box-shadow: 0 4px 12px rgba(5, 150, 105, 0.22);
         }
@@ -318,22 +280,21 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 16px; background: var(--sky); color: #fff;
             border: none; border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700;
+            font-family: var(--font); font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(2, 132, 199, 0.22);
         }
         .btn-print:hover { background: #0369a1; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(2, 132, 199, 0.3); }
 
         .filter-panel {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(2, 132, 199, 0.18);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 16px 18px;
             margin-bottom: 16px;
-            animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .filter-grid {
             display: grid;
@@ -351,7 +312,7 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
         .field input {
             width: 100%;
             padding: 11px 14px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -368,7 +329,7 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
             display: inline-flex; align-items: center; gap: 7px;
             padding: 11px 18px; background: var(--sky); color: #fff;
             border: none; border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700;
+            font-family: var(--font); font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(2, 132, 199, 0.22);
             white-space: nowrap;
@@ -382,17 +343,15 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
             margin-bottom: 18px;
         }
         .stat-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 16px 18px;
             display: flex; align-items: center; gap: 14px;
             position: relative; overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
         }
         .stat-card:nth-child(2) { animation-delay: 60ms; }
         .stat-card:nth-child(3) { animation-delay: 120ms; }
@@ -448,14 +407,13 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
 
         .section-block { margin-bottom: 18px; }
         .table-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
         }
         .table-card.red     { border-color: rgba(111, 16, 34, 0.18); }
         .table-card.emerald { border-color: rgba(5, 150, 105, 0.18); }
@@ -556,10 +514,8 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
         }
 
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
             .header-title h1 { font-size: 14px; }
             .header-title p { font-size: 10.5px; }
-            .header-back { width: 30px; height: 30px; border-radius: 8px; }
             .header-actions { width: 100%; justify-content: flex-start; }
             .btn-print, .btn-excel { padding: 8px 14px; font-size: 12px; }
 
@@ -603,7 +559,6 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
 
         @media print {
             body { background: #fff; }
-            .top-header { position: static; box-shadow: none; border-bottom: 2px solid #000; }
             .header-actions, .no-print { display: none !important; }
             .filter-panel { display: none !important; }
             .stat-card, .table-card { box-shadow: none; border: 1px solid #ccc; animation: none; break-inside: avoid; }
@@ -633,12 +588,12 @@ $checks_given['TOPLAM'] = $checks_given['TOPLAM'] ?: 0;
                     <span class="kod"><?php echo htmlspecialchars((string) date('d.m.Y', (int) $tarih_obj)); ?></span>
                 </p>
             </div>
-            <div class="header-actions no-print">
-                <a href="javascript:void(0);" onclick="exportExcel()" class="btn-excel" title="Excel Indir">
+            <div class="header-actions no-print header-eylem">
+                <a href="javascript:void(0);" onclick="exportExcel()" class="btn-excel btn btn-ikincil" title="Excel Indir">
                     <i class="fa-solid fa-file-excel"></i> Excel
                 </a>
-                <button onclick="window.print()" class="btn-print" type="button" title="Yazdir">
-                    <i class="fa-solid fa-print"></i> Yazdir
+                <button onclick="window.print()" class="btn-print btn btn-ikincil" type="button" title="Yazdır">
+                    <i class="fa-solid fa-print"></i> Yazdır
                 </button>
             </div>
         </div>

@@ -245,13 +245,15 @@ akis('cari finans bilgisi: bakiye/ekstre yetkisi olmayan kullanıcı cari kartı
 
 akis('yedek ekranı: sayfa yenilenip form yeniden gönderilince işlem tekrarlanmaz', function () use ($y): void {
     $klasor = dirname(__DIR__, 2) . '/database/yedekler';
-    $say = static fn(): int => count(glob($klasor . '/*.lumen.gz') ?: []);
+    // Saklama sınırı (en eski silinir) yüzünden dosya sayısı değil, yeni oluşan dosya adları karşılaştırılır
+    $liste = static fn(): array => array_map('basename', glob($klasor . '/*.lumen.gz') ?: []);
     $alan = ['csrf_token' => $y->belirtec('ayar/sistem_yedek.php'), 'islem' => 'yedek_al', 'islem_id' => bin2hex(random_bytes(8))];
-    $once = $say();
+    $once = $liste();
     $y->istek('ayar/sistem_yedek.php', $alan);
-    bekle($say() === $once + 1, 'yedek alınmadı');
+    $bir = $liste();
+    bekle(count(array_diff($bir, $once)) === 1, 'yedek alınmadı');
     $r = $y->istek('ayar/sistem_yedek.php', $alan);   // aynı form ikinci kez (F5)
-    bekle($say() === $once + 1 && str_contains($r['govde'], 'zaten yapıldı'), 'yenilenen form ikinci yedeği aldı');
+    bekle(array_diff($liste(), $bir) === [] && str_contains($r['govde'], 'zaten yapıldı'), 'yenilenen form ikinci yedeği aldı');
 });
 
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));

@@ -317,24 +317,11 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pazarlamaci Performans – <?php echo htmlspecialchars($cariPrefix, ENT_QUOTES, 'UTF-8'); ?> – <?php echo $year; ?></title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -342,42 +329,12 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
         }
         * { box-sizing: border-box; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
             margin: 0;
         }
-
-        /* HEADER */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            min-height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(5, 150, 105, 0.18);
-            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.04);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            min-height: 64px;
-            display: flex; align-items: center; gap: 14px;
-            padding: 10px 24px;
-            flex-wrap: wrap;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: var(--emerald-soft); color: var(--emerald); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            font-size: 18px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 10px;
-        }
-        .header-title i { color: var(--emerald); font-size: 16px; }
         .header-sub {
             font-size: 11.5px; color: var(--text-3);
             margin-left: 4px; font-weight: 500;
@@ -389,13 +346,15 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             font-family: 'Courier New', monospace;
             font-size: 11px; font-weight: 700;
         }
-        .header-spacer { flex: 1; }
         .header-form { display: flex; gap: 6px; align-items: center; }
+        .header-eylem .header-form { flex: 1; min-width: 0; }
+        .header-eylem .header-form input { flex: 1; min-width: 0; }
+        .header-eylem .icon-btn { width: var(--dokun); height: var(--dokun); flex-shrink: 0; }
         .header-form input {
             padding: 8px 12px 8px 34px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 16px;
             background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%239ca3af'><path d='M12 9l3-3m-6 6a4 4 0 110-8 4 4 0 010 8z'/></svg>") no-repeat 10px center;
             background-size: 14px;
@@ -414,7 +373,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             border-radius: 10px;
             background: var(--emerald);
             color: #fff;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
@@ -453,13 +412,12 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
         .stat-row-7 .stat-value { white-space: nowrap; font-size: clamp(15px, 1.6vw, 20px); }
         .stat-card {
             position: relative;
-            background: #fff;
+            background: var(--card);
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 16px 18px 16px 22px;
             overflow: hidden;
             transition: all 0.25s ease;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
             display: flex;
             align-items: center;
             gap: 14px;
@@ -529,13 +487,12 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
 
         /* GLASS CARD */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(5, 150, 105, 0.14);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             margin-bottom: 18px;
             overflow: hidden;
         }
@@ -625,7 +582,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             display: inline-flex; align-items: center; gap: 5px;
             padding: 6px 10px; border-radius: 8px;
             border: none; cursor: pointer;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 11px; font-weight: 600;
             transition: all 0.2s ease;
             text-decoration: none;
@@ -644,7 +601,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             padding: 8px 12px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 16px;
             text-align: right;
             outline: none;
@@ -722,7 +679,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             border: none;
             background: var(--emerald);
             color: #fff;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
@@ -741,11 +698,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             .split-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 767px) {
-            .top-header { min-height: 52px; }
-            .header-inner { padding: 8px 14px; gap: 10px; }
-            .header-title { font-size: 14px; }
             .header-sub { display: none; }
-            .header-back { width: 32px; height: 32px; border-radius: 8px; }
             .header-form input { width: 160px; }
 
             main.page { padding: 14px 12px 40px; }
@@ -769,7 +722,6 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             .no-print { display: none !important; }
             body { background: white !important; }
             .glass-card, .stat-card { box-shadow: none !important; animation: none !important; }
-            .top-header { position: static; }
         }
     </style>
 </head>
@@ -782,8 +734,8 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             <span class="material-icons">arrow_back</span>
         </a>
         <div class="header-divider"></div>
-        <div>
-            <div class="header-title">
+        <div class="header-title header-title-detay">
+            <div class="header-ana-baslik">
                 <i class="fa-solid fa-chart-line"></i>
                 Pazarlamaci Performans – <?php echo $year; ?>
             </div>
@@ -792,21 +744,22 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
                 kodlu musteriler – devir haric
             </div>
         </div>
-        <div class="header-spacer"></div>
+        <div class="header-eylem">
         <form method="get" class="header-form">
             <input type="text" name="prefix"
                 value="<?php echo htmlspecialchars($cariPrefix, ENT_QUOTES, 'UTF-8'); ?>"
                 placeholder="Cari kod on eki">
-            <button type="submit">Uygula</button>
+            <button type="submit" class="btn btn-birincil">Uygula</button>
         </form>
-        <button type="button" onclick="window.print()" class="icon-btn" title="Yazdir">
+        <button type="button" onclick="window.print()" class="icon-btn btn btn-ikincil btn-ikon" title="Yazdır">
             <span class="material-icons">print</span>
         </button>
         <?php $excelQuery = http_build_query(['prefix' => $cariPrefix]); ?>
         <a href="rapor_pazarlamaci_performans_excel.php?<?php echo htmlspecialchars($excelQuery, ENT_QUOTES, 'UTF-8'); ?>"
-           class="icon-btn excel" title="Excel">
+           class="icon-btn excel btn btn-ikincil btn-ikon" title="Excel">
             <span class="material-icons">download</span>
         </a>
+        </div>
     </div>
 </header>
 
@@ -1042,7 +995,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
                         <tr>
                             <th>Kod</th>
                             <th>Musteri</th>
-                            <th>Sehir</th>
+                            <th>Şehir</th>
                             <?php if ($canSeeBalance): ?>
                             <th class="col-right">Bakiye</th>
                             <th>Durum</th>
