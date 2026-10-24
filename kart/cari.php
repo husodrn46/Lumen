@@ -41,18 +41,44 @@ if (!$c) {
 $belgeYetki = (int) m_p_yetki($terminalkullanici, 'M31') === 1;
 $finansYetki = (int) m_p_yetki($terminalkullanici, 'M32') === 1;
 $turler = lumen_belge_turleri();
-$belgeler = $dbh->prepare('SELECT TOP 50 ID, TUR, YON, NO, TARIH, NET, DOVIZ_NET, PARA_BIRIMI, DURUM FROM dbo.LM_BELGE WHERE CARI_ID = :id ORDER BY TARIH DESC, ID DESC');
-$belgeler->execute([':id' => $id]);
-$belgeler = $belgeler->fetchAll(PDO::FETCH_ASSOC);
-$fisler = $dbh->prepare('SELECT TOP 50 F.ID, F.TUR, F.NO, F.TARIH, F.TUTAR, F.DURUM, H.AD AS HESAP FROM dbo.LM_FINANS_FIS F
-                         JOIN dbo.LM_FINANS_HESAP H ON H.ID = F.HESAP_ID WHERE F.CARI_ID = :id ORDER BY F.TARIH DESC, F.ID DESC');
-$fisler->execute([':id' => $id]);
-$fisler = $fisler->fetchAll(PDO::FETCH_ASSOC);
-$cekler = $dbh->prepare('SELECT TOP 50 ID, TUR, PORTFOY_NO, SERI_NO, VADE, TUTAR, DURUM, CASE WHEN ALINAN_CARI_ID = :a THEN 1 ELSE 0 END AS ALINAN
-                         FROM dbo.LM_CEK WHERE ALINAN_CARI_ID = :b OR VERILEN_CARI_ID = :c ORDER BY VADE DESC');
-$cekler->execute([':a' => $id, ':b' => $id, ':c' => $id]);
-$cekler = $cekler->fetchAll(PDO::FETCH_ASSOC);
 $sekme = in_array($_GET['sekme'] ?? '', ['belge', 'fis', 'cek'], true) ? (string) $_GET['sekme'] : 'belge';
+$sayfaGirdisi = $_GET['sayfa'] ?? '1';
+$sayfa = is_string($sayfaGirdisi) ? filter_var($sayfaGirdisi, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) : false;
+$sayfa = $sayfa === false ? 1 : $sayfa;
+$sayfaBoyutu = 50;
+$sayac = $dbh->prepare('SELECT
+    (SELECT COUNT(*) FROM dbo.LM_BELGE WHERE CARI_ID = :belge) AS BELGE,
+    (SELECT COUNT(*) FROM dbo.LM_FINANS_FIS WHERE CARI_ID = :fis) AS FIS,
+    (SELECT COUNT(*) FROM dbo.LM_CEK WHERE ALINAN_CARI_ID = :cek_alinan OR VERILEN_CARI_ID = :cek_verilen) AS CEK');
+$sayac->execute([':belge' => $id, ':fis' => $id, ':cek_alinan' => $id, ':cek_verilen' => $id]);
+$toplamlar = $sayac->fetch(PDO::FETCH_ASSOC);
+$adetler = ['belge' => (int) $toplamlar['BELGE'], 'fis' => (int) $toplamlar['FIS'], 'cek' => (int) $toplamlar['CEK']];
+$sayfaSayisi = max(1, (int) ceil($adetler[$sekme] / $sayfaBoyutu));
+$sayfa = min($sayfa, $sayfaSayisi);
+$ofset = ($sayfa - 1) * $sayfaBoyutu;
+$sayfaBaglantisi = static fn(int $hedef): string => '?' . http_build_query(['id' => $id, 'sekme' => $sekme, 'sayfa' => $hedef]);
+$belgeler = $fisler = $cekler = [];
+if ($sekme === 'belge') {
+    $st = $dbh->prepare("SELECT ID, TUR, YON, NO, TARIH, NET, DOVIZ_NET, PARA_BIRIMI, DURUM
+                         FROM dbo.LM_BELGE WHERE CARI_ID = :id ORDER BY TARIH DESC, ID DESC
+                         OFFSET {$ofset} ROWS FETCH NEXT {$sayfaBoyutu} ROWS ONLY");
+    $st->execute([':id' => $id]);
+    $belgeler = $st->fetchAll(PDO::FETCH_ASSOC);
+} elseif ($sekme === 'fis') {
+    $st = $dbh->prepare("SELECT F.ID, F.TUR, F.NO, F.TARIH, F.TUTAR, F.DURUM, H.AD AS HESAP
+                         FROM dbo.LM_FINANS_FIS F JOIN dbo.LM_FINANS_HESAP H ON H.ID = F.HESAP_ID
+                         WHERE F.CARI_ID = :id ORDER BY F.TARIH DESC, F.ID DESC
+                         OFFSET {$ofset} ROWS FETCH NEXT {$sayfaBoyutu} ROWS ONLY");
+    $st->execute([':id' => $id]);
+    $fisler = $st->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    $st = $dbh->prepare("SELECT ID, TUR, PORTFOY_NO, SERI_NO, VADE, TUTAR, DURUM,
+                                CASE WHEN ALINAN_CARI_ID = :a THEN 1 ELSE 0 END AS ALINAN
+                         FROM dbo.LM_CEK WHERE ALINAN_CARI_ID = :b OR VERILEN_CARI_ID = :c
+                         ORDER BY VADE DESC, ID DESC OFFSET {$ofset} ROWS FETCH NEXT {$sayfaBoyutu} ROWS ONLY");
+    $st->execute([':a' => $id, ':b' => $id, ':c' => $id]);
+    $cekler = $st->fetchAll(PDO::FETCH_ASSOC);
+}
 $cekDurum = [1 => 'Portföyde', 2 => 'Ciro edildi / verildi', 3 => 'Tahsil edildi', 4 => 'Bankada', 5 => 'Karşılıksız', 6 => 'İade', 7 => 'Ödendi'];
 $tarih = static fn(?string $t): string => $t ? date('d.m.Y', (int) strtotime($t)) : '';
 $bakiye = (float) $c['BAKIYE'];
@@ -68,6 +94,8 @@ belge_sayfa_basla($c['UNVAN'], 'fa-address-card', '../cari/lg_bakiye.php?q=' . r
     .sekmeler { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--border); margin-bottom: 0; }
     .sekmeler a { padding: 10px 14px; font-weight: 600; font-size: 13.5px; color: var(--text-2); text-decoration: none; border-bottom: 2.5px solid transparent; margin-bottom: -1px; white-space: nowrap; }
     .sekmeler a.aktif { color: var(--red); border-bottom-color: var(--red); }
+    .sayfalama { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--border); }
+    .sayfalama .dugmeler { display: flex; gap: 8px; }
     .bilgi { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 18px; font-size: 13px; }
     .bilgi .soluk { display: block; }
 </style>
@@ -106,9 +134,9 @@ belge_sayfa_basla($c['UNVAN'], 'fa-address-card', '../cari/lg_bakiye.php?q=' . r
 </div>
 <div class="kart">
     <nav class="sekmeler" style="padding:0 10px">
-        <a href="?id=<?= $id ?>&sekme=belge" class="<?= $sekme === 'belge' ? 'aktif' : '' ?>">Belgeler (<?= count($belgeler) ?>)</a>
-        <a href="?id=<?= $id ?>&sekme=fis" class="<?= $sekme === 'fis' ? 'aktif' : '' ?>">Tahsilat / ödeme (<?= count($fisler) ?>)</a>
-        <a href="?id=<?= $id ?>&sekme=cek" class="<?= $sekme === 'cek' ? 'aktif' : '' ?>">Çek / senet (<?= count($cekler) ?>)</a>
+        <a href="?id=<?= $id ?>&sekme=belge" class="<?= $sekme === 'belge' ? 'aktif' : '' ?>">Belgeler (<?= number_format($adetler['belge'], 0, ',', '.') ?>)</a>
+        <a href="?id=<?= $id ?>&sekme=fis" class="<?= $sekme === 'fis' ? 'aktif' : '' ?>">Tahsilat / ödeme (<?= number_format($adetler['fis'], 0, ',', '.') ?>)</a>
+        <a href="?id=<?= $id ?>&sekme=cek" class="<?= $sekme === 'cek' ? 'aktif' : '' ?>">Çek / senet (<?= number_format($adetler['cek'], 0, ',', '.') ?>)</a>
     </nav>
     <div class="tablo-sar">
     <?php if ($sekme === 'belge'): ?>
@@ -145,5 +173,14 @@ belge_sayfa_basla($c['UNVAN'], 'fa-address-card', '../cari/lg_bakiye.php?q=' . r
         </tbody></table>
     <?php endif; ?>
     </div>
+    <nav class="sayfalama" aria-label="Cari geçmişi sayfaları">
+        <span class="soluk"><?= number_format($adetler[$sekme], 0, ',', '.') ?> kayıt · Sayfa <?= $sayfa ?> / <?= $sayfaSayisi ?></span>
+        <?php if ($sayfaSayisi > 1): ?>
+            <div class="dugmeler">
+                <?php if ($sayfa > 1): ?><a class="btn btn-ikincil" href="<?= bh($sayfaBaglantisi($sayfa - 1)) ?>">Önceki</a><?php endif; ?>
+                <?php if ($sayfa < $sayfaSayisi): ?><a class="btn btn-ikincil" href="<?= bh($sayfaBaglantisi($sayfa + 1)) ?>">Sonraki</a><?php endif; ?>
+            </div>
+        <?php endif; ?>
+    </nav>
 </div>
 <?php belge_sayfa_bitir();

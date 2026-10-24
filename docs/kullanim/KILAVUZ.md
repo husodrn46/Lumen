@@ -574,6 +574,8 @@ Kartta şunlar vardır:
 - "Toplam borç", "Toplam alacak" ve "Bakiye". Bakiyenin altında "Cari bize borçlu", "Biz cariye borçluyuz" ya da "Kapalı" yazar.
 - Hızlı düğmeler: "Ekstre", "Fatura kes", "Tahsilat", "Ödeme". Her biri yetkiniz varsa görünür.
 - Sekmeler: "Belgeler", "Tahsilat / ödeme", "Çek / senet".
+- Sekme başlıkları toplam kayıt sayısını gösterir. Her sekmede geçmiş 50'şer açılır;
+  "Önceki" ve "Sonraki" ile eski kayıtlara ulaşabilirsiniz.
 
 ---
 
