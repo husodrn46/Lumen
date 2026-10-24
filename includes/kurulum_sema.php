@@ -201,6 +201,7 @@ if (!function_exists('lumen_sema_eksikleri')) {
     {
         $beklenen = [
             'M_P_YETKI' => null, 'M_GIRIS_LOG' => null, 'M_REMEMBER_TOKEN' => 'PREV_HASH', 'M_API_TOKEN' => null,
+            'M_API_IDEMPOTENCY' => null,
             'M_BILDIRIM' => null, 'M_USER_SETTINGS' => null, 'M_FIS_LOG' => null, 'M_CEK_EK' => 'FIRMADONEM',
             'M_OTURUM_KAPAT' => null, 'M_SATIR_DEGISIKLIK_LOG' => null,
         ];
