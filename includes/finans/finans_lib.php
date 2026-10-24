@@ -47,7 +47,7 @@ if (!function_exists('lumen_finans_fis_kaydet')) {
         $t = $turler[$tur];
         $tutar = round(lumen_tutar_coz($v['tutar'] ?? 0), 2);
         if ($tutar <= 0) {
-            return ['ok' => false, 'mesaj' => 'Tutar sıfırdan büyük olmalı.'];
+            return ['ok' => false, 'mesaj' => 'Geçerli ve sıfırdan büyük bir tutar girin.'];
         }
         $hesap = (int) ($v['hesap_id'] ?? 0);
         $karsi = (int) ($v['karsi_hesap_id'] ?? 0);
