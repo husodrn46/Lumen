@@ -4,6 +4,10 @@ Lumen'de değişiklikler doğrudan `main` dalına gönderilmez. Görevin türün
 `duzeltme/`, `guvenlik/`, `gelistirme/`, `tasarim/`, `test/` veya `ci/` önekli kısa bir dal
 açın; pull request kontrolleri geçtikten sonra squash merge kullanın.
 
+Katkı gönderirken [davranış kurallarına](CODE_OF_CONDUCT.md) uyun. Güvenlik
+açıklarını herkese açık issue yerine [güvenlik politikasındaki](SECURITY.md)
+özel kanaldan bildirin.
+
 ## Yerel kontroller
 
 ```bash
