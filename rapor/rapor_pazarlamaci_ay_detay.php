@@ -78,7 +78,8 @@ try {
     ], $ozelCariFiltresi['params']));
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
-    echo '<p class="text-red-600 text-center p-4">Sorgu hatasi: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</p>';
+    $mesaj = app_public_error_message($e, 'rapor/rapor_pazarlamaci_ay_detay', 'Rapor hazırlanamadı.');
+    echo '<p class="text-red-600 text-center p-4">' . htmlspecialchars($mesaj, ENT_QUOTES, 'UTF-8') . '</p>';
     exit;
 }
 

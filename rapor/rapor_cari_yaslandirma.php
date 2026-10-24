@@ -348,18 +348,13 @@ ORDER BY PRIORITY_SCORE DESC, TOTAL DESC
             $rows[] = $r;
         }
     } catch (Throwable $e) {
-        if (function_exists('app_log_exception')) {
-            $ref = app_log_exception($e, 'rapor/rapor_cari_yaslandirma.php', [
-                'q' => mb_substr($rawQ, 0, 120),
-                'asof' => $asOf,
-                'limit' => $limit,
-                'min_total' => $minTotal,
-                'priority_filter' => $priorityFilter,
-            ]);
-            $pageError = "Beklenmeyen bir hata olustu. Ref: " . htmlspecialchars((string) $ref, ENT_QUOTES, 'UTF-8');
-        } else {
-            $pageError = "Beklenmeyen bir hata olustu: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
-        }
+        $pageError = htmlspecialchars(app_public_error_message($e, 'rapor/rapor_cari_yaslandirma.php', 'Rapor hazırlanamadı.', [
+            'q' => mb_substr($rawQ, 0, 120),
+            'asof' => $asOf,
+            'limit' => $limit,
+            'min_total' => $minTotal,
+            'priority_filter' => $priorityFilter,
+        ]), ENT_QUOTES, 'UTF-8');
     }
 }
 

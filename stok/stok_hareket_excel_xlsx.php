@@ -119,7 +119,9 @@ try {
     $iskontolar = $iskontolarSorgu->fetchAll(PDO::FETCH_COLUMN);
 
 } catch (PDOException $e) {
-    die("Veritabanı hatası: " . $e->getMessage());
+    $mesaj = app_public_error_message($e, 'stok/stok_hareket_excel_xlsx', 'Excel dosyası hazırlanamadı.');
+    lumen_hata_sayfasi('Dışa aktarma hatası', $mesaj, 500);
+    exit;
 }
 
 // Excel oluştur (PhpSpreadsheet)

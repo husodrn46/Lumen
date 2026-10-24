@@ -76,6 +76,29 @@ for dosya in stok/lg_stok_ekle.php stok/lg_stok_duzenle.php stok/lg_stok_bul.php
     "${dosya} sipariş düzenleme yetkisini doğrulamıyor."
 done
 
+# Kullanıcı yanıtına ham istisna ayrıntısı döndürülmemelidir.
+zorunlu 'function app_public_error_message(' includes/app_observability.php \
+  "Güvenli hata referansı yardımcısı eksik."
+for dosya in doviz/fis_excel_xlsx.php stok/stok_hareket_excel_xlsx.php \
+             stok/stok_hareket_pdf.php siparis/son_siparis_yukle.php \
+             rapor/rapor_pazarlamaci_ay_detay.php rapor/rapor_finans_kartlar.php \
+             rapor/api/kasa_hareket.php doviz/dizayn.php \
+             ayar/ozel_cari_kisitlari.php stok/uretim_miktar_onar.php kurulum.php; do
+  zorunlu 'app_public_error_message($e' "$dosya" \
+    "${dosya} istemci hatasını güvenli referans koduyla döndürmüyor."
+done
+yasak "isset(\$_GET['debug'])" rapor/api/kasa_hareket.php \
+  "Kasa hareketi API'si adres parametresiyle ham hata ayrıntısı açabiliyor."
+zorunlu "app_public_error_message(\$e, 'veritabani/baglanti'" ayr.php \
+  "Ana veritabanı bağlantı hatası güvenli referans kodu kullanmıyor."
+
+# CSP'nin kırılmadan uygulanabilen temel sınırları tüm web sunucularında aynıdır.
+for dosya in .htaccess web.config demo/docker/nginx.conf; do
+  for direktif in "object-src 'none'" "base-uri 'self'" "frame-ancestors 'self'" "form-action 'self'"; do
+    zorunlu "$direktif" "$dosya" "${dosya} CSP ${direktif} direktifini içermiyor."
+  done
+done
+
 # SQL Server sertifika kimliği doğrulaması açıkça kapatılmadıkça etkin kalmalıdır.
 zorunlu "\$trust === '1' ? '1' : '0'" ayr.php \
   "SQL Server TrustServerCertificate güvenli varsayılanı kaybolmuş."
@@ -85,8 +108,8 @@ yasak 'TrustServerCertificate=1' scripts/logo_aktar.php \
   "LOGO aktarım aracı SQL Server sertifika doğrulamasını koşulsuz kapatıyor."
 
 # Demo ters vekili eski sürüme veya değişken bir etikete geri dönmemelidir.
-zorunlu 'image: nginx:stable-alpine@sha256:' demo/docker-compose.yml \
-  "Demo nginx imajı güncel stable-alpine digest'ine sabitlenmemiş."
+zorunlu 'image: nginx:alpine@sha256:' demo/docker-compose.yml \
+  "Demo nginx imajı güncel alpine digest'ine sabitlenmemiş."
 
 # Temiz kurulumda brute-force kontrollerinin ihtiyaç duyduğu şema bulunmalı.
 zorunlu "CREATE TABLE dbo.M_GIRIS_LOG" sql/m_giris_log.sql \

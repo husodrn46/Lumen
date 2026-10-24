@@ -81,6 +81,7 @@ if (!function_exists('kurulum_sema_uygula')) {
                 } catch (Throwable $e) {
                     $kalan[] = $yol;
                     $hatalar[basename($yol)] = $e->getMessage();
+                    error_log('kurulum_sema ' . basename($yol) . ': ' . $e->getMessage());
                 }
             }
             $ilerledi = count($kalan) < count($bekleyen);

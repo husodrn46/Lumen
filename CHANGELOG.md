@@ -1,5 +1,33 @@
 # Değişiklik Günlüğü
 
+## [1.3.1] — 2026-10-24 (GÜVENLİK VE BAKIM)
+
+### 🔒 Güvenlik
+
+- Yetki denetiminin dahili HTTP isteği artık istek sahibinin `Host` başlığına güvenmez;
+  yalnızca yapılandırılmış loopback hedefe gider ve TLS sertifikasını doğrular.
+- Özel cari kısıtı döviz sipariş listesi/yazdırma/Excel ve siparişe ürün
+  ekleme-düzenleme-yardımcı uçlarında da uygulanır. Doğrudan kimlik yazarak gizli
+  siparişe erişim regresyon testleriyle engellenir.
+- SQL Server sertifika kimliği doğrulaması güvenli varsayılandır. Kendinden imzalı
+  yerel sunucu için `AKL_DB_TRUST_CERT=1` bilinçli olarak seçilmelidir.
+- Veritabanı ve uygulama istisnaları kullanıcıya ham sorgu, dosya yolu ya da hata
+  ayrıntısı döndürmez; ayrıntı sunucu günlüğüne referans koduyla yazılır.
+- CSP'ye `object-src`, `base-uri`, `frame-ancestors` ve `form-action` sınırları eklendi.
+  Satır içi kodu kaldırma planı `docs/guvenlik/CSP_GECIS.md` belgesindedir.
+- Demo nginx imajı sabit digest kullanır; Trivy imaj ve Gitleaks sır taramaları ile
+  Composer, GitHub Actions ve Docker için Dependabot güncellemeleri eklendi.
+
+### 🎨 Arayüz ve bakım
+
+- Ekranlar ortak bordo tasarım diline ve daha tutarlı mobil yerleşime uyarlandı.
+- Pull request şablonu ve katkı rehberi; dal, test, güvenlik ve sürüm akışını belgeledi.
+
+**Yükseltme (v1.3.0 → v1.3.1):** dosyaları güncelleyip `composer install` çalıştırın.
+Bu sürümde şema değişikliği yoktur. Yetki denetimi farklı bir yerel adrese gidiyorsa
+`LUMEN_DENETIM_BASE_URL` değerini açıkça verin. Kendinden imzalı SQL Server sertifikası
+kullanan kurulumlar, riski kabul ederek `AKL_DB_TRUST_CERT=1` ayarlamalıdır.
+
 ## [1.3.0] — 2026-10-22 (KARARLI — Bağımsız Lumen)
 
 **Bağımsız Lumen kararlı sürümü.** Lumen LOGO Tiger olmadan, kendi veritabanıyla ön muhasebe

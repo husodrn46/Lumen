@@ -55,7 +55,8 @@ if (isset($_GET['ajax'])) {
                 echo json_encode(['ok' => false, 'message' => 'Ürün bulunamadı.']);
             }
         } catch (Exception $e) {
-            echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
+            $mesaj = app_public_error_message($e, 'stok/uretim_giris.item', 'Ürün aranamadı.');
+            echo json_encode(['ok' => false, 'message' => $mesaj], JSON_UNESCAPED_UNICODE);
         }
         exit;
     }
@@ -73,7 +74,8 @@ if (isset($_GET['ajax'])) {
 
             echo json_encode(['ok' => true, 'items' => $payload]);
         } catch (Exception $e) {
-            echo json_encode(['ok' => false, 'message' => $e->getMessage(), 'items' => []]);
+            $mesaj = app_public_error_message($e, 'stok/uretim_giris.search', 'Ürün araması yapılamadı.');
+            echo json_encode(['ok' => false, 'message' => $mesaj, 'items' => []], JSON_UNESCAPED_UNICODE);
         }
 
         exit;
@@ -511,7 +513,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni'])) {
         if ($dbh->inTransaction()) {
             $dbh->rollBack();
         }
-        $msg = "Yeni fiş oluşturulamadı: " . $e->getMessage();
+        $msg = app_public_error_message($e, 'stok/uretim_giris.fis_olustur', 'Yeni fiş oluşturulamadı.');
     }
 }
 $fiche = null;
@@ -739,7 +741,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_line']) && isset(
             'new_line_id' => $newLineId,
             'template_line_id' => $templateLineId,
         ], $dbh);
-        $msg = "Satır eklenemedi: " . $e->getMessage();
+        $msg = 'Satır eklenemedi. Ayrıntı sunucu günlüğüne kaydedildi.';
     }
 }
 // --- SATIR SİL ---
@@ -794,7 +796,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sil']) && isset($_POS
         if ($dbh->inTransaction()) {
             $dbh->rollBack();
         }
-        $msg = "Satir silinemedi: " . $e->getMessage();
+        $msg = app_public_error_message($e, 'stok/uretim_giris.satir_sil', 'Satır silinemedi.');
     }
 }
 // --- HIZLI EKLE (+1 Koli) ---
@@ -914,7 +916,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hizli_ekle']) && isse
         if ($dbh->inTransaction()) {
             $dbh->rollBack();
         }
-        $msg = "Hızlı ekleme başarısız: " . $e->getMessage();
+        $msg = app_public_error_message($e, 'stok/uretim_giris.hizli_ekle', 'Hızlı ekleme başarısız.');
     }
 }
 

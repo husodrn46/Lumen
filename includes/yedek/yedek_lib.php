@@ -22,6 +22,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/../veri/kaynak.php';
+require_once __DIR__ . '/../app_observability.php';
 
 const LUMEN_YEDEK_UZANTI = '.lumen.gz';
 const LUMEN_YEDEK_SATIR_SINIRI = 64 * 1024 * 1024;
@@ -204,8 +205,7 @@ if (!function_exists('lumen_yedek_al')) {
         } catch (Throwable $e) {
             @gzclose($gz);
             @unlink($gecici);
-            error_log('lumen_yedek_al: ' . $e->getMessage());
-            return ['ok' => false, 'mesaj' => 'Yedek alınamadı: ' . $e->getMessage()];
+            return ['ok' => false, 'mesaj' => app_public_error_message($e, 'yedek/yedek_al', 'Yedek alınamadı.')];
         }
         lumen_yedek_temizle($klasor);
         return ['ok' => true, 'mesaj' => "Yedek alındı: {$tablolar} tablo, {$satir} kayıt.", 'ad' => $ad,
@@ -379,8 +379,7 @@ if (!function_exists('lumen_yedek_geri_yukle')) {
                 $dbh->rollBack();
             }
             gzclose($gz);
-            error_log('lumen_yedek_geri_yukle: ' . $e->getMessage());
-            return ['ok' => false, 'mesaj' => 'Geri yükleme yapılamadı, hiçbir şey değişmedi: ' . $e->getMessage()];
+            return ['ok' => false, 'mesaj' => app_public_error_message($e, 'yedek/geri_yukle', 'Geri yükleme yapılamadı; hiçbir şey değişmedi.')];
         }
         gzclose($gz);
         // Yedekle birlikte eski "beni hatırla"/API belirteçleri ve kapatılmış oturumlar da geri

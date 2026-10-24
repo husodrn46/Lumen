@@ -263,11 +263,12 @@ try {
     exit;
 
 } catch (Exception $e) {
-    logErrorQuick("Kuyruk ekleme hatası: " . $e->getMessage());
+    $mesaj = app_public_error_message($e, 'yazdir/hizli_yazdir', 'Yazdırma kuyruğuna eklenemedi.');
     if ($ajax !== 0) {
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => false, 'error' => 'DB insert failed']);
+        echo json_encode(['ok' => false, 'error' => 'queue_failed', 'message' => $mesaj], JSON_UNESCAPED_UNICODE);
         exit;
     }
-    die('Yazdırma kuyruğuna eklenemedi: ' . $e->getMessage());
+    lumen_hata_sayfasi('Yazdırma hatası', $mesaj, 500);
+    exit;
 }

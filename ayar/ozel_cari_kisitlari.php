@@ -59,7 +59,7 @@ $initError = null;
 try {
     m_p_ozel_cari_tablosu_olustur($dbh);
 } catch (Throwable $e) {
-    $initError = $e->getMessage();
+    $initError = app_public_error_message($e, 'ayar/ozel_cari_kisitlari.init', 'Özel cari tablosu hazırlanamadı.');
 }
 
 $kisitKodlari = m_p_ozel_cari_kisit_yetki_kodlari();
