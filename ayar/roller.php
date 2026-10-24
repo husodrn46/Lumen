@@ -107,14 +107,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $ozelRoller = rol_ozel_yukle();
 $aktifSekme = 'roller';
 $formAcik = ($hataMsj !== '');
-$yetkiTuruAd = [1 => 'Personel', 2 => 'Müşteri'];
+$yetkiTuruAd = array_diff_key(lumen_kullanici_turleri(), [0 => true]);
 $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 
 $bildirim = ''; $bildirimTip = 'ok';
 if ($hataMsj !== '') {
     $bildirim = $hataMsj; $bildirimTip = 'error';
 } elseif (isset($_GET['ok'])) {
-    $bildirim = ['eklendi' => 'Rol eklendi.', 'guncellendi' => 'Rol güncellendi.', 'silindi' => 'Rol silindi.'][$_GET['ok']] ?? '';
+    $bildirim = ['eklendi' => 'Rol eklendi.', 'guncellendi' => 'Rol güncellendi.', 'silindi' => 'Rol silindi.'][(string) (is_string($_GET['ok']) ? $_GET['ok'] : '')] ?? '';
 } elseif (isset($_GET['hata'])) {
     $bildirim = 'İşlem tamamlanamadı.'; $bildirimTip = 'error';
 }
@@ -137,10 +137,9 @@ $builtinRoller = [
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root{ --bg:#f9fafb; --card:#fff; --text-1:#1f2937; --text-2:#6b7280; --text-3:#9ca3af; --border:#e5e7eb;
-               --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; --amber:#b45309; --amber-soft:#fffbeb; }
+
         *{ box-sizing:border-box; margin:0; }
-        body{ font-family:'Avenir Next','Montserrat',sans-serif; letter-spacing:-0.02em; background:var(--bg); color:var(--text-1); font-size:14px; }
+        body{ font-family: var(--font); letter-spacing:-0.02em; background:var(--bg); color:var(--text-1); font-size:14px; }
         main{ max-width:1080px; margin:0 auto; padding:22px 20px 80px; }
         .arac{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
         .arac .baslik{ font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }

@@ -34,6 +34,12 @@ try {
     }
 
     $cariid = $caridata['CLIENTREF'];
+    // Özel cari kısıtı: kısıtlı carinin son sipariş/favori ürünleri listelenmez.
+    if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisid)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Yetkiniz yok']);
+        exit;
+    }
 
     // Bu müşterinin son faturasını bul (INVOICE tablosundan - TRCODE 7,8)
     $stmt_son_fatura = $dbh->prepare("SELECT TOP 1 LOGICALREF FROM " . $firmadonem . "INVOICE
@@ -84,7 +90,7 @@ try {
 
     // Miktarları tam sayıya yuvarla
     foreach ($urunler as &$urun) {
-        $urun['miktar'] = ceil($urun['miktar']);
+        $urun['miktar'] = ceil((float) $urun['miktar']); // pdo_sqlsrv metin döndürür (strict_types)
     }
 
     if (empty($urunler)) {
@@ -94,9 +100,9 @@ try {
     echo json_encode(['success' => true, 'message' => 'Son sipariş yüklendi', 'urunler' => $urunler]);
 
 } catch (PDOException $e) {
-    error_log("Son sipariş yükleme hatası: " . $e->getMessage());
-    die(json_encode(['success' => false, 'message' => 'Veritabanı hatası', 'error' => $e->getMessage()]));
+    $mesaj = app_public_error_message($e, 'siparis/son_siparis_yukle.db', 'Son sipariş yüklenemedi.');
+    die(json_encode(['success' => false, 'message' => $mesaj, 'error' => 'database_error'], JSON_UNESCAPED_UNICODE));
 } catch (Exception $e) {
-    error_log("Son sipariş yükleme genel hatası: " . $e->getMessage());
-    die(json_encode(['success' => false, 'message' => 'Hata oluştu', 'error' => $e->getMessage()]));
+    $mesaj = app_public_error_message($e, 'siparis/son_siparis_yukle', 'Son sipariş yüklenemedi.');
+    die(json_encode(['success' => false, 'message' => $mesaj, 'error' => 'server_error'], JSON_UNESCAPED_UNICODE));
 }

@@ -59,6 +59,10 @@ $currstatFiltre = match ($durum) {
 };
 
 // Detaylı liste (rapor/rapor_cek_hesap.php ile aynı filtreler)
+// Özel cari kısıtı: kısıtlı carilerin çekleri listelenmez (carisiz çekler korunur)
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(TX.CARDREF, 0)', 'ozel_cari');
+$ozelCariSql = $ozelCariFiltresi['sql'] !== '' ? ' AND ' . $ozelCariFiltresi['sql'] : '';
+
 $sql = "
     SELECT
         CAST(LGMAIN.DUEDATE AS DATE) AS DUEDATE,
@@ -78,13 +82,13 @@ $sql = "
         FROM {$firmadonem}CSTRANS T WITH(NOLOCK)
     ) TX ON TX.CSREF = LGMAIN.LOGICALREF AND TX.RN = 1
     LEFT JOIN {$firma}CLCARD CL WITH(NOLOCK) ON CL.LOGICALREF = TX.CARDREF
-    WHERE LGMAIN.CURRSTAT {$currstatFiltre} AND LGMAIN.STATUS IN(0,1) AND LGMAIN.DOC=1
+    WHERE LGMAIN.CURRSTAT {$currstatFiltre} AND LGMAIN.STATUS IN(0,1) AND LGMAIN.DOC=1{$ozelCariSql}
     ORDER BY CAST(LGMAIN.DUEDATE AS DATE) ASC, LGMAIN.OWING, LGMAIN.TRNET
 ";
 
 try {
     $stmt = $dbh->prepare($sql);
-    $stmt->execute();
+    $stmt->execute($ozelCariFiltresi['params']);
     $rows = [];
 
     $todayTs = strtotime(date('Y-m-d')) ?: time();
@@ -125,6 +129,10 @@ $decimals = (int) ($GLOBALS['parakusurat'] ?? 2);
 $fmtMoney = '#,##0' . ($decimals > 0 ? '.' . str_repeat('0', $decimals) : '') . '" ₺"';
 
 // Excel
+// Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
+require_once __DIR__ . '/../includes/xlsx_guvenli.php';
+lumen_xlsx_guvenli_baglayici();
+lumen_bellek_en_az(256);   // çok satırlı listede tablo kütüphanesi 128 MB'ı aşabiliyor
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator('Lumen')

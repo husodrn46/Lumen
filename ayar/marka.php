@@ -43,6 +43,11 @@ function marka_gorsel_kaydet(array $dosya, string $hedefYol, bool $kare): array
     if (!in_array($bilgi[2], [IMAGETYPE_PNG, IMAGETYPE_JPEG, IMAGETYPE_WEBP], true)) {
         return [false, 'Yalnızca PNG, JPG veya WEBP kabul edilir'];
     }
+    // Piksel sınırı: küçük bir dosya 20000×20000 boyut bildirip açılırken bellek
+    // sınırını aşarak sayfayı çökertebiliyordu (sıkıştırma bombası).
+    if ((int) $bilgi[0] * (int) $bilgi[1] > 16_000_000 || (int) $bilgi[0] > 8000 || (int) $bilgi[1] > 8000) {
+        return [false, 'Görsel çözünürlüğü çok yüksek (en fazla 16 megapiksel)'];
+    }
     $img = @imagecreatefromstring($veri);
     if (!$img) {
         return [false, 'Görsel işlenemedi'];
@@ -69,9 +74,13 @@ function marka_gorsel_kaydet(array $dosya, string $hedefYol, bool $kare): array
     if (is_file($hedefYol)) {
         @copy($hedefYol, $hedefYol . '.bak');   // eskiyi yedekle
     }
-    $ok = @imagepng($img, $hedefYol, 9);
+    // Önce geçici dosyaya yazılır, sonra yerine taşınır: yazma yarıda kalırsa
+    // mevcut logo bozulmaz.
+    $gecici = $hedefYol . '.yeni-' . bin2hex(random_bytes(4));
+    $ok = @imagepng($img, $gecici, 9);
     imagedestroy($img);
-    if (!$ok) {
+    if (!$ok || !@rename($gecici, $hedefYol)) {
+        @unlink($gecici);
         return [false, 'Kaydedilemedi — sunucunun klasöre yazma izni olmayabilir'];
     }
     return [true, 'Başarıyla güncellendi'];
@@ -113,9 +122,9 @@ $v = time(); // önizleme cache-bust
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; }
+
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--t1); font-size:14px; }
+        body { font-family: var(--font); background:var(--bg); color:var(--t1); font-size:14px; }
         .top { position:sticky; top:0; z-index:20; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--border); }
         .top-in { max-width:820px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:12px; }
         .top a.geri { width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); text-decoration:none; border:1px solid var(--border); background:#fff; }

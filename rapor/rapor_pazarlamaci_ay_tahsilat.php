@@ -23,7 +23,7 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 }
 
 $month = isset($_POST['month']) ? (int) $_POST['month'] : 0;
-$cariPrefix = isset($_POST['prefix']) ? trim((string) $_POST['prefix']) : 'TMÇN';
+$cariPrefix = isset($_POST['prefix']) ? trim((string) $_POST['prefix']) : (string) ($pazarlamaci_cari_oneki ?? ''); // .env PAZARLAMACI_CARI_ONEKI (eskiden firmaya özgü sabit)
 
 if ($month < 1 || $month > 12) {
     echo '<p class="text-red-600 text-center p-4">Gecersiz ay.</p>';
@@ -37,6 +37,14 @@ $monthNames = [
 ];
 
 $decimals = (int) ($parakusurat ?? 2);
+
+// Rapor yılı: içinde bulunulan yıl (aktif dönem)
+$raporYili = (int) date('Y');
+
+// Özel cari kısıtı: kısıtlı carilerin tahsilatları listelenmez (her sorgu kendi önekini kullanır)
+$ozelCariNakit = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'CL.LOGICALREF', 'ozel_cari_nkt');
+$ozelCariCek = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'CL.LOGICALREF', 'ozel_cari_cek');
+$ozelCariSenet = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'CL.LOGICALREF', 'ozel_cari_snt');
 
 // TRCODE aciklamalari (sadece nakit/havale/POS icin; cek=61, senet=62 ayri tablolarda)
 $trcodeNames = [
@@ -64,14 +72,14 @@ $sqlNakit = "
       AND CF.TRCODE IN (1, 4, 20, 70)
       AND CF.SIGN = 1
       AND MONTH(CF.DATE_) = :month
-      AND YEAR(CF.DATE_) = 2026
+      AND YEAR(CF.DATE_) = {$raporYili}" . ($ozelCariNakit['sql'] !== '' ? ' AND ' . $ozelCariNakit['sql'] : '') . "
       AND CF.CANCELLED = 0
     ORDER BY CF.DATE_ DESC
 ";
 
 try {
     $stmt = $dbh->prepare($sqlNakit);
-    $stmt->execute([':prefix' => $cariPrefix . '%', ':month' => $month]);
+    $stmt->execute(array_merge([':prefix' => $cariPrefix . '%', ':month' => $month], $ozelCariNakit['params']));
     $nakitRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $nakitRows = [];
@@ -94,14 +102,14 @@ $sqlCek = "
       AND CF.TRCODE = 61
       AND CF.SIGN = 1
       AND MONTH(CF.DATE_) = :month
-      AND YEAR(CF.DATE_) = 2026
+      AND YEAR(CF.DATE_) = {$raporYili}" . ($ozelCariCek['sql'] !== '' ? ' AND ' . $ozelCariCek['sql'] : '') . "
       AND CF.CANCELLED = 0
     ORDER BY CF.DATE_ DESC
 ";
 
 try {
     $stmt = $dbh->prepare($sqlCek);
-    $stmt->execute([':prefix' => $cariPrefix . '%', ':month' => $month]);
+    $stmt->execute(array_merge([':prefix' => $cariPrefix . '%', ':month' => $month], $ozelCariCek['params']));
     $cekRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $cekRows = [];
@@ -124,14 +132,14 @@ $sqlSenet = "
       AND CF.TRCODE = 62
       AND CF.SIGN = 1
       AND MONTH(CF.DATE_) = :month
-      AND YEAR(CF.DATE_) = 2026
+      AND YEAR(CF.DATE_) = {$raporYili}" . ($ozelCariSenet['sql'] !== '' ? ' AND ' . $ozelCariSenet['sql'] : '') . "
       AND CF.CANCELLED = 0
     ORDER BY CF.DATE_ DESC
 ";
 
 try {
     $stmt = $dbh->prepare($sqlSenet);
-    $stmt->execute([':prefix' => $cariPrefix . '%', ':month' => $month]);
+    $stmt->execute(array_merge([':prefix' => $cariPrefix . '%', ':month' => $month], $ozelCariSenet['params']));
     $senetRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     $senetRows = [];
@@ -246,7 +254,7 @@ $hasData = !empty($nakitRows) || !empty($cekRows) || !empty($senetRows);
 <div class="tah-wrap">
   <div class="tah-head">
     <div>
-      <span class="title"><?php echo htmlspecialchars($monthNames[$month] ?? '', ENT_QUOTES, 'UTF-8'); ?> 2026</span>
+      <span class="title"><?php echo htmlspecialchars($monthNames[$month] ?? '', ENT_QUOTES, 'UTF-8'); ?> <?php echo $raporYili; ?></span>
       <span class="sub">Tahsilat Detaylari</span>
     </div>
     <span class="total">Toplam: <?php echo number_format($topGenel, $decimals, ',', '.'); ?> &#8378;</span>

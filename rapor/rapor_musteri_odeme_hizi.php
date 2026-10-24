@@ -223,7 +223,7 @@ $startDate = sprintf('%04d-01-01', $year);
 $endDate = sprintf('%04d-01-01', $year + 1);
 $selectedCariId = moh_int_param('cariid');
 $rawQ = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
-$q = $rawQ !== '' ? turkce($rawQ) : '';
+$q = $rawQ !== '' ? lumen_arama_terimi($rawQ) : '';
 $pageError = '';
 
 $hiddenFilter = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'cari_liste_gizli');
@@ -262,8 +262,8 @@ try {
     if ($q !== '') {
         $choiceWhere[] = "
             (
-                 REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(C.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c') COLLATE Turkish_CI_AS LIKE :cq1
-              OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(C.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c') COLLATE Turkish_CI_AS LIKE :cq2
+                 " . lumen_arama_sql('C.DEFINITION_') . " LIKE :cq1
+              OR " . lumen_arama_sql('C.CODE') . " LIKE :cq2
             )
         ";
         $choiceParams[':cq1'] = '%' . $q . '%';
@@ -685,29 +685,13 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Musteri Odeme Hizi</title>
+    <title>Müşteri Ödeme Hızı</title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f9fafb;
-            --surface: #ffffff;
-            --text-1: #1f2937;
-            --text-2: #4b5563;
-            --text-3: #6b7280;
-            --border: #dfe4ea;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -715,38 +699,12 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.9);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(79, 70, 229, 0.18);
-            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.05);
-        }
-        .header-inner {
-            max-width: 1240px; margin: 0 auto;
-            height: 100%; display: flex; align-items: center; gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all .2s ease;
-        }
-        .header-back:hover { background: var(--indigo-soft); color: var(--indigo); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            display: inline-flex; align-items: center; gap: 8px;
-            font-size: 18px; font-weight: 700; color: var(--text-1);
-        }
         .header-title .material-icons { color: var(--indigo); font-size: 20px; }
-        .header-spacer { flex: 1; }
         .header-chip {
             padding: 6px 11px; border-radius: 999px;
             background: var(--indigo-soft); color: var(--indigo);
@@ -755,9 +713,9 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
         }
         main.page { max-width: 1240px; margin: 0 auto; padding: 22px 24px 60px; }
         .filter-card, .panel, .leader-card, .stat-card {
-            background: rgba(255,255,255,.94);
+            background: var(--card);
             border: 1px solid rgba(203,213,225,.92);
-            box-shadow: 0 10px 26px rgba(15,23,42,.055);
+            box-shadow: var(--golge-1);
         }
         .filter-card {
             border-radius: 16px;
@@ -786,7 +744,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             border-radius: 10px;
             background: #fff;
             color: var(--text-1);
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             padding: 0 12px;
             outline: none;
@@ -804,7 +762,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             align-items: center;
             justify-content: center;
             gap: 8px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-weight: 700;
             font-size: 13px;
             cursor: pointer;
@@ -970,7 +928,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             border: 0;
             background: transparent;
             color: var(--indigo);
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-weight: 700;
             cursor: pointer;
             padding: 0;
@@ -1072,12 +1030,13 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             .header-chip { display: none; }
         }
         @media (max-width: 640px) {
-            .top-header { height: 54px; }
-            .header-inner { padding: 0 12px; gap: 10px; }
-            .header-title { font-size: 15px; }
             main.page { padding: 16px 12px 40px; }
             .selected-strip { align-items: flex-start; flex-direction: column; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-primary { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-primary:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
     </style>
 </head>
 <body>
@@ -1085,7 +1044,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
     <div class="header-inner">
         <a class="header-back" href="dashboard.php" title="Geri"><i class="fa-solid fa-arrow-left"></i></a>
         <div class="header-divider"></div>
-        <div class="header-title"><span class="material-icons">speed</span> Musteri Odeme Hizi</div>
+        <div class="header-title"><span class="material-icons">speed</span> Müşteri Ödeme Hızı</div>
         <div class="header-spacer"></div>
         <div class="header-chip"><?php echo (int) $year; ?> performansi</div>
     </div>
@@ -1105,7 +1064,7 @@ $paidRate = $customerStats['sales_total'] > 0 ? ($customerStats['paid_total'] / 
             <div class="field">
                 <label for="cariid">Musteri sec</label>
                 <select class="control" id="cariid" name="cariid">
-                    <option value="0">Musteri seciniz</option>
+                    <option value="0">Müşteri seçiniz</option>
                     <?php foreach ($customerChoices as $choice): ?>
                         <option value="<?php echo (int) $choice['CARIID']; ?>" <?php echo (int) $choice['CARIID'] === $selectedCariId ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars((string) $choice['KODU'] . ' - ' . (string) $choice['UNVANI'], ENT_QUOTES, 'UTF-8'); ?>

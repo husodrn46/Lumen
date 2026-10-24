@@ -13,11 +13,15 @@ require_once __DIR__ . '/doviz_guard.php';
 doviz_require_m21($terminalkullanici);
 
 if (!isset($_GET['id'])) {
-    echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">Please specify an order number.</div>';
+    lumen_hata_sayfasi('Sipariş seçilmedi', 'Yazdırılacak sipariş numarası eksik. Dövizli siparişler listesinden tekrar deneyin.');
     exit;
 }
 
 $stokhareket = (int)$_GET['id'];
+if ($stokhareket <= 0 || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+    lumen_hata_sayfasi('Erişim reddedildi', 'Bu siparişi görüntüleme yetkiniz bulunmuyor.', 403);
+    exit;
+}
 
 // Sipariş bilgilerini çek (döviz dahil)
 $stmtFis = $dbh->prepare("
@@ -30,7 +34,7 @@ $stmtFis->execute([':stokhareket' => $stokhareket]);
 $listfis = $stmtFis->fetch(PDO::FETCH_ASSOC);
 
 if (!$listfis) {
-    echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">Order not found.</div>';
+    lumen_hata_sayfasi('Sipariş bulunamadı', 'Bu numarada bir sipariş yok veya başka döneme ait.', 404);
     exit;
 }
 
@@ -39,7 +43,7 @@ $trcurr = (int)$listfis['TRCURR'];
 $trrate = (float)$listfis['TRRATE'];
 
 if ($trcurr == 0 || $trrate <= 0) {
-    echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">This is not a foreign currency order.</div>';
+    lumen_hata_sayfasi('Dövizli sipariş değil', 'Bu sipariş TL olarak kayıtlı; normal fiş yazdırmayı kullanın.', 422);
     exit;
 }
 
@@ -105,26 +109,12 @@ $autoPrint = isset($_GET['yazdir']);
     <title>Dövizli Sipariş Yazdırma - <?php echo htmlspecialchars((string) $listfis['FICHENO']); ?></title>
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="/tm/css/tailwind.js" onerror="var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
         }
@@ -136,33 +126,6 @@ $autoPrint = isset($_GET['yazdir']);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
-
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(2, 132, 199, 0.18);
-            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.04);
-        }
-        .header-inner {
-            max-width: 1120px; margin: 0 auto;
-            padding: 12px 22px;
-            display: flex; align-items: center; gap: 12px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 34px; height: 34px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--sky); }
-        .header-divider { width: 1px; height: 22px; background: var(--border); }
-        .header-title {
-            font-size: 15px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 7px;
-            flex: 1 1 auto; min-width: 0;
-        }
-        .header-title i { color: var(--sky); font-size: 14px; }
         .header-sub {
             margin-left: 6px;
             font-size: 12px;
@@ -442,13 +405,9 @@ $autoPrint = isset($_GET['yazdir']);
         /* Mobile: iOS 16px fix + spacing */
         @media (max-width: 767px) {
             input, select, textarea { font-size: 16px !important; }
-
-            .header-inner { padding: 10px 14px; gap: 10px; }
-            .header-title { font-size: 13px; }
             .header-sub { display: none; }
             .btn-print { padding: 7px 12px; font-size: 11.5px; min-height: 44px; }
             .btn-ghost { padding: 7px 10px; font-size: 11.5px; min-height: 44px; }
-            .header-back { width: 44px; height: 44px; }
 
             main { padding: 14px 12px 40px; }
 
@@ -538,6 +497,10 @@ $autoPrint = isset($_GET['yazdir']);
             .sign-col .s-lbl { margin-bottom: 22px; font-size: 8px; }
             .footer-note { padding: 8px 14px; font-size: 10px; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-print { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-print:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
     </style>
 </head>
 <body>
@@ -656,6 +619,7 @@ $autoPrint = isset($_GET['yazdir']);
                         CASE WHEN O.AMOUNT<>0 THEN O.VATMATRAH/O.AMOUNT ELSE 0 END AS NETFIYAT,
                         O.TOTAL,
                         O.VATAMNT,
+                        O.DISTDISC,
                         I.CODE AS SKODU,
                         I.NAME AS SADI,
                         U.CODE AS BIRIM
@@ -667,10 +631,10 @@ $autoPrint = isset($_GET['yazdir']);
                     ");
                     $stmtList->execute([':stokhareket' => $stokhareket]);
                     while ($row = $stmtList->fetch(PDO::FETCH_ASSOC)) {
-                        $total_with_vat = (float)$row['TOTAL'] + (float)$row['VATAMNT'];
+                        $total_with_vat = (float)$row['TOTAL'] - (float)$row['DISTDISC'] + (float)$row['VATAMNT'];   // iskontolu tutar + KDV
                         // Döviz fiyatı PRPRICE alanından al (varsa), yoksa TL fiyatı kura böl
-                        $dovizBirimFiyat = ((float)$row['PRPRICE']) > 0 ? (float)$row['PRPRICE'] : ((float)$row['PRICE'] / $dovizfiyat);
-                        $dovizNetFiyat   = ((float)$row['PRPRICE']) > 0 ? (float)$row['PRPRICE'] : ((float)$row['NETFIYAT'] / $dovizfiyat);
+                        $dovizBirimFiyat = (float)$row['PRICE'] / $dovizfiyat; // TL fiyat / kur (PRPRICE kur değişince eskir)
+                        $dovizNetFiyat   = (float)$row['NETFIYAT'] / $dovizfiyat; // net fiyat PRPRICE ile karşılanamaz (iskontolu)
                         $dovizToplam     = $total_with_vat / $dovizfiyat;
                         $iskPct          = ($dovizBirimFiyat > 0) ? (1 - ($dovizNetFiyat / $dovizBirimFiyat)) * 100 : 0;
                         if ($iskPct < 0) { $iskPct = 0; }

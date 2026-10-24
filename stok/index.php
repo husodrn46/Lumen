@@ -58,8 +58,8 @@ if ($endDate !== '') {
     $params[] = $endDate . ' 00:00:00';
 }
 if ($fichenoFilter !== '') {
-    $conditions[] = "f.FICHENO LIKE ?";
-    $params[] = '%' . $fichenoFilter . '%';
+    $conditions[] = lumen_arama_sql('f.FICHENO') . " LIKE ?";
+    $params[] = '%' . lumen_arama_terimi($fichenoFilter) . '%';
 }
 $whereSql = implode(' AND ', $conditions);
 $query = "
@@ -107,88 +107,26 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-600: #047857;
-            --emerald-soft: #ecfdf5;
-            --emerald-border: rgba(5, 150, 105, 0.22);
+            --emerald-600: var(--red);
+            --emerald-border: var(--border);
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
-
-        /* Sticky Top Header */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid var(--emerald-border);
-            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.05);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            padding: 14px 20px;
-            display: flex; align-items: center; gap: 14px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 40px; height: 40px; min-width: 40px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover { background: var(--emerald-soft); color: var(--emerald); }
-        .header-icon-badge {
-            width: 40px; height: 40px; border-radius: 12px;
-            background: linear-gradient(135deg, #10b981, var(--emerald));
-            color: #fff;
-            display: inline-flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.28);
-            flex-shrink: 0;
-        }
-        .header-icon-badge i { font-size: 16px; }
         .header-titles { flex: 1 1 auto; min-width: 0; }
-        .header-title {
-            font-size: 16px; font-weight: 700; color: var(--text-1);
-            line-height: 1.2;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
         .header-subtitle {
             font-size: 11.5px; color: var(--text-2); font-weight: 500;
             margin-top: 2px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .btn-primary {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 10px 16px;
-            background: var(--emerald); color: #fff;
-            border: none; border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
-            text-decoration: none; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.24);
-            transition: all 0.2s ease;
-            min-height: 40px; white-space: nowrap;
-        }
-        .btn-primary:hover { background: var(--emerald-600); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(5, 150, 105, 0.32); }
-        .btn-primary i { font-size: 12px; }
-
         /* Main container */
         .page {
             max-width: 1200px; margin: 0 auto;
@@ -201,14 +139,12 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
             to { opacity: 1; transform: translateY(0); }
         }
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--emerald-border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
         }
         .glass-card.c1 { animation-delay: 0.06s; }
         .glass-card.c2 { animation-delay: 0.14s; }
@@ -230,7 +166,7 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
         .field input, .field select {
             width: 100%;
             padding: 10px 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 16px; /* 16px to prevent iOS auto-zoom */
             color: var(--text-1);
             background: #fff;
@@ -244,17 +180,17 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
             .field input, .field select { font-size: 14px; min-height: 40px; }
         }
         .field input:focus, .field select:focus {
-            border-color: rgba(5, 150, 105, 0.5);
-            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+            border-color: rgba(var(--red-rgb), .5);
+            box-shadow: 0 0 0 3px rgba(var(--red-rgb), .12);
         }
         .btn-filter {
             display: inline-flex; align-items: center; justify-content: center; gap: 7px;
             padding: 10px 18px;
-            background: var(--emerald); color: #fff;
+            background: var(--red); color: #fff;
             border: none; border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
+            font-family: var(--font); font-size: 13px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.22);
+            box-shadow: none;
             min-height: 44px; white-space: nowrap;
         }
         .btn-filter:hover { background: var(--emerald-600); transform: translateY(-1px); }
@@ -263,7 +199,7 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
             padding: 10px 16px;
             background: #fff; color: var(--text-2);
             border: 1px solid var(--border); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
+            font-family: var(--font); font-size: 13px; font-weight: 600;
             text-decoration: none; cursor: pointer; transition: all 0.2s ease;
             min-height: 44px; white-space: nowrap;
         }
@@ -297,7 +233,7 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
         }
         .gd-table tbody tr:last-child td { border-bottom: none; }
         .gd-table tbody tr { transition: background 0.15s ease; }
-        .gd-table tbody tr:hover { background: var(--emerald-soft); }
+        .gd-table tbody tr:hover { background: var(--red-soft); }
         .cell-row-num { color: var(--text-3); font-weight: 600; font-size: 12px; width: 48px; }
         .cell-ficheno {
             font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
@@ -311,19 +247,19 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
         .btn-edit {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 7px 12px;
-            background: var(--emerald-soft); color: var(--emerald-600);
+            background: var(--red-soft); color: var(--emerald-600);
             border: 1px solid var(--emerald-border); border-radius: 8px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12px; font-weight: 600;
+            font-family: var(--font); font-size: 12px; font-weight: 600;
             text-decoration: none; transition: all 0.2s ease;
             min-height: 34px;
         }
-        .btn-edit:hover { background: var(--emerald); color: #fff; border-color: var(--emerald); }
+        .btn-edit:hover { background: var(--red); color: #fff; border-color: var(--emerald); }
         .btn-edit i { font-size: 11px; }
         .pill-tip {
             display: inline-block;
             padding: 2px 8px;
             border-radius: 100px;
-            background: var(--emerald-soft);
+            background: var(--red-soft);
             color: var(--emerald-600);
             border: 1px solid var(--emerald-border);
             font-size: 10.5px; font-weight: 700;
@@ -379,9 +315,8 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
         }
         @media (max-width: 640px) {
             .page { padding: 14px; }
-            .header-inner { padding: 12px 14px; gap: 10px; }
-            .header-title { font-size: 15px; }
             .header-subtitle { font-size: 11px; }
+            /* Başlık ezilmesin: üst düğmeler mobilde yalnız simge */
             .filter-grid { grid-template-columns: 1fr 1fr; }
             .filter-grid .field-actions { grid-column: 1 / -1; display: flex; gap: 10px; }
             .filter-grid .btn-filter, .filter-grid .btn-reset { flex: 1; }
@@ -421,7 +356,7 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
             <a href="../index.php" class="header-back" title="Ana Sayfa" aria-label="Ana Sayfa">
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <div class="header-icon-badge"><i class="fa-solid fa-industry"></i></div>
+            <div class="header-icon"><i class="fa-solid fa-industry"></i></div>
             <div class="header-titles">
                 <div class="header-title">Üretim Fişleri</div>
                 <div class="header-subtitle"><?= htmlspecialchars($subtitleText); ?></div>
@@ -429,14 +364,20 @@ $subtitleText = $rowCount . ' fiş · ' . date('d.m.Y', strtotime($startDate)) .
             <!-- WhatsApp Liste ozelligi KALDIRILDI (2026-07-07, kullanici karari: kullanilmiyor).
                  Dosyalar git gecmisinde: stok/whatsapp_listeler.php, whatsapp_liste_detay.php,
                  whatsapp_sync_worker.php, whatsapp_uretim_lib.php. M_WA_URETIM_* tablolari duruyor. -->
-            <a href="uretim_miktar_onar.php" class="btn-primary" style="background:#f97316;">
+            <div class="header-eylem">
+            <a href="uretim_miktar_onar.php" class="btn btn-ikincil" title="Miktar Onar" aria-label="Miktar Onar">
                 <i class="fa-solid fa-wrench"></i>
                 <span>Miktar Onar</span>
             </a>
-            <a href="uretim_giris.php?yeni=1" class="btn-primary">
-                <i class="fas fa-plus-circle"></i>
-                <span>Yeni Üretim</span>
-            </a>
+            <form method="post" action="uretim_giris.php" style="display:inline;margin:0;">
+                <?php echo csrf_field(); ?>
+                <input type="hidden" name="yeni" value="1">
+                <button type="submit" class="btn btn-birincil" title="Yeni Üretim" aria-label="Yeni Üretim">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Yeni Üretim</span>
+                </button>
+            </form>
+            </div>
         </div>
     </header>
 

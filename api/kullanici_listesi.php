@@ -44,7 +44,7 @@ if (mb_strlen($query) >= 2) {
 try {
     $sql = "SELECT L.LOGICALREF AS id, L.CODE AS kod, L.DEFINITION_ AS ad, L.FIRMNR AS firma,
                    ISNULL(L.ACTIVE, 0) AS pasif, ISNULL(M.YETKI, 2) AS yetki
-            FROM LG_SLSMAN L WITH(NOLOCK)
+            FROM {$GLOBALS['LUMEN_SLSMAN']} L
             LEFT JOIN M_P_YETKI M WITH(NOLOCK) ON L.LOGICALREF = M.PERSONEL
             WHERE L.CARDTYPE = 0{$aramaSql}
             ORDER BY L.ACTIVE ASC, L.CODE ASC";

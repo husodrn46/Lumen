@@ -62,10 +62,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $perid = (int) ($_POST['perid'] ?? 0);
         $durum = (string) ($_POST['durum'] ?? '');
         if ($perid > 0 && in_array($durum, ['aktif', 'pasif'], true)) {
-            $dr = ($durum === 'aktif') ? 0 : 1; // LG_SLSMAN.ACTIVE: 0=aktif, 1=pasif
-            $dbh->prepare("UPDATE LG_SLSMAN SET ACTIVE = :dr WHERE LOGICALREF = :id")
-                ->execute([':dr' => $dr, ':id' => $perid]);
-            if (function_exists('m_p_yetki_cache_temizle')) {
+            if (lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $perid) !== null) {
+                header('Location: ' . $geri . '&hata=yonetici_korumali', true, 303);
+                exit;
+            }
+            $dr = ($durum === 'aktif') ? 0 : 1; // 0 = aktif, 1 = pasif (LOGO ACTIVE anlamı)
+            lumen_personel_aktiflik($dbh, $perid, $dr === 0);
+            if ($dr === 1) {
+                // Pasifleştirilen kullanıcının açık oturumları ve belirteçleri de kapanır.
+                lumen_oturumlari_sonlandir($dbh, $perid, (int) $terminalkullanici);
+            } elseif (function_exists('m_p_yetki_cache_temizle')) {
                 m_p_yetki_cache_temizle($perid);
             }
             header('Location: ' . $geri . '&ok=durum', true, 303);
@@ -78,13 +84,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---- Sil (yalnız pasif kullanıcı) ----
     if ($action === 'delete_user') {
         $perid = (int) ($_POST['perid'] ?? 0);
+        if ($perid > 0 && lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $perid) !== null) {
+            header('Location: ' . $geri . '&hata=yonetici_korumali', true, 303);
+            exit;
+        }
         if ($perid > 0) {
-            $chk = $dbh->prepare("SELECT ACTIVE FROM LG_SLSMAN WHERE LOGICALREF = :id");
+            $chk = $dbh->prepare("SELECT ACTIVE FROM {$GLOBALS['LUMEN_SLSMAN']} WHERE LOGICALREF = :id");
             $chk->execute([':id' => $perid]);
             $u = $chk->fetch(PDO::FETCH_ASSOC);
             if ($u && (int) $u['ACTIVE'] === 1) {
                 $dbh->prepare("DELETE FROM M_P_YETKI WHERE PERSONEL = :id")->execute([':id' => $perid]);
-                $dbh->prepare("DELETE FROM LG_SLSMAN WHERE LOGICALREF = :id AND ACTIVE = 1")->execute([':id' => $perid]);
+                lumen_personel_sil($dbh, $perid);
                 if (function_exists('m_p_yetki_cache_temizle')) {
                     m_p_yetki_cache_temizle($perid);
                 }
@@ -113,18 +123,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hataMsj = 'Personel kodu boş olamaz ve en fazla 30 karakter olmalıdır.';
         } elseif ($adi === '' || mb_strlen($adi) > 50) {
             $hataMsj = 'Personel adı boş olamaz ve en fazla 50 karakter olmalıdır.';
-        } elseif (!in_array($tip, [0, 1, 2], true)) {
+        } elseif (!array_key_exists($tip, lumen_kullanici_turleri())) {
             $hataMsj = 'Geçersiz yetki tipi.';
-        } elseif ($sifre !== '' && mb_strlen($sifre) < 4) {
-            $hataMsj = 'Parola en az 4 karakter olmalıdır.';
+        } elseif ($sifre !== '' && mb_strlen($sifre) < LUMEN_PAROLA_MIN) {
+            $hataMsj = 'Parola en az ' . LUMEN_PAROLA_MIN . ' karakter olmalıdır.';
+        } elseif (($engel = lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $id, $tip)) !== null) {
+            $hataMsj = $engel;
         }
 
         if ($hataMsj === '' && $id > 0) {
             // ---------- DÜZENLE ----------
             try {
                 $dbh->beginTransaction();
-                $dbh->prepare("UPDATE LG_SLSMAN SET CODE = :c, DEFINITION_ = :d, FIRMNR = :f WHERE LOGICALREF = :id")
-                    ->execute([':c' => $kodu, ':d' => $adi, ':f' => $frm, ':id' => $id]);
+                lumen_personel_guncelle($dbh, $id, $kodu, $adi, (int) $frm);
 
                 $var = (int) $dbh->query("SELECT COUNT(*) FROM M_P_YETKI WHERE PERSONEL = " . $id)->fetchColumn();
                 if ($var > 0) {
@@ -138,14 +149,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $dbh->prepare($sql)->execute($p);
                 } else {
                     // Yetki satırı yok → parola zorunlu (auth bypass koruması)
-                    if (mb_strlen($sifre) < 4) {
+                    if (mb_strlen($sifre) < LUMEN_PAROLA_MIN) {
                         throw new RuntimeException('sifre_zorunlu');
                     }
                     ky_yetki_insert($dbh, $id, sifre_hashle($sifre), $tip);
                 }
 
                 $dbh->commit();
-                if (function_exists('m_p_yetki_cache_temizle')) {
+                if ($sifre !== '') {
+                    // Parola sıfırlandı: eski parola/çerezle açılmış oturumlar kapanır.
+                    lumen_oturumlari_sonlandir($dbh, $id, (int) $terminalkullanici);
+                } elseif (function_exists('m_p_yetki_cache_temizle')) {
                     m_p_yetki_cache_temizle($id);
                 }
                 header('Location: ' . $geri . '&ok=guncellendi', true, 303);
@@ -155,26 +169,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $dbh->rollBack();
                 }
                 $hataMsj = ($e->getMessage() === 'sifre_zorunlu')
-                    ? 'Bu kullanıcı için parola belirlemelisiniz (en az 4 karakter).'
+                    ? 'Bu kullanıcı için parola belirlemelisiniz (en az ' . LUMEN_PAROLA_MIN . ' karakter).'
                     : 'Kayıt sırasında hata oluştu. Lütfen tekrar deneyin.';
             }
         } elseif ($hataMsj === '' && $id === 0) {
             // ---------- EKLE ----------
-            if (mb_strlen($sifre) < 4) {
-                $hataMsj = 'Yeni kullanıcı için parola zorunludur (en az 4 karakter).';
+            if (mb_strlen($sifre) < LUMEN_PAROLA_MIN) {
+                $hataMsj = 'Yeni kullanıcı için parola zorunludur (en az ' . LUMEN_PAROLA_MIN . ' karakter).';
             } else {
-                $dup = $dbh->prepare("SELECT 1 FROM LG_SLSMAN WHERE CODE = :c AND FIRMNR = :f");
+                $dup = $dbh->prepare("SELECT 1 FROM {$GLOBALS['LUMEN_SLSMAN']} WHERE CODE = :c AND FIRMNR = :f");
                 $dup->execute([':c' => $kodu, ':f' => $frm]);
                 if ($dup->fetchColumn()) {
                     $hataMsj = '"' . htmlspecialchars($kodu, ENT_QUOTES, 'UTF-8') . '" personel kodu bu firmada zaten kullanılmış.';
                 } else {
                     try {
                         $dbh->beginTransaction();
-                        $dbh->prepare(
-                            "INSERT INTO LG_SLSMAN (CODE, DEFINITION_, CARDTYPE, CAPIBLOCK_CREADEDDATE, USERID, FIRMNR, TYP, ACTIVE)
-                             VALUES (:c, :d, 0, GETDATE(), 1, :f, 0, 0)"
-                        )->execute([':c' => $kodu, ':d' => $adi, ':f' => $frm]);
-                        $newId = (int) $dbh->lastInsertId();
+                        $newId = lumen_personel_ekle($dbh, $kodu, $adi, (int) $frm);
                         ky_yetki_insert($dbh, $newId, sifre_hashle($sifre), $tip);
                         $dbh->commit();
                         header('Location: ' . $geri . '&ok=eklendi', true, 303);
@@ -196,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $like = '%' . $search . '%';
 $stmt = $dbh->prepare(
     "SELECT L.LOGICALREF, L.CODE, L.DEFINITION_, L.ACTIVE, M.YETKI
-     FROM LG_SLSMAN L
+     FROM {$GLOBALS['LUMEN_SLSMAN']} L
      LEFT JOIN M_P_YETKI M ON L.LOGICALREF = M.PERSONEL
      WHERE L.FIRMNR = :firm AND (L.CODE LIKE :p1 OR L.DEFINITION_ LIKE :p2)
      ORDER BY L.CODE ASC"
@@ -207,7 +217,7 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $aktifSayisi = count(array_filter($users, static fn($u) => (int) $u['ACTIVE'] === 0));
 $pasifSayisi = count($users) - $aktifSayisi;
 
-$allFirms = $dbh->query("SELECT NR, NAME FROM L_CAPIFIRM ORDER BY NAME ASC")->fetchAll(PDO::FETCH_ASSOC);
+$allFirms = $dbh->query("SELECT NR, NAME FROM " . lumen_tablo('firma') . " F ORDER BY NAME ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 // Derin bağlantı: ?duzenle=<ref> → o kullanıcının düzenleme modalını otomatik aç
 // (ör. Denetim > Detay ekranından "Düzenle" ile gelinir).
@@ -215,14 +225,14 @@ $duzenleUser = null;
 if (isset($_GET['duzenle']) && (int) $_GET['duzenle'] > 0) {
     $ds = $dbh->prepare(
         "SELECT L.LOGICALREF, L.CODE, L.DEFINITION_, M.YETKI
-         FROM LG_SLSMAN L LEFT JOIN M_P_YETKI M ON L.LOGICALREF = M.PERSONEL
+         FROM {$GLOBALS['LUMEN_SLSMAN']} L LEFT JOIN M_P_YETKI M ON L.LOGICALREF = M.PERSONEL
          WHERE L.LOGICALREF = :id"
     );
     $ds->execute([':id' => (int) $_GET['duzenle']]);
     $duzenleUser = $ds->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
-$yetkiAd = [0 => 'Yönetici', 1 => 'Personel', 2 => 'Müşteri'];
+$yetkiAd = lumen_kullanici_turleri();
 $formAcik = ($hataMsj !== '');
 $aktifSekme = 'kullanicilar';
 $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
@@ -258,10 +268,9 @@ if ($hataMsj !== '') {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root{ --bg:#f9fafb; --card:#fff; --text-1:#1f2937; --text-2:#6b7280; --text-3:#9ca3af; --border:#e5e7eb;
-               --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; --amber:#b45309; --amber-soft:#fffbeb; }
+
         *{ box-sizing:border-box; margin:0; }
-        body{ font-family:'Avenir Next','Montserrat',sans-serif; letter-spacing:-0.02em; background:var(--bg); color:var(--text-1); font-size:14px; }
+        body{ font-family: var(--font); letter-spacing:-0.02em; background:var(--bg); color:var(--text-1); font-size:14px; }
         main{ max-width:1080px; margin:0 auto; padding:22px 20px 80px; }
 
         .arac{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:16px; }
@@ -447,11 +456,12 @@ if ($hataMsj !== '') {
                             <option value="0">Yönetici — tüm yetkiler</option>
                             <option value="1" selected>Personel — kısıtlı (matristen ayarlanır)</option>
                             <option value="2">Müşteri — salt okunur</option>
+                            <option value="3">Entegrasyon — yalnız API, salt okunur (rapor/muhasebe yazılımları için)</option>
                         </select>
                     </div>
                     <div class="alan">
                         <label for="ky_sifre">Parola</label>
-                        <input type="password" name="sifre" id="ky_sifre" autocomplete="new-password" placeholder="En az 4 karakter">
+                        <input type="password" name="sifre" id="ky_sifre" autocomplete="new-password" placeholder="En az <?= (int) LUMEN_PAROLA_MIN ?> karakter">
                         <div class="ipucu" id="ky_sifre_ipucu">Düzenlemede boş bırakırsanız mevcut parola değişmez.</div>
                     </div>
                 </div>
@@ -480,8 +490,8 @@ if ($hataMsj !== '') {
             document.getElementById('ky_adi').value = '';
             document.getElementById('ky_tipi').value = '1';
             document.getElementById('ky_sifre').value = '';
-            document.getElementById('ky_sifre').setAttribute('placeholder','En az 4 karakter (zorunlu)');
-            document.getElementById('ky_sifre_ipucu').textContent = 'Yeni kullanıcı için parola zorunludur (en az 4 karakter).';
+            document.getElementById('ky_sifre').setAttribute('placeholder','En az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter (zorunlu)');
+            document.getElementById('ky_sifre_ipucu').textContent = 'Yeni kullanıcı için parola zorunludur (en az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter).';
             kyModal.classList.add('acik');
             setTimeout(function(){ document.getElementById('ky_kodu').focus(); }, 50);
         }
@@ -493,7 +503,7 @@ if ($hataMsj !== '') {
             document.getElementById('ky_tipi').value = String(tipi);
             document.getElementById('ky_sifre').value = '';
             if (yetkiYok){
-                document.getElementById('ky_sifre').setAttribute('placeholder','En az 4 karakter (zorunlu)');
+                document.getElementById('ky_sifre').setAttribute('placeholder','En az <?php echo (int) LUMEN_PAROLA_MIN; ?> karakter (zorunlu)');
                 document.getElementById('ky_sifre_ipucu').textContent = 'Bu kullanıcının parolası yok — belirlemeniz gerekir.';
             } else {
                 document.getElementById('ky_sifre').setAttribute('placeholder','Değiştirmek için yeni parola');

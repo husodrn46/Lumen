@@ -2,6 +2,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../kontrol.php';
+// Cari finans bilgisi (bakiye/ekstre/fatura) yalnız bakiye ya da ekstre yetkisiyle görülür
+// (adres doğrudan yazılarak da açılmasın; menüdeki "Müşteri Bakiye" kuralıyla aynı aile).
+if (!m_p_cari_finans_erisim_var_mi($terminalkullanici)) {
+    lumen_hata_sayfasi('Yetkiniz yok', 'Cari bakiye ve ekstre için Müşteri Bakiye ya da Cari Bakiye/Ekstre yetkisi gerekir.', 403, 'fa-lock');
+}
 ob_start();
 
 include_once __DIR__ . '/../ayr.php';
@@ -16,7 +21,7 @@ $CARIID = (int) ($_GET['cariid'] ?? 0);
 if ($CARIID <= 0) {
     ob_end_clean();
     header('Content-Type: text/plain; charset=utf-8');
-    die('Hata: Gecersiz cari id.');
+    lumen_hata_sayfasi('Cari seçilmedi', 'Ekstre için cari bilgisi eksik. Cari listesinden tekrar açın.');
 }
 
 $donemSecim = isset($_GET['donem']) ? (string) $_GET['donem'] : 'aktif';
@@ -31,85 +36,35 @@ if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4
 }
 
 try {
-// Cari bilgileri (iletisim + vergi alanlari dahil)
-$stmtCari = $dbh->prepare("SELECT CODE, DEFINITION_, TELNRS1, TELNRS2, ADDR1, ADDR2, TOWN, DISTRICT, CITY, TAXOFFICE, TAXNR
-    FROM {$firma}CLCARD WHERE LOGICALREF = :cariid");
-$stmtCari->execute([':cariid' => $CARIID]);
-$cari = $stmtCari->fetch(PDO::FETCH_ASSOC) ?: ['CODE' => '', 'DEFINITION_' => 'Bilinmeyen Cari'];
-
-// Resmi bakiye
-$stmtResmi = $dbh->prepare("SELECT (ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE
-    FROM {$firmadonemx}GNTOTCL G WITH(NOLOCK)
-    WHERE G.CARDREF = :cariid AND G.TOTTYP = 1");
-$stmtResmi->execute([':cariid' => $CARIID]);
-$resmi_bakiye = (float) $stmtResmi->fetchColumn();
-
-$donemPrefixler = match ($donemSecim) {
-    'onceki' => [$eskifirmadonem],
-    'tumu' => [$firmadonem, $eskifirmadonem],
-    default => [$firmadonem],
-};
-
-$trcodeCaseExpr = "CASE HAREKET.TRCODE
-    WHEN 1 THEN 'Nakit Tahsilat' WHEN 2 THEN 'Nakit Odeme' WHEN 3 THEN 'Borc Dekontu' WHEN 4 THEN 'Alacak Dekontu' WHEN 5 THEN 'Virman Fisi'
-    WHEN 6 THEN 'Kur Farki Fisi' WHEN 12 THEN 'Ozel Fis' WHEN 14 THEN 'Acilis Fisi' WHEN 20 THEN 'Gelen Havale' WHEN 21 THEN 'Gonderilen Havale'
-    WHEN 24 THEN 'Doviz Alis Belgesi' WHEN 25 THEN 'Doviz Satis belgesi' WHEN 28 THEN 'Alinan Hizmet Faturasi' WHEN 29 THEN 'Verilen Hizmet Faturasi'
-    WHEN 31 THEN 'Satin Alma Faturasi' WHEN 32 THEN 'Perakende Satis Iade Faturasi' WHEN 33 THEN 'Toptan Satis Iade Faturasi'
-    WHEN 34 THEN 'Alinan Hizmet Faturasi' WHEN 35 THEN 'Alinan Proforma Fatura' WHEN 36 THEN 'Satin Alma Iade Faturasi'
-    WHEN 37 THEN 'Perakende Satis Faturasi' WHEN 38 THEN 'Toptan Satis Faturasi' WHEN 39 THEN 'Verilen Hizmet Faturasi'
-    WHEN 40 THEN 'Verilen proforma fatura' WHEN 41 THEN 'Verilen Vade Farki Faturasi' WHEN 42 THEN 'Alinan Vade Farki Faturasi'
-    WHEN 43 THEN 'Satin Alma Fiyat Farki Faturasi' WHEN 44 THEN 'Satis Fiyat Farki Faturasi' WHEN 45 THEN 'Verilen Serbest Meslek Makbuzu'
-    WHEN 46 THEN 'Alinan Serbest Meslek Makbuzu' WHEN 56 THEN 'Mustahsil Makbuzu'
-    WHEN 61 THEN 'Cek Girisi' WHEN 62 THEN 'Senet Girisi'
-    WHEN 63 THEN 'Cek Cikisi (Cari Hesaba)' WHEN 64 THEN 'Senet Cikisi (Cari Hesaba)'
-    WHEN 70 THEN 'Kredi Karti Fisi' WHEN 71 THEN 'Kredi Karti Iade Fisi' WHEN 72 THEN 'Firma Kredi Karti Fisi' WHEN 73 THEN 'Firma Kredi Karti Iade Fisi'
-    WHEN 81 THEN 'Satinalma Siparisi' WHEN 82 THEN 'Satis Siparisi'
-  END";
-
-$cariIdSafe = (int) $CARIID;
-$queryParts = [];
-foreach ($donemPrefixler as $prefix) {
-    $acilisFiltresi = ($donemSecim === 'tumu') ? ' AND HAREKET.TRCODE <> 14' : '';
-    // Vade: yalnizca cek/senet GIRISI (61/62) icin CSCARD.DUEDATE (giriste SOURCEFREF = CSTRANS).
-    $queryParts[] = "
-    SELECT
-      HAREKET.LOGICALREF,
-      HAREKET.DATE_,
-      HAREKET.TRCODE AS TRCODE_NO,
-      {$trcodeCaseExpr} AS TRCODE,
-      HAREKET.LINEEXP AS ACIKLAMA,
-      ISNULL((1 - HAREKET.SIGN) * HAREKET.AMOUNT, 0) AS BORC,
-      ISNULL(HAREKET.SIGN * HAREKET.AMOUNT, 0) AS ALACAK,
-      VADE.DUEDATE AS VADE
-    FROM {$prefix}CLFLINE AS HAREKET
-    OUTER APPLY (
-      SELECT TOP 1 CS.DUEDATE
-      FROM {$prefix}CSTRANS CT WITH(NOLOCK)
-      JOIN {$prefix}CSCARD CS WITH(NOLOCK) ON CS.LOGICALREF = CT.CSREF
-      WHERE HAREKET.TRCODE IN (61, 62) AND CT.LOGICALREF = HAREKET.SOURCEFREF
-    ) VADE
-    WHERE HAREKET.CANCELLED = 0 AND HAREKET.CLIENTREF = {$cariIdSafe}{$acilisFiltresi}";
-}
-
-$sql = "SELECT * FROM (" . implode(" UNION ALL ", $queryParts) . ") AS BIRLESIK ORDER BY DATE_ ASC, LOGICALREF ASC";
-$stmt = $dbh->prepare($sql);
-$stmt->execute();
+// Cari, resmi bakiye ve hareketler ekranla aynı kaynaktan (cari/cari_ekstre_lib.php), iki modda.
+require_once __DIR__ . '/cari_ekstre_lib.php';
+$cari = cari_ekstre_cari($dbh, (int) $CARIID) ?: ['CODE' => '', 'DEFINITION_' => 'Bilinmeyen Cari'];
+$resmi_bakiye = cari_ekstre_resmi_bakiye($dbh, (int) $CARIID);
 $hareketler = [];
 $toplam_borc = 0.0;
 $toplam_alacak = 0.0;
-while ($h = $stmt->fetch(PDO::FETCH_ASSOC)) {
+foreach (cari_ekstre_hareketleri($dbh, (int) $CARIID, (string) $donemSecim) as $h) {
+    $h['TRCODE'] = cari_islem_etiketi($h['TRCODE_NO'] !== null ? (int) $h['TRCODE_NO'] : null);   // DejaVu Sans Türkçe harfleri basar
     $hareketler[] = $h;
     $toplam_borc += (float) $h['BORC'];
     $toplam_alacak += (float) $h['ALACAK'];
 }
+// Çok hareketli caride PDF kütüphanesi belleği aşıyordu (1.000 satır 256 MB): PDF'e son
+// $pdfEnFazlaSatir hareket girer, öncekiler "Devir" satırında toplanır (bakiye yine doğru).
+// Tamamı ekranda ve Excel çıktısında.
+$pdfEnFazlaSatir = 500;
+$kesilenHareket = max(0, count($hareketler) - $pdfEnFazlaSatir);
+if ($kesilenHareket > 0) {
+    $hareketler = array_slice($hareketler, -$pdfEnFazlaSatir);
+    $toplam_borc = array_sum(array_map(static fn($h) => (float) $h['BORC'], $hareketler));
+    $toplam_alacak = array_sum(array_map(static fn($h) => (float) $h['ALACAK'], $hareketler));
+}
+lumen_bellek_en_az(256);
+@set_time_limit(120);
 $islem_net_etki = $toplam_borc - $toplam_alacak;
 $baslangic_bakiye = $resmi_bakiye - $islem_net_etki;
 
-$donemEtiket = match ($donemSecim) {
-    'onceki' => '2025 (Onceki Donem)',
-    'tumu' => 'Tum Donemler',
-    default => '2026 (Aktif Donem)',
-};
+$donemEtiket = cari_ekstre_donem_etiketi((string) $donemSecim);
 
 function ekstre_para(float $v): string
 {
@@ -126,7 +81,7 @@ function ekstre_tarih(?string $t): string
 }
 
 $bakiyeMutlak = abs($resmi_bakiye);
-$bakiyeDurum = abs($resmi_bakiye) < 0.01 ? '' : ($resmi_bakiye > 0 ? 'Borclu' : 'Alacakli');
+$bakiyeDurum = abs($resmi_bakiye) < 0.01 ? '' : ($resmi_bakiye > 0 ? 'Borçlu' : 'Alacaklı');
 $bakiyeRenk = $resmi_bakiye > 0 ? '#b91c1c' : ($resmi_bakiye < 0 ? '#059669' : '#374151');
 
 // --- Cari iletisim/adres/vergi (bos alanlar gizlenir) ---
@@ -185,7 +140,7 @@ table.summary td {
 }
 table.summary td.bakiye-cell { background: #fef2f2; border: 1px solid #fca5a5; }
 .summary .lbl {
-    font-size: 7.5pt; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px;
+    font-size: 7.5pt; color: #6b7280; letter-spacing: 0.4px;
     font-weight: bold; display: block;
 }
 .summary .val { font-size: 11pt; font-weight: bold; display: block; margin-top: 3px; color: #374151; }
@@ -248,7 +203,7 @@ table.footer-wrap td { vertical-align: bottom; font-size: 7.5pt; color: #9ca3af;
         <td class="h-right">
             <div class="ekstre-baslik">Cari Hesap Ekstresi</div>
             <div class="ekstre-meta">
-                Donem: <?php echo htmlspecialchars($donemEtiket, ENT_QUOTES, 'UTF-8'); ?><br>
+                Dönem: <?php echo htmlspecialchars($donemEtiket, ENT_QUOTES, 'UTF-8'); ?><br>
                 Rapor Tarihi: <?php echo date('d.m.Y H:i'); ?>
             </div>
         </td>
@@ -280,33 +235,36 @@ table.footer-wrap td { vertical-align: bottom; font-size: 7.5pt; color: #9ca3af;
 <table class="summary">
     <tr>
         <td>
-            <span class="lbl">Onceki Donem Devri</span>
+            <span class="lbl">ÖNCEKİ DÖNEM DEVRİ</span>
             <span class="val"><?php echo ekstre_para($baslangic_bakiye); ?> TL</span>
         </td>
         <td>
-            <span class="lbl">Toplam Cikis (Borc)</span>
+            <span class="lbl">TOPLAM ÇIKIŞ (BORÇ)</span>
             <span class="val cikis"><?php echo ekstre_para($toplam_borc); ?> TL</span>
         </td>
         <td>
-            <span class="lbl">Toplam Giris (Alacak)</span>
+            <span class="lbl">TOPLAM GİRİŞ (ALACAK)</span>
             <span class="val giris"><?php echo ekstre_para($toplam_alacak); ?> TL</span>
         </td>
         <td class="bakiye-cell">
-            <span class="lbl">Guncel Bakiye</span>
+            <span class="lbl">GÜNCEL BAKİYE</span>
             <span class="val"><?php echo ekstre_para($bakiyeMutlak); ?> TL</span>
             <?php if ($bakiyeDurum !== ''): ?><span class="durum">(<?php echo $bakiyeDurum; ?>)</span><?php endif; ?>
         </td>
     </tr>
 </table>
 
+<?php if ($kesilenHareket > 0): ?>
+<p style="font-size:7.5pt;color:#6b7280;margin:0 0 6px 0;">Bu PDF son <?php echo $pdfEnFazlaSatir; ?> hareketi içerir; önceki <?php echo number_format($kesilenHareket, 0, ',', '.'); ?> hareket "Devir" satırına dahildir. Tamamı için Excel çıktısını kullanın.</p>
+<?php endif; ?>
 <table class="hareket">
     <thead>
         <tr>
             <th class="col-tarih center">Tarih</th>
-            <th class="col-tip">Islem Turu</th>
-            <th class="col-acik">Aciklama</th>
+            <th class="col-tip">İşlem Türü</th>
+            <th class="col-acik">Açıklama</th>
             <th class="col-vade center">Vade</th>
-            <th class="right col-num">Borc</th>
+            <th class="right col-num">Borç</th>
             <th class="right col-num">Alacak</th>
             <th class="right col-num">Bakiye</th>
         </tr>
@@ -314,13 +272,13 @@ table.footer-wrap td { vertical-align: bottom; font-size: 7.5pt; color: #9ca3af;
     <tbody>
 <?php
 if (empty($hareketler) && abs($baslangic_bakiye) <= 0.01) {
-    echo '<tr><td colspan="7" class="bos">Bu cari icin goruntulenecek hareket bulunamadi.</td></tr>';
+    echo '<tr><td colspan="7" class="bos">Bu cari için görüntülenecek hareket bulunamadı.</td></tr>';
 } else {
     if (abs($baslangic_bakiye) > 0.01) {
         $basClass = $baslangic_bakiye >= 0 ? 'poz' : 'neg';
         echo '<tr class="devir">';
         echo '<td class="center">-</td>';
-        echo '<td>Onceki Donem Bakiyesi</td>';
+        echo '<td>Önceki Dönem Bakiyesi</td>';
         echo '<td>Devir</td>';
         echo '<td class="center">-</td>';
         echo '<td class="right muted">-</td>';
@@ -368,7 +326,7 @@ if (empty($hareketler) && abs($baslangic_bakiye) <= 0.01) {
 <table class="toplam">
     <tr>
         <td>GENEL TOPLAM</td>
-        <td class="right">Borc: <?php echo ekstre_para($toplam_borc); ?> TL</td>
+        <td class="right">Borç: <?php echo ekstre_para($toplam_borc); ?> TL</td>
         <td class="right">Alacak: <?php echo ekstre_para($toplam_alacak); ?> TL</td>
         <td class="right">Bakiye: <?php echo ekstre_para($bakiyeMutlak); ?> TL <?php echo $bakiyeDurum !== '' ? '(' . $bakiyeDurum . ')' : ''; ?></td>
     </tr>
@@ -376,7 +334,7 @@ if (empty($hareketler) && abs($baslangic_bakiye) <= 0.01) {
 
 <table class="footer-wrap">
     <tr>
-        <td>Bu ekstre <?php echo date('d.m.Y H:i'); ?> tarihinde olusturulmustur.</td>
+        <td>Bu ekstre <?php echo date('d.m.Y H:i'); ?> tarihinde oluşturulmuştur.</td>
         <td class="imza-box"><div class="imza-line">Kase / Imza</div></td>
     </tr>
 </table>

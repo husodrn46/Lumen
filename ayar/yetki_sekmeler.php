@@ -20,24 +20,17 @@ $ky_sekmeler = [
 ];
 ?>
 <style>
-.ky-topbar{ position:sticky; top:0; z-index:45; background:rgba(255,255,255,.93); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-bottom:1px solid var(--border,#e5e7eb); box-shadow:0 2px 10px rgba(111,16,34,.04); }
-.ky-topbar-in{ max-width:1080px; margin:0 auto; padding:0 20px; display:flex; align-items:center; gap:13px; height:58px; }
-.ky-back{ width:36px; height:36px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; color:var(--text-2,#6b7280); text-decoration:none; border:1px solid var(--border,#e5e7eb); background:#fff; flex-shrink:0; transition:.15s; }
-.ky-back:hover{ border-color:var(--red,#6F1022); color:var(--red,#6F1022); }
-.ky-topbar .ky-heading{ font-family:'Avenir Next','Montserrat',sans-serif; letter-spacing:-0.02em; font-size:16.5px; font-weight:700; color:var(--text-1,#1f2937); display:flex; align-items:center; gap:9px; }
-.ky-topbar .ky-heading > i{ color:var(--red,#6F1022); }
-.ky-tabsrow{ max-width:1080px; margin:0 auto; padding:0 20px; display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; }
-.ky-tabsrow::-webkit-scrollbar{ display:none; }
-.ky-tab{ font-family:'Avenir Next','Montserrat',sans-serif; letter-spacing:-0.02em; display:inline-flex; align-items:center; gap:8px; padding:12px 18px; font-size:13.5px; font-weight:600; color:var(--text-2,#6b7280); text-decoration:none; border-bottom:2.5px solid transparent; margin-bottom:-1px; transition:.15s; white-space:nowrap; }
+.ky-tabsrow{ max-width:var(--sayfa-genislik); margin:0 auto; padding:0 20px; display:flex; gap:2px; overflow-x:auto; scrollbar-width:thin; }
+.ky-tab{ font-family: var(--font); letter-spacing:-0.02em; display:inline-flex; align-items:center; gap:8px; padding:12px 18px; font-size:13.5px; font-weight:600; color:var(--text-2,#6b7280); text-decoration:none; border-bottom:2.5px solid transparent; margin-bottom:-1px; transition:.15s; white-space:nowrap; }
 .ky-tab:hover{ color:var(--red,#6F1022); }
 .ky-tab.aktif{ color:var(--red,#6F1022); border-bottom-color:var(--red,#6F1022); }
 .ky-tab i{ font-size:14px; }
-@media (max-width:520px){ .ky-tab{ padding:11px 13px; font-size:12.5px; } .ky-topbar .ky-heading span{ display:none; } }
+@media (max-width:520px){ .ky-tab{ padding:11px 13px; min-height:44px; box-sizing:border-box; font-size:12.5px; } }
 </style>
-<header class="ky-topbar">
-    <div class="ky-topbar-in">
-        <a href="index.php" class="ky-back" title="Ayarlara dön"><i class="fa-solid fa-arrow-left"></i></a>
-        <div class="ky-heading"><i class="fa-solid fa-users-gear"></i> <span>Kullanıcı &amp; Yetki</span></div>
+<header class="ky-topbar top-header">
+    <div class="ky-topbar-in header-inner">
+        <a href="index.php" class="header-back" title="Ayarlara dön"><i class="fa-solid fa-arrow-left"></i></a>
+        <div class="header-title"><i class="fa-solid fa-users-gear"></i> <span>Kullanıcı &amp; Yetki</span></div>
     </div>
     <nav class="ky-tabsrow">
         <?php foreach ($ky_sekmeler as $ky_s):

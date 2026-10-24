@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../includes/oturum.php';
+
 if (!function_exists('denetimSayfaListesi')) {
     /**
      * Yetki denetiminde test edilecek temel sayfalar.
@@ -130,25 +132,59 @@ if (!function_exists('denetimLinki')) {
     }
 }
 
+if (!function_exists('denetimBaseUrlGuvenliMi')) {
+    /**
+     * Probe oturum çerezi yalnızca aynı makinedeki web sunucusuna gönderilebilir.
+     * DNS çözümlemesine açık adlar yerine literal loopback adresi zorunludur.
+     */
+    function denetimBaseUrlGuvenliMi(string $baseUrl): bool
+    {
+        $baseUrl = trim($baseUrl);
+        if ($baseUrl === '' || preg_match('/[\x00-\x20\x7f]/', $baseUrl) === 1) {
+            return false;
+        }
+
+        try {
+            $parts = parse_url($baseUrl);
+        } catch (ValueError) {
+            return false;
+        }
+        if (!is_array($parts)) {
+            return false;
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower(trim((string) ($parts['host'] ?? ''), '[]'));
+        if (!in_array($scheme, ['http', 'https'], true) || !in_array($host, ['127.0.0.1', '::1'], true)) {
+            return false;
+        }
+
+        if (isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])) {
+            return false;
+        }
+
+        $port = $parts['port'] ?? null;
+        return $port === null || ($port >= 1 && $port <= 65535);
+    }
+}
+
 if (!function_exists('denetimBaseUrl')) {
     /**
-     * Mevcut isteğe göre uygulamanın temel URL bilgisini üretir.
+     * Yetki probe hedefini güvenilir ortam yapılandırmasından üretir.
+     * HTTP Host/X-Forwarded-* başlıkları güven sınırının dışında tutulur.
      */
     function denetimBaseUrl(): string
     {
-        $isHttps = (
-            (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
-            (!empty($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443') ||
-            (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
-        );
-
-        $scheme = $isHttps ? 'https' : 'http';
-        $host = trim((string) ($_SERVER['HTTP_HOST'] ?? ''));
-        if ($host === '') {
-            $host = '127.0.0.1';
+        $baseUrl = trim((string) getenv('LUMEN_DENETIM_BASE_URL'));
+        if ($baseUrl === '') {
+            $baseUrl = 'http://127.0.0.1';
         }
 
-        return $scheme . '://' . $host;
+        if (!denetimBaseUrlGuvenliMi($baseUrl)) {
+            throw new RuntimeException('LUMEN_DENETIM_BASE_URL yalnızca 127.0.0.1 veya ::1 loopback adresini kullanabilir.');
+        }
+
+        return rtrim($baseUrl, '/');
     }
 }
 
@@ -159,7 +195,7 @@ if (!function_exists('denetimProbeSessionOlustur')) {
     function denetimProbeSessionOlustur(int $userId): array
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
+            lumen_oturum_baslat();
         }
 
         $sessionName = session_name();
@@ -171,14 +207,14 @@ if (!function_exists('denetimProbeSessionOlustur')) {
         session_write_close();
 
         session_id($probeSessionId);
-        session_start();
+        lumen_oturum_baslat();
         $_SESSION = [];
         $_SESSION['plasiyer_id'] = $userId;
         $_SESSION['session_regenerated'] = true;
         session_write_close();
 
         session_id($adminSessionId);
-        session_start();
+        lumen_oturum_baslat();
 
         return [
             'session_name' => $sessionName,
@@ -198,7 +234,7 @@ if (!function_exists('denetimProbeSessionTemizle')) {
         }
 
         if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
+            lumen_oturum_baslat();
         }
 
         $adminSessionId = session_id();
@@ -206,13 +242,13 @@ if (!function_exists('denetimProbeSessionTemizle')) {
         session_write_close();
 
         session_id($probeSessionId);
-        session_start();
+        lumen_oturum_baslat();
         $_SESSION = [];
         session_destroy();
         session_write_close();
 
         session_id($adminSessionId);
-        session_start();
+        lumen_oturum_baslat();
     }
 }
 
@@ -291,6 +327,10 @@ if (!function_exists('denetimHttpProbe')) {
      */
     function denetimHttpProbe(string $baseUrl, string $sessionName, string $sessionId, string $path): array
     {
+        if (!denetimBaseUrlGuvenliMi($baseUrl)) {
+            throw new InvalidArgumentException('Güvenli olmayan yetki denetim hedefi reddedildi.');
+        }
+
         $url = rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
         $startedAt = microtime(true);
 
@@ -309,8 +349,8 @@ if (!function_exists('denetimHttpProbe')) {
                 CURLOPT_CONNECTTIMEOUT => 5,
                 CURLOPT_TIMEOUT => 20,
                 CURLOPT_HTTPHEADER => ['Cookie: ' . $sessionName . '=' . $sessionId],
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
             ]);
 
             $rawResponse = curl_exec($ch);
@@ -332,8 +372,8 @@ if (!function_exists('denetimHttpProbe')) {
                     'header' => "Cookie: {$sessionName}={$sessionId}\r\n",
                 ],
                 'ssl' => [
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
                 ],
             ]);
 
@@ -374,19 +414,6 @@ if (!function_exists('denetimHttpProbe')) {
             'snippet' => $plainBody,
             'transport_error' => $transportError,
         ];
-
-        if (
-            $result['transport_error'] !== ''
-            && !str_contains($baseUrl, '127.0.0.1')
-            && preg_match('#^(https?://)#i', $baseUrl, $matches)
-        ) {
-            $fallbackBaseUrl = $matches[1] . '127.0.0.1';
-            $fallbackResult = denetimHttpProbe($fallbackBaseUrl, $sessionName, $sessionId, $path);
-            $fallbackResult['transport_error'] = $fallbackResult['transport_error'] !== ''
-                ? $result['transport_error'] . ' | fallback: ' . $fallbackResult['transport_error']
-                : 'Host fallback kullanildi';
-            return $fallbackResult;
-        }
 
         return $result;
     }

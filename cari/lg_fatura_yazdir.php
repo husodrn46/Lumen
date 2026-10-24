@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 include_once(__DIR__ . "/../ayr.php");
 require_once __DIR__ . '/../kontrol.php';
+// Cari finans bilgisi (bakiye/ekstre/fatura) yalnız bakiye ya da ekstre yetkisiyle görülür
+// (adres doğrudan yazılarak da açılmasın; menüdeki "Müşteri Bakiye" kuralıyla aynı aile).
+if (!m_p_cari_finans_erisim_var_mi($terminalkullanici)) {
+    lumen_hata_sayfasi('Yetkiniz yok', 'Cari bakiye ve ekstre için Müşteri Bakiye ya da Cari Bakiye/Ekstre yetkisi gerekir.', 403, 'fa-lock');
+}
 include_once(__DIR__ . "/../log_ip.php");
 
 // Bu sayfa sadece aktif dönem (2026) için kullanılır
@@ -16,7 +21,7 @@ $CARIID = getPageParamInt('cari_id');
 $REF = getPageParamInt('REF');
 
 if ($CARIID <= 0 || $REF <= 0) {
-    exit;
+    lumen_hata_sayfasi('Fatura seçilmedi', 'Görüntülenecek fatura bilgisi eksik. Cari hareket dökümünden tekrar açın.');
 }
 function paraformat(float|int|string|null $kusurat): string
 {
@@ -30,7 +35,7 @@ function paraformat(float|int|string|null $kusurat): string
 <?php
 // Fatura bilgilerini al
 $stmtFatura = $dbh->prepare("
-    SELECT C.DEFINITION_, C.CITY, C.TELNRS1,
+    SELECT C.DEFINITION_, C.CITY, C.TELNRS1, F.CLIENTREF,
            F.FICHENO, F.DATE_, F.NETTOTAL,
            F.GROSSTOTAL, F.TOTALDISCOUNTS, F.TOTALVAT
     FROM {$firmadonem}INVOICE AS F
@@ -40,6 +45,13 @@ $stmtFatura = $dbh->prepare("
 ");
 $stmtFatura->execute([':ref' => $REF]);
 $sqf = $stmtFatura->fetch(PDO::FETCH_ASSOC);
+// Fatura REF ile bulunur; URL'deki cari_id değil faturanın GERÇEK carisi denetlenir
+// (aksi halde kısıtlı carinin faturası başka bir cari_id ile açılabiliyordu).
+if (!$sqf || (int) $sqf['CLIENTREF'] !== $CARIID
+    || !m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, (int) $sqf['CLIENTREF'], 'M4')) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 
 // Cari bakiye
 $stmtBakiye = $dbh->prepare("
@@ -67,23 +79,10 @@ $mdoviz = "₺";
     <meta charset="UTF-8">
     <title>Fatura Yazdir</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --indigo: #4f46e5;
@@ -97,34 +96,6 @@ $mdoviz = "₺";
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
-
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(2, 132, 199, 0.18);
-            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.04);
-        }
-        .header-inner {
-            max-width: 900px; margin: 0 auto;
-            padding: 12px 22px;
-            display: flex; align-items: center; gap: 12px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 34px; height: 34px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none;
-            transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--sky); }
-        .header-divider { width: 1px; height: 22px; background: var(--border); }
-        .header-title {
-            font-size: 15px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 7px;
-            flex: 1 1 auto;
-        }
-        .header-title i { color: var(--sky); font-size: 14px; }
         .btn-print {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 8px 14px; background: #ef4444; color: #fff;
@@ -327,8 +298,6 @@ $mdoviz = "₺";
         }
 
         @media (max-width: 767px) {
-            .header-inner { padding: 10px 14px; gap: 10px; }
-            .header-title { font-size: 13px; }
             .btn-print { padding: 7px 12px; font-size: 11.5px; }
 
             main { margin: 14px auto; padding: 0 12px 40px; }

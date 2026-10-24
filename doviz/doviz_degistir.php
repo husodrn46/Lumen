@@ -3,6 +3,17 @@ declare(strict_types=1);
 
 include_once(__DIR__ . "/../ayr.php");
 require_once __DIR__ . '/../kontrol.php';
+require_once __DIR__ . '/doviz_guard.php';
+doviz_require_m21($terminalkullanici);
+
+// LOGO döviz türü kodları (TRCURR) — ayr.php dovizsembol_bul() ile aynı.
+// Not: TRCODE fişin TÜRÜDÜR (1 = satış siparişi); döviz TRCURR'da tutulur.
+$doviz_tipler = [
+    0 => ['ad' => 'TL', 'sembol' => '₺', 'tam_ad' => 'Türk Lirası', 'icon' => 'fa-turkish-lira-sign', 'varsayilan_kur' => 1],
+    1 => ['ad' => 'USD', 'sembol' => '$', 'tam_ad' => 'Amerikan Doları', 'icon' => 'fa-dollar-sign', 'varsayilan_kur' => 43],
+    20 => ['ad' => 'EUR', 'sembol' => '€', 'tam_ad' => 'Euro', 'icon' => 'fa-euro-sign', 'varsayilan_kur' => 45],
+    17 => ['ad' => 'GBP', 'sembol' => '£', 'tam_ad' => 'İngiliz Sterlini', 'icon' => 'fa-sterling-sign', 'varsayilan_kur' => 50],
+];
 
 $stokhareket = isset($_GET['stokhareket']) ? (int)$_GET['stokhareket'] : (isset($_POST['stokhareket']) ? (int)$_POST['stokhareket'] : 0);
 $mesaj = '';
@@ -20,34 +31,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(403);
         die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
     }
-    $yeni_trcode = isset($_POST['trcode']) ? (int)$_POST['trcode'] : 1;
-    $yeni_trrate = isset($_POST['trrate']) ? (float)$_POST['trrate'] : 1;
+    $yeni_trcurr = (int) ($_POST['trcurr'] ?? 0);
+    $yeni_trrate = (float) ($_POST['trrate'] ?? 0);
+    if ($yeni_trcurr === 0) {
+        $yeni_trrate = 1.0; // TL'nin kuru her zaman 1
+    }
 
-    if ($stokhareket > 0) {
+    if (!isset($doviz_tipler[$yeni_trcurr])) {
+        $mesaj = 'Geçersiz döviz türü.';
+        $mesaj_tip = 'error';
+    } elseif (!is_finite($yeni_trrate) || $yeni_trrate <= 0) {
+        $mesaj = 'Döviz kuru sıfırdan büyük olmalı.';
+        $mesaj_tip = 'error';
+    } elseif ($stokhareket > 0) {
         try {
-            // ORFICHE'yi güncelle
+            // Başlık ve satırlar birlikte güncellenir; yalnız satış siparişleri (TRCODE=1).
+            $dbh->beginTransaction();
             $stmt = $dbh->prepare("
                 UPDATE {$firmadonem}ORFICHE
-                SET TRCODE = :trcode,
-                    TRRATE = :trrate
-                WHERE LOGICALREF = :stokhareket
+                SET TRCURR = :trcurr,
+                    TRRATE = :trrate,
+                    TRNET = NETTOTAL / :trrate2
+                WHERE LOGICALREF = :stokhareket AND TRCODE = 1
             ");
             $stmt->execute([
-                ':trcode' => $yeni_trcode,
+                ':trcurr' => $yeni_trcurr,
+                ':trrate' => $yeni_trrate,
+                ':trrate2' => $yeni_trrate,
+                ':stokhareket' => $stokhareket
+            ]);
+            if ($stmt->rowCount() !== 1) {
+                throw new RuntimeException('Satış siparişi bulunamadı');
+            }
+            $stmtSatir = $dbh->prepare("
+                UPDATE {$firmadonem}ORFLINE
+                SET TRCURR = :trcurr,
+                    TRRATE = :trrate
+                WHERE ORDFICHEREF = :stokhareket
+            ");
+            $stmtSatir->execute([
+                ':trcurr' => $yeni_trcurr,
                 ':trrate' => $yeni_trrate,
                 ':stokhareket' => $stokhareket
             ]);
+            $dbh->commit();
 
-            // SESSION'ı güncelle
-            $_SESSION['doviz'] = $yeni_trcode;
+            $_SESSION['doviz'] = $yeni_trcurr;
 
             $mesaj = "Döviz başarıyla değiştirildi!";
             $mesaj_tip = "success";
 
-            // 2 saniye sonra siparis/lg_fis.php'ye yönlendir
-            header("refresh:2;url=siparis/lg_fis.php?stokhareket=$stokhareket");
+            // 2 saniye sonra siparişe dön
+            header('refresh:2;url=' . APP_ROOT_URL . '/siparis/lg_fis.php?stokhareket=' . $stokhareket);
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            if ($dbh->inTransaction()) {
+                $dbh->rollBack();
+            }
             error_log('doviz_degistir hata: ' . $e->getMessage());
             $mesaj = "Doviz degistirilemedi.";
             $mesaj_tip = "error";
@@ -63,7 +103,7 @@ if ($stokhareket > 0) {
             SELECT
                 LOGICALREF,
                 FICHENO,
-                TRCODE,
+                TRCURR,
                 TRRATE,
                 GROSSTOTAL,
                 NETTOTAL
@@ -74,22 +114,15 @@ if ($stokhareket > 0) {
         $fis = $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         error_log('doviz_degistir fis sorgu hata: ' . $e->getMessage());
-        die("Fis bulunamadi.");
+        lumen_hata_sayfasi('Sipariş bulunamadı', 'Döviz değiştirilecek sipariş bulunamadı.', 404);
     }
 }
 
 if (!$fis) {
-    die("Fiş bulunamadı!");
+    lumen_hata_sayfasi('Sipariş seçilmedi', 'Döviz değiştirmek için siparişten bu ekrana gelin.');
 }
 
-$doviz_tipler = [
-    1 => ['ad' => 'TL', 'sembol' => '₺', 'tam_ad' => 'Türk Lirası', 'icon' => 'fa-turkish-lira-sign', 'varsayilan_kur' => 1],
-    20 => ['ad' => 'USD', 'sembol' => '$', 'tam_ad' => 'Amerikan Doları', 'icon' => 'fa-dollar-sign', 'varsayilan_kur' => 43],
-    21 => ['ad' => 'EUR', 'sembol' => '€', 'tam_ad' => 'Euro', 'icon' => 'fa-euro-sign', 'varsayilan_kur' => 45],
-    22 => ['ad' => 'GBP', 'sembol' => '£', 'tam_ad' => 'İngiliz Sterlini', 'icon' => 'fa-sterling-sign', 'varsayilan_kur' => 50],
-];
-
-$mevcut_trcode = (int)$fis['TRCODE'];
+$mevcut_trcode = (int)$fis['TRCURR'];
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -97,35 +130,20 @@ $mevcut_trcode = (int)$fis['TRCODE'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Döviz Seç</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="tailwind.local.js" onerror="var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);"></script>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include __DIR__ . '/../pwa-header.php'; } ?>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
         }
 
         * { box-sizing: border-box; }
 
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             margin: 0;
@@ -133,66 +151,7 @@ $mevcut_trcode = (int)$fis['TRCODE'];
             -webkit-font-smoothing: antialiased;
         }
 
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 30;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: saturate(180%) blur(14px);
-            -webkit-backdrop-filter: saturate(180%) blur(14px);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .top-header-inner {
-            max-width: 760px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 14px 18px;
-        }
-
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: #fff;
-            border: 1px solid var(--border);
-            color: var(--text-1);
-            text-decoration: none;
-            transition: all .18s ease;
-            flex-shrink: 0;
-        }
-
-        .back-btn:hover {
-            border-color: var(--text-3);
-            transform: translateX(-2px);
-        }
-
-        .header-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--sky-soft);
-            color: var(--sky);
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-
         .header-titles { flex: 1; min-width: 0; }
-        .header-title {
-            font-size: 17px;
-            font-weight: 600;
-            color: var(--text-1);
-            letter-spacing: -0.01em;
-            line-height: 1.2;
-        }
         .header-subtitle {
             font-size: 12px;
             color: var(--text-2);
@@ -234,14 +193,14 @@ $mevcut_trcode = (int)$fis['TRCODE'];
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.7);
+            background: var(--card);
             backdrop-filter: saturate(180%) blur(10px);
             -webkit-backdrop-filter: saturate(180%) blur(10px);
             border: 1px solid var(--border);
             border-radius: 18px;
             padding: 18px 20px;
             margin-bottom: 18px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            box-shadow: var(--golge-1);
         }
 
         .section-title {
@@ -474,8 +433,8 @@ $mevcut_trcode = (int)$fis['TRCODE'];
 </head>
 <body>
     <header class="top-header">
-        <div class="top-header-inner">
-            <a href="../siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="back-btn" aria-label="Geri">
+        <div class="top-header-inner header-inner">
+            <a href="../siparis/lg_fis.php?stokhareket=<?php echo $stokhareket; ?>" class="back-btn header-back" aria-label="Geri">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <span class="header-icon"><i class="fas fa-money-bill-transfer"></i></span>
@@ -526,7 +485,7 @@ $mevcut_trcode = (int)$fis['TRCODE'];
         <form method="POST" id="dovizForm">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="stokhareket" value="<?php echo $stokhareket; ?>">
-            <input type="hidden" name="trcode" id="trcode" value="<?php echo $mevcut_trcode; ?>">
+            <input type="hidden" name="trcurr" id="trcode" value="<?php echo $mevcut_trcode; ?>">
 
             <h2 class="section-title">Yeni Döviz Seçin</h2>
             <div class="currency-grid">
@@ -562,7 +521,7 @@ $mevcut_trcode = (int)$fis['TRCODE'];
                     <i class="fas fa-triangle-exclamation"></i> Uyarı
                 </p>
                 <ul class="notice-list">
-                    <li>Döviz değiştirildiğinde <strong>sadece TRCODE ve TRRATE</strong> güncellenir</li>
+                    <li>Döviz değiştirildiğinde <strong>sadece döviz türü (TRCURR) ve kuru (TRRATE)</strong> güncellenir</li>
                     <li>Satır fiyatları değişmez, sadece görüntüleme değişir</li>
                     <li>Fiyatları yeniden girmek isterseniz satırları düzenlemelisiniz</li>
                 </ul>

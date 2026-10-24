@@ -42,57 +42,47 @@ $highBalanceThreshold = 100000.0;
 
 // Sadece arama kutusunda bir değer varsa sorguyu çalıştır
 if ($raw_cari !== '' && $raw_cari !== '0') {
-    // Türkçe karakterleri ASCII'ye çevir (mağaza -> magaza, İSTANBUL -> istanbul)
-    $cari = turkce($raw_cari);
-    $like = "%{$cari}%";
+    // Türkçe harf ve büyük/küçük harf duyarsız arama (İç Anadolu = ic anadolu = IC ANADOLU)
+    $like = '%' . lumen_arama_terimi($raw_cari) . '%';
     // 'ayr.php' dosyasından gelmesi beklenen listeleme limiti
     $limit = isset($carilistesayisi) ? (int)$carilistesayisi : 100;
-    $ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'bakiye_gizli', 'M4');
+    $ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.ID', 'bakiye_gizli', 'M4');
+
+    // Son mal içeren fatura tarihi: LOGO'da INVOICE + STLINE, bağımsızda LM_BELGE (3 fatura, 4 iade) + satır.
+    $sonAlimSql = lumen_bagimsiz_mi()
+        ? "SELECT TOP 1 B.TARIH AS SON_URUN_ALIMI FROM dbo.LM_BELGE B
+             WHERE B.CARI_ID = C.ID AND B.TUR IN (3, 4) AND B.DURUM = 1
+               AND EXISTS (SELECT 1 FROM dbo.LM_BELGE_SATIR S WHERE S.BELGE_ID = B.ID)
+             ORDER BY B.TARIH DESC, B.ID DESC"
+        : "SELECT TOP 1 I.DATE_ AS SON_URUN_ALIMI FROM {$firmadonem}INVOICE I WITH(NOLOCK)
+             WHERE I.CLIENTREF = C.ID AND I.CANCELLED = 0 AND I.TRCODE IN (7, 8)
+               AND EXISTS (SELECT 1 FROM {$firmadonem}STLINE L WITH(NOLOCK)
+                           WHERE L.INVOICEREF = I.LOGICALREF AND L.CANCELLED = 0 AND L.LINETYPE = 0)
+             ORDER BY I.DATE_ DESC, I.LOGICALREF DESC";
 
     // Güvenli ve parametreli SQL sorgusu
     $sql = "
         SELECT TOP {$limit}
-          C.LOGICALREF    AS CARIID,
-          C.CITY          AS SEHIR,
-          C.DISTRICT      AS AMBAR,
-          C.CODE          AS KODU,
-          C.TELNRS1,
-          C.EMAILADDR,
-          C.DEFINITION_   AS UNVANI,
+          C.ID            AS CARIID,
+          C.IL            AS SEHIR,
+          C.SEMT          AS AMBAR,
+          C.KOD           AS KODU,
+          C.TELEFON       AS TELNRS1,
+          C.EPOSTA        AS EMAILADDR,
+          C.UNVAN         AS UNVANI,
           LS.SON_URUN_ALIMI,
-          (ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE
-        FROM {$firma}CLCARD C WITH(NOLOCK)
-        LEFT JOIN {$firmadonemx}GNTOTCL G WITH(NOLOCK)
-            ON G.CARDREF = C.LOGICALREF AND G.TOTTYP = 1
-        OUTER APPLY (
-            SELECT TOP 1 I.DATE_ AS SON_URUN_ALIMI
-            FROM {$firmadonem}INVOICE I WITH(NOLOCK)
-            WHERE I.CLIENTREF = C.LOGICALREF
-              AND I.CANCELLED = 0
-              AND I.TRCODE IN (7, 8)
-              AND EXISTS (
-                  SELECT 1
-                  FROM {$firmadonem}STLINE L WITH(NOLOCK)
-                  WHERE L.INVOICEREF = I.LOGICALREF
-                    AND L.CANCELLED = 0
-                    AND L.LINETYPE = 0
-              )
-            ORDER BY I.DATE_ DESC, I.LOGICALREF DESC
-        ) LS
-        WHERE C.ACTIVE = 0
+          ISNULL(G.BAKIYE, 0) AS BAKIYE
+        FROM " . lumen_tablo('cari') . " C
+        LEFT JOIN " . lumen_tablo('cari_bakiye') . " G ON G.CARI_ID = C.ID
+        OUTER APPLY ({$sonAlimSql}) LS
+        WHERE C.AKTIF = 1
           " . ($ozelCariFiltresi['sql'] !== '' ? "AND {$ozelCariFiltresi['sql']}" : '') . "
           AND (
-               REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                 C.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                 COLLATE Turkish_CI_AS LIKE :p1
-            OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                 C.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                 COLLATE Turkish_CI_AS LIKE :p2
-            OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-                 C.CITY, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-                 COLLATE Turkish_CI_AS LIKE :p3
+               " . lumen_arama_sql('C.UNVAN') . " LIKE :p1
+            OR " . lumen_arama_sql('C.KOD') . " LIKE :p2
+            OR " . lumen_arama_sql('C.IL') . " LIKE :p3
           )
-        ORDER BY C.DEFINITION_ ASC
+        ORDER BY C.UNVAN ASC
     ";
     $params = array_merge($ozelCariFiltresi['params'], [':p1' => $like, ':p2' => $like, ':p3' => $like]);
 
@@ -106,7 +96,9 @@ if ($raw_cari !== '' && $raw_cari !== '0') {
     } catch (PDOException $e) {
         // Hata durumunda kullanıcıya dostane bir mesaj göster ve işlemi durdur.
         // Gerçek hatayı loglamak daha güvenli bir yöntemdir.
-        die('<div class="p-4 bg-red-800 text-white text-center">Veritabanı Hatası: ' . htmlspecialchars($e->getMessage()) . '</div>');
+        // Hata ayrıntısı ekrana değil loga (eskiden SQL hatası kullanıcıya basılıyordu).
+        error_log('lg_bakiye: ' . $e->getMessage());
+        lumen_hata_sayfasi('Bakiye listesi okunamadı', 'Bir veritabanı hatası oluştu. Lütfen tekrar deneyin.', 500);
     }
 }
 
@@ -119,7 +111,16 @@ if (!empty($rows) && isset($dbh)) {
     if (!empty($cariIdler)) {
         $ph = implode(',', array_fill(0, count($cariIdler), '?'));
         try {
-            $csSql = "
+            // Aynı kolonlar iki modda: DOC 1 çek / 2 senet, CURRSTAT 1 portföy / 2 ciro / diğer kapandı.
+            $csSql = lumen_bagimsiz_mi() ? "
+                SELECT K.ALINAN_CARI_ID AS ALAN_CARI,
+                       CASE WHEN K.TUR IN (3, 4) THEN 2 ELSE 1 END AS DOC,
+                       K.DURUM AS CURRSTAT,
+                       K.TUTAR AS TUTAR,
+                       H.UNVAN AS CIRO_HEDEF
+                FROM dbo.LM_CEK K
+                LEFT JOIN dbo.LM_CARI H ON H.ID = K.VERILEN_CARI_ID AND K.DURUM = 2
+                WHERE K.TUR IN (1, 3) AND K.ALINAN_CARI_ID IN ({$ph})" : "
                 SELECT
                     G.CARDREF AS ALAN_CARI,
                     C.DOC AS DOC,
@@ -191,75 +192,25 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="icon" type="image/png" href="../icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bakiye Listesi</title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        /* ═══════ HEADER ═══════ */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-        }
-        .header-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-1);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .header-title i { color: var(--red,#ef4444); font-size: 16px; }
 
         /* ═══════ SEARCH PANEL ═══════ */
         .search-panel {
@@ -291,7 +242,7 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
         .search-input {
             width: 100%;
             padding: 12px 14px 12px 40px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -314,7 +265,7 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
             color: #fff;
             border: none;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -347,7 +298,7 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
             padding: 10px 12px 10px 40px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -365,7 +316,7 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
             gap: 6px;
             padding: 10px 18px;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             border: none;
@@ -592,7 +543,7 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
             justify-content: center;
             gap: 6px;
             padding: 10px 6px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12px;
             font-weight: 600;
             border: 1px solid var(--border);
@@ -733,7 +684,7 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
             color: #fff;
             border: none;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-weight: 600;
             font-size: 13px;
             cursor: pointer;
@@ -754,11 +705,6 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
 
         /* ═══════ MOBILE ═══════ */
         @media (max-width: 767px) {
-            .top-header { height: 50px; }
-            .header-inner { padding: 0 12px; gap: 10px; }
-            .header-title { font-size: 15px; }
-            .header-back { width: 40px; height: 40px; border-radius: 8px; }
-            .header-divider { height: 18px; }
 
             main { padding: 14px 12px 40px !important; }
 
@@ -861,7 +807,7 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
                         <div class="desc">Girdiginiz kriterlere uygun bir musteri bulunamadi.</div>
                     <?php else: ?>
                         <div class="big-icon" style="background:#f3f4f6;color:#9ca3af;"><i class="fa-solid fa-magnifying-glass"></i></div>
-                        <div class="title">Arama Yapiniz</div>
+                        <div class="title">Arama Yapınız</div>
                         <div class="desc">Musterileri listelemek icin yukaridaki alana bir arama terimi girin.</div>
                     <?php endif; ?>
                 </div>
@@ -996,6 +942,11 @@ $duranaHub = ((int) m_p_yetki($terminalkullanici, 'M30') === 1);
                         <a href="lg_hareket.php?cariid=<?php echo (int)$rowx['CARIID']; ?>" class="action-pill pill-red" title="Hareketler">
                             <i class="fa-solid fa-list-ul"></i> Hareket
                         </a>
+                        <?php if (lumen_modul_hazir_mi('kart')): ?>
+                        <a href="../kart/cari.php?id=<?php echo (int)$rowx['CARIID']; ?>" class="action-pill pill-red" title="Cari kartı: belgeler, tahsilatlar, çekler">
+                            <i class="fa-solid fa-address-card"></i> Kart
+                        </a>
+                        <?php endif; ?>
                         <?php if ($duranaHub): ?>
                         <a href="cari_islemleri.php?cari=<?php echo (int)$rowx['CARIID']; ?>" class="action-pill pill-emerald" title="Cari İşlemleri: çek giriş / çıkış / ciro">
                             <i class="fa-solid fa-right-left"></i> İşlemler

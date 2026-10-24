@@ -2,6 +2,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../kontrol.php';
+// Cari finans bilgisi (bakiye/ekstre/fatura) yalnız bakiye ya da ekstre yetkisiyle görülür
+// (adres doğrudan yazılarak da açılmasın; menüdeki "Müşteri Bakiye" kuralıyla aynı aile).
+if (!m_p_cari_finans_erisim_var_mi($terminalkullanici)) {
+    lumen_hata_sayfasi('Yetkiniz yok', 'Cari bakiye ve ekstre için Müşteri Bakiye ya da Cari Bakiye/Ekstre yetkisi gerekir.', 403, 'fa-lock');
+}
 include_once(__DIR__ . "/../ayr.php");
 include_once(__DIR__ . "/../log_ip.php");
 
@@ -12,7 +17,7 @@ $mdoviz = "TL";
 // Session bazlı parametre sistemi kullanılıyor
 $CARIID = getPageParamInt('cariid');
 if ($CARIID <= 0) {
-    exit;
+    lumen_hata_sayfasi('Cari seçilmedi', 'Hareket dökümü için önce cari listesinden bir cari seçin.');
 }
 
 // Dönem seçimi (varsayılan: tüm dönemler)
@@ -20,16 +25,15 @@ $donemSecim = isset($_GET['donem']) ? $_GET['donem'] : 'tumu';
 // Geçerli seçenekler: aktif (2026), onceki (2025), tumu (her iki dönem)
 
 // CARİ BİLGİLERİNİ ÇEKME (BAŞLIKTA KULLANMAK İÇİN)
-$sql_cari_info = $dbh->prepare("SELECT CODE, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF = :cariid");
-$sql_cari_info->execute([':cariid' => $CARIID]);
-$cari_info = $sql_cari_info->fetch(PDO::FETCH_ASSOC);
+require_once __DIR__ . '/cari_ekstre_lib.php';
+$bagimsiz = lumen_bagimsiz_mi();
+$cari_info = cari_ekstre_cari($dbh, (int) $CARIID);
 $cari_unvan = $cari_info ? $cari_info['DEFINITION_'] : 'Bilinmeyen Cari';
 $cari_kod = $cari_info ? $cari_info['CODE'] : '';
 if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4')) {
     header('Location: ' . APP_ROOT_URL . '/403.html');
     exit;
 }
-
 
 function paraformat(float|int|string|null $kusurat): string
 {
@@ -46,25 +50,13 @@ function paraformat(float|int|string|null $kusurat): string
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cari Hareket Dokumu - <?php echo htmlspecialchars((string) $cari_unvan); ?></title>
-    <link rel="icon" type="image/png" href="icon.png">
+    <title>Cari Hareket Dökümü - <?php echo htmlspecialchars((string) $cari_unvan); ?></title>
+    <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
             --sky: #0284c7;
@@ -74,35 +66,11 @@ function paraformat(float|int|string|null $kusurat): string
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-            flex-wrap: wrap;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-title { min-width: 0; flex: 1 1 auto; }
         .header-title h1 {
             font-size: 16px; font-weight: 700; color: var(--text-1);
             display: flex; align-items: center; gap: 8px; margin: 0;
@@ -120,7 +88,7 @@ function paraformat(float|int|string|null $kusurat): string
         .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .donem-select {
             padding: 9px 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 600; color: var(--text-1);
             background: #fff; border: 1px solid var(--border); border-radius: 10px;
             outline: none; cursor: pointer; transition: all 0.2s ease;
@@ -138,7 +106,7 @@ function paraformat(float|int|string|null $kusurat): string
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 16px; background: var(--red,#ef4444); color: #fff;
             border: none; border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700;
+            font-family: var(--font); font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
         }
@@ -147,7 +115,7 @@ function paraformat(float|int|string|null $kusurat): string
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 16px; background: #fff; color: var(--text-1);
             border: 1px solid var(--border); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700;
+            font-family: var(--font); font-size: 12.5px; font-weight: 700;
             cursor: pointer; transition: all 0.2s ease;
         }
         .btn-ekstre:hover { background: var(--indigo-soft); color: var(--indigo); border-color: rgba(79, 70, 229, 0.3); transform: translateY(-1px); }
@@ -208,7 +176,7 @@ function paraformat(float|int|string|null $kusurat): string
             background: #fff;
             cursor: pointer;
             transition: all 0.2s ease;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             color: var(--text-1);
             text-decoration: none;
         }
@@ -238,17 +206,15 @@ function paraformat(float|int|string|null $kusurat): string
             margin-bottom: 18px;
         }
         .stat-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 16px 18px;
             display: flex; align-items: center; gap: 14px;
             position: relative; overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
         }
         .stat-card:nth-child(2) { animation-delay: 60ms; }
         .stat-card:nth-child(3) { animation-delay: 120ms; }
@@ -285,15 +251,13 @@ function paraformat(float|int|string|null $kusurat): string
         .stat-card.red .stat-value     { color: var(--red); }
 
         .table-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
-            will-change: transform, opacity;
         }
         .hareket-table { width: 100%; border-collapse: collapse; }
         .hareket-table thead { background: linear-gradient(180deg, #fff, #fffafa); }
@@ -360,10 +324,8 @@ function paraformat(float|int|string|null $kusurat): string
         }
 
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
             .header-title h1 { font-size: 14px; }
             .header-title p { font-size: 10.5px; }
-            .header-back { width: 30px; height: 30px; border-radius: 8px; }
             .header-actions { width: 100%; justify-content: flex-start; }
             .donem-select { font-size: 12px; padding: 8px 32px 8px 10px; }
             .btn-print { padding: 8px 14px; font-size: 12px; }
@@ -401,7 +363,6 @@ function paraformat(float|int|string|null $kusurat): string
 
         @media print {
             body { background: #fff; }
-            .top-header { position: static; box-shadow: none; border-bottom: 2px solid #000; }
             .header-actions, .no-print { display: none !important; }
             .stat-card, .table-card { box-shadow: none; border: 1px solid #ccc; animation: none; }
             .hareket-table tbody tr:hover { background: transparent; }
@@ -418,7 +379,7 @@ function paraformat(float|int|string|null $kusurat): string
             </a>
             <div class="header-divider"></div>
             <div class="header-title">
-                <h1><i class="fa-solid fa-right-left"></i>Cari Hareket Dokumu</h1>
+                <h1><i class="fa-solid fa-right-left"></i>Cari Hareket Dökümü</h1>
                 <p>
                     <?php echo htmlspecialchars((string) $cari_unvan); ?>
                     <?php if ($cari_kod !== ''): ?>
@@ -427,16 +388,18 @@ function paraformat(float|int|string|null $kusurat): string
                 </p>
             </div>
             <div class="header-actions">
+                <?php if (!lumen_bagimsiz_mi()): /* bağımsız modda dönem ayrımı yok: tüm geçmiş */ ?>
                 <select id="donemSecim" onchange="donemDegistir(this.value)" class="donem-select" aria-label="Donem secimi">
-                    <option value="aktif" <?php echo $donemSecim === 'aktif' ? 'selected' : ''; ?>>2026 (Aktif)</option>
-                    <option value="onceki" <?php echo $donemSecim === 'onceki' ? 'selected' : ''; ?>>2025 (Onceki)</option>
-                    <option value="tumu" <?php echo $donemSecim === 'tumu' ? 'selected' : ''; ?>>Tum Donemler</option>
+                    <option value="aktif" <?php echo $donemSecim === 'aktif' ? 'selected' : ''; ?>>Aktif Dönem</option>
+                    <option value="onceki" <?php echo $donemSecim === 'onceki' ? 'selected' : ''; ?>>Önceki Dönem</option>
+                    <option value="tumu" <?php echo $donemSecim === 'tumu' ? 'selected' : ''; ?>>Tüm Dönemler</option>
                 </select>
+                <?php endif; ?>
                 <button onclick="ekstreModalAc()" class="btn-ekstre" type="button">
                     <i class="fa-solid fa-file-export"></i> Ekstre
                 </button>
                 <button onclick="window.print()" class="btn-print" type="button">
-                    <i class="fa-solid fa-print"></i> Yazdir
+                    <i class="fa-solid fa-print"></i> Yazdır
                 </button>
             </div>
         </div>
@@ -517,93 +480,10 @@ function paraformat(float|int|string|null $kusurat): string
         $toplam_alacak = 0;
         $bakiye = 0;
 
-        // RESMİ BAKİYE: GNTOTCL view'ından al (lg_bakiye.php ile aynı kaynak)
-        // Bu her zaman güncel ve doğru bakiyeyi verir
-        $stmtResmi = $dbh->prepare("SELECT (ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE
-            FROM {$firmadonemx}GNTOTCL G WITH(NOLOCK)
-            WHERE G.CARDREF = :cariid AND G.TOTTYP = 1");
-        $stmtResmi->execute([':cariid' => $CARIID]);
-        $resmi_bakiye = (float)$stmtResmi->fetchColumn();
-
-        // Dönem seçimine göre kullanılacak tablo prefixlerini belirle
-        $donemPrefixler = match($donemSecim) {
-            'onceki' => [$eskifirmadonem],
-            'tumu' => [$firmadonem, $eskifirmadonem],
-            default => [$firmadonem], // aktif
-        };
-
-        // TRCODE CASE ifadesi (tekrar kullanım için)
-        $trcodeCaseExpr = "CASE HAREKET.TRCODE
-            WHEN 1 THEN 'Nakit Tahsilat' WHEN 2 THEN 'Nakit Ödeme' WHEN 3 THEN 'Borç Dekontu' WHEN 4 THEN 'Alacak Dekontu' WHEN 5 THEN 'Virman Fişi'
-            WHEN 6 THEN 'Kur Farkı Fişi' WHEN 12 THEN 'Özel Fiş' WHEN 14 THEN 'Açılış Fişi' WHEN 20 THEN 'Gelen Havale' WHEN 21 THEN 'Gönderilen Havale'
-            WHEN 24 THEN 'Döviz Alış Belgesi' WHEN 25 THEN 'Döviz Satış belgesi' WHEN 28 THEN 'Alınan Hizmet Faturası' WHEN 29 THEN 'Verilen Hizmet Faturası'
-            WHEN 31 THEN 'Satın Alma Faturası' WHEN 32 THEN 'Perakende Satış İade Faturası' WHEN 33 THEN 'Toptan Satış İade Faturası'
-            WHEN 34 THEN 'Alınan Hizmet Faturası' WHEN 35 THEN 'Alınan Proforma Fatura' WHEN 36 THEN 'Satın Alma İade Faturası'
-            WHEN 37 THEN 'Perakende Satış Faturası' WHEN 38 THEN 'Toptan Satış Faturası' WHEN 39 THEN 'Verilen Hizmet Faturası'
-            WHEN 40 THEN 'Verilen proforma fatura' WHEN 41 THEN 'Verilen Vade Farkı Faturası' WHEN 42 THEN 'Alınan Vade Farkı Faturası'
-            WHEN 43 THEN 'Satın Alma Fiyat Farkı Faturası' WHEN 44 THEN 'Satış Fiyat Farkı Faturası' WHEN 45 THEN 'Verilen Serbest Meslek Makbuzu'
-            WHEN 46 THEN 'Alınan Serbest Meslek Makbuzu' WHEN 56 THEN 'Müstahsil Makbuzu'
-            WHEN 61 THEN 'Çek Girişi' WHEN 62 THEN 'Senet Girişi'
-            WHEN 63 THEN 'Çek Çıkışı (Cari Hesaba)' WHEN 64 THEN 'Senet Çıkışı (Cari Hesaba)'
-            WHEN 70 THEN 'Kredi Kartı Fişi' WHEN 71 THEN 'Kredi Kartı İade Fişi' WHEN 72 THEN 'Firma Kredi Kartı Fişi' WHEN 73 THEN 'Firma Kredi Kartı İade Fişi'
-            WHEN 81 THEN 'Satınalma Siparişi' WHEN 82 THEN 'Satış Siparişi'
-          END";
-
-        // Her dönem için sorgu parçası oluştur (cariid değeri doğrudan SQL'e yerleştirilecek)
-        $cariIdSafe = (int)$CARIID; // SQL injection koruması
-        $queryParts = [];
-        foreach ($donemPrefixler as $prefix) {
-            // "Tüm Dönemler" seçildiğinde, TÜM dönemlerin açılış fişlerini (TRCODE=14) hariç tut
-            // Çünkü lg_bakiye.php sadece aktif dönemin GNTOTCL view'ını kullanıyor
-            // Bu view açılış fişlerini içsel olarak hesaba katıyor, biz sadece gerçek işlemleri göstermeliyiz
-            // Böylece lg_bakiye.php ve lg_hareket.php aynı bakiyeyi gösterir
-            $acilisFiltresi = '';
-            if ($donemSecim === 'tumu') {
-                $acilisFiltresi = ' AND HAREKET.TRCODE <> 14'; // 14 = Açılış Fişi (tüm dönemlerden hariç tut)
-            }
-
-            $queryParts[] = "
-            SELECT
-              HAREKET.LOGICALREF,
-              HAREKET.DATE_,
-              HAREKET.TRANNO AS DOCODE,
-              HAREKET.SOURCEFREF,
-              HAREKET.TRCODE AS TRCODE_NO,
-              {$trcodeCaseExpr} AS TRCODE,
-              KART.LOGICALREF AS KART_REF,
-              KART.CODE,
-              KART.DEFINITION_,
-              HAREKET.LINEEXP AS ACIKLAMA,
-              ISNULL((1 - HAREKET.SIGN) * HAREKET.AMOUNT, 0) AS BORC,
-              ISNULL(HAREKET.SIGN * HAREKET.AMOUNT, 0) AS ALACAK,
-              -- ONEMLI: cek/senet girisinde SOURCEFREF bir CSROLL (bordro) referansidir.
-              -- Ayni LOGICALREF sayisi CSTRANS'ta da bulunabilir (ID-uzayi cakismasi) ve
-              -- alakasiz bir cek-i tutturup yanlis CSREF uretir. Bu yuzden once BORDRO
-              -- yolunu (J) deneriz; yalnizca o boşsa dogrudan CSTRANS eslesmesine (CS) duseriz.
-              COALESCE(J.CSREF_FROM_ROLL, CS.CSREF) AS CSREF,
-              COALESCE(INV1.LOGICALREF, STF.INVOICEREF) AS INVOICE_REF,
-              '{$prefix}' AS DONEM_PREFIX
-            FROM {$prefix}CLFLINE AS HAREKET
-            JOIN {$firma}CLCARD AS KART ON HAREKET.CLIENTREF = KART.LOGICALREF
-            LEFT JOIN {$prefix}CSTRANS AS CS ON CS.LOGICALREF = HAREKET.SOURCEFREF
-            OUTER APPLY (
-              SELECT TOP (1) t.CSREF AS CSREF_FROM_ROLL
-              FROM {$prefix}CSROLL r
-              JOIN {$prefix}CSTRANS t ON t.ROLLREF = r.LOGICALREF
-              WHERE r.LOGICALREF = HAREKET.SOURCEFREF
-              ORDER BY t.LOGICALREF DESC
-            ) AS J
-            LEFT JOIN {$prefix}STFICHE AS STF ON STF.LOGICALREF = HAREKET.SOURCEFREF
-            LEFT JOIN {$prefix}INVOICE AS INV1 ON INV1.LOGICALREF = HAREKET.SOURCEFREF
-            WHERE HAREKET.CANCELLED = 0 AND KART.LOGICALREF = {$cariIdSafe}{$acilisFiltresi}";
-        }
-
-        // Sorguları UNION ALL ile birleştir ve subquery olarak sırala
-        $sql_sorgu_str = "SELECT * FROM (" . implode(" UNION ALL ", $queryParts) . ") AS BIRLESIK ORDER BY DATE_ ASC, LOGICALREF ASC";
-
-        $stmt = $dbh->prepare($sql_sorgu_str);
-        $stmt->execute();
-        $hareketler = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Resmi bakiye ve hareketler iki modda ortak kütüphaneden (cari/cari_ekstre_lib.php);
+        // PDF ve Excel çıktıları aynı veriyi kullanır.
+        $resmi_bakiye = cari_ekstre_resmi_bakiye($dbh, (int) $CARIID);
+        $hareketler = cari_ekstre_hareketleri($dbh, (int) $CARIID, (string) $donemSecim);
 
         foreach ($hareketler as $hareket) {
             $toplam_borc += $hareket['BORC'];
@@ -625,21 +505,21 @@ function paraformat(float|int|string|null $kusurat): string
             <div class="stat-card emerald">
                 <span class="icon-box"><i class="fa-solid fa-arrow-down"></i></span>
                 <div class="stat-body">
-                    <span class="stat-label">Toplam Giris (Alacak)</span>
+                    <span class="stat-label">Toplam Giriş (Alacak)</span>
                     <span class="stat-value"><?php echo paraformat($toplam_alacak); ?> &#8378;</span>
                 </div>
             </div>
             <div class="stat-card red">
                 <span class="icon-box"><i class="fa-solid fa-arrow-up"></i></span>
                 <div class="stat-body">
-                    <span class="stat-label">Toplam Cikis (Borc)</span>
+                    <span class="stat-label">Toplam Çıkış (Borç)</span>
                     <span class="stat-value"><?php echo paraformat($toplam_borc); ?> &#8378;</span>
                 </div>
             </div>
             <?php
             $bakiye_pozitif = $resmi_bakiye > 0;
             $bakiyeClass = $bakiye_pozitif ? 'emerald' : 'red';
-            $bakiyeLabel = $bakiye_pozitif ? 'Borclu' : 'Alacakli';
+            $bakiyeLabel = $bakiye_pozitif ? 'Borçlu' : 'Alacaklı';
             if (abs($resmi_bakiye) < 0.01) {
                 $bakiyeClass = 'indigo';
                 $bakiyeLabel = '';
@@ -660,10 +540,10 @@ function paraformat(float|int|string|null $kusurat): string
                     <thead>
                         <tr>
                             <th>Tarih</th>
-                            <th>Islem Turu</th>
+                            <th>İşlem Türü</th>
                             <th>Aciklama</th>
-                            <th class="right">Giris</th>
-                            <th class="right">Cikis</th>
+                            <th class="right">Giriş</th>
+                            <th class="right">Çıkış</th>
                             <th class="right">Bakiye</th>
                         </tr>
                     </thead>
@@ -714,7 +594,18 @@ function paraformat(float|int|string|null $kusurat): string
                                 echo '<td class="date">' . tarihcevir($rowx['DATE_']) . '</td>';
                                 echo '<td class="tr-type">';
 
-                                if ($isNakit && !empty($rowx['SOURCEFREF'])) {
+                                $trnoBag = (int) ($rowx['TRCODE_NO'] ?? 0);
+                                if ($bagimsiz && in_array($trnoBag, [1, 2], true) && !empty($rowx['SOURCEFREF'])) {
+                                    // Bağımsız mod: tahsilat/ödeme Lumen kasa/banka fişidir.
+                                    echo '<a href="../finans/goster.php?id=' . (int) $rowx['SOURCEFREF'] .
+                                        '" target="_blank" data-fis-link="1" class="tr-nakit">' .
+                                        $icon . htmlspecialchars((string) $rowx['TRCODE']) . '</a>';
+                                } elseif ($bagimsiz && $isInvoice && !empty($rowx['INVOICE_REF'])) {
+                                    // Bağımsız mod: fatura Lumen belgesidir.
+                                    echo '<a href="../belge/goster.php?id=' . (int) $rowx['INVOICE_REF'] .
+                                        '" target="_blank" data-fis-link="1" class="tr-fatura">' .
+                                        $icon . htmlspecialchars((string) $rowx['TRCODE']) . '</a>';
+                                } elseif ($isNakit && !empty($rowx['SOURCEFREF'])) {
                                     $nakitSayfa = $eskiDonem ? 'lg_nakit_2025.php' : 'lg_nakit.php';
                                     echo '<a href="' . $nakitSayfa . '?cari_id=' . $CARIID . '&REF=' . (int)$rowx['SOURCEFREF'] .
                                         '" target="_blank" data-fis-link="1" class="tr-nakit">' .

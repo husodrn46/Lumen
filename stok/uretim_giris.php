@@ -55,7 +55,8 @@ if (isset($_GET['ajax'])) {
                 echo json_encode(['ok' => false, 'message' => 'Ürün bulunamadı.']);
             }
         } catch (Exception $e) {
-            echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
+            $mesaj = app_public_error_message($e, 'stok/uretim_giris.item', 'Ürün aranamadı.');
+            echo json_encode(['ok' => false, 'message' => $mesaj], JSON_UNESCAPED_UNICODE);
         }
         exit;
     }
@@ -73,7 +74,8 @@ if (isset($_GET['ajax'])) {
 
             echo json_encode(['ok' => true, 'items' => $payload]);
         } catch (Exception $e) {
-            echo json_encode(['ok' => false, 'message' => $e->getMessage(), 'items' => []]);
+            $mesaj = app_public_error_message($e, 'stok/uretim_giris.search', 'Ürün araması yapılamadı.');
+            echo json_encode(['ok' => false, 'message' => $mesaj, 'items' => []], JSON_UNESCAPED_UNICODE);
         }
 
         exit;
@@ -219,11 +221,11 @@ function fetch_item_by_value(PDO $dbh, string $firma, mixed $value): ?array
     $stmt->execute([$value]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
-        $likeAny = '%' . $value . '%';
-        // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama
+        $likeAny = '%' . lumen_arama_terimi($value) . '%';
+        // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama (Türkçe harf/büyük-küçük duyarsız)
         $conditions = [
-            'S.CODE LIKE ?',
-            'S.NAME LIKE ?'
+            lumen_arama_sql('S.CODE') . ' LIKE ?',
+            lumen_arama_sql('S.NAME') . ' LIKE ?'
             // 'B.BARCODE LIKE ?'
         ];
         $params = [$likeAny, $likeAny];
@@ -282,12 +284,12 @@ function search_items(PDO $dbh, string $firma, string $term, int $limit = 10): a
     }
 
     $codePrefix = urun_kodu_oneki() . '%';
-    $likeAny = '%' . $term . '%';
+    $likeAny = '%' . lumen_arama_terimi($term) . '%';
 
-    // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama
+    // BARKOD ARAMASI DEAKTİF - Sadece CODE ve NAME ile arama (Türkçe harf/büyük-küçük duyarsız)
     $searchConditions = [
-        'S.CODE LIKE ?',
-        'S.NAME LIKE ?'
+        lumen_arama_sql('S.CODE') . ' LIKE ?',
+        lumen_arama_sql('S.NAME') . ' LIKE ?'
         // 'B.BARCODE LIKE ?'
     ];
 
@@ -339,8 +341,6 @@ function resolve_item_from_inputs(PDO $dbh, string $firma, mixed $barcode, mixed
 
     return fetch_item_by_ref($dbh, $firma, $fallbackRef);
 }
-
-
 
 function copy_logo_defaults(PDO $dbh, string $tableName, int|string $templateId, int|string $targetId): void
 
@@ -453,12 +453,30 @@ function recalc_fiche_totals(PDO $dbh, string $firmadonem, int|string $fis_id): 
         }
     }
 }
+// Fiş var mı ve üretim fişi (TRCODE=13) mi? Satır ekleme/silme öncesi doğrulanır.
+function uretim_fis_gecerli_mi(PDO $dbh, string $firmadonem, int $fis_id): bool
+{
+    if ($fis_id <= 0) {
+        return false;
+    }
+    $st = $dbh->prepare("SELECT COUNT(*) FROM {$firmadonem}STFICHE WHERE LOGICALREF = ? AND TRCODE = 13");
+    $st->execute([$fis_id]);
+    return (int) $st->fetchColumn() > 0;
+}
+
+// Durum değiştiren tüm işlemler (yeni fiş, satır ekle/sil, +1 koli) yalnız POST + CSRF ile
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_verify()) {
+    http_response_code(403);
+    die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
+}
+
 $fis_id = isset($_GET['fis']) ? (int) $_GET['fis'] : 0;
 $depogiris = isset($_GET['depogiris']) ? (int) $_GET['depogiris'] : 0;
 $depokaynak = 0;
 $msg = "";
-if (!$fis_id && isset($_GET['yeni'])) {
-    $depogiris = isset($_GET['depogiris']) ? (int) $_GET['depogiris'] : 0;
+// GET ?yeni=1 artık fiş oluşturmaz; sayfa "Yeni fiş oluştur" (POST) düğmesini gösterir
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni'])) {
+    $depogiris = isset($_POST['depogiris']) ? (int) $_POST['depogiris'] : 0;
     try {
         $dbh->beginTransaction();
         $ftime = (int) (date('G') * 65536 + date('i') * 256 + date('s'));
@@ -495,7 +513,7 @@ if (!$fis_id && isset($_GET['yeni'])) {
         if ($dbh->inTransaction()) {
             $dbh->rollBack();
         }
-        $msg = "Yeni fiş oluşturulamadı: " . $e->getMessage();
+        $msg = app_public_error_message($e, 'stok/uretim_giris.fis_olustur', 'Yeni fiş oluşturulamadı.');
     }
 }
 $fiche = null;
@@ -516,12 +534,16 @@ if ($fis_id > 0) {
             $depogiris = (int) $fiche['DESTINDEX'];
         }
     } else {
-        echo json_encode(['ok' => false, 'message' => 'Ürün bulunamadı.']);
+        lumen_hata_sayfasi('Üretim fişi bulunamadı', 'Fiş numarası geçersiz veya bu kayıt bir üretim fişi değil. Üretim listesinden tekrar açın.', 404);
     }
 }
 // --- SATIR EKLE ---
-if (isset($_POST['add_line']) && isset($_POST['fis'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_line']) && isset($_POST['fis'])) {
     $fis_id = (int) $_POST['fis'];
+    if (!uretim_fis_gecerli_mi($dbh, $firmadonem, $fis_id)) {
+        http_response_code(404);
+        die('Üretim fişi bulunamadı.');
+    }
     $depogiris = (int) $_POST['depogiris'];
     $depokaynak = isset($_POST['depokaynak']) ? (int) $_POST['depokaynak'] : 0;
     $koliRaw = $_POST['koli'] ?? '0';
@@ -719,14 +741,18 @@ if (isset($_POST['add_line']) && isset($_POST['fis'])) {
             'new_line_id' => $newLineId,
             'template_line_id' => $templateLineId,
         ], $dbh);
-        $msg = "Satır eklenemedi: " . $e->getMessage();
+        $msg = 'Satır eklenemedi. Ayrıntı sunucu günlüğüne kaydedildi.';
     }
 }
 // --- SATIR SİL ---
-if (isset($_GET['sil']) && isset($_GET['fis']) && isset($_GET['ln'])) {
-    $fis_id = (int) $_GET['fis'];
-    $depogiris = isset($_GET['depogiris']) ? (int) $_GET['depogiris'] : 0;
-    $lineno = (int) $_GET['ln'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sil']) && isset($_POST['fis']) && isset($_POST['ln'])) {
+    $fis_id = (int) $_POST['fis'];
+    $depogiris = isset($_POST['depogiris']) ? (int) $_POST['depogiris'] : 0;
+    $lineno = (int) $_POST['ln'];
+    if (!uretim_fis_gecerli_mi($dbh, $firmadonem, $fis_id)) {
+        http_response_code(404);
+        die('Üretim fişi bulunamadı.');
+    }
     try {
         $dbh->beginTransaction();
         $remaining = null;
@@ -741,8 +767,9 @@ if (isset($_GET['sil']) && isset($_GET['fis']) && isset($_GET['ln'])) {
             $del = $dbh->prepare("
                 DELETE FROM {$firmadonem}STLINE
                 WHERE STFICHEREF = ? AND TRCODE = 13 AND IOCODE = 1 AND LINETYPE = 0 AND STFICHELNNO = ?
+                  AND STFICHEREF IN (SELECT LOGICALREF FROM {$firmadonem}STFICHE WHERE LOGICALREF = ? AND TRCODE = 13)
             ");
-            $del->execute([$fis_id, $lineno]);
+            $del->execute([$fis_id, $lineno, $fis_id]);
             $cnt = $dbh->prepare("
                 SELECT COUNT(*)
                 FROM {$firmadonem}STLINE
@@ -753,7 +780,8 @@ if (isset($_GET['sil']) && isset($_GET['fis']) && isset($_GET['ln'])) {
             if ($remaining > 0) {
                 recalc_fiche_totals($dbh, $firmadonem, $fis_id);
             } else {
-                $dbh->prepare("DELETE FROM {$firmadonem}STLINE WHERE STFICHEREF = ?")->execute([$fis_id]);
+                $dbh->prepare("DELETE FROM {$firmadonem}STLINE WHERE STFICHEREF = ?
+                    AND STFICHEREF IN (SELECT LOGICALREF FROM {$firmadonem}STFICHE WHERE LOGICALREF = ? AND TRCODE = 13)")->execute([$fis_id, $fis_id]);
                 $dbh->prepare("DELETE FROM {$firmadonem}STFICHE WHERE LOGICALREF = ? AND TRCODE = 13")->execute([$fis_id]);
             }
         }
@@ -768,15 +796,19 @@ if (isset($_GET['sil']) && isset($_GET['fis']) && isset($_GET['ln'])) {
         if ($dbh->inTransaction()) {
             $dbh->rollBack();
         }
-        $msg = "Satir silinemedi: " . $e->getMessage();
+        $msg = app_public_error_message($e, 'stok/uretim_giris.satir_sil', 'Satır silinemedi.');
     }
 }
 // --- HIZLI EKLE (+1 Koli) ---
-if (isset($_GET['hizli_ekle']) && isset($_GET['stokref']) && isset($_GET['fis'])) {
-    $fis_id = (int) $_GET['fis'];
-    $depogiris = isset($_GET['depogiris']) ? (int) $_GET['depogiris'] : 0;
-    $stokrefHizli = (int) $_GET['stokref'];
-    $cokluMod = isset($_GET['coklu']) ? '1' : '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hizli_ekle']) && isset($_POST['stokref']) && isset($_POST['fis'])) {
+    $fis_id = (int) $_POST['fis'];
+    $depogiris = isset($_POST['depogiris']) ? (int) $_POST['depogiris'] : 0;
+    $stokrefHizli = (int) $_POST['stokref'];
+    $cokluMod = isset($_POST['coklu']) ? '1' : '';
+    if (!uretim_fis_gecerli_mi($dbh, $firmadonem, $fis_id)) {
+        http_response_code(404);
+        die('Üretim fişi bulunamadı.');
+    }
 
     try {
         $item = fetch_item_by_ref($dbh, $firma, $stokrefHizli);
@@ -884,7 +916,7 @@ if (isset($_GET['hizli_ekle']) && isset($_GET['stokref']) && isset($_GET['fis'])
         if ($dbh->inTransaction()) {
             $dbh->rollBack();
         }
-        $msg = "Hızlı ekleme başarısız: " . $e->getMessage();
+        $msg = app_public_error_message($e, 'stok/uretim_giris.hizli_ekle', 'Hızlı ekleme başarısız.');
     }
 }
 
@@ -965,32 +997,18 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
 
 <head>
     <meta charset="utf-8">
-    <title>Üretimden Giriş Fişi (TRCODE:13)</title>
+    <title>Üretimden Giriş Fişi</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/v4-shims.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
             --emerald-dark: #047857;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
         }
@@ -998,43 +1016,13 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { overflow-x: hidden; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
             padding-bottom: 80px;
             line-height: 1.55;
         }
-
-        /* Sticky emerald header */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(5, 150, 105, 0.18);
-            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.05);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 38px; height: 38px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none;
-            transition: all 0.2s ease; flex-shrink: 0;
-        }
-        .header-back:hover { background: var(--emerald-soft); color: var(--emerald); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-title {
-            font-size: 16px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 10px;
-            flex: 1 1 auto;
-            min-width: 0;
-        }
-        .header-title i { color: var(--emerald); font-size: 15px; }
         .header-title .subtitle {
             margin-left: 8px; font-size: 11px;
             color: var(--text-3); font-weight: 500;
@@ -1048,7 +1036,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             padding: 9px 14px;
             background: var(--emerald); color: #fff;
             border: 1px solid var(--emerald); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
             text-decoration: none;
@@ -1060,14 +1048,12 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
 
         /* Glass card base */
         .glass-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            will-change: transform, opacity;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             margin-bottom: 14px;
         }
         .glass-card:nth-of-type(1) { animation-delay: 0ms; }
@@ -1217,7 +1203,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             border-radius: 10px;
             color: var(--text-1);
             font-size: 13px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             transition: all 0.18s ease;
             min-height: 44px;
             width: 100%;
@@ -1290,7 +1276,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             text-align: left; cursor: pointer;
             transition: background-color 0.15s ease;
             color: var(--text-1);
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
         }
         .autocomplete-item:last-child { border-bottom: none; }
         .autocomplete-item:focus,
@@ -1347,7 +1333,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             background: var(--emerald); color: #fff;
             border: 1px solid var(--emerald);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
             min-height: 44px;
@@ -1434,7 +1420,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             border-radius: 8px;
             border: 1px solid var(--border);
             background: #fff;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 11.5px; font-weight: 600;
             text-decoration: none;
             cursor: pointer;
@@ -1476,7 +1462,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             color: var(--text-2);
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 600;
             text-decoration: none;
             cursor: pointer; transition: all 0.2s ease;
@@ -1558,10 +1544,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             main { padding: 16px 18px 100px; }
         }
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
-            .header-title { font-size: 14px; }
             .header-title .subtitle { display: none; }
-            .header-back { width: 34px; height: 34px; border-radius: 8px; }
             .btn-emerald { padding: 8px 12px; font-size: 12px; }
             .btn-emerald span.label-text { display: none; }
 
@@ -1659,9 +1642,13 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             </span>
             <div class="header-actions">
                 <?php if ($fiche) { ?>
-                    <a class="btn-emerald" href="uretim_giris.php?yeni=1">
-                        <i class="fa fa-plus-circle"></i><span class="label-text">Yeni Fiş</span>
-                    </a>
+                    <form method="POST" action="uretim_giris.php" style="display:inline;margin:0;">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="yeni" value="1">
+                        <button type="submit" class="btn-emerald">
+                            <i class="fa fa-plus-circle"></i><span class="label-text">Yeni Fiş</span>
+                        </button>
+                    </form>
                 <?php } ?>
             </div>
         </div>
@@ -1759,6 +1746,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
             <div class="glass-card">
                 <div class="card-body">
                     <form class="entry-form" method="POST" action="" id="entryForm">
+                        <?php echo csrf_field(); ?>
                         <input type="hidden" name="fis" value="<?php echo $fis_id; ?>">
                         <input type="hidden" name="depogiris" value="<?php echo $depogiris; ?>">
                         <input type="hidden" name="depokaynak" value="<?php echo $depokaynak; ?>">
@@ -1867,16 +1855,27 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
                                     <td><?php echo htmlspecialchars((string) trcevir($r['BIRIM']), ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td class="text-right">
                                         <div class="row-actions">
-                                            <a class="btn-row plus" title="+1 Koli"
-                                                href="uretim_giris.php?hizli_ekle=1&amp;fis=<?php echo $fis_id; ?>&amp;depogiris=<?php echo $depogiris; ?>&amp;stokref=<?php echo (int) $r['STOCKREF']; ?>">
-                                                <i class="fa fa-plus"></i> +1
-                                            </a>
-                                            <a class="btn-row danger"
-                                                onclick="return confirm('Satır silinsin mi?')"
-                                                href="uretim_giris.php?sil=1&amp;fis=<?php echo $fis_id; ?>&amp;depogiris=<?php echo $depogiris; ?>&amp;ln=<?php echo (int) $r['STFICHELNNO']; ?>"
-                                                title="Sil">
-                                                <i class="fa fa-trash"></i>
-                                            </a>
+                                            <form method="POST" action="uretim_giris.php?fis=<?php echo $fis_id; ?>&amp;depogiris=<?php echo $depogiris; ?>" style="display:inline;margin:0;">
+                                                <?php echo csrf_field(); ?>
+                                                <input type="hidden" name="hizli_ekle" value="1">
+                                                <input type="hidden" name="fis" value="<?php echo $fis_id; ?>">
+                                                <input type="hidden" name="depogiris" value="<?php echo $depogiris; ?>">
+                                                <input type="hidden" name="stokref" value="<?php echo (int) $r['STOCKREF']; ?>">
+                                                <button type="submit" class="btn-row plus" title="+1 Koli">
+                                                    <i class="fa fa-plus"></i> +1
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="uretim_giris.php?fis=<?php echo $fis_id; ?>&amp;depogiris=<?php echo $depogiris; ?>" style="display:inline;margin:0;"
+                                                onsubmit="return confirm('Satır silinsin mi?')">
+                                                <?php echo csrf_field(); ?>
+                                                <input type="hidden" name="sil" value="1">
+                                                <input type="hidden" name="fis" value="<?php echo $fis_id; ?>">
+                                                <input type="hidden" name="depogiris" value="<?php echo $depogiris; ?>">
+                                                <input type="hidden" name="ln" value="<?php echo (int) $r['STFICHELNNO']; ?>">
+                                                <button type="submit" class="btn-row danger" title="Sil">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
@@ -1923,7 +1922,13 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
         <?php } else { ?>
             <div class="glass-card">
                 <div class="card-body">
-                    <div class="alert alert-info"><i class="fa fa-info-circle"></i> Geçerli bir fiş ID'si ile gelmelisiniz. <a href="uretim_giris.php?yeni=1" style="color: var(--emerald-dark); font-weight: 700;">Yeni fiş oluştur</a>.</div>
+                    <div class="alert alert-info"><i class="fa fa-info-circle"></i> Geçerli bir fiş ID'si ile gelmelisiniz ya da yeni fiş oluşturun.</div>
+                    <form method="POST" action="uretim_giris.php" style="margin-top:12px;">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="yeni" value="1">
+                        <input type="hidden" name="depogiris" value="<?php echo (int) $depogiris; ?>">
+                        <button type="submit" class="btn-emerald"><i class="fa fa-plus-circle"></i> Yeni fiş oluştur</button>
+                    </form>
                 </div>
             </div>
         <?php } ?>
@@ -2446,6 +2451,7 @@ $hizliOk = isset($_GET['hizli_ok']) ? true : false;
 
                 ev.preventDefault();
                 var formData = new FormData(entryForm);
+                formData.append('add_line', '1'); // submit butonu FormData'ya girmez
                 var stokKodValue = formData.get('stok_kod') || '';
 
                 fetch('uretim_giris.php', {

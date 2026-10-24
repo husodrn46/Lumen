@@ -1,3 +1,4 @@
+-- lumen:yalniz-logo  (LOGO tablolarından view; bağımsız modda kurulmaz)
 -- ============================================================================
 -- M_FIS_HAREKETLERI view'ina NETTUTAR kolonu eklendi (2026-07-13)
 -- ----------------------------------------------------------------------------
@@ -14,6 +15,12 @@
 -- Geri donus: bu dosyadan NETTUTAR satirini cikarip tekrar ALTER VIEW calistir
 -- (veya onceden aldiginiz yedekten geri yukleyin).
 -- ============================================================================
+
+-- Temiz kurulumda view henüz yoktur; ALTER'ın çalışabilmesi için önce boş bir
+-- yer tutucu oluşturulur (mevcut kurulumlarda bu adım hiçbir şey yapmaz).
+IF OBJECT_ID('dbo.M_FIS_HAREKETLERI', 'V') IS NULL
+    EXEC('CREATE VIEW [dbo].[M_FIS_HAREKETLERI] AS SELECT 1 AS YER_TUTUCU');
+GO
 
 ALTER VIEW [dbo].[M_FIS_HAREKETLERI] AS
     SELECT

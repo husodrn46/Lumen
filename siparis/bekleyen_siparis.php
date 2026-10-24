@@ -80,31 +80,17 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bekleyen Siparisler</title>
-    <link rel="icon" type="image/png" href="icon.png">
+    <title>Bekleyen Siparişler</title>
+    <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.tailwindcss.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/3.0.2/css/responsive.dataTables.min.css">
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -112,40 +98,11 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        /* ── Sticky header ── */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(217, 119, 6, 0.18);
-            box-shadow: 0 2px 8px rgba(217, 119, 6, 0.04);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none;
-            transition: all 0.2s ease; flex-shrink: 0;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--amber); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-title {
-            font-size: 16px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 8px;
-            flex: 1 1 auto;
-        }
-        .header-title i { color: var(--amber); font-size: 14px; }
         .header-title .subtitle {
             margin-left: 8px; font-size: 11px;
             color: var(--text-3); font-weight: 500;
@@ -256,7 +213,7 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
         .search-wrap input {
             width: 100%;
             padding: 9px 12px 9px 34px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; color: var(--text-1);
             background: #fff;
             border: 1px solid var(--border);
@@ -289,7 +246,7 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
             padding: 9px 14px;
             background: var(--emerald); color: #fff;
             border: 1px solid var(--emerald); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
             white-space: nowrap;
@@ -317,6 +274,9 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
             white-space: nowrap;
         }
         .gd-table thead th.right { text-align: right; }
+        /* DataTables'ın koyu tema sınıfları (dark:bg-gray-700/25) açık zeminde griye çevirmesin */
+        .gd-table thead th { background-color: transparent !important; }
+        .gd-table tbody tr > td { background-color: transparent; }
         .gd-table tbody td {
             padding: 11px 14px;
             font-size: 12.5px; color: var(--text-1);
@@ -421,7 +381,7 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
             background: var(--amber); color: #fff;
             padding: 9px 20px; border-radius: 10px;
             border: none;
-            font-weight: 700; font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-weight: 700; font-family: var(--font);
             font-size: 12.5px; cursor: pointer;
             transition: background 0.15s ease;
             min-height: 44px;
@@ -451,10 +411,7 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
             .stat-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
-            .header-title { font-size: 13.5px; }
             .header-title .subtitle { display: none; }
-            .header-back { width: 34px; height: 34px; border-radius: 8px; }
 
             main { padding: 14px 12px 40px; }
 
@@ -508,7 +465,7 @@ $uretimOrani = $toplamSatir > 0 ? ($uretimGerekliSayisi / $toplamSatir) * 100 : 
             </a>
             <div class="header-divider"></div>
             <span class="header-title">
-                <i class="fa-solid fa-hourglass-half"></i>Bekleyen Siparisler
+                <i class="fa-solid fa-hourglass-half"></i>Bekleyen Siparişler
                 <span class="subtitle">Uretim plani icin stok ve bekleyen siparis dengesi</span>
             </span>
         </div>

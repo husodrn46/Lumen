@@ -8,6 +8,11 @@ require_once(__DIR__ . "/../kontrol.php");
     -------------------------------------------------------------------------- */
 include_once(__DIR__ . "/../log_ip.php");
 
+if (m_p_yetki($terminalkullanici, 'M17') != 1) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 /* ---- Sorgu (TOP 20) ----------------------------------------------------- */
 $urunKosulu = urun_kodu_kosulu('I');
 
@@ -24,8 +29,8 @@ $sql = "
     JOIN {$firma}ITEMS     AS I ON I.LOGICALREF = S.STOCKREF
     WHERE S.TRCODE IN (2,3,7,8)
       AND {$urunKosulu}
-      AND S.DATE_       >= DATEADD(DAY,-30,GETDATE())
-      AND S.DATE_       <  GETDATE()
+      AND S.DATE_       >= :bas
+      AND S.DATE_       <  :bit
       AND S.CANCELLED   = 0
     GROUP BY S.STOCKREF, I.CODE, I.NAME
 )
@@ -36,7 +41,8 @@ $sql = "
 
 	";
 	$stmt = $dbh->prepare($sql);
-	$stmt->execute();
+	// Uygulamanın takvimiyle son 30 gün + bugün (veritabanı sunucusunun saat dilimi farklı olabilir)
+	$stmt->execute(['bas' => date('Y-m-d', strtotime('-30 days')), 'bit' => date('Y-m-d', strtotime('+1 day'))]);
 	$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 /* ---- Dizi hazırlığı ve KPI'lar ---------------------------- */
@@ -69,27 +75,14 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Son 30 Gun Urun Performansi &ndash; Top 20</title>
+    <title>Son 30 Gün Ürün Performansı &ndash; En İyi 20</title>
+    <?php include_once __DIR__ . '/../pwa-header.php'; ?>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --amber-deep: #92400e;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
@@ -98,40 +91,16 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(217, 119, 6, 0.22);
-            box-shadow: 0 2px 8px rgba(217, 119, 6, 0.05);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-            flex-wrap: wrap;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover { background: var(--amber-soft); color: var(--amber); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-title { min-width: 0; flex: 1 1 auto; }
         .header-title h1 {
             font-size: 16px; font-weight: 700; color: var(--text-1);
             display: flex; align-items: center; gap: 8px; margin: 0;
         }
-        .header-title h1 .material-icons { color: var(--amber); font-size: 22px; }
+        .header-title h1 .material-icons { color: var(--red); font-size: 22px; }
         .header-title p {
             margin: 2px 0 0; font-size: 11.5px; color: var(--text-2); font-weight: 500;
         }
@@ -145,7 +114,7 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 14px; background: #fff;
             border: 1px solid var(--border); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 600;
+            font-family: var(--font); font-size: 12.5px; font-weight: 600;
             color: var(--text-1); cursor: pointer; transition: all 0.2s ease;
             min-height: 44px; text-decoration: none;
         }
@@ -165,16 +134,15 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
             margin-bottom: 20px;
         }
         .stat-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 16px 18px;
             display: flex; align-items: center; gap: 14px;
             position: relative; overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .stat-card:nth-child(1) { animation-delay: 0ms; }
         .stat-card:nth-child(2) { animation-delay: 60ms; }
@@ -219,21 +187,22 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
             font-size: 11px; font-weight: 500; color: var(--text-3); margin-left: 4px;
         }
 
-        .content-row {
+        .content-row > * { min-width: 0; }
+        .chart-head { flex-wrap: wrap; }
+.content-row {
             display: grid;
             grid-template-columns: 7fr 5fr;
             gap: 18px;
             margin-bottom: 20px;
         }
         .glass-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(217, 119, 6, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 20px 22px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
         }
         .card-title {
             font-size: 13.5px; font-weight: 700; color: var(--text-1);
@@ -249,7 +218,7 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
         .chart-toggle { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
         .chart-toggle button {
             padding: 8px 14px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12px; font-weight: 600; color: var(--text-2);
             background: #fff; border: none; border-right: 1px solid var(--border);
             cursor: pointer; transition: all 0.15s ease;
@@ -309,7 +278,6 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
             .chart-box { height: 420px; }
         }
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
             .header-title h1 { font-size: 14px; }
             .header-actions { width: 100%; justify-content: flex-start; }
             main { padding: 14px 12px 40px; }
@@ -327,7 +295,6 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
 
         @media print {
             body { background: #fff; }
-            .top-header { position: static; box-shadow: none; border-bottom: 2px solid #000; }
             .no-print, .header-actions { display: none !important; }
             .stat-card, .glass-card { box-shadow: none; border: 1px solid #ccc; animation: none; }
             .chart-box { max-height: 320px; }
@@ -344,18 +311,18 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
         </a>
         <div class="header-divider"></div>
         <div class="header-title">
-            <h1><span class="material-icons">emoji_events</span>Son 30 Gun Urun Performansi</h1>
+            <h1><span class="material-icons">emoji_events</span>Son 30 Gün Ürün Performansı</h1>
             <p>
-                Ciroya gore en iyi 20 urun
+                Ciroya göre en iyi 20 ürün
                 <span class="badge">TOP 20</span>
             </p>
         </div>
-        <div class="header-actions">
-            <button onclick="window.print()" class="btn-action btn-print" type="button" title="Yazdir">
+        <div class="header-actions header-eylem">
+            <button onclick="window.print()" class="btn-action btn-print btn btn-ikincil" type="button" title="Yazdır">
                 <span class="material-icons">print</span>
-                <span>Yazdir</span>
+                <span>Yazdır</span>
             </button>
-            <button id="exportCSV" class="btn-action btn-excel" type="button" title="CSV">
+            <button id="exportCSV" class="btn-action btn-excel btn btn-ikincil" type="button" title="CSV">
                 <span class="material-icons">download</span>
                 <span>CSV</span>
             </button>
@@ -467,7 +434,7 @@ $topProduct = empty($rows) ? ['STOK_KODU' => '-', 'TOPLAM_CIRO' => 0] : $rows[0]
 
 <script>
 // Data from PHP
-const labels = <?= json_encode($labels, JSON_UNESCAPED_UNICODE) ?>;
+const labels = <?= json_encode($labels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 const chartData = {
     sales: <?= json_encode($salesData, JSON_NUMERIC_CHECK) ?>,
     qty:   <?= json_encode($qtyData,   JSON_NUMERIC_CHECK) ?>,
@@ -560,7 +527,7 @@ document.querySelectorAll('.chart-toggle button').forEach(button => {
 document.getElementById('exportCSV').addEventListener('click', function() {
     let csv = 'Kod,Urun Adi,Ciro (TL),Adet,Ort. Fiyat (TL)\n';
     <?php foreach ($rows as $r): ?>
-    csv += '<?= addslashes((string) $r['STOK_KODU']) ?>,<?= addslashes((string) $r['STOK_ADI']) ?>,<?= $r['TOPLAM_CIRO'] ?>,<?= $r['TOPLAM_MIKTAR'] ?>,<?= $r['ORT_FIYAT'] ?>\n';
+    csv += <?= json_encode((string) $r['STOK_KODU'] . ',' . (string) $r['STOK_ADI'] . ',' . (string) $r['TOPLAM_CIRO'] . ',' . (string) $r['TOPLAM_MIKTAR'] . ',' . (string) $r['ORT_FIYAT'] . "\n", JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?>;
     <?php endforeach; ?>
 
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });

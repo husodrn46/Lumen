@@ -25,16 +25,27 @@ $erisim = $cekGirisOk;
 
 $cariRef = (int) ($_GET['cari'] ?? 0);
 $cari = null; $bakiye = 0.0; $portfoyAdet = 0; $portfoyTutar = 0.0;
+if ($erisim && $cariRef > 0 && !m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $cariRef, 'M4')) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 if ($erisim && $cariRef > 0) {
     try {
         $q = $dbh->prepare("SELECT LOGICALREF, CODE, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF=:r");
         $q->execute([':r' => $cariRef]);
         $cari = $q->fetch(PDO::FETCH_ASSOC) ?: null;
         if ($cari) {
-            $bakiye = (float) $dbh->query("SELECT ISNULL(SUM(CASE WHEN SIGN=0 THEN AMOUNT ELSE -AMOUNT END),0) FROM {$firmadonem}CLFLINE WHERE CLIENTREF={$cariRef} AND CANCELLED=0")->fetchColumn();
-            $r = $dbh->query("SELECT COUNT(*) a, ISNULL(SUM(cc.AMOUNT),0) t
-                FROM {$firmadonem}CSCARD cc JOIN {$firmadonem}CSTRANS ct ON ct.CSREF=cc.LOGICALREF AND ct.TRCODE=1
-                WHERE ct.CARDREF={$cariRef} AND cc.DOC=1 AND cc.CURRSTAT=1 AND cc.CANCELLED=0")->fetch(PDO::FETCH_ASSOC);
+            if (lumen_bagimsiz_mi()) {
+                // Bağımsız mod: bakiye LMV_CARI_BAKIYE, portföydeki çekler LM_CEK (müşteri çeki, portföyde).
+                $bakiye = (float) $dbh->query("SELECT ISNULL(BAKIYE, 0) FROM dbo.LMV_CARI_BAKIYE WHERE CARI_ID = " . (int) $cariRef)->fetchColumn();
+                $r = $dbh->query("SELECT COUNT(*) a, ISNULL(SUM(TUTAR), 0) t FROM dbo.LM_CEK
+                    WHERE ALINAN_CARI_ID = " . (int) $cariRef . " AND TUR = 1 AND DURUM = 1")->fetch(PDO::FETCH_ASSOC);
+            } else {
+                $bakiye = (float) $dbh->query("SELECT ISNULL(SUM(CASE WHEN SIGN=0 THEN AMOUNT ELSE -AMOUNT END),0) FROM {$firmadonem}CLFLINE WHERE CLIENTREF={$cariRef} AND CANCELLED=0")->fetchColumn();
+                $r = $dbh->query("SELECT COUNT(*) a, ISNULL(SUM(cc.AMOUNT),0) t
+                    FROM {$firmadonem}CSCARD cc JOIN {$firmadonem}CSTRANS ct ON ct.CSREF=cc.LOGICALREF AND ct.TRCODE=1
+                    WHERE ct.CARDREF={$cariRef} AND cc.DOC=1 AND cc.CURRSTAT=1 AND cc.CANCELLED=0")->fetch(PDO::FETCH_ASSOC);
+            }
             $portfoyAdet = (int) ($r['a'] ?? 0);
             $portfoyTutar = (float) ($r['t'] ?? 0);
         }
@@ -47,19 +58,17 @@ if ($erisim && $cariRef > 0) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cari İşlemleri</title>
-    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; --amber:#b45309; --amber-soft:#fffbeb; --indigo:#4f46e5; --indigo-soft:#eef2ff; }
+        :root {
+             --indigo:#4f46e5; --indigo-soft:#eef2ff;
+        }
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--t1); font-size:14px; }
-        .top { position:sticky; top:0; z-index:30; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--border); }
-        .top-in { max-width:760px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; gap:12px; }
-        .top-in a.geri { width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); text-decoration:none; border:1px solid var(--border); background:#fff; }
-        .top-title { font-size:15px; font-weight:600; flex:1; display:flex; align-items:center; gap:8px; }
-        .top-title i { color:var(--red); }
+        body { font-family: var(--font); background:var(--bg); color:var(--t1); font-size:14px; }
+
         main { max-width:760px; margin:0 auto; padding:18px 16px 60px; }
         .card { background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden; }
         .kapali { padding:40px 20px; text-align:center; color:var(--t2); }
@@ -95,8 +104,8 @@ if ($erisim && $cariRef > 0) {
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
+    <header class="top-header">
+        <div class="header-inner">
             <?php
             // Deterministik geri hedefi: history.back() panellerden donuste
             // ping-pong yapiyordu (panel -> islemler -> geri -> panel).
@@ -104,8 +113,8 @@ if ($erisim && $cariRef > 0) {
                 ? 'lg_bakiye.php?q=' . rawurlencode(trim((string) $cari['CODE']))
                 : 'lg_bakiye.php';
             ?>
-            <a href="<?php echo htmlspecialchars($geriHref, ENT_QUOTES, 'UTF-8'); ?>" class="geri" title="Müşteri bakiyesine dön"><i class="fa fa-arrow-left"></i></a>
-            <span class="top-title"><i class="fa-solid fa-right-left"></i> Cari İşlemleri</span>
+            <a href="<?php echo htmlspecialchars($geriHref, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Müşteri bakiyesine dön"><i class="fa fa-arrow-left"></i></a>
+            <span class="header-title"><i class="fa-solid fa-right-left"></i> Cari İşlemleri</span>
         </div>
     </header>
     <main>

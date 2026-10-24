@@ -62,7 +62,7 @@ function api_ensure_user_settings_table(PDO $dbh): void
 function api_kullanici_kodu(PDO $dbh, int $personel): string
 {
     try {
-        $stmt = $dbh->prepare("SELECT CODE FROM LG_SLSMAN WHERE LOGICALREF = :id");
+        $stmt = $dbh->prepare("SELECT CODE FROM {$GLOBALS['LUMEN_SLSMAN']} WHERE LOGICALREF = :id");
         $stmt->execute([':id' => $personel]);
         $kod = $stmt->fetchColumn();
         if ($kod !== false && $kod !== null && (string) $kod !== '') {

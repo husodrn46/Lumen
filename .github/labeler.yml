@@ -1,0 +1,67 @@
+changed-files-labels-limit: 6
+max-files-changed: 500
+
+dependencies:
+  - any:
+      - head-branch: ['^dependabot/']
+      - changed-files:
+          - any-glob-to-any-file:
+              - composer.json
+              - composer.lock
+              - .github/dependabot.yml
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/workflows/**
+          - .github/labeler.yml
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - docs/**
+          - LICENSE
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - tests/**
+
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - demo/docker/**
+          - demo/docker-compose.yml
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.sql'
+          - scripts/sema_guncelle.php
+          - scripts/logo_aktar.php
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - assets/**
+          - '**/*.css'
+          - '**/*.js'
+          - manifest.json
+          - sw.js
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - api/**
+          - includes/**
+          - src/**
+
+security:
+  - any:
+      - head-branch: ['^security(?:/|-)', '^fix/security']
+      - changed-files:
+          - any-glob-to-any-file:
+              - .github/workflows/security.yml
+              - scripts/security-regression.sh
+              - tests/akis/guvenlik.php

@@ -2,15 +2,21 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/includes/oturum.php';
+require_once __DIR__ . '/includes/app_observability.php';
+
 /**
  * kurulum.php — Lumen kurulum sihirbazı.
  *
  * İlk kurulumda tek seferlik çalışır:
- *   Adım 1: Veritabanı bağlantısı + firma/dönem/başlık/mağaza carisi → .env yazılır,
- *           _baglanti_.inc oluşturulur, bağlantı test edilir ve Lumen'e özel
- *           tablolar (sql/*.sql — M_P_YETKI, M_CEK_*, M_GOREV vb.) otomatik kurulur.
- *   Adım 2: Yönetici kullanıcı (mevcut LOGO satış temsilcisi kodu + parola) → M_P_YETKI
- *           satırı (YETKI=0) yazılır.
+ *   Adım 1: Çalışma modu + veritabanı bağlantısı → .env yazılır, _baglanti_.inc
+ *           oluşturulur, bağlantı test edilir ve şema otomatik kurulur.
+ *           - LOGO'ya bağlı: firma/dönem önekleri; LOGO tabloları doğrulanır; Lumen'e
+ *             özel tablolar (sql/*.sql — M_P_YETKI, M_CEK_*, M_GOREV vb.).
+ *           - Bağımsız: LOGO gerekmez; veritabanı yoksa oluşturulur; Lumen çekirdek
+ *             şeması (sql/lumen_cekirdek/) + ortak tablolar (docs/mimari/bagimsiz-lumen.md).
+ *   Adım 2: Yönetici kullanıcı → M_P_YETKI satırı (YETKI=0). Bağlı modda mevcut LOGO
+ *           satış temsilcisi kodu; bağımsız modda kullanıcı LM_PERSONEL'de oluşturulur.
  * Tamamlanınca `.installed` kilit dosyası oluşur; sihirbaz bir daha açılmaz.
  * (Yeniden çalıştırmak için `.installed` dosyasını silin.)
  *
@@ -18,15 +24,21 @@ declare(strict_types=1);
  * henüz yoktur. Kendi PDO test bağlantısını kurar.
  */
 
-session_start();
+lumen_oturum_baslat();
 $KOK       = __DIR__;
 $LOCK      = $KOK . '/.installed';
 $ENV       = $KOK . '/.env';
 $ORNEK_BAG = $KOK . '/_baglanti_.inc.example';
 $HEDEF_BAG = $KOK . '/_baglanti_.inc';
 
-// Zaten kuruluysa sihirbazı kapat.
-if (is_file($LOCK)) {
+// Zaten kuruluysa sihirbazı kapat. `.installed` tek başına yeterli değildir: elle
+// kurulan (.env / _baglanti_.inc'i kopyalanan) veya ortam değişkeniyle yapılandırılan
+// sistemlerde bu dosya hiç oluşmaz. O durumda kimliği doğrulanmamış bir ziyaretçinin
+// sihirbazla .env'i kendi sunucusuna yöneltmesini veya yönetici parolası atamasını
+// engellemek için mevcut yapılandırma da kilit sayılır. Adım 1'i bu oturumda
+// tamamlayan kurulumcu (kurulum_db) adım 2'ye devam edebilir.
+$yapilandirilmis = is_file($ENV) || is_file($HEDEF_BAG) || (string) getenv('AKL_DB_SERVER') !== '';
+if (is_file($LOCK) || ($yapilandirilmis && empty($_SESSION['kurulum_db']))) {
     header('Location: giris.php');
     exit;
 }
@@ -39,7 +51,8 @@ $csrf = $_SESSION['kurulum_csrf'];
 $adim   = 1;
 $hata   = '';
 $notlar = [];
-$gd_dsn = static fn(string $srv, string $db): string => "sqlsrv:server={$srv};database={$db};TrustServerCertificate=1;LoginTimeout=8";
+$gd_dsn = static fn(string $srv, string $db, bool $trustCert = false): string =>
+    "sqlsrv:server={$srv};database={$db};Encrypt=1;TrustServerCertificate=" . ($trustCert ? '1' : '0') . ';LoginTimeout=8';
 
 /** LOGO tablo önekleri (firma+dönem no'dan). */
 function kurulum_onekler(int $firma, int $donem): array
@@ -67,40 +80,9 @@ function kurulum_env_yaz(string $yol, array $kv): bool
     return @file_put_contents($yol, implode("\n", $satirlar) . "\n") !== false;
 }
 
-/**
- * sql/ klasöründeki tüm şema betiklerini sırayla uygular (Lumen'e özel M_* tabloları).
- * Betikler idempotenttir (IF NOT EXISTS), tekrar çalıştırmak güvenlidir.
- * SQL Server "GO" toplu iş ayırıcısı PDO tarafından anlaşılmadığından batch'lere bölünür.
- *
- * @return array{basarili:int, toplam:int, hatalar:array<string,string>}
- */
-function kurulum_sema_uygula(PDO $pdo, string $dir): array
-{
-    $dosyalar = glob(rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . '*.sql') ?: [];
-    sort($dosyalar, SORT_NATURAL | SORT_FLAG_CASE);
-
-    $basarili = 0;
-    $hatalar  = [];
-    foreach ($dosyalar as $yol) {
-        $ad = basename($yol);
-        try {
-            $icerik = (string) file_get_contents($yol);
-            $batchler = preg_split('/^\s*GO\s*;?\s*$/mi', $icerik) ?: [];
-            foreach ($batchler as $batch) {
-                $batch = trim($batch);
-                if ($batch === '') {
-                    continue;
-                }
-                $pdo->exec($batch);
-            }
-            $basarili++;
-        } catch (Throwable $e) {
-            $hatalar[$ad] = $e->getMessage();
-        }
-    }
-
-    return ['basarili' => $basarili, 'toplam' => count($dosyalar), 'hatalar' => $hatalar];
-}
+require_once __DIR__ . '/includes/kurulum_sema.php';
+require_once __DIR__ . '/includes/guvenlik/php_surum.php';
+$phpSorunlari = lumen_php_guvenlik_sorunlari();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($csrf, (string) ($_POST['csrf'] ?? ''))) {
@@ -117,12 +99,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dno   = max(1, (int) ($_POST['donem_no'] ?? 2));
         $bas   = trim((string) ($_POST['firma_baslik'] ?? '')) ?: 'Lumen';
         $mcari = max(0, (int) ($_POST['magaza_cari'] ?? 0));
+        $bagimsiz = ($_POST['mod'] ?? 'logo') === 'lumen';
+        $trustCert = (string) ($_POST['db_trust_cert'] ?? '') === '1';
 
         if ($srv === '' || $db === '' || $usr === '') {
             $hata = 'Sunucu, veritabanı ve kullanıcı adı zorunludur.';
+        } elseif (preg_match('/^[A-Za-z0-9._\\\\,:()\[\]-]{1,128}$/', $srv) !== 1 || preg_match('/^[A-Za-z0-9_][A-Za-z0-9_ .-]{0,127}$/', $db) !== 1) {
+            // Bağlantı dizesine ";" ile ek parametre eklenemesin (sunucu: ad, IP, ad\örnek, ad,port).
+            $hata = 'Sunucu ya da veritabanı adında geçersiz karakter var.';
+        } elseif ($bagimsiz) {
+            // ---- Bağımsız mod: LOGO yok; veritabanı yoksa oluşturulur ----
+            try {
+                [$test, $yeniDb] = kurulum_bagimsiz_veritabani(
+                    static fn(string $d): PDO => new PDO($gd_dsn($srv, $d, $trustCert), $usr, $pss, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]),
+                    $db
+                );
+                $env = [
+                    'AKL_DB_SERVER'      => $srv,
+                    'AKL_DB_NAME'        => $db,
+                    'AKL_DB_USER'        => $usr,
+                    'AKL_DB_PASS'        => $pss,
+                    'AKL_DB_ENCRYPT'     => '1',
+                    'AKL_DB_TRUST_CERT'  => $trustCert ? '1' : '0',
+                    'LUMEN_VERI_KAYNAGI' => 'lumen',
+                    'FIRMA_NO'           => '1',
+                    'FIRMA_BASLIK'       => $bas,
+                    'MAGAZA_CARI'        => (string) $mcari,
+                    'LOG_ROOT'           => '',
+                    'APP_SLOW_QUERY_MS'  => '300',
+                    'DEBUG_MODE'         => 'false',
+                ];
+                if (!kurulum_env_yaz($ENV, $env)) {
+                    $hata = '.env dosyası yazılamadı — klasör yazma izinlerini kontrol edin.';
+                } else {
+                    if (!is_file($HEDEF_BAG) && is_file($ORNEK_BAG)) {
+                        @copy($ORNEK_BAG, $HEDEF_BAG);
+                    }
+                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'trust' => $trustCert, 'bagimsiz' => true];
+                    $adim = 2;
+                    $notlar[] = $yeniDb ? "'{$db}' veritabanı oluşturuldu, yapılandırma kaydedildi." : 'Bağlantı başarılı, yapılandırma kaydedildi.';
+                    $sema = kurulum_sema_uygula($test, $KOK . '/sql', true);
+                    if ($sema['hatalar'] === []) {
+                        $notlar[] = 'Lumen veritabanı hazırlandı (' . $sema['basarili'] . '/' . $sema['toplam'] . ' betik).';
+                        $test->prepare("MERGE dbo.LM_AYAR AS H USING (SELECT 'firma_unvan' AS ANAHTAR, :d AS DEGER) AS K ON H.ANAHTAR = K.ANAHTAR
+                                        WHEN MATCHED THEN UPDATE SET DEGER = K.DEGER WHEN NOT MATCHED THEN INSERT (ANAHTAR, DEGER) VALUES (K.ANAHTAR, K.DEGER);")
+                            ->execute([':d' => $bas]);
+                    } else {
+                        $hata = 'Şema kısmen kuruldu (' . $sema['basarili'] . '/' . $sema['toplam'] . '). Hatalı: '
+                            . implode(', ', array_keys($sema['hatalar'])) . '. Ayrıntı sunucu günlüğüne yazıldı.';
+                    }
+                }
+            } catch (Throwable $e) {
+                $hata = app_public_error_message($e, 'kurulum/bagimsiz_baglanti', 'Bağlantı/doğrulama başarısız.');
+            }
         } else {
             try {
-                $test = new PDO($gd_dsn($srv, $db), $usr, $pss, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                $test = new PDO($gd_dsn($srv, $db, $trustCert), $usr, $pss, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                 // LOGO tablosu var mı? (kritik doğrulama)
                 $onek = kurulum_onekler($fno, $dno);
                 $clcard = $onek['FIRMA_PREFIX'] . 'CLCARD';
@@ -133,6 +165,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'AKL_DB_NAME'   => $db,
                     'AKL_DB_USER'   => $usr,
                     'AKL_DB_PASS'   => $pss,
+                    'AKL_DB_ENCRYPT' => '1',
+                    'AKL_DB_TRUST_CERT' => $trustCert ? '1' : '0',
                     'FIRMA_NO'      => (string) $fno,
                 ] + $onek + [
                     'FIRMA_BASLIK'      => $bas,
@@ -148,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!is_file($HEDEF_BAG) && is_file($ORNEK_BAG)) {
                         @copy($ORNEK_BAG, $HEDEF_BAG);
                     }
-                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'onek' => $onek];
+                    $_SESSION['kurulum_db'] = ['srv' => $srv, 'db' => $db, 'usr' => $usr, 'pss' => $pss, 'trust' => $trustCert, 'onek' => $onek, 'bagimsiz' => false];
                     $adim = 2;
                     $notlar[] = 'Bağlantı başarılı, yapılandırma kaydedildi.';
 
@@ -163,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             } catch (Throwable $e) {
-                $hata = 'Bağlantı/doğrulama başarısız: ' . $e->getMessage();
+                $hata = app_public_error_message($e, 'kurulum/logo_baglanti', 'Bağlantı/doğrulama başarısız.');
             }
         }
     } elseif (($_POST['adim'] ?? '') === '2' && !empty($_SESSION['kurulum_db'])) {
@@ -178,48 +212,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hata = 'Kullanıcı kodu ve parola zorunludur.';
         } elseif ($p1 !== $p2) {
             $hata = 'Parolalar eşleşmiyor.';
-        } elseif (strlen($p1) < 6) {
-            $hata = 'Parola en az 6 karakter olmalı.';
         } else {
             try {
-                $pdo = new PDO($gd_dsn($cfg['srv'], $cfg['db']), $cfg['usr'], $cfg['pss'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-                // Satış temsilcisi var mı?
-                $q = $pdo->prepare("SELECT LOGICALREF FROM LG_SLSMAN WHERE CODE = :k AND ACTIVE = 0");
-                $q->execute([':k' => $kod]);
-                $ref = $q->fetchColumn();
-                if ($ref === false) {
-                    $hata = "'{$kod}' kodlu aktif satış temsilcisi bulunamadı. Önce LOGO'da tanımlayın.";
+                $pdo = new PDO($gd_dsn($cfg['srv'], $cfg['db'], (bool) ($cfg['trust'] ?? false)), $cfg['usr'], $cfg['pss'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                $r = kurulum_yonetici_olustur($pdo, (bool) ($cfg['bagimsiz'] ?? false), $kod, (string) ($_POST['admin_ad'] ?? ''), $p1);
+                if (!$r['ok']) {
+                    $hata = $r['mesaj'];
                 } else {
-                    $ref = (int) $ref;
-                    // M_P_YETKI tablosu (yoksa oluştur)
-                    $pdo->exec("IF OBJECT_ID('dbo.M_P_YETKI','U') IS NULL
-                        CREATE TABLE M_P_YETKI (PERSONEL INT NOT NULL PRIMARY KEY, SIFRE NVARCHAR(255) NULL, YETKI INT NULL)");
-                    $hash = password_hash($p1, PASSWORD_DEFAULT);
-                    $var = (int) $pdo->query("SELECT COUNT(*) FROM M_P_YETKI WHERE PERSONEL = {$ref}")->fetchColumn();
-                    if ($var > 0) {
-                        $u = $pdo->prepare("UPDATE M_P_YETKI SET SIFRE = :s, YETKI = 0 WHERE PERSONEL = :p");
-                        $u->execute([':s' => $hash, ':p' => $ref]);
-                    } else {
-                        // Mevcut kurulumlarda M_P_YETKI ek NOT NULL izin kolonlarına (M1..Mn) sahip
-                        // olabilir; bunları 0 ile doldur (yönetici YETKI=0 zaten tüm izinleri açar).
-                        $extra = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                            WHERE TABLE_NAME = 'M_P_YETKI' AND IS_NULLABLE = 'NO'
-                              AND COLUMN_NAME NOT IN ('PERSONEL','SIFRE','YETKI')
-                              AND COLUMNPROPERTY(OBJECT_ID('dbo.M_P_YETKI'), COLUMN_NAME, 'IsIdentity') = 0")
-                            ->fetchAll(PDO::FETCH_COLUMN);
-                        $cols = ['[PERSONEL]', '[SIFRE]', '[YETKI]'];
-                        $vals = [':p', ':s', '0'];
-                        foreach ($extra as $c) { $cols[] = '[' . $c . ']'; $vals[] = '0'; }
-                        $sql = 'INSERT INTO M_P_YETKI (' . implode(',', $cols) . ') VALUES (' . implode(',', $vals) . ')';
-                        $i = $pdo->prepare($sql);
-                        $i->execute([':p' => $ref, ':s' => $hash]);
-                    }
-                    @file_put_contents($LOCK, "kurulum tamamlandi\n");
                     unset($_SESSION['kurulum_db']);
+                    if (file_put_contents($LOCK, "kurulum tamamlandi\n") === false) {
+                        // Kilit yazılamazsa da sihirbaz .env var olduğu için kapanır;
+                        // yine de yöneticiyi uyar.
+                        $notlar[] = '.installed kilit dosyası yazılamadı — klasör izinlerini kontrol edin.';
+                    }
                     $adim = 3;
                 }
             } catch (Throwable $e) {
-                $hata = 'Yönetici oluşturulamadı: ' . $e->getMessage();
+                $hata = app_public_error_message($e, 'kurulum/yonetici', 'Yönetici oluşturulamadı.');
             }
         }
     }
@@ -241,7 +250,7 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
     <style>
         :root { --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; }
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; letter-spacing:-0.02em; background:
+        body { font-family:'Montserrat','Avenir Next',sans-serif; letter-spacing:-0.02em; background:
             radial-gradient(1000px 500px at 10% -10%, rgba(111,16,34,.06), transparent 60%), var(--bg);
             color:var(--t1); min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; }
         .wrap { width:100%; max-width:560px; }
@@ -262,6 +271,8 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
         .alan input { width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; }
         .alan input:focus { border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft); }
         .alan .ip { font-size:11px; color:var(--t3); margin-top:4px; }
+        .secenek { display:flex; align-items:flex-start; gap:9px; margin:-2px 0 15px; font-size:12px; color:var(--t2); line-height:1.45; cursor:pointer; }
+        .secenek input { width:auto; margin-top:3px; accent-color:var(--red); }
         .btn { width:100%; background:var(--red); color:#fff; border:none; padding:13px; border-radius:11px; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:6px; }
         .btn:hover { filter:brightness(1.08); }
         .mesaj { padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:13px; display:flex; align-items:flex-start; gap:9px; line-height:1.45; }
@@ -270,7 +281,15 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
         .bitti { text-align:center; padding:10px 0; }
         .bitti .ico { width:64px; height:64px; border-radius:50%; background:var(--emerald-soft); color:var(--emerald); display:inline-flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:14px; }
         .bitti a { display:inline-flex; align-items:center; gap:8px; margin-top:18px; background:var(--red); color:#fff; text-decoration:none; padding:12px 24px; border-radius:11px; font-weight:700; }
-        @media (max-width:520px){ .grid2 { grid-template-columns:1fr; } }
+        .modlar { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+        .mod { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--border); border-radius:12px; padding:12px; cursor:pointer; }
+        .mod:has(input:checked) { border-color:var(--red); box-shadow:0 0 0 3px var(--red-soft); }
+        .mod input { margin-top:3px; accent-color:var(--red); }
+        .mod b { display:block; font-size:13px; margin-bottom:3px; }
+        .mod .beta { font-size:10px; font-weight:700; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:1px 5px; margin-left:4px; vertical-align:1px; }
+        .mod small { display:block; font-size:11.5px; color:var(--t2); line-height:1.4; }
+        form.lumen .yalniz-logo, form:not(.lumen) .yalniz-lumen { display:none; }
+        @media (max-width:520px){ .grid2, .modlar { grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
@@ -287,25 +306,38 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
             <?php if ($hata !== ''): ?>
                 <div class="mesaj err"><i class="fa-solid fa-circle-exclamation"></i><span><?php echo htmlspecialchars($hata, ENT_QUOTES, 'UTF-8'); ?></span></div>
             <?php endif; ?>
+            <?php if ($phpSorunlari !== []): ?>
+                <div class="mesaj err"><i class="fa-solid fa-shield-halved"></i><span><b>Önce PHP'yi güncelleyin:</b> <?php echo htmlspecialchars(implode(' ', $phpSorunlari), ENT_QUOTES, 'UTF-8'); ?></span></div>
+            <?php endif; ?>
             <?php foreach ($notlar as $n): ?>
                 <div class="mesaj ok"><i class="fa-solid fa-circle-check"></i><span><?php echo htmlspecialchars($n, ENT_QUOTES, 'UTF-8'); ?></span></div>
             <?php endforeach; ?>
 
             <?php if ($adim === 1): ?>
                 <h1>Veritabanı Bağlantısı</h1>
-                <p class="alt">LOGO Tiger SQL Server veritabanınıza bağlanın.</p>
-                <form method="POST">
+                <p class="alt">Çalışma modunu seçin ve SQL Server veritabanınıza bağlanın.</p>
+                <form method="POST" id="kurulumForm">
                     <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
                     <input type="hidden" name="adim" value="1">
+                    <?php $modSec = ($_POST['mod'] ?? 'logo') === 'lumen' ? 'lumen' : 'logo'; ?>
+                    <div class="modlar" role="radiogroup" aria-label="Çalışma modu">
+                        <label class="mod"><input type="radio" name="mod" value="logo" <?php echo $modSec === 'logo' ? 'checked' : ''; ?>>
+                            <span><b><i class="fa-solid fa-link"></i> LOGO'ya bağlı</b><small>Veriler LOGO Tiger veritabanında; Lumen ön yüz olarak çalışır.</small></span></label>
+                        <label class="mod"><input type="radio" name="mod" value="lumen" <?php echo $modSec === 'lumen' ? 'checked' : ''; ?>>
+                            <span><b><i class="fa-solid fa-database"></i> Bağımsız</b><small>LOGO gerekmez; cari, stok, fatura, kasa Lumen'in kendi veritabanında.</small></span></label>
+                    </div>
                     <div class="grid2">
                         <div class="alan"><label>SQL Server</label><input name="db_server" value="<?php echo $val('db_server', 'localhost'); ?>" required></div>
-                        <div class="alan"><label>Veritabanı adı</label><input name="db_name" value="<?php echo $val('db_name'); ?>" placeholder="LOGODB" required></div>
+                        <div class="alan"><label>Veritabanı adı</label><input name="db_name" value="<?php echo $val('db_name'); ?>" placeholder="LOGODB" required><div class="ip yalniz-lumen">Yoksa oluşturulur; LOGO veritabanı olmamalı.</div></div>
                     </div>
                     <div class="grid2">
                         <div class="alan"><label>Kullanıcı</label><input name="db_user" value="<?php echo $val('db_user', 'sa'); ?>" required></div>
                         <div class="alan"><label>Parola</label><input type="password" name="db_pass" value=""></div>
                     </div>
-                    <div class="grid2">
+                    <label class="secenek"><input type="checkbox" name="db_trust_cert" value="1" <?php echo (string) ($_POST['db_trust_cert'] ?? '') === '1' ? 'checked' : ''; ?>>
+                        <span><b>Sunucu sertifikasına doğrulamadan güven</b><br>Yalnızca kendinden imzalı sertifika kullanan, kimliğini başka yolla doğruladığınız yerel SQL Server için açın.</span>
+                    </label>
+                    <div class="grid2 yalniz-logo">
                         <div class="alan"><label>Firma No</label><input type="number" name="firma_no" value="<?php echo $val('firma_no', '1'); ?>" min="1" required><div class="ip">LG_<b>001</b>_...</div></div>
                         <div class="alan"><label>Dönem No</label><input type="number" name="donem_no" value="<?php echo $val('donem_no', '2'); ?>" min="1" required><div class="ip">LG_001_<b>02</b>_...</div></div>
                     </div>
@@ -315,14 +347,39 @@ $val = static fn(string $k, string $d = ''): string => htmlspecialchars((string)
                     </div>
                     <button class="btn" type="submit"><i class="fa-solid fa-plug"></i> Bağlan ve Devam Et</button>
                 </form>
+                <script>
+                (function () {
+                    var f = document.getElementById('kurulumForm');
+                    function uygula() {
+                        var lumen = f.querySelector('input[name="mod"]:checked').value === 'lumen';
+                        f.classList.toggle('lumen', lumen);
+                        f.querySelectorAll('.yalniz-logo input').forEach(function (i) { i.required = !lumen && i.name !== 'firma_baslik' && i.name !== 'magaza_cari'; });
+                        f.db_name.placeholder = lumen ? 'LUMEN' : 'LOGODB';
+                    }
+                    f.querySelectorAll('input[name="mod"]').forEach(function (r) { r.addEventListener('change', uygula); });
+                    uygula();
+                })();
+                </script>
 
             <?php elseif ($adim === 2): ?>
                 <h1>Yönetici Hesabı</h1>
-                <p class="alt">Yönetici olacak <b>mevcut LOGO satış temsilcisinin</b> kodunu ve bir parola belirleyin.</p>
+                <?php $kurBagimsiz = (bool) ($_SESSION['kurulum_db']['bagimsiz'] ?? false); ?>
+                <?php if ($kurBagimsiz): ?>
+                    <p class="alt">İlk kullanıcı (yönetici) için bir <b>kullanıcı kodu</b>, ad ve parola belirleyin.</p>
+                <?php else: ?>
+                    <p class="alt">Yönetici olacak <b>mevcut LOGO satış temsilcisinin</b> kodunu ve bir parola belirleyin.</p>
+                <?php endif; ?>
                 <form method="POST">
                     <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
                     <input type="hidden" name="adim" value="2">
-                    <div class="alan"><label>Satış temsilcisi kodu (kullanıcı adı)</label><input name="admin_kod" value="<?php echo $val('admin_kod'); ?>" required autofocus><div class="ip">LOGO'daki satış temsilcisi kodu (büyük harfe çevrilir)</div></div>
+                    <?php if ($kurBagimsiz): ?>
+                        <div class="grid2">
+                            <div class="alan"><label>Kullanıcı kodu</label><input name="admin_kod" value="<?php echo $val('admin_kod', 'YONETICI'); ?>" required autofocus><div class="ip">Giriş adı (büyük harfe çevrilir)</div></div>
+                            <div class="alan"><label>Ad soyad</label><input name="admin_ad" value="<?php echo $val('admin_ad'); ?>"></div>
+                        </div>
+                    <?php else: ?>
+                        <div class="alan"><label>Satış temsilcisi kodu (kullanıcı adı)</label><input name="admin_kod" value="<?php echo $val('admin_kod'); ?>" required autofocus><div class="ip">LOGO'daki satış temsilcisi kodu (büyük harfe çevrilir)</div></div>
+                    <?php endif; ?>
                     <div class="grid2">
                         <div class="alan"><label>Parola</label><input type="password" name="admin_pass" required></div>
                         <div class="alan"><label>Parola (tekrar)</label><input type="password" name="admin_pass2" required></div>

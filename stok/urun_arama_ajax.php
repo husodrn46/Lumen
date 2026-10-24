@@ -177,51 +177,45 @@ if ($barbak) {
     ";
     $params[':stokid'] = (int)$barbak['ITEMREF'];
 } else {
-    // İsim/kod/barkod araması: kolon üzerinde REPLACE zinciri yerine COLLATE + LIKE kullan.
-    $qNormalized = function_exists('turkce') ? turkce($barkod) : $barkod;
+    // İsim/kod araması Türkçe harf ve büyük/küçük harf duyarsız (TABAĞI = tabagi = Tabağı):
+    // kolon lumen_arama_sql(), terim lumen_arama_terimi() ([ ] ile LIKE kaçışlı).
+    // Barkod LIKE'ları ham terimle ve ESCAPE '!' ile kalır.
+    $qAramaEscaped = lumen_arama_terimi($barkod);
     $qRawEscaped = $escapeLikePattern($barkod);
-    $qNormEscaped = $escapeLikePattern($qNormalized);
+    $codeAramaSql = lumen_arama_sql('URUN.CODE');
+    $nameAramaSql = lumen_arama_sql('URUN.NAME');
 
     // ESCAPE '!' — backslash değil! (HY093 kök nedeni: "ESCAPE '\'" içindeki \'
     // PDO param ayrıştırıcısını bozuyordu; escapeLikePattern açıklamasına bak.)
     $finalQuery = $baseQuery . "
         AND (
-            URUN.CODE LIKE :qcp ESCAPE '!'
-            OR URUN.CODE LIKE :qcc ESCAPE '!'
+            {$codeAramaSql} LIKE :qc
             OR BARKOD.BARCODE LIKE :qbp ESCAPE '!'
             OR BARKOD.BARCODE LIKE :qbc ESCAPE '!'
-            OR URUN.NAME LIKE :qnr ESCAPE '!'
-            OR URUN.NAME LIKE :qnn ESCAPE '!'
+            OR {$nameAramaSql} LIKE :qn
         )
         ORDER BY URUN.NAME
         OFFSET {$offset} ROWS FETCH NEXT {$perPage} ROWS ONLY
     ";
-    $params[':qcp'] = $qRawEscaped . '%';
-    $params[':qcc'] = '%' . $qRawEscaped . '%';
+    $params[':qc'] = '%' . $qAramaEscaped . '%';
     $params[':qbp'] = $qRawEscaped . '%';
     $params[':qbc'] = '%' . $qRawEscaped . '%';
-    $params[':qnr'] = '%' . $qRawEscaped . '%';
-    $params[':qnn'] = '%' . $qNormEscaped . '%';
+    $params[':qn'] = '%' . $qAramaEscaped . '%';
 
-    // Uyumluluk fallback (eski arama yöntemi):
-    // Bazı SQL Server sürüm/kolasyon kombinasyonlarında üstteki LIKE/ESCAPE yapısı hata verebilir.
+    // Uyumluluk fallback: ESCAPE kullanmayan sürüm (barkod da [ ] kaçışlı terimle).
     $fallbackQuery = $baseQuery . "
         AND (
-            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-              URUN.NAME, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-              LIKE :q1
-            OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-              URUN.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-              LIKE :q2
+            {$codeAramaSql} LIKE :q1
+            OR {$nameAramaSql} LIKE :q2
             OR BARKOD.BARCODE LIKE :q3
         )
         ORDER BY URUN.NAME
         OFFSET {$offset} ROWS FETCH NEXT {$perPage} ROWS ONLY
     ";
-    $searchTerm = '%' . $qNormalized . '%';
+    $searchTerm = '%' . $qAramaEscaped . '%';
     $fallbackParams[':q1'] = $searchTerm;
     $fallbackParams[':q2'] = $searchTerm;
-    $fallbackParams[':q3'] = '%' . $qRawEscaped . '%';
+    $fallbackParams[':q3'] = '%' . str_replace(['[', '%', '_'], ['[[]', '[%]', '[_]'], $barkod) . '%';
 }
 
 // ---------------------- Çalıştır ----------------------
@@ -284,6 +278,7 @@ $hasMore = (!$searchedByBarcode && ($offset + count($rows) < $total));
 
 // ---------------------- <li> HTML'ini string olarak üret ----------------------
 $html = '';
+$stokKarti = lumen_modul_hazir_mi('kart') && (m_p_yetki($terminalkullanici, 'ST1') == 1 || (int) $yetkidurum === 0);
 foreach ($rows as $r) {
     $kod     = $r['URUN_KODU'] ?? '';
     $ad      = $r['URUN_ADI'] ?? '';
@@ -303,7 +298,8 @@ foreach ($rows as $r) {
 
     $html .= '<li>';
     $html .=   '<div class="list-row">';
-    $html .=     '<div class="kod">'.$escapeHtml($kod).'</div>';
+    // Bağımsız mod: kod stok kartına bağlanır (hareket geçmişi, depolar, fiyatlar).
+    $html .=     '<div class="kod">' . ($stokKarti ? '<a href="../kart/stok.php?id=' . (int) ($r['URUN_ID'] ?? 0) . '" style="color:inherit">' . $escapeHtml($kod) . '</a>' : $escapeHtml($kod)) . '</div>';
     $html .=     '<div class="ad" title="'.$escapeHtml($ad).'">'.$escapeHtml($ad).'</div>';
     $html .=     '<div class="bk">'.$escapeHtml($brk).'</div>';
     $html .=     '<div class="stk">';

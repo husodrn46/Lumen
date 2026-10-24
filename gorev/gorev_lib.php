@@ -185,7 +185,7 @@ if (!function_exists('gorev_atanabilir_kullanicilar')) {
         try {
             $stmt = $dbh->prepare(
                 "SELECT LOGICALREF, CODE, DEFINITION_
-                   FROM LG_SLSMAN WITH(NOLOCK)
+                   FROM {$GLOBALS['LUMEN_SLSMAN']} S
                   WHERE FIRMNR = :firma AND ACTIVE = 0
                   ORDER BY DEFINITION_"
             );
@@ -213,7 +213,7 @@ if (!function_exists('gorev_kullanici_adi')) {
             return $cache[$id];
         }
         try {
-            $stmt = $dbh->prepare("SELECT DEFINITION_, CODE FROM LG_SLSMAN WITH(NOLOCK) WHERE LOGICALREF = :id");
+            $stmt = $dbh->prepare("SELECT DEFINITION_, CODE FROM {$GLOBALS['LUMEN_SLSMAN']} S WHERE LOGICALREF = :id");
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
             $row = $stmt->fetch(PDO::FETCH_ASSOC);

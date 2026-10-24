@@ -118,6 +118,25 @@ SELECT id FROM @yeni;";
     }
 }
 
+if (!function_exists('fatura_kilidi')) {
+    /**
+     * Faturalama işlemlerini sıraya sokar (transaction sonuna dek tutulur).
+     * Aynı siparişe eşzamanlı iki istek çift fatura kesmesin, iki farklı sipariş
+     * aynı fatura numarasını (MAX+1) almasın diye kontrol + numara + yazma tek
+     * kilidin içinde yapılır. Açık bir transaction içinde çağrılmalıdır.
+     */
+    function fatura_kilidi(PDO $dbh): void
+    {
+        $st = $dbh->query("DECLARE @r INT; EXEC @r = sp_getapplock @Resource = 'lumen_fatura', @LockMode = 'Exclusive',
+                           @LockOwner = 'Transaction', @LockTimeout = 15000; SELECT @r;");
+        $sonuc = (int) $st->fetchColumn();
+        $st->closeCursor();
+        if ($sonuc < 0) {
+            throw new RuntimeException('Faturalama kilidi alınamadı (başka bir faturalama sürüyor).');
+        }
+    }
+}
+
 if (!function_exists('fatura_zaten_faturali_mi')) {
     function fatura_zaten_faturali_mi(PDO $dbh, string $fd, int $orficheRef): bool
     {
@@ -173,21 +192,26 @@ if (!function_exists('fatura_olustur_core')) {
 
         try {
             $dbh->beginTransaction();
+            fatura_kilidi($dbh);
 
-            // 0) Idempotency — zaten faturalıysa dur
+            // 0) Idempotency — zaten faturalıysa dur (kilit altında: eşzamanlı istek göremez)
             if (fatura_zaten_faturali_mi($dbh, $fd, $orficheRef)) {
                 $dbh->rollBack();
                 return ['ok' => false, 'kod' => 409, 'mesaj' => 'Bu sipariş zaten faturalanmış.'];
             }
 
             // Sipariş başlığı
-            $ofs = $dbh->prepare("SELECT LOGICALREF, FICHENO, CLIENTREF, SALESMANREF, SOURCEINDEX, TRCURR, BRANCH, DEPARTMENT
-                                  FROM {$fd}ORFICHE WHERE LOGICALREF = :r AND TRCODE = 1");
+            $ofs = $dbh->prepare("SELECT LOGICALREF, FICHENO, CLIENTREF, SALESMANREF, SOURCEINDEX, TRCURR, BRANCH, DEPARTMENT, CANCELLED
+                                  FROM {$fd}ORFICHE WITH (UPDLOCK, HOLDLOCK) WHERE LOGICALREF = :r AND TRCODE = 1");
             $ofs->execute([':r' => $orficheRef]);
             $orf = $ofs->fetch(PDO::FETCH_ASSOC);
             if (!$orf) {
                 $dbh->rollBack();
                 return ['ok' => false, 'kod' => 404, 'mesaj' => 'Satış siparişi bulunamadı.'];
+            }
+            if ((int) ($orf['CANCELLED'] ?? 0) !== 0) {
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 409, 'mesaj' => 'İptal edilmiş sipariş faturalanamaz.'];
             }
             if ((int) ($orf['TRCURR'] ?? 0) !== 0) {
                 $dbh->rollBack();
@@ -224,13 +248,15 @@ if (!function_exists('fatura_olustur_core')) {
             // Şablonlar: geçerli bir TL satış faturası ve onun bileşenleri
             $invSablon = (int) $dbh->query("SELECT TOP 1 LOGICALREF FROM {$fd}INVOICE WHERE TRCODE=8 AND (TRCURR=0 OR TRCURR IS NULL) AND NETTOTAL>0 ORDER BY LOGICALREF DESC")->fetchColumn();
             if ($invSablon <= 0) {
-                throw new RuntimeException('Şablon TL fatura bulunamadı.');
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 422, 'mesaj' => 'Faturalama için LOGO\'da kesilmiş en az bir TL satış faturası (irsaliye, stok ve cari satırlarıyla) gerekir; şablon olarak kopyalanır.'];
             }
             $stfSablon = (int) $dbh->query("SELECT TOP 1 LOGICALREF FROM {$fd}STFICHE WHERE INVOICEREF = {$invSablon}")->fetchColumn();
             $stlSablon = (int) $dbh->query("SELECT TOP 1 LOGICALREF FROM {$fd}STLINE WHERE INVOICEREF = {$invSablon} AND LINETYPE = 0")->fetchColumn();
             $clfSablon = (int) $dbh->query("SELECT TOP 1 LOGICALREF FROM {$fd}CLFLINE WHERE SOURCEFREF = {$invSablon} AND TRCODE = 38 AND MODULENR = 4")->fetchColumn();
             if ($stfSablon <= 0 || $stlSablon <= 0 || $clfSablon <= 0) {
-                throw new RuntimeException('Fatura bileşen şablonları (STFICHE/STLINE/CLFLINE) bulunamadı.');
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 422, 'mesaj' => 'Faturalama için LOGO\'da kesilmiş en az bir TL satış faturası (irsaliye, stok ve cari satırlarıyla) gerekir; şablon olarak kopyalanır.'];
             }
 
             // Genel iskonto satırları (ORFLINE LINETYPE=2) + onlar için STLINE LINETYPE=2 şablonu
@@ -241,7 +267,8 @@ if (!function_exists('fatura_olustur_core')) {
             if ($iskSatirlar) {
                 $stlSablon2 = (int) $dbh->query("SELECT TOP 1 LOGICALREF FROM {$fd}STLINE WHERE TRCODE=8 AND LINETYPE=2 ORDER BY LOGICALREF DESC")->fetchColumn();
                 if ($stlSablon2 <= 0) {
-                    throw new RuntimeException('Genel iskonto satırı şablonu (STLINE LINETYPE=2) bulunamadı.');
+                    $dbh->rollBack();
+                    return ['ok' => false, 'kod' => 422, 'mesaj' => 'Genel iskontolu sipariş için LOGO\'da genel iskonto satırı olan bir satış faturası şablonu gerekir.'];
                 }
             }
 
@@ -440,8 +467,9 @@ if (!function_exists('fatura_geri_al_core')) {
     {
         try {
             $dbh->beginTransaction();
+            fatura_kilidi($dbh);
 
-            $lg = $dbh->prepare("SELECT * FROM M_FATURA_LOG WHERE ID = :id");
+            $lg = $dbh->prepare("SELECT * FROM M_FATURA_LOG WITH (UPDLOCK, HOLDLOCK) WHERE ID = :id");
             $lg->execute([':id' => $logId]);
             $log = $lg->fetch(PDO::FETCH_ASSOC);
             if (!$log) {
@@ -452,9 +480,31 @@ if (!function_exists('fatura_geri_al_core')) {
                 $dbh->rollBack();
                 return ['ok' => false, 'kod' => 409, 'mesaj' => 'Bu fatura zaten geri alınmış veya aktif değil.'];
             }
+            // Silmeler {$fd} tablolarında yapılır: kayıt başka dönemin faturasıysa
+            // aynı LOGICALREF bu dönemde bambaşka bir belgeye ait olabilir.
+            if ((string) $log['FIRMADONEM'] !== $fd) {
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 409, 'mesaj' => 'Bu fatura başka bir döneme ait; o dönemde geri alın.'];
+            }
             $invRef = (int) $log['INVOICE_REF'];
             $stfRef = (int) $log['STFICHE_REF'];
             $clfRef = (int) $log['CLFLINE_REF'];
+
+            // LOGO tarafında fatura değiştiyse (silindi, numarası değişti, muhasebeleşti,
+            // e-belgeye çevrildi) dokunma: silmek muhasebe kaydını sahipsiz bırakır.
+            $fs = $dbh->prepare("SELECT FICHENO, ISNULL(ACCOUNTED,0) AS ACCOUNTED, ISNULL(ACCFICHEREF,0) AS ACCFICHEREF,
+                                        ISNULL(EINVOICE,0) AS EINVOICE, ISNULL(CANCELLED,0) AS CANCELLED
+                                 FROM {$fd}INVOICE WITH (UPDLOCK) WHERE LOGICALREF = :r AND TRCODE = 8");
+            $fs->execute([':r' => $invRef]);
+            $fat = $fs->fetch(PDO::FETCH_ASSOC);
+            if (!$fat || (string) $fat['FICHENO'] !== (string) $log['INVOICE_FICHENO']) {
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 409, 'mesaj' => 'Fatura LOGO\'da silinmiş veya değiştirilmiş; geri alma LOGO\'dan yapılmalı.'];
+            }
+            if ((int) $fat['ACCOUNTED'] !== 0 || (int) $fat['ACCFICHEREF'] > 0 || (int) $fat['EINVOICE'] !== 0) {
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 409, 'mesaj' => 'Fatura muhasebeleştirilmiş veya e-belgeye çevrilmiş; geri alma LOGO\'dan yapılmalı.'];
+            }
 
             // 1) Cari borç sil
             if ($clfRef > 0) {

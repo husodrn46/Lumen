@@ -23,7 +23,7 @@ $permissionLabels = function_exists('m_p_yetki_etiketleri')
     ? m_p_yetki_etiketleri()
     : [];
 
-$firmaStmt = $dbh->prepare("SELECT NR, NAME FROM L_CAPIFIRM ORDER BY NAME ASC");
+$firmaStmt = $dbh->prepare("SELECT NR, NAME FROM " . lumen_tablo('firma') . " F ORDER BY NAME ASC");
 $firmaStmt->execute();
 $firmalar = $firmaStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -50,7 +50,7 @@ $sql = "SELECT
             S.FIRMNR,
             CASE WHEN Y.PERSONEL IS NULL THEN 0 ELSE 1 END AS HAS_YETKI_ROW,
             ISNULL(Y.YETKI, 2) AS YETKI_TURU
-        FROM LG_SLSMAN S
+        FROM {$GLOBALS['LUMEN_SLSMAN']} S
         LEFT JOIN M_P_YETKI Y ON Y.PERSONEL = S.LOGICALREF
         WHERE " . implode(' AND ', $whereParts) . "
         ORDER BY S.ACTIVE ASC, S.CODE ASC";
@@ -129,29 +129,15 @@ $totalPageAudits = count($pageAuditItems);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yetki Denetim</title>
+    <title>Yetki Denetimi</title>
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --slate: #475569;
@@ -159,42 +145,13 @@ $totalPageAudits = count($pageAuditItems);
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
 
-        /* Sticky INDIGO header */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(99, 102, 241, 0.18);
-            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.05);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover { background: var(--indigo-soft); color: var(--indigo); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            background: var(--indigo-soft); color: var(--indigo);
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 15px; flex-shrink: 0;
-        }
         .header-titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
-        .header-title { font-size: 16px; font-weight: 700; color: var(--text-1); line-height: 1.2; }
         .header-subtitle {
             font-size: 11.5px; color: var(--text-2);
             display: inline-flex; align-items: center; gap: 8px;
@@ -210,14 +167,13 @@ $totalPageAudits = count($pageAuditItems);
 
         /* Glass card base */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(99, 102, 241, 0.16);
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             will-change: opacity, transform;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
 
         /* Info note */
@@ -255,7 +211,7 @@ $totalPageAudits = count($pageAuditItems);
         .field input[type="text"] {
             width: 100%;
             padding: 11px 14px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             color: var(--text-1);
             background: #fff;
@@ -285,7 +241,7 @@ $totalPageAudits = count($pageAuditItems);
             color: #fff;
             border: 1px solid var(--indigo);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px; font-weight: 700;
             cursor: pointer; transition: all 0.18s ease;
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
@@ -299,7 +255,7 @@ $totalPageAudits = count($pageAuditItems);
             color: var(--text-2);
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px; font-weight: 600;
             cursor: pointer; transition: all 0.18s ease;
             text-decoration: none; height: 42px;
@@ -315,11 +271,10 @@ $totalPageAudits = count($pageAuditItems);
         }
         .stat-card {
             padding: 14px 16px;
-            background: #fff;
+            background: var(--card);
             border-radius: 12px;
             border: 1px solid var(--border);
             display: flex; align-items: center; gap: 12px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .stat-card.in { border-color: rgba(99,102,241,0.22); background: linear-gradient(135deg, var(--indigo-soft) 0%, #fff 60%); animation-delay: 0.06s; }
         .stat-card.em { border-color: rgba(5,150,105,0.22); background: linear-gradient(135deg, var(--emerald-soft) 0%, #fff 60%); animation-delay: 0.12s; }
@@ -340,15 +295,14 @@ $totalPageAudits = count($pageAuditItems);
 
         /* Table card */
         .table-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(99, 102, 241, 0.16);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             overflow: hidden;
             will-change: opacity, transform;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
         }
         .table-head {
             padding: 14px 18px;
@@ -417,7 +371,7 @@ $totalPageAudits = count($pageAuditItems);
             font-size: 11px; font-weight: 700;
             text-transform: uppercase; letter-spacing: 0.3px;
             border: 1px solid transparent;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             white-space: nowrap;
         }
         .chip .dot { width: 6px; height: 6px; border-radius: 50%; }
@@ -474,7 +428,7 @@ $totalPageAudits = count($pageAuditItems);
             color: var(--sky);
             border: 1px solid rgba(2,132,199,0.25);
             border-radius: 9px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12px; font-weight: 700;
             text-decoration: none; cursor: pointer;
             transition: all 0.18s ease;
@@ -507,11 +461,7 @@ $totalPageAudits = count($pageAuditItems);
             .stat-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
-            .header-title { font-size: 14px; }
             .header-subtitle { font-size: 10.5px; }
-            .header-icon { width: 32px; height: 32px; font-size: 13px; }
-            .header-back { width: 32px; height: 32px; }
 
             main { padding: 14px 12px 40px; }
 
@@ -560,6 +510,10 @@ $totalPageAudits = count($pageAuditItems);
         @media (min-width: 768px) {
             .m-label { display: none; }
         }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-filter { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-filter:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
     </style>
 </head>
 <body>

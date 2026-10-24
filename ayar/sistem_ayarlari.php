@@ -10,109 +10,39 @@ require_once __DIR__ . '/admin_guard.php';
 // Yetki kontrolü - M16 (Ayarlar) yetkisi gerekli
 ayar_require_m16($terminalkullanici);
 
-// _bilgi_.inc dosyasını oku
-$bilgi_file = __DIR__ . '/../_bilgi_.inc';
-$bilgi_content = file_get_contents($bilgi_file);
+// Düzenlenebilir ayarlar ve türleri tek yerde: includes/ayar_deposu.php
+$ayar_tipleri = array_filter(lumen_ayar_semasi(), static fn(string $t): bool => $t !== 'iskonto_listesi');
 
-// Düzenlenebilir ayarların tipleri (key => tip). Tipler:
-//   'bool' (0/1) · 'boolyn' (evet/hayir) · 'int' (sayı) · 'text' (metin)
-$ayar_tipleri = [
-    'fisyazici' => 'text', 'fisyazici2' => 'text', 'fisyazici3' => 'text', 'fisyazici4' => 'text',
-    'barkodyazici' => 'text', 'barkodyazici2' => 'text',
-    'adetkusurat' => 'int', 'parakusurat' => 'int',
-    'dovizlicalis' => 'bool', 'dovizfirma' => 'int', 'doviztipleri' => 'text', 'tlkodu' => 'int',
-    'kullanicigirisli' => 'bool', 'benihatirla' => 'bool',
-    'bakiyegorunsun' => 'bool', 'extregorunsun' => 'bool', 'carilistesayisi' => 'int',
-    'yenicariac' => 'bool', 'carikoduontaki' => 'text', 'hizlicari' => 'int', 'iletisim' => 'bool',
-    'stoklistesayisi' => 'int', 'stoksonalisfiyati' => 'bool', 'stoksonsatisfiyati' => 'bool',
-    'stokekle' => 'boolyn', 'yenistokac' => 'bool', 'stokkoduontaki' => 'text',
-    'resimlistoklistesi' => 'bool', 'coklustokgiris' => 'boolyn',
-    'sonsiparis_aktif' => 'bool', 'favoriler_aktif' => 'bool',
-    'iskontolu' => 'int', 'iskontolu2' => 'int', 'iskontolu3' => 'int', 'topluiskonto' => 'bool', 'iskontoartir' => 'bool',
-    'sipno' => 'text', 'siparistefiyatduzenle' => 'bool', 'yenialissiparisi' => 'bool', 'reserve' => 'bool',
-    'faturalama_aktif' => 'bool', 'fatura_prefix' => 'text', 'fatura_irsaliye_prefix' => 'text',
-    'exceleaktar' => 'bool', 'koliyazdir' => 'bool', 'resimliyazdir' => 'bool', 'barkodyazdir' => 'bool',
-    'depo' => 'int', 'cokludepo' => 'bool',
-    'fiyatgruplu' => 'bool', 'odemekodu' => 'text', 'tanimlialantoplam' => 'bool', 'tanimlialan' => 'bool',
-    'yenifiyatduzenle' => 'bool', 'toplukdv' => 'bool', 'eksik' => 'bool', 'maliyetkontrol' => 'bool',
-    'cokluekledeayniurun' => 'bool', 'dil' => 'int',
-];
-
-/** Değeri tipine göre GÜVENLİ iç-değere (tırnaksız) dönüştür — PHP literalini bozacak karakterler elenir. */
-function sa_temiz(string $tip, $ham): string
-{
-    if ($tip === 'int') {
-        $n = (int) preg_replace('/[^0-9-]/', '', (string) $ham);
-        return (string) max(0, min(999999, $n));
-    }
-    // text: tırnak / ters bölü / ; / kontrol karakterlerini at, 60 karakterle sınırla
-    $s = preg_replace('/[\'"\\\\;\r\n\x00-\x1F]/', '', (string) $ham) ?? '';
-    return mb_substr(trim($s), 0, 60);
-}
-
-/** _bilgi_.inc içinde `$var = ...;` değerini, MEVCUT tırnak stilini koruyarak değiştir. */
-function sa_yaz(string $content, string $var, string $ic): string
-{
-    $pattern = '/(\$' . preg_quote($var, '/') . '\s*=\s*)([\'"]?)(.*?)(\2)(\s*;)/s';
-    $yeni = preg_replace_callback($pattern, static function (array $m) use ($ic): string {
-        return $m[1] . $m[2] . $ic . $m[2] . $m[5];
-    }, $content, 1);
-    return $yeni ?? $content;
-}
-
-// Form gönderildiğinde ayarları güncelle
+// Form gönderildiğinde ayarları kaydet. Değerler artık _bilgi_.inc'e (PHP kaynak
+// dosyası) yazılmaz; database/ayarlar.json'a veri olarak, şemaya göre doğrulanıp
+// yazılır. Eskiden süzgeçteki her eksik kod çalıştırmaya, her hatalı yazım tüm
+// sitenin çökmesine yol açabiliyordu.
 $guncelleme_mesaji = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guncelle'])) {
     ayar_require_csrf();
 
-    $icerik = (string) file_get_contents($bilgi_file);
-    $orijinal = $icerik;
-
+    $degisiklikler = [];
     foreach ($ayar_tipleri as $key => $tip) {
-        if ($tip === 'bool') {
-            $ic = isset($_POST[$key]) ? '1' : '0';
-        } elseif ($tip === 'boolyn') {
-            $ic = isset($_POST[$key]) ? 'evet' : 'hayir';
+        if ($tip === 'bool' || $tip === 'boolyn') {
+            $degisiklikler[$key] = isset($_POST[$key]) ? '1' : '0';
         } elseif (isset($_POST[$key])) {
-            $ic = sa_temiz($tip, $_POST[$key]);
-        } else {
-            continue;
+            $degisiklikler[$key] = $_POST[$key];
         }
-        $icerik = sa_yaz($icerik, $key, $ic);
     }
 
-    // GÜVENLİK: yeni içerik geçerli PHP mi? (bozuk yazma önlenir)
-    $gecerli = true;
-    try {
-        token_get_all($icerik, TOKEN_PARSE);
-    } catch (\ParseError $e) {
-        $gecerli = false;
-    }
-
-    if (!$gecerli || strlen($icerik) < strlen($orijinal) * 0.7) {
-        $guncelleme_mesaji = 'error';
+    if (lumen_ayar_kaydet($degisiklikler, (int) $terminalkullanici)) {
+        $guncelleme_mesaji = 'success';
+        lumen_ayar_uygula();
+        foreach (array_keys($ayar_tipleri) as $key) {
+            ${$key} = $GLOBALS[$key] ?? (${$key} ?? null);
+        }
     } else {
-        @copy($bilgi_file, $bilgi_file . '.bak'); // yedek
-        if (file_put_contents($bilgi_file, $icerik) !== false) {
-            $guncelleme_mesaji = 'success';
-            // Bu istek için güncel değerleri belleğe yükle (form güncel görünsün)
-            foreach ($ayar_tipleri as $key => $tip) {
-                if ($tip === 'bool') {
-                    ${$key} = isset($_POST[$key]) ? '1' : '0';
-                } elseif ($tip === 'boolyn') {
-                    ${$key} = isset($_POST[$key]) ? 'evet' : 'hayir';
-                } elseif (isset($_POST[$key])) {
-                    ${$key} = sa_temiz($tip, $_POST[$key]);
-                }
-            }
-        } else {
-            $guncelleme_mesaji = 'error';
-        }
+        $guncelleme_mesaji = 'error';
     }
 }
 
 // Ayarları kategorilere ayır
-$ayarlar = ['Yazıcı Ayarları' => [['fisyazici', 'Fiş Yazıcı 1', $fisyazici], ['fisyazici2', 'Fiş Yazıcı 2', $fisyazici2], ['fisyazici3', 'Fiş Yazıcı 3', $fisyazici3], ['fisyazici4', 'Fiş Yazıcı 4', $fisyazici4], ['barkodyazici', 'Barkod Yazıcı 1', $barkodyazici], ['barkodyazici2', 'Barkod Yazıcı 2', $barkodyazici2]], 'Küsurat Ayarları' => [['adetkusurat', 'Adet Küsurat', $adetkusurat], ['parakusurat', 'Para Küsurat', $parakusurat]], 'Döviz Ayarları' => [['dovizlicalis', 'Dövizli Çalış', $dovizlicalis], ['dovizfirma', 'Döviz Firma No', $dovizfirma], ['doviztipleri', 'Döviz Tipleri', $doviztipleri], ['tlkodu', 'TL Kodu', $tlkodu]], 'Kullanıcı Ayarları' => [['kullanicigirisli', 'Kullanıcı Girişli', $kullanicigirisli], ['benihatirla', 'Beni Hatırla', $benihatirla]], 'Cari Ayarları' => [['bakiyegorunsun', 'Bakiye Görünsün', $bakiyegorunsun], ['extregorunsun', 'Ekstre Görünsün', $extregorunsun], ['carilistesayisi', 'Cari Liste Sayısı', $carilistesayisi], ['yenicariac', 'Yeni Cari Aç', $yenicariac], ['carikoduontaki', 'Cari Kodu Ön Takı', $carikoduontaki], ['hizlicari', 'Hızlı Satış Carisi', $hizlicari], ['iletisim', 'İletişim (Telefon)', $iletisim]], 'Stok Ayarları' => [['stoklistesayisi', 'Stok Liste Sayısı', $stoklistesayisi], ['stoksonalisfiyati', 'Stok Son Alış Fiyatı', $stoksonalisfiyati], ['stoksonsatisfiyati', 'Stok Son Satış Fiyatı', $stoksonsatisfiyati], ['stokekle', 'Stok Ekle', $stokekle], ['yenistokac', 'Yeni Stok Aç', $yenistokac], ['stokkoduontaki', 'Stok Kodu Ön Takı', $stokkoduontaki], ['resimlistoklistesi', 'Resimli Stok Listesi', $resimlistoklistesi], ['coklustokgiris', 'Çoklu Stok Giriş', $coklustokgiris]], 'Stok Arama Ayarları' => [['sonsiparis_aktif', 'Son Sipariş Yükle Butonu', $sonsiparis_aktif, true], ['favoriler_aktif', 'Favori Ürünler Butonu', $favoriler_aktif, true]], 'İskonto Ayarları' => [['iskontolu', 'İskonto 1 (%)', $iskontolu], ['iskontolu2', 'İskonto 2 (%)', $iskontolu2], ['iskontolu3', 'İskonto 3 (%)', $iskontolu3], ['topluiskonto', 'Toplu İskonto', $topluiskonto], ['iskontoartir', 'İskonto Artır', $iskontoartir]], 'Sipariş Ayarları' => [['sipno', 'Sipariş No Prefix', $sipno], ['siparistefiyatduzenle', 'Siparişte Fiyat Düzenle', $siparistefiyatduzenle], ['yenialissiparisi', 'Yeni Alış Siparişi', $yenialissiparisi], ['reserve', 'Rezerve', $reserve]], 'Faturalama (BETA — KDV\'siz)' => [['faturalama_aktif', 'Faturalama Aktif', $faturalama_aktif ?? '0', true], ['fatura_prefix', 'Fatura Seri Ön Eki', $fatura_prefix ?? 'LMF'], ['fatura_irsaliye_prefix', 'İrsaliye Seri Ön Eki', $fatura_irsaliye_prefix ?? 'LMI']], 'Yazdırma Ayarları' => [['exceleaktar', 'Excel\'e Aktar', $exceleaktar], ['koliyazdir', 'Koli Yazdır', $koliyazdir], ['resimliyazdir', 'Resimli Yazdır', $resimliyazdir], ['barkodyazdir', 'Barkod Yazdır', $barkodyazdir]], 'Depo Ayarları' => [['depo', 'Varsayılan Depo', $depo], ['cokludepo', 'Çoklu Depo', $cokludepo]], 'Diğer Ayarlar' => [['fiyatgruplu', 'Fiyat Gruplu', $fiyatgruplu], ['odemekodu', 'Ödeme Kodu', $odemekodu], ['tanimlialantoplam', 'Tanımlı Alan Toplam', $tanimlialantoplam], ['tanimlialan', 'Tanımlı Alan', $tanimlialan], ['yenifiyatduzenle', 'Yeni Fiyat Düzenle', $yenifiyatduzenle], ['toplukdv', 'Toplu KDV', $toplukdv], ['eksik', 'Eksik', $eksik], ['maliyetkontrol', 'Maliyet Kontrol', $maliyetkontrol], ['cokluekledeayniurun', 'Çoklu Ekle Aynı Ürün', $cokluekledeayniurun], ['dil', 'Dil', $dil]]];
+$ayarlar = ['Yazıcı Ayarları' => [['fisyazici', 'Fiş Yazıcı 1', $fisyazici], ['fisyazici2', 'Fiş Yazıcı 2', $fisyazici2], ['fisyazici3', 'Fiş Yazıcı 3', $fisyazici3], ['fisyazici4', 'Fiş Yazıcı 4', $fisyazici4], ['barkodyazici', 'Barkod Yazıcı 1', $barkodyazici], ['barkodyazici2', 'Barkod Yazıcı 2', $barkodyazici2]], 'Küsurat Ayarları' => [['adetkusurat', 'Adet Küsurat', $adetkusurat], ['parakusurat', 'Para Küsurat', $parakusurat]], 'Döviz Ayarları' => [['dovizlicalis', 'Dövizli Çalış', $dovizlicalis], ['dovizfirma', 'Döviz Firma No', $dovizfirma], ['doviztipleri', 'Döviz Tipleri', $doviztipleri], ['tlkodu', 'TL Kodu', $tlkodu]], 'Kullanıcı Ayarları' => [['kullanicigirisli', 'Kullanıcı Girişli', $kullanicigirisli], ['benihatirla', 'Beni Hatırla', $benihatirla]], 'Cari Ayarları' => [['bakiyegorunsun', 'Bakiye Görünsün', $bakiyegorunsun], ['extregorunsun', 'Ekstre Görünsün', $extregorunsun], ['carilistesayisi', 'Cari Liste Sayısı', $carilistesayisi], ['yenicariac', 'Yeni Cari Aç', $yenicariac], ['carikoduontaki', 'Cari Kodu Ön Takı', $carikoduontaki], ['hizlicari', 'Hızlı Satış Carisi', $hizlicari], ['iletisim', 'İletişim (Telefon)', $iletisim]], 'Stok Ayarları' => [['stoklistesayisi', 'Stok Liste Sayısı', $stoklistesayisi], ['stoksonalisfiyati', 'Stok Son Alış Fiyatı', $stoksonalisfiyati], ['stoksonsatisfiyati', 'Stok Son Satış Fiyatı', $stoksonsatisfiyati], ['stokekle', 'Stok Ekle', $stokekle], ['yenistokac', 'Yeni Stok Aç', $yenistokac], ['stokkoduontaki', 'Stok Kodu Ön Takı', $stokkoduontaki], ['resimlistoklistesi', 'Resimli Stok Listesi', $resimlistoklistesi], ['coklustokgiris', 'Çoklu Stok Giriş', $coklustokgiris]], 'Stok Arama Ayarları' => [['sonsiparis_aktif', 'Son Sipariş Yükle Butonu', $sonsiparis_aktif, true], ['favoriler_aktif', 'Favori Ürünler Butonu', $favoriler_aktif, true]], 'İskonto Ayarları' => [['iskontolu', 'İskonto 1 (%)', $iskontolu], ['iskontolu2', 'İskonto 2 (%)', $iskontolu2], ['iskontolu3', 'İskonto 3 (%)', $iskontolu3], ['topluiskonto', 'Toplu İskonto', $topluiskonto], ['iskontoartir', 'İskonto Artır', $iskontoartir]], 'Sipariş Ayarları' => [['sipno', 'Sipariş No Prefix', $sipno], ['siparistefiyatduzenle', 'Siparişte Fiyat Düzenle', $siparistefiyatduzenle], ['yenialissiparisi', 'Yeni Alış Siparişi', $yenialissiparisi], ['reserve', 'Rezerve', $reserve]], 'Faturalama (BETA — KDV\'siz)' => [['faturalama_aktif', 'Faturalama Aktif', $faturalama_aktif ?? '0', true], ['fatura_prefix', 'Fatura Seri Ön Eki', $fatura_prefix ?? 'LMF'], ['fatura_irsaliye_prefix', 'İrsaliye Seri Ön Eki', $fatura_irsaliye_prefix ?? 'LMI']], 'Faturalama (BETA — KDV\'siz)' => [['faturalama_aktif', 'Faturalama Aktif', $faturalama_aktif ?? '0', true], ['fatura_prefix', 'Fatura Seri Ön Eki', $fatura_prefix ?? 'LMF'], ['fatura_irsaliye_prefix', 'İrsaliye Seri Ön Eki', $fatura_irsaliye_prefix ?? 'LMI']], 'Yazdırma Ayarları' => [['exceleaktar', 'Excel\'e Aktar', $exceleaktar], ['koliyazdir', 'Koli Yazdır', $koliyazdir], ['resimliyazdir', 'Resimli Yazdır', $resimliyazdir], ['barkodyazdir', 'Barkod Yazdır', $barkodyazdir]], 'Depo Ayarları' => [['depo', 'Varsayılan Depo', $depo], ['cokludepo', 'Çoklu Depo', $cokludepo]], 'Diğer Ayarlar' => [['fiyatgruplu', 'Fiyat Gruplu', $fiyatgruplu], ['odemekodu', 'Ödeme Kodu', $odemekodu], ['tanimlialantoplam', 'Tanımlı Alan Toplam', $tanimlialantoplam], ['tanimlialan', 'Tanımlı Alan', $tanimlialan], ['yenifiyatduzenle', 'Yeni Fiyat Düzenle', $yenifiyatduzenle], ['toplukdv', 'Toplu KDV', $toplukdv], ['eksik', 'Eksik', $eksik], ['maliyetkontrol', 'Maliyet Kontrol', $maliyetkontrol], ['cokluekledeayniurun', 'Çoklu Ekle Aynı Ürün', $cokluekledeayniurun], ['dil', 'Dil', $dil]]];
 
 // Kategori ikonlari
 $kategori_ikon = [
@@ -125,6 +55,7 @@ $kategori_ikon = [
     'Stok Arama Ayarları'   => 'fa-magnifying-glass',
     'İskonto Ayarları'      => 'fa-tag',
     'Sipariş Ayarları'      => 'fa-file-invoice',
+    'Faturalama (BETA — KDV\'siz)' => 'fa-file-invoice-dollar',
     'Yazdırma Ayarları'     => 'fa-print',
     'Depo Ayarları'         => 'fa-warehouse',
     'Diğer Ayarlar'         => 'fa-ellipsis-h',
@@ -157,6 +88,7 @@ function sa_render_value($deger): string
     <link rel="icon" type="image/png" href="../icon.png">
     <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <script>
         if (typeof tailwind === 'undefined') {
             var s = document.createElement('script');
@@ -164,25 +96,10 @@ function sa_render_value($deger): string
             document.head.appendChild(s);
         }
     </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -190,41 +107,13 @@ function sa_render_value($deger): string
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
         .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
-
-        /* Sticky top header (indigo tone) */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(79, 70, 229, 0.18);
-            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.04);
-        }
-        .header-inner {
-            max-width: 1180px; margin: 0 auto;
-            height: 100%; display: flex; align-items: center; gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: var(--indigo-soft); color: var(--indigo); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
         .header-title-wrap { display: flex; flex-direction: column; line-height: 1.15; }
-        .header-title {
-            font-size: 17px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 8px;
-        }
-        .header-title i { color: var(--indigo); font-size: 15px; }
         .header-sub { font-size: 11.5px; color: var(--text-2); margin-top: 1px; }
         .header-badge {
             margin-left: auto;
@@ -460,11 +349,7 @@ function sa_render_value($deger): string
 
         /* Mobile */
         @media (max-width: 767px) {
-            .top-header { height: 56px; }
-            .header-inner { padding: 0 14px; gap: 10px; }
-            .header-title { font-size: 14px; }
             .header-sub { font-size: 10.5px; }
-            .header-back { width: 32px; height: 32px; border-radius: 8px; }
             .header-badge { display: none; }
             main { padding: 16px 12px 40px !important; }
             .settings-grid { grid-template-columns: 1fr; gap: 8px; }
@@ -486,6 +371,10 @@ function sa_render_value($deger): string
         .sa-kaydet-bar .sa-not { margin-right:auto; font-size:12.5px; color:var(--text-3); display:flex; align-items:center; gap:7px; }
         .sa-kaydet-bar code { background:var(--red-soft); color:var(--red); padding:1px 6px; border-radius:5px; font-size:12px; }
         @media (max-width:520px){ .sa-field .sa-in { width:130px; } .sa-kaydet-bar { margin:16px -12px -40px; padding:12px 14px; } .sa-kaydet-bar .sa-not { display:none; } }
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-submit { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-submit:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
     </style>
 </head>
 <body>
@@ -499,7 +388,7 @@ function sa_render_value($deger): string
             <i class="fa-solid fa-circle-check"></i>
             <div>
                 <div class="a-title">Ayarlar kaydedildi.</div>
-                <div class="a-body">Tum ayarlar _bilgi_.inc dosyasina yazildi.</div>
+                <div class="a-body">Tum ayarlar kaydedildi.</div>
             </div>
         </div>
     <?php elseif ($guncelleme_mesaji === 'error'): ?>
@@ -558,14 +447,14 @@ function sa_render_value($deger): string
         <?php endforeach; ?>
 
         <div class="sa-kaydet-bar">
-            <span class="sa-not"><i class="fa-solid fa-circle-info"></i> Değişiklikler <code>_bilgi_.inc</code> dosyasına yazılır.</span>
+            <span class="sa-not"><i class="fa-solid fa-circle-info"></i> Değişiklikler <code>database/ayarlar.json</code> dosyasına kaydedilir; varsayılanlar <code>_bilgi_.inc</code>'tedir.</span>
             <button type="submit" name="guncelle" class="btn-submit"><i class="fa-solid fa-floppy-disk"></i> Tümünü Kaydet</button>
         </div>
     </form>
 
     <div class="file-note">
         <i class="fa-solid fa-file-code"></i>
-        <span>Ayar dosyasi: <code>_bilgi_.inc</code></span>
+        <span>Ayar dosyasi: <code>database/ayarlar.json</code></span>
     </div>
 
 </main>

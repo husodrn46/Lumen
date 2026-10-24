@@ -37,10 +37,8 @@ if (function_exists('m_p_cariid_goruntulebilir_mi') && !m_p_cariid_goruntulebili
     exit;
 }
 
-// Helper fonksiyonlar
-function e(mixed $v): string {
-    return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8');
-}
+// Helper fonksiyonlar (e() ayr.php'de tanımlıdır; burada yeniden tanımlamak
+// "Cannot redeclare e()" ölümcül hatasıyla uç noktayı tamamen çalışmaz kılıyordu.)
 
 function fmtqty(float|int|string|null $n): string {
     if (function_exists('kusuratadet')) {

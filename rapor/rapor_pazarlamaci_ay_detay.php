@@ -5,9 +5,9 @@ declare(strict_types=1);
  * AJAX endpoint: Belirli bir ayin satis faturalarini dondurur.
  * Parametreler (POST):
  *   - month: 1-12 arasi ay numarasi
- *   - prefix: Cari kod on eki (ornek: TMÇN)
+ *   - prefix: Cari kod on eki (varsayılan: .env PAZARLAMACI_CARI_ONEKI)
  *
- * 2026 yili sabittir, satis fisleri (TRCODE 7/8) listelenir.
+ * Icinde bulunulan yil kullanilir, satis fisleri (TRCODE 7/8) listelenir.
  */
 
 include_once(__DIR__ . "/../ayr.php");
@@ -21,7 +21,7 @@ if (m_p_yetki($terminalkullanici, 'M17') != 1) {
 }
 
 $month = isset($_POST['month']) ? (int) $_POST['month'] : 0;
-$cariPrefix = isset($_POST['prefix']) ? trim((string) $_POST['prefix']) : 'TMÇN';
+$cariPrefix = isset($_POST['prefix']) ? trim((string) $_POST['prefix']) : (string) ($pazarlamaci_cari_oneki ?? ''); // .env PAZARLAMACI_CARI_ONEKI (eskiden firmaya özgü sabit)
 
 if ($month < 1 || $month > 12) {
     echo '<p class="text-red-600 text-center p-4">Gecersiz ay.</p>';
@@ -35,6 +35,13 @@ $monthNames = [
 ];
 
 $decimals = (int) ($parakusurat ?? 2);
+
+// Rapor yılı: içinde bulunulan yıl (aktif dönem)
+$raporYili = (int) date('Y');
+
+// Özel cari kısıtı: kısıtlı carilerin faturaları listelenmez
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'CL.LOGICALREF', 'ozel_cari');
+$ozelCariSql = $ozelCariFiltresi['sql'] !== '' ? ' AND ' . $ozelCariFiltresi['sql'] : '';
 
 /* -----------------------------------------------------------------
  *  Satis faturalari – 2026, secilen ay, TRCODE 7/8
@@ -57,7 +64,7 @@ $sql = "
     WHERE CL.CODE LIKE :prefix
       AND F.TRCODE IN (7, 8)
       AND MONTH(F.DATE_) = :month
-      AND YEAR(F.DATE_) = 2026
+      AND YEAR(F.DATE_) = {$raporYili}{$ozelCariSql}
       AND F.CANCELLED = 0
     ORDER BY F.DATE_ DESC, F.FICHENO DESC
 ";
@@ -65,13 +72,14 @@ $sql = "
 $rows = [];
 try {
     $stmt = $dbh->prepare($sql);
-    $stmt->execute([
+    $stmt->execute(array_merge([
         ':prefix' => $cariPrefix . '%',
         ':month'  => $month,
-    ]);
+    ], $ozelCariFiltresi['params']));
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
-    echo '<p class="text-red-600 text-center p-4">Sorgu hatasi: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</p>';
+    $mesaj = app_public_error_message($e, 'rapor/rapor_pazarlamaci_ay_detay', 'Rapor hazırlanamadı.');
+    echo '<p class="text-red-600 text-center p-4">' . htmlspecialchars($mesaj, ENT_QUOTES, 'UTF-8') . '</p>';
     exit;
 }
 
@@ -133,7 +141,7 @@ foreach ($rows as $r) {
 <div class="ay-detay-wrap">
   <div class="ay-detay-head">
     <div>
-      <span class="title"><?php echo htmlspecialchars($monthNames[$month] ?? '', ENT_QUOTES, 'UTF-8'); ?> 2026</span>
+      <span class="title"><?php echo htmlspecialchars($monthNames[$month] ?? '', ENT_QUOTES, 'UTF-8'); ?> <?php echo $raporYili; ?></span>
       <span class="sub">Toptan Satis Faturalari</span>
     </div>
     <span class="count"><?php echo count($rows); ?> fatura</span>

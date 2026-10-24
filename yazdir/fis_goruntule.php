@@ -14,7 +14,14 @@ $fisRef = isset($_GET['fis']) ? intval($_GET['fis']) : 0;
 $tip = $_GET['tip'] ?? 'siparis'; // siparis veya fatura
 
 if ($fisRef <= 0) {
-    die("Geçersiz fiş referansı");
+    lumen_hata_sayfasi('Fiş seçilmedi', 'Görüntülenecek fiş bilgisi eksik.');
+}
+// Özel cari kısıtı: kullanıcının göremediği carinin fişi gösterilmez (sipariş ekranıyla aynı kural).
+$kisitCari = $dbh->prepare('SELECT CLIENTREF FROM ' . ($tip === 'siparis' ? $firmadonem . 'ORFICHE' : $firmadonem . 'INVOICE') . ' WHERE LOGICALREF = :f');
+$kisitCari->execute([':f' => $fisRef]);
+$kisitRef = $kisitCari->fetchColumn();
+if ($kisitRef === false || ((int) $kisitRef > 0 && !m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, (int) $kisitRef))) {
+    lumen_hata_sayfasi('Fiş bulunamadı', 'Görüntülenecek fiş bulunamadı.', 404);
 }
 
 // Fiş bilgilerini çek (Sipariş veya Fatura)
@@ -45,14 +52,14 @@ if ($tip == 'siparis') {
             S.CODE AS SATICI_KODU
         FROM " . $firmadonem . "ORFICHE F
         LEFT JOIN " . $firma . "CLCARD C ON C.LOGICALREF = F.CLIENTREF
-        LEFT JOIN LG_SLSMAN S ON S.LOGICALREF = F.SALESMANREF
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = F.SALESMANREF
         WHERE F.LOGICALREF = :fisRef
     ");
     $stmtFisInfo->execute([':fisRef' => $fisRef]);
     $fisInfo = $stmtFisInfo->fetch(PDO::FETCH_ASSOC);
 
     if (!$fisInfo) {
-        die("Fiş bulunamadı");
+        lumen_hata_sayfasi('Fiş bulunamadı', 'Kayıt silinmiş veya başka döneme ait olabilir.', 404);
     }
 
     // Fiş satırları
@@ -107,14 +114,14 @@ if ($tip == 'siparis') {
             S.CODE AS SATICI_KODU
         FROM " . $firmadonem . "INVOICE F
         LEFT JOIN " . $firma . "CLCARD C ON C.LOGICALREF = F.CLIENTREF
-        LEFT JOIN LG_SLSMAN S ON S.LOGICALREF = F.SALESMANREF
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = F.SALESMANREF
         WHERE F.LOGICALREF = :fisRef
     ");
     $stmtFisInfo->execute([':fisRef' => $fisRef]);
     $fisInfo = $stmtFisInfo->fetch(PDO::FETCH_ASSOC);
 
     if (!$fisInfo) {
-        die("Fatura bulunamadı");
+        lumen_hata_sayfasi('Fatura bulunamadı', 'Kayıt silinmiş veya başka döneme ait olabilir.', 404);
     }
 
     // Fatura satırları
@@ -152,22 +159,10 @@ if ($tip == 'siparis') {
     <title>Fis Goruntule - <?php echo htmlspecialchars((string) $fisInfo['FICHENO']); ?></title>
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script src="/tm/css/tailwind.js" onerror="var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
             --sky: #0284c7;
@@ -175,40 +170,12 @@ if ($tip == 'siparis') {
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
-
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(111, 16, 34, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-        }
-        .header-inner {
-            max-width: 900px; margin: 0 auto;
-            padding: 12px 22px;
-            display: flex; align-items: center; gap: 12px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 34px; height: 34px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            background: transparent; border: none; cursor: pointer;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 22px; background: var(--border); }
-        .header-title {
-            font-size: 15px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 7px;
-            flex: 1 1 auto;
-        }
-        .header-title i { color: var(--red); font-size: 14px; }
         .header-badge {
             display: inline-flex; align-items: center; gap: 5px;
             padding: 5px 10px;
@@ -224,13 +191,12 @@ if ($tip == 'siparis') {
         main { max-width: 900px; margin: 0 auto; padding: 20px 22px 50px; }
 
         .glass-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(2, 132, 199, 0.18);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             margin-bottom: 16px;
             overflow: hidden;
         }
@@ -441,8 +407,6 @@ if ($tip == 'siparis') {
         }
 
         @media (max-width: 767px) {
-            .header-inner { padding: 10px 14px; gap: 10px; }
-            .header-title { font-size: 13px; }
             .header-badge { padding: 4px 8px; font-size: 9.5px; }
 
             main { padding: 14px 12px 40px; }
@@ -466,7 +430,7 @@ if ($tip == 'siparis') {
             body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .top-header, .readonly-banner { display: none !important; }
             main { max-width: none; padding: 0; margin: 0; }
-            .glass-card { box-shadow: none; border: 1px solid #999; animation: none; backdrop-filter: none; background: #fff; }
+            .glass-card { box-shadow: none; border: 1px solid #999; animation: none; backdrop-filter: none; background: var(--card); }
             .hero { background: #fef2f2 !important; }
             .lines-table { min-width: 0; }
             .lines-table tbody tr { page-break-inside: avoid; }
@@ -482,7 +446,7 @@ if ($tip == 'siparis') {
             </button>
             <div class="header-divider"></div>
             <span class="header-title">
-                <i class="fa-solid fa-receipt"></i>Fis Goruntule
+                <i class="fa-solid fa-receipt"></i>Fiş Görüntüle
             </span>
             <span class="header-badge">
                 <i class="fa-solid fa-lock"></i>Salt Okunur

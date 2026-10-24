@@ -32,8 +32,9 @@ if ($erisim) {
     if ($ara !== '' && $cariRef <= 0) {
         try {
             $q = $dbh->prepare("SELECT TOP 30 LOGICALREF, CODE, DEFINITION_ FROM {$firma}CLCARD
-                                WHERE ACTIVE=0 AND (DEFINITION_ LIKE :a1 OR CODE LIKE :a2) ORDER BY DEFINITION_");
-            $q->execute([':a1' => '%' . $ara . '%', ':a2' => '%' . $ara . '%']);
+                                WHERE ACTIVE=0 AND (" . lumen_arama_sql('DEFINITION_') . " LIKE :a1 OR " . lumen_arama_sql('CODE') . " LIKE :a2) ORDER BY DEFINITION_");
+            $araLike = '%' . lumen_arama_terimi($ara) . '%';
+            $q->execute([':a1' => $araLike, ':a2' => $araLike]);
             $cariler = $q->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) { $cariler = []; }
     }
@@ -50,7 +51,7 @@ if ($erisim) {
                 l.OLUSTURMA, l.CLIENTREF, l.DURUM, c.DEFINITION_, s.CODE GIREN
             FROM M_CEK_LOG l
             LEFT JOIN {$firma}CLCARD c ON c.LOGICALREF=l.CLIENTREF
-            LEFT JOIN LG_SLSMAN s ON s.LOGICALREF=l.KULLANICI
+            LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} s ON s.LOGICALREF=l.KULLANICI
             WHERE l.DURUM IN ('AKTIF','GERIALINDI') AND l.TUR='giris' ORDER BY l.ID DESC")->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) { $cekler = []; }
     try { $nextResmi = cek_portfoy_no($dbh, $firmadonem, true); $nextGayri = cek_portfoy_no($dbh, $firmadonem, false); } catch (Throwable $e) {}
@@ -69,14 +70,10 @@ $bugun = date('Y-m-d');
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --amber:#b45309; --amber-soft:#fffbeb; }
+
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; background:var(--bg); color:var(--t1); font-size:14px; }
-        .top { position:sticky; top:0; z-index:30; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--border); }
-        .top-in { max-width:820px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; gap:12px; }
-        .top-in a.geri { width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); text-decoration:none; border:1px solid var(--border); background:#fff; }
-        .top-title { font-size:15px; font-weight:600; flex:1; display:flex; align-items:center; gap:8px; }
-        .top-title i { color:var(--red); }
+        body { font-family: var(--font); background:var(--bg); color:var(--t1); font-size:14px; }
+
         .rozet { font-size:10.5px; font-weight:700; letter-spacing:.5px; padding:3px 9px; border-radius:7px; background:var(--amber-soft); color:var(--amber); }
         main { max-width:820px; margin:0 auto; padding:18px 16px 60px; }
         .card { background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden; }
@@ -140,10 +137,10 @@ $bugun = date('Y-m-d');
     </style>
 </head>
 <body>
-    <header class="top">
-        <div class="top-in">
-            <a href="<?php echo $cariRef > 0 ? '../cari/cari_islemleri.php?cari=' . $cariRef : APP_ROOT_URL . '/index.php'; ?>" class="geri" title="<?php echo $cariRef > 0 ? 'Cari işlemlerine dön' : 'Ana sayfa'; ?>"><i class="fa fa-arrow-left"></i></a>
-            <span class="top-title"><i class="fa-solid fa-money-check-dollar"></i> Çek Girişi</span>
+    <header class="top-header">
+        <div class="header-inner">
+            <a href="<?php echo $cariRef > 0 ? '../cari/cari_islemleri.php?cari=' . $cariRef : APP_ROOT_URL . '/index.php'; ?>" class="header-back" title="<?php echo $cariRef > 0 ? 'Cari işlemlerine dön' : 'Ana sayfa'; ?>"><i class="fa fa-arrow-left"></i></a>
+            <span class="header-title"><i class="fa-solid fa-money-check-dollar"></i> Çek Girişi</span>
         </div>
     </header>
     <main>
@@ -265,6 +262,8 @@ $bugun = date('Y-m-d');
     <script>
     (function () {
         var csrf = <?php echo json_encode($csrf); ?>;
+        // Sayfa açılışı başına tek kullanımlık istek kimliği (mükerrer gönderim koruması)
+        var istekId = <?php echo json_encode(bin2hex(random_bytes(16))); ?>;
         var toast = document.getElementById('toast'); var tt = null;
         function bildir(msg, hata) { toast.textContent = msg; toast.style.background = hata ? '#b91c1c' : '#047857'; toast.classList.add('show'); clearTimeout(tt); tt = setTimeout(function(){ toast.classList.remove('show'); }, 2400); }
 
@@ -272,7 +271,7 @@ $bugun = date('Y-m-d');
         if (form) {
             var cariBorc = <?php echo json_encode(round((float) $cariBorc, 2)); ?>;
             var bugun = <?php echo json_encode($bugun); ?>;
-            var cariAd = <?php echo json_encode($seciliCari['DEFINITION_']); ?>;
+            var cariAd = <?php echo json_encode($seciliCari['DEFINITION_'] ?? ''); ?>;
             var pfNext = { '0': <?php echo (int) ($nextGayri !== '' ? ltrim($nextGayri, '0') : '0'); ?>, '1': <?php echo (int) ($nextResmi !== '' ? ltrim(substr($nextResmi, 1), '0') : '0'); ?> };
             var resmiInp = document.getElementById('resmiInp');
             var cekRows = document.getElementById('cekRows');
@@ -369,6 +368,7 @@ $bugun = date('Y-m-d');
                 body.append('aciklama', form.querySelector('[name=aciklama]').value);
                 body.append('kalemler', JSON.stringify(kl));
                 body.append('csrf_token', csrf);
+                body.append('istek_id', istekId);
                 fetch('cek_giris.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
                     .then(function(r){ return r.json(); })
                     .then(function(j){ bildir(j.mesaj || (j.ok?'Kaydedildi':'Hata'), !j.ok); if (j.ok) { setTimeout(function(){ location.reload(); }, 1200); } else { btn.disabled = false; } })

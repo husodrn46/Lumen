@@ -7,11 +7,17 @@ require_once __DIR__ . '/../kontrol.php';
 include_once(__DIR__ . "/../donem_helper.php");
 
 if (!isset($_GET['stokhareket'])) {
-	  echo '<div style="padding:12px;text-align:center;background:#fee;color:#b00020;border:1px solid #fbb;">Lütfen bir fiş numarası belirtin.</div>';
+	  lumen_hata_sayfasi('Sipariş seçilmedi', 'Yazdırılacak sipariş numarası eksik. Sipariş listesinden tekrar deneyin.');
 	  exit;
 	}
 
 	$stokhareket = (int)$_GET['stokhareket'];
+// Özel cari kısıtı (fisyaz.php / yeni_dizayn.php ile aynı): kısıtlı carinin
+// siparişi numara değiştirilerek yazdırılamaz.
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, (int) $stokhareket)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
 	$fisyazBackUrl = safeLocalReturnUrl(
 	  isset($_GET['return_to']) ? (string) $_GET['return_to'] : '',
 	  '../siparis/lg_essiparis.php'
@@ -63,6 +69,8 @@ $totalDisc  = isset($listfis['TOTALDISCOUNTS']) ? (float)$listfis['TOTALDISCOUNT
 $totalVat   = isset($listfis['TOTALVAT']) ? (float)$listfis['TOTALVAT'] : 0.0;
 $netTotal   = isset($listfis['NETTOTAL']) ? (float)$listfis['NETTOTAL'] : 0.0;
 $bakiye     = isset($sqlbakiye['BAKIYE']) ? (float)$sqlbakiye['BAKIYE'] : 0.0;
+// Cari bakiyesi yalnız CR1 (bakiye görme) yetkisiyle gösterilir (lg_fis.php ile aynı).
+$bakiyeGorunur = (int) ($yetkidurum ?? 1) === 0 || (int) m_p_yetki($terminalkullanici, 'CR1') === 1;
 
 
 $iskontoOrani = $grossTotal > 0 ? ($totalDisc / $grossTotal) * 100 : 0;
@@ -92,26 +100,12 @@ function esc(mixed $v): string
   <title>Fiş / Sipariş Yazdırma — <?= esc($listfis['FICHENO']); ?></title>
   <link rel="icon" type="image/png" href="icon.png">
   <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <script src="/tm/css/tailwind.js" onerror="var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
   <style>
     :root {
-      --bg: #f9fafb;
-      --text-1: #1f2937;
-      --text-2: #6b7280;
-      --text-3: #9ca3af;
-      --border: #e5e7eb;
-      --red: #6F1022;
-      --red-soft: #fef2f2;
-      --emerald: #059669;
-      --emerald-soft: #ecfdf5;
       --indigo: #4f46e5;
       --indigo-soft: #eef2ff;
-      --amber: #d97706;
-      --amber-soft: #fffbeb;
       --sky: #0284c7;
       --sky-soft: #eff6ff;
     }
@@ -123,33 +117,6 @@ function esc(mixed $v): string
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
     }
-
-    .top-header {
-      position: sticky; top: 0; z-index: 40;
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      border-bottom: 1px solid rgba(111, 16, 34, 0.18);
-      box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-    }
-    .header-inner {
-      max-width: 1100px; margin: 0 auto;
-      padding: 12px 22px;
-      display: flex; align-items: center; gap: 12px;
-    }
-    .header-back {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 34px; height: 34px; border-radius: 10px;
-      color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-    }
-    .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-    .header-divider { width: 1px; height: 22px; background: var(--border); }
-    .header-title {
-      font-size: 15px; font-weight: 700; color: var(--text-1);
-      display: inline-flex; align-items: center; gap: 7px;
-      flex: 1 1 auto; min-width: 0;
-    }
-    .header-title i { color: var(--red); font-size: 14px; }
     .header-title small {
       font-size: 12px; color: var(--text-2); font-weight: 500;
       margin-left: 6px;
@@ -474,9 +441,6 @@ function esc(mixed $v): string
 
     @media (max-width: 767px) {
       input, select, textarea { font-size: 16px; }
-
-      .header-inner { padding: 10px 14px; gap: 10px; }
-      .header-title { font-size: 13px; }
       .header-title small { display: none; }
       .btn-print, .btn-ghost { padding: 9px 12px; font-size: 11.5px; min-height: 44px; }
 
@@ -632,6 +596,7 @@ function esc(mixed $v): string
           <div class="label"><i class="fa-solid fa-id-badge"></i>Cari Kodu</div>
           <div class="val code"><?= esc($sqlbakiye['KODU'] ?? '-'); ?></div>
         </div>
+        <?php if ($bakiyeGorunur): ?>
         <div class="info-item">
           <div class="label"><i class="fa-solid fa-wallet"></i>Mevcut Bakiye</div>
           <div class="val amount <?= $bakiye >= 0 ? 'positive' : 'negative'; ?>"><?= tl($bakiye); ?></div>
@@ -640,6 +605,7 @@ function esc(mixed $v): string
           <div class="label"><i class="fa-solid fa-scale-balanced"></i>Son Bakiye</div>
           <div class="val amount"><?= tl($bakiye + $netTotal); ?></div>
         </div>
+        <?php endif; ?>
         <div class="info-item full">
           <div class="label"><i class="fa-solid fa-building"></i>Firma / Ünvan</div>
           <div class="val"><?= esc(trcevir($sqlbakiye['UNVANI'] ?? '-')); ?></div>
@@ -677,6 +643,7 @@ function esc(mixed $v): string
               (TOTAL-DISTDISC)/(AMOUNT*(UINFO2/UINFO1)) AS FIYAT,
               ORFLINE.PRICE,
               ORFLINE.TOTAL,
+              ORFLINE.DISTDISC,
               ORFLINE.VATAMNT,
               ITEMS.CODE AS SKODU,
               ITEMS.NAME AS SADI,
@@ -700,7 +667,7 @@ function esc(mixed $v): string
 	          $list = $stmtList;
 
           while ($row = $list->fetch(PDO::FETCH_ASSOC)) {
-            $toplam   = (float)$row['TOTAL'] + (float)$row['VATAMNT'];
+            $toplam   = (float)$row['TOTAL'] - (float)$row['DISTDISC'] + (float)$row['VATAMNT'];   // iskontolu tutar + KDV
             $koli_ici = (float)($row['koli_ici'] ?: 1);
             $koli_say = $koli_ici > 0 ? ceil($row['AMOUNT'] / $koli_ici) : 0;
           ?>
@@ -774,6 +741,7 @@ function esc(mixed $v): string
             <span class="s-lbl">Net Toplam</span>
             <span class="s-val"><?= tl($netTotal); ?></span>
           </div>
+          <?php if ($bakiyeGorunur): ?>
           <div class="summary-row balance">
             <span class="s-lbl">Mevcut Bakiye</span>
             <span class="s-val"><?= tl($bakiye); ?></span>
@@ -782,6 +750,7 @@ function esc(mixed $v): string
             <span class="s-lbl">Son Bakiye (Bakiye + Net)</span>
             <span class="s-val"><?= tl($bakiye + $netTotal); ?></span>
           </div>
+          <?php endif; ?>
         </div>
       </div>
     </section>

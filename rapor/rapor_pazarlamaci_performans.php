@@ -20,13 +20,24 @@ function money_tr_pz(float|int|string|null $amount): string
 }
 
 /* -----------------------------------------------------------------
- *  Parametreler – 2026 yili sabit
+ *  Parametreler – içinde bulunulan yıl (aktif dönem)
  * ----------------------------------------------------------------- */
-$year = 2026;
+$year = (int) date('Y');
+$yilBaslangic = sprintf('%04d-01-01', $year);
+$yilBitis = sprintf('%04d-01-01', $year + 1);
+
+// Özel cari kısıtı: kısıtlı cariler müşteri bazlı listelerde gösterilmez
+// (her sorgu kendi önekini kullanır; yalnız aylık toplam sorguları filtresizdir)
+$ozelCariBakiye = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'ozel_cari_bky');
+$ozelCariSatis = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'CL.LOGICALREF', 'ozel_cari_sts');
+$ozelCariTahsilat = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'CL.LOGICALREF', 'ozel_cari_ths');
+$ozelCariBakiyeSql = $ozelCariBakiye['sql'] !== '' ? ' AND ' . $ozelCariBakiye['sql'] : '';
+$ozelCariSatisSql = $ozelCariSatis['sql'] !== '' ? ' AND ' . $ozelCariSatis['sql'] : '';
+$ozelCariTahsilatSql = $ozelCariTahsilat['sql'] !== '' ? ' AND ' . $ozelCariTahsilat['sql'] : '';
 
 $cariPrefix = isset($_GET['prefix']) && trim((string) $_GET['prefix']) !== ''
     ? trim((string) $_GET['prefix'])
-    : 'TMÇN';
+    : (string) ($pazarlamaci_cari_oneki ?? ''); // .env PAZARLAMACI_CARI_ONEKI (eskiden firmaya özgü sabit)
 
 $monthNames = [
     1 => 'Ocak', 2 => 'Şubat', 3 => 'Mart', 4 => 'Nisan',
@@ -79,13 +90,13 @@ if ($canSeeBalance) {
             GROUP BY CLIENTREF
         ) DV ON DV.CLIENTREF = C.LOGICALREF
         WHERE C.ACTIVE = 0
-          AND C.CODE LIKE :prefix
+          AND C.CODE LIKE :prefix{$ozelCariBakiyeSql}
         ORDER BY {$balanceExpr} DESC
     ";
 
     try {
         $stmt = $dbh->prepare($sqlCustomers);
-        $stmt->execute([':prefix' => $cariPrefix . '%']);
+        $stmt->execute(array_merge([':prefix' => $cariPrefix . '%'], $ozelCariBakiye['params']));
         $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($customers as $c) {
@@ -106,7 +117,7 @@ if ($canSeeBalance) {
 }
 
 /* -----------------------------------------------------------------
- *  2) AYLIK SATIŞ PERFORMANSI – 2026 yılı, TMÇN müşterileri
+ *  2) AYLIK SATIŞ PERFORMANSI – 2026 yılı, seçili ön ekli müşteriler
  *     STLINE üzerinden satış fişleri (TRCODE 7/8)
  *     Sadece 2026-01-01 ile 2027-01-01 arasındaki hareketler
  * ----------------------------------------------------------------- */
@@ -137,8 +148,8 @@ try {
     $stmt = $dbh->prepare($sqlMonthly);
     $stmt->execute([
         ':prefix'    => $cariPrefix . '%',
-        ':startDate' => '2026-01-01',
-        ':endDate'   => '2027-01-01',
+        ':startDate' => $yilBaslangic,
+        ':endDate'   => $yilBitis,
     ]);
     while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $m = (int) $r['M'];
@@ -169,16 +180,16 @@ $sqlCustSales = "
       AND SL.DATE_ >= :startDate
       AND SL.DATE_ < :endDate
       AND SL.CANCELLED = 0
-      AND SL.LINETYPE = 0
+      AND SL.LINETYPE = 0{$ozelCariSatisSql}
     GROUP BY CL.LOGICALREF
 ";
 
 try {
     $stmt = $dbh->prepare($sqlCustSales);
-    $stmt->execute([
+    $stmt->execute($ozelCariSatis['params'] + [
         ':prefix'    => $cariPrefix . '%',
-        ':startDate' => '2026-01-01',
-        ':endDate'   => '2027-01-01',
+        ':startDate' => $yilBaslangic,
+        ':endDate'   => $yilBitis,
     ]);
     while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $customerSales[(int) $r['CARIID']] = $r;
@@ -188,7 +199,7 @@ try {
 }
 
 /* -----------------------------------------------------------------
- *  4) AYLIK TAHSİLAT – 2026 yılı, TMÇN müşterileri
+ *  4) AYLIK TAHSİLAT – 2026 yılı, seçili ön ekli müşteriler
  *     Tek kaynak: CLFLINE (cari hesap hareketleri).
  *     Hareket tarihi (CF.DATE_) bazlı — yani 2026 yılında FİİLEN
  *     yapılan tahsilatlar / alınan çek-senetler.
@@ -219,8 +230,8 @@ $sqlTahsilat = "
     WHERE CL.CODE LIKE :prefix
       AND CF.TRCODE IN (1, 4, 20, 61, 62, 70)
       AND CF.SIGN = 1
-      AND CF.DATE_ >= '2026-01-01'
-      AND CF.DATE_ < '2027-01-01'
+      AND CF.DATE_ >= '{$yilBaslangic}'
+      AND CF.DATE_ < '{$yilBitis}'
       AND CF.CANCELLED = 0
     GROUP BY MONTH(CF.DATE_)
 ";
@@ -253,15 +264,15 @@ $sqlCustTah = "
     WHERE CL.CODE LIKE :prefix
       AND CF.TRCODE IN (1, 4, 20, 61, 62, 70)
       AND CF.SIGN = 1
-      AND CF.DATE_ >= '2026-01-01'
-      AND CF.DATE_ < '2027-01-01'
-      AND CF.CANCELLED = 0
+      AND CF.DATE_ >= '{$yilBaslangic}'
+      AND CF.DATE_ < '{$yilBitis}'
+      AND CF.CANCELLED = 0{$ozelCariTahsilatSql}
     GROUP BY CL.LOGICALREF
 ";
 
 try {
     $stmt = $dbh->prepare($sqlCustTah);
-    $stmt->execute([':prefix' => $cariPrefix . '%']);
+    $stmt->execute(array_merge([':prefix' => $cariPrefix . '%'], $ozelCariTahsilat['params']));
     while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $id = (int) $r['CARIID'];
         $customerTahsilat[$id] = (float) $r['TUTAR'];
@@ -304,26 +315,13 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pazarlamaci Performans – <?php echo htmlspecialchars($cariPrefix, ENT_QUOTES, 'UTF-8'); ?> – 2026</title>
+    <title>Pazarlamaci Performans – <?php echo htmlspecialchars($cariPrefix, ENT_QUOTES, 'UTF-8'); ?> – <?php echo $year; ?></title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -331,42 +329,12 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
         }
         * { box-sizing: border-box; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
             margin: 0;
         }
-
-        /* HEADER */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            min-height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(5, 150, 105, 0.18);
-            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.04);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            min-height: 64px;
-            display: flex; align-items: center; gap: 14px;
-            padding: 10px 24px;
-            flex-wrap: wrap;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: var(--emerald-soft); color: var(--emerald); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            font-size: 18px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 10px;
-        }
-        .header-title i { color: var(--emerald); font-size: 16px; }
         .header-sub {
             font-size: 11.5px; color: var(--text-3);
             margin-left: 4px; font-weight: 500;
@@ -378,13 +346,15 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             font-family: 'Courier New', monospace;
             font-size: 11px; font-weight: 700;
         }
-        .header-spacer { flex: 1; }
         .header-form { display: flex; gap: 6px; align-items: center; }
+        .header-eylem .header-form { flex: 1; min-width: 0; }
+        .header-eylem .header-form input { flex: 1; min-width: 0; }
+        .header-eylem .icon-btn { width: var(--dokun); height: var(--dokun); flex-shrink: 0; }
         .header-form input {
             padding: 8px 12px 8px 34px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 16px;
             background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%239ca3af'><path d='M12 9l3-3m-6 6a4 4 0 110-8 4 4 0 010 8z'/></svg>") no-repeat 10px center;
             background-size: 14px;
@@ -403,7 +373,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             border-radius: 10px;
             background: var(--emerald);
             color: #fff;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
@@ -437,15 +407,17 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             gap: 14px;
             margin-bottom: 18px;
         }
+        /* 7 kart: sığmazsa alt satıra geçer (sabit 7 sütun kartları eziyordu) */
+        .stat-row.stat-row-7 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+        .stat-row-7 .stat-value { white-space: nowrap; font-size: clamp(15px, 1.6vw, 20px); }
         .stat-card {
             position: relative;
-            background: #fff;
+            background: var(--card);
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 16px 18px 16px 22px;
             overflow: hidden;
             transition: all 0.25s ease;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
             display: flex;
             align-items: center;
             gap: 14px;
@@ -515,13 +487,12 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
 
         /* GLASS CARD */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(5, 150, 105, 0.14);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             margin-bottom: 18px;
             overflow: hidden;
         }
@@ -611,7 +582,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             display: inline-flex; align-items: center; gap: 5px;
             padding: 6px 10px; border-radius: 8px;
             border: none; cursor: pointer;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 11px; font-weight: 600;
             transition: all 0.2s ease;
             text-decoration: none;
@@ -630,7 +601,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             padding: 8px 12px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 16px;
             text-align: right;
             outline: none;
@@ -708,7 +679,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             border: none;
             background: var(--emerald);
             color: #fff;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
@@ -727,15 +698,12 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             .split-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 767px) {
-            .top-header { min-height: 52px; }
-            .header-inner { padding: 8px 14px; gap: 10px; }
-            .header-title { font-size: 14px; }
             .header-sub { display: none; }
-            .header-back { width: 32px; height: 32px; border-radius: 8px; }
             .header-form input { width: 160px; }
 
             main.page { padding: 14px 12px 40px; }
-            .stat-row { grid-template-columns: 1fr; gap: 10px; }
+            .stat-row, .stat-row.stat-row-7 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .stat-row-7 .stat-value { font-size: 15px; }
             .stat-card { padding: 14px 14px 14px 18px; }
             .stat-value { font-size: 17px; }
             .card-head { padding: 14px 16px 12px; }
@@ -754,7 +722,6 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             .no-print { display: none !important; }
             body { background: white !important; }
             .glass-card, .stat-card { box-shadow: none !important; animation: none !important; }
-            .top-header { position: static; }
         }
     </style>
 </head>
@@ -767,31 +734,32 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             <span class="material-icons">arrow_back</span>
         </a>
         <div class="header-divider"></div>
-        <div>
-            <div class="header-title">
+        <div class="header-title header-title-detay">
+            <div class="header-ana-baslik">
                 <i class="fa-solid fa-chart-line"></i>
-                Pazarlamaci Performans – 2026
+                Pazarlamaci Performans – <?php echo $year; ?>
             </div>
             <div class="header-sub">
                 <span class="chip"><?php echo htmlspecialchars($cariPrefix, ENT_QUOTES, 'UTF-8'); ?></span>
                 kodlu musteriler – devir haric
             </div>
         </div>
-        <div class="header-spacer"></div>
+        <div class="header-eylem">
         <form method="get" class="header-form">
             <input type="text" name="prefix"
                 value="<?php echo htmlspecialchars($cariPrefix, ENT_QUOTES, 'UTF-8'); ?>"
                 placeholder="Cari kod on eki">
-            <button type="submit">Uygula</button>
+            <button type="submit" class="btn btn-birincil">Uygula</button>
         </form>
-        <button type="button" onclick="window.print()" class="icon-btn" title="Yazdir">
+        <button type="button" onclick="window.print()" class="icon-btn btn btn-ikincil btn-ikon" title="Yazdır">
             <span class="material-icons">print</span>
         </button>
         <?php $excelQuery = http_build_query(['prefix' => $cariPrefix]); ?>
         <a href="rapor_pazarlamaci_performans_excel.php?<?php echo htmlspecialchars($excelQuery, ENT_QUOTES, 'UTF-8'); ?>"
-           class="icon-btn excel" title="Excel">
+           class="icon-btn excel btn btn-ikincil btn-ikon" title="Excel">
             <span class="material-icons">download</span>
         </a>
+        </div>
     </div>
 </header>
 
@@ -799,7 +767,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
 
     <!-- KPI Kartlari – 2026 yili ozet gostergeler -->
     <?php $tahsilEdilmeyen = $yearlyTotal - $yearlyTahsilat; ?>
-    <div class="stat-row" style="grid-template-columns: repeat(7, 1fr);">
+    <div class="stat-row stat-row-7">
         <div class="stat-card tone-sky">
             <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
             <div class="stat-body">
@@ -811,7 +779,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
         <div class="stat-card tone-emerald">
             <div class="stat-icon"><i class="fa-solid fa-sack-dollar"></i></div>
             <div class="stat-body">
-                <div class="stat-label">2026 Yillik Ciro</div>
+                <div class="stat-label"><?php echo $year; ?> Yillik Ciro</div>
                 <div class="stat-value"><?php echo number_format($yearlyTotal, 0, ',', '.'); ?> &#8378;</div>
                 <div class="stat-sub">ort. <?php echo number_format($avgMonth, 0, ',', '.'); ?> &#8378;/ay</div>
             </div>
@@ -835,7 +803,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
         <div class="stat-card tone-amber">
             <div class="stat-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
             <div class="stat-body">
-                <div class="stat-label">2026 Tahsilat</div>
+                <div class="stat-label"><?php echo $year; ?> Tahsilat</div>
                 <div class="stat-value"><?php echo number_format($yearlyTahsilat, 0, ',', '.'); ?> &#8378;</div>
                 <div class="stat-sub">
                     oran:
@@ -872,7 +840,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             <div class="card-head">
                 <span class="icon-box"><i class="fa-solid fa-chart-column"></i></span>
                 <div>
-                    <h2>2026 Aylik Satis Dagilimi</h2>
+                    <h2><?php echo $year; ?> Aylik Satis Dagilimi</h2>
                     <p>Satis (TRCODE 7/8) STLINE bazli</p>
                 </div>
             </div>
@@ -888,7 +856,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             <div class="card-head">
                 <span class="icon-box"><i class="fa-solid fa-list-check"></i></span>
                 <div>
-                    <h2>2026 Aylik Detaylar</h2>
+                    <h2><?php echo $year; ?> Aylik Detaylar</h2>
                     <p>Ay bazli satis + tahsilat karsilastirmasi</p>
                 </div>
             </div>
@@ -964,7 +932,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
         <div class="card-head">
             <span class="icon-box tone-amber"><i class="fa-solid fa-credit-card"></i></span>
             <div>
-                <h2>Sirket Karti Giderleri – 2026</h2>
+                <h2>Sirket Karti Giderleri – <?php echo $year; ?></h2>
                 <p>Tutarlari yazin, toplam otomatik hesaplanir</p>
             </div>
         </div>
@@ -1015,7 +983,7 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
             <span class="icon-box"><i class="fa-solid fa-address-book"></i></span>
             <div>
                 <h2>Musteri Detaylari</h2>
-                <p>2026 bakiye (devir haric) ve ciro</p>
+                <p><?php echo $year; ?> bakiye (devir haric) ve ciro</p>
             </div>
             <div class="spacer"></div>
             <div class="meta"><?php echo count($customers); ?> musteri</div>
@@ -1027,12 +995,12 @@ $tahsilatOrani = $yearlyTotal > 0 ? ($yearlyTahsilat / $yearlyTotal) * 100 : 0;
                         <tr>
                             <th>Kod</th>
                             <th>Musteri</th>
-                            <th>Sehir</th>
+                            <th>Şehir</th>
                             <?php if ($canSeeBalance): ?>
                             <th class="col-right">Bakiye</th>
                             <th>Durum</th>
                             <?php endif; ?>
-                            <th class="col-right">2026 Ciro</th>
+                            <th class="col-right"><?php echo $year; ?> Ciro</th>
                             <th class="col-right">Tahsilat</th>
                             <th class="col-right">Oran</th>
                             <th class="col-right">Islem</th>
@@ -1158,7 +1126,7 @@ new Chart(ctx, {
     data: {
         labels: <?php echo json_encode($chartLabels, JSON_UNESCAPED_UNICODE); ?>,
         datasets: [{
-            label: '2026 Satis (TL)',
+            label: <?php echo json_encode($year . ' Satis (TL)'); ?>,
             data: <?php echo json_encode($chartValues, JSON_NUMERIC_CHECK); ?>,
             backgroundColor: 'rgba(5, 150, 105, 0.82)',
             borderColor: 'rgba(5, 150, 105, 1)',
@@ -1197,6 +1165,7 @@ new Chart(ctx, {
 // Ay detay modal – AJAX
 const monthNamesTR = <?php echo json_encode($monthNames, JSON_UNESCAPED_UNICODE); ?>;
 const currentPrefix = <?php echo json_encode($cariPrefix, JSON_UNESCAPED_UNICODE); ?>;
+const raporYili = <?php echo (int) $year; ?>;
 
 function openAyModal(title, bodyLoading) {
     $('#ayDetayTitle').text(title);
@@ -1212,7 +1181,7 @@ $('.ay-detay-btn').on('click', function() {
     const month = $(this).data('month');
     const monthName = monthNamesTR[month] || '';
     openAyModal(
-        monthName + ' 2026 – Toptan Satis Faturalari',
+        monthName + ' ' + raporYili + ' – Toptan Satis Faturalari',
         '<p style="text-align:center; color:#9ca3af; padding:32px 16px;"><i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i>Yukleniyor...</p>'
     );
 
@@ -1231,7 +1200,7 @@ $('.ay-tahsilat-btn').on('click', function() {
     const month = $(this).data('month');
     const monthName = monthNamesTR[month] || '';
     openAyModal(
-        monthName + ' 2026 – Tahsilat Detaylari',
+        monthName + ' ' + raporYili + ' – Tahsilat Detaylari',
         '<p style="text-align:center; color:#9ca3af; padding:32px 16px;"><i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i>Yukleniyor...</p>'
     );
 

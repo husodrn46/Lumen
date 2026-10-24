@@ -15,8 +15,6 @@ ob_end_clean();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-$DEBUG = isset($_GET['debug']);
-
 try {
     if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'GET') {
         http_response_code(405);
@@ -64,15 +62,13 @@ try {
     echo json_encode($rows);
     exit;
 
-} catch (Exception $e) { // Throwable PHP 7+
-    // Sunucu log'una yaz
-    error_log('[kasa_hareket] '.$e->getMessage().' @ '.$e->getFile().':'.$e->getLine());
-
+} catch (Throwable $e) {
     http_response_code(500);
-    $payload = ['ok'     => false, 'error'  => 'server_error', 'message'=> 'Beklenmeyen bir hata oluştu.'];
-    if ($DEBUG) {
-        $payload['detail'] = $e->getMessage();
-    }
+    $payload = [
+        'ok' => false,
+        'error' => 'server_error',
+        'message' => app_public_error_message($e, 'rapor/api/kasa_hareket', 'Kasa hareketleri alınamadı.'),
+    ];
     echo json_encode($payload);
     exit;
 }

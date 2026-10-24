@@ -11,7 +11,6 @@ include(__DIR__ . "/kontrol.php");
 ob_end_clean();
 include_once(__DIR__ . "/gorev/gorev_lib.php");
 
-
 // Çıkış işlemi: oturumu sonlandır ve giriş sayfasına yönlendir
 if (isset($_GET['cikis'])) {
     // Çıkışı logla (session destroy'dan önce)
@@ -57,7 +56,7 @@ $bekleyen_talep_sayisi = 0;
 $cekGorselEksik = 0;
 if ((int) ($yetkidurum ?? 1) === 0) {
     try {
-        $cekGorselEksik = (int) $dbh->query("SELECT COUNT(*) FROM {$firmadonem}CSCARD C WITH(NOLOCK) WHERE C.CURRSTAT IN (1) AND C.STATUS IN (0,1) AND C.DOC = 1 AND NOT EXISTS (SELECT 1 FROM M_CEK_EK E WITH(NOLOCK) WHERE E.CEK_REF = C.LOGICALREF)")->fetchColumn();
+        $cekGorselEksik = (int) $dbh->query("SELECT COUNT(*) FROM {$firmadonem}CSCARD C WITH(NOLOCK) WHERE C.CURRSTAT IN (1) AND C.STATUS IN (0,1) AND C.DOC = 1 AND NOT EXISTS (SELECT 1 FROM M_CEK_EK E WITH(NOLOCK) WHERE E.CEK_REF = C.LOGICALREF AND (E.FIRMADONEM = " . $dbh->quote((string) $firmadonem) . " OR E.FIRMADONEM IS NULL))")->fetchColumn();
     } catch (Throwable $e) {
         $cekGorselEksik = 0;
     }
@@ -203,6 +202,55 @@ foreach ($menu_items as $item) {
 //     ];
 // }
 
+// Bağımsız mod: Lumen'in kendi faturaları ve belgeleri (belge modülü), M31 yetkisiyle;
+// yalnız M15 (depo) yetkilisi üretim ve sayım girer.
+if (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M31') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Faturalar',
+        'icon' => 'fa-file-invoice',
+        'href' => 'belge/index.php',
+        'theme' => 't-red',
+    ];
+} elseif (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M15') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Üretim ve Sayım',
+        'icon' => 'fa-industry',
+        'href' => 'belge/index.php',
+        'theme' => 't-amber',
+    ];
+}
+
+// Bağımsız mod: yeni ürün kartı (M11 Yeni Stok ya da yönetici).
+if (lumen_modul_hazir_mi('kart') && (m_p_yetki($terminalkullanici, 'M11') == 1 || $yetkidurum === 0)) {
+    $visible_menu_items[] = [
+        'label' => 'Yeni Ürün',
+        'icon' => 'fa-box-open',
+        'href' => 'kart/stok_duzenle.php',
+        'theme' => 't-amber',
+        'badge' => 0,
+    ];
+}
+
+// Bağımsız mod: kasa ve banka fişleri (finans modülü), M32 yetkisiyle.
+if (lumen_modul_hazir_mi('finans') && m_p_yetki($terminalkullanici, 'M32') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Kasa ve Banka',
+        'icon' => 'fa-building-columns',
+        'href' => 'finans/index.php',
+        'theme' => 't-emerald',
+    ];
+}
+
+// Bağımsız mod: firma, kasa/banka, depo, birim ve kur tanımları (M16).
+if (lumen_modul_hazir_mi('tanimlar') && m_p_yetki($terminalkullanici, 'M16') == 1) {
+    $visible_menu_items[] = [
+        'label' => 'Tanımlar',
+        'icon' => 'fa-sliders',
+        'href' => 'tanimlar/index.php',
+        'theme' => 't-slate',
+    ];
+}
+
 // Faturalama (BETA) — hem kill-switch açık hem M31 yetkisi gerekir.
 // Kapalıysa kutucuk hiç görünmez; ayar: _bilgi_.inc > $faturalama_aktif
 if (!empty($faturalama_aktif) && m_p_yetki($terminalkullanici, 'M31') == 1) {
@@ -231,6 +279,10 @@ if (m_p_yetki($terminalkullanici, 'M18') == 1 || m_p_yetki($terminalkullanici, '
         'theme' => 't-indigo',
     ];
 }
+
+// Bağımsız modda henüz taşınmamış modüllerin kutucukları gösterilmez (includes/veri/moduller.php).
+$visible_menu_items = array_values(array_filter($visible_menu_items,
+    static fn(array $i): bool => lumen_yol_hazir_mi((string) strtok((string) $i['href'], '?'))));
 
 $kisisel_kisayollar = function_exists('lumen_page_visit_shortcuts')
     ? lumen_page_visit_shortcuts($dbh, $terminalkullanici, $visible_menu_items, 5)
@@ -321,7 +373,7 @@ try {
 // Kullanıcının gerçek ismini LG_SLSMAN tablosundan çek
 $kullanici_adi = '';
 try {
-    $stmt = $dbh->prepare("SELECT DEFINITION_ FROM LG_SLSMAN WHERE LOGICALREF = :id AND ACTIVE = 0");
+    $stmt = $dbh->prepare("SELECT DEFINITION_ FROM {$GLOBALS['LUMEN_SLSMAN']} WHERE LOGICALREF = :id AND ACTIVE = 0");
     $stmt->bindParam(':id', $terminalkullanici, PDO::PARAM_INT);
     $stmt->execute();
     $slsman = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -338,6 +390,8 @@ $gun_isimleri = ['Monday'=>'Pazartesi','Tuesday'=>'Salı','Wednesday'=>'Çarşam
 $ay_isimleri = ['January'=>'Ocak','February'=>'Şubat','March'=>'Mart','April'=>'Nisan','May'=>'Mayıs','June'=>'Haziran','July'=>'Temmuz','August'=>'Ağustos','September'=>'Eylül','October'=>'Ekim','November'=>'Kasım','December'=>'Aralık'];
 $bugun_tr = date('j') . ' ' . ($ay_isimleri[date('F')] ?? date('F')) . ' ' . date('Y') . ', ' . ($gun_isimleri[date('l')] ?? date('l'));
 $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_sayisi;
+require_once __DIR__ . '/includes/bildirim.php';
+$okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -349,28 +403,18 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
     <title>Lumen - Ana Sayfa</title>
     <?php include_once(__DIR__ . '/pwa-header.php'); ?>
     <script src="tm/css/tailwind.js"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --font-sans: "Segoe UI", Roboto, Arial, sans-serif;
-            --bg: #f9fafb;
+            --font-sans: var(--font);
             --surface: #ffffff;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
             --border-hover: #d1d5db;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
             --red-border: rgba(248, 113, 113, 0.25);
             --red-hover: rgba(239, 68, 68, 0.5);
             --red-shadow: rgba(111, 16, 34, 0.45);
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --amber-border: rgba(251, 191, 36, 0.3);
             --amber-hover: rgba(245, 158, 11, 0.5);
             --amber-shadow: rgba(217, 119, 6, 0.36);
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --emerald-border: rgba(16, 185, 129, 0.3);
             --emerald-hover: rgba(5, 150, 105, 0.5);
             --emerald-shadow: rgba(5, 150, 105, 0.35);
@@ -395,29 +439,9 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
             min-height: 100vh;
         }
 
-        /* ═══════════ HEADER ═══════════ */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-            animation: headerSlide 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
-        .header-inner {
-            max-width: 1280px;
-            margin: 0 auto;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-        }
+        /* Ana sayfa başlığı: ortak başlık (lumen.css) + logo/tarih solda, menü sağda */
+        .header-inner { max-width: 1280px; justify-content: space-between; }
+        .header-divider { display: block; width: 1px; height: 24px; background: var(--border); }
 
         .header-left {
             display: flex;
@@ -426,12 +450,6 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
         }
 
         .header-logo { height: 34px; width: auto; }
-
-        .header-divider {
-            width: 1px;
-            height: 24px;
-            background: var(--border);
-        }
 
         .header-date {
             font-size: 13px;
@@ -470,8 +488,6 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
         .h-btn i { font-size: 15px; }
 
         .h-btn-badge {
-            position: absolute;
-            top: 3px; right: 4px;
             min-width: 18px;
             height: 18px;
             border-radius: 9px;
@@ -483,6 +499,7 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
             align-items: center;
             justify-content: center;
             padding: 0 5px;
+            line-height: 1;
         }
 
         .h-btn-badge-amber { background: var(--amber); }
@@ -1219,8 +1236,8 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
 
         /* ═══════════ RESPONSIVE ═══════════ */
         @media (max-width: 768px) {
-            .top-header { height: 56px; }
             .h-btn-text { display: none; }
+            .h-btn-badge { position: absolute; top: 4px; right: 2px; }
             .h-btn { padding: 10px 12px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
             .header-date, .header-divider { display: none; }
             .h-hamburger { display: block; }
@@ -1292,6 +1309,10 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
             </div>
 
             <div class="header-right">
+                <a href="bildirimler.php" class="h-btn" title="Bildirimler" aria-label="Bildirimler<?php echo $okunmamis_bildirim > 0 ? ' (' . $okunmamis_bildirim . ' okunmamış)' : ''; ?>">
+                    <i class="fa-solid fa-bell"></i><span class="h-btn-text">Bildirimler</span>
+                    <?php if ($okunmamis_bildirim > 0): ?><span class="h-btn-badge"><?php echo $okunmamis_bildirim > 99 ? '99+' : $okunmamis_bildirim; ?></span><?php endif; ?>
+                </a>
                 <button type="button" onclick="if(window.lumenTur)window.lumenTur()" class="h-btn h-desktop-only" title="Tanıtım turu"><i class="fa-solid fa-circle-question"></i><span class="h-btn-text">Tur</span></button>
                 <a href="ayar/gorunum.php" class="h-btn h-desktop-only"><i class="fa-solid fa-sliders"></i><span class="h-btn-text">Ayarlar</span></a>
                 <a href="sifre_degistir.php" class="h-btn h-desktop-only"><i class="fa-solid fa-key"></i><span class="h-btn-text">Şifre</span></a>
@@ -1304,12 +1325,41 @@ $toplam_bildirim = (int)$bekleyen_talep_sayisi + (int)$bekleyen_geribildirim_say
         </div>
 
         <div class="mobile-dropdown" id="mobileDropdown">
+            <a href="bildirimler.php"><i class="fa-solid fa-bell"></i> Bildirimler<?php echo $okunmamis_bildirim > 0 ? ' (' . $okunmamis_bildirim . ')' : ''; ?></a>
             <a href="ayar/gorunum.php"><i class="fa-solid fa-sliders"></i> Ayarlar</a>
             <a href="sifre_degistir.php"><i class="fa-solid fa-key"></i> Şifre Değiştir</a>
             <div class="dd-sep"></div>
             <a href="?cikis=1" class="dd-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Çıkış Yap</a>
         </div>
     </header>
+
+    <?php
+    // Şema geride mi? (yalnız yönetici; oturum başına 10 dk önbellek)
+    if ((int) ($yetkidurum ?? 1) === 0) {
+        if (!isset($_SESSION['sema_eksik_ts']) || time() - (int) $_SESSION['sema_eksik_ts'] > 600) {
+            require_once __DIR__ . '/includes/kurulum_sema.php';
+            $_SESSION['sema_eksik'] = lumen_sema_eksikleri($dbh);
+            $_SESSION['sema_eksik_ts'] = time();
+        }
+        if (!empty($_SESSION['sema_eksik'])): ?>
+    <div role="alert" style="max-width:1200px;margin:12px auto 0;padding:12px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:13.5px;">
+        <i class="fa-solid fa-database"></i>
+        <strong>Veritabanı şeması güncel değil.</strong>
+        Bazı özellikler çalışmayabilir. Sunucuda <code>php scripts/sema_guncelle.php</code> çalıştırın.
+        <span style="opacity:.75;">(Eksik: <?php echo e(implode(', ', (array) $_SESSION['sema_eksik'])); ?>)</span>
+    </div>
+    <?php endif;
+        // Sunucudaki PHP bilinen kritik açıklardan etkileniyor mu? (yalnız yönetici)
+        require_once __DIR__ . '/includes/guvenlik/php_surum.php';
+        $phpSorunlari = lumen_php_guvenlik_sorunlari();
+        if ($phpSorunlari !== []): ?>
+    <div role="alert" style="max-width:1200px;margin:12px auto 0;padding:12px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:13.5px;">
+        <i class="fa-solid fa-shield-halved"></i>
+        <strong>Sunucu PHP'si güncellenmeli (kritik güvenlik açığı).</strong>
+        <?php echo e(implode(' ', $phpSorunlari)); ?>
+    </div>
+    <?php endif;
+    } ?>
 
     <!-- ═══════════ HERO ═══════════ -->
     <section class="hero">

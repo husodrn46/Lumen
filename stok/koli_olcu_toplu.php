@@ -27,9 +27,10 @@ $countSql = "SELECT COUNT(*) as toplam FROM {$firma}ITEMS WHERE {$urunKosuluDuz}
 $countParams = [];
 
 if ($arama !== '') {
-    $countSql .= " AND (CODE LIKE :arama OR NAME LIKE :arama2)";
-    $countParams[':arama'] = "%$arama%";
-    $countParams[':arama2'] = "%$arama%";
+    $countSql .= " AND (" . lumen_arama_sql('CODE') . " LIKE :arama OR " . lumen_arama_sql('NAME') . " LIKE :arama2)";
+    $aramaLike = '%' . lumen_arama_terimi($arama) . '%';
+    $countParams[':arama'] = $aramaLike;
+    $countParams[':arama2'] = $aramaLike;
 }
 
 $countStmt = $dbh->prepare($countSql);
@@ -56,9 +57,9 @@ $sql = "
 
 $params = [];
 if ($arama !== '') {
-    $sql .= " AND (I.CODE LIKE :arama OR I.NAME LIKE :arama2)";
-    $params[':arama'] = "%$arama%";
-    $params[':arama2'] = "%$arama%";
+    $sql .= " AND (" . lumen_arama_sql('I.CODE') . " LIKE :arama OR " . lumen_arama_sql('I.NAME') . " LIKE :arama2)";
+    $params[':arama'] = $aramaLike;
+    $params[':arama2'] = $aramaLike;
 }
 
 $sql .= " ORDER BY
@@ -84,34 +85,20 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="icon" type="image/png" href="icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toplu Koli Olcusu Duzenleme</title>
+    <title>Toplu Koli Ölçüsü Düzenleme</title>
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -119,36 +106,11 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
-
-        /* ═══════ HEADER ═══════ */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-            flex-wrap: wrap;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-title { min-width: 0; flex: 1 1 auto; }
         .header-title h1 {
             font-size: 16px; font-weight: 700; color: var(--text-1);
             display: flex; align-items: center; gap: 8px; margin: 0;
         }
-        .header-title h1 i { color: var(--sky); font-size: 14px; }
+        .header-title h1 i { color: var(--red); font-size: 14px; }
         .header-title p {
             margin: 2px 0 0; font-size: 11.5px; color: var(--text-2); font-weight: 500;
         }
@@ -160,7 +122,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
             gap: 8px;
             align-items: center;
         }
-        .search-wrap { position: relative; }
+        .search-wrap { position: relative; min-width: 0; }
         .search-wrap i.fa-search {
             position: absolute; top: 50%; left: 12px;
             transform: translateY(-50%);
@@ -170,7 +132,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .search-input {
             width: 220px;
             padding: 9px 14px 9px 36px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             color: var(--text-1);
             background: #fff;
@@ -188,7 +150,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 9px 14px;
             background: var(--red,#ef4444); color: #fff;
             border: none; border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
+            font-family: var(--font); font-size: 13px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.18);
         }
@@ -206,15 +168,13 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         /* ═══════ TABLE CARD ═══════ */
         .table-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             overflow: hidden;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
         }
         .koli-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
         .koli-table thead { background: linear-gradient(180deg, #fff, #fffafa); }
@@ -257,7 +217,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .input-name {
             width: 100%;
             padding: 8px 36px 8px 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px;
             color: var(--text-1);
             background: #fff;
@@ -299,7 +259,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .input-num {
             width: 86px;
             padding: 8px 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px;
             font-weight: 600;
             color: var(--text-1);
@@ -421,7 +381,7 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 12px 18px;
             color: #fff;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             box-shadow: 0 8px 24px rgba(0,0,0,0.15);
@@ -443,18 +403,17 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
         /* ═══════ MOBILE ═══════ */
         @media (max-width: 900px) {
             .header-search { width: 100%; }
+            .header-search .search-wrap { flex: 1; }
             .search-input { width: 100%; flex: 1 1 auto; }
         }
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
             .header-title h1 { font-size: 14px; }
             .header-title p { font-size: 10.5px; }
-            .header-back { width: 30px; height: 30px; border-radius: 8px; }
 
             main { padding: 14px 12px 40px !important; }
 
             .search-input { font-size: 16px; }
-            .btn-search { padding: 9px 12px; font-size: 12px; }
+            .btn-search { padding: 9px 12px; font-size: 12px; min-width: var(--dokun); min-height: var(--dokun); }
 
             .koli-table thead { display: none; }
             .koli-table, .koli-table tbody, .koli-table tr, .koli-table td {
@@ -508,20 +467,20 @@ $urunler = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </a>
             <div class="header-divider"></div>
             <div class="header-title">
-                <h1><i class="fa-solid fa-box-open"></i>Toplu Koli Olcusu Duzenleme</h1>
+                <h1><i class="fa-solid fa-box-open"></i>Toplu Koli Ölçüsü Düzenleme</h1>
                 <p>Toplam <strong><?= $toplam ?></strong> urun &middot; Sayfa <strong><?= $sayfa ?> / <?= $toplamSayfa ?></strong></p>
             </div>
-            <form method="GET" class="header-search">
+            <form method="GET" class="header-search header-eylem">
                 <div class="search-wrap">
                     <i class="fa-solid fa-search"></i>
                     <input type="text" name="arama" value="<?= htmlspecialchars($arama) ?>"
                            class="search-input" placeholder="Kod veya isim ara..." autocomplete="off">
                 </div>
-                <button type="submit" class="btn-search" title="Ara">
+                <button type="submit" class="btn-search btn btn-birincil btn-ikon" title="Ara">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </button>
                 <?php if ($arama): ?>
-                <a href="koli_olcu_toplu.php" class="btn-clear" title="Aramayi temizle">
+                <a href="koli_olcu_toplu.php" class="btn-clear btn btn-ikincil btn-ikon" title="Aramayı temizle">
                     <i class="fa-solid fa-xmark"></i>
                 </a>
                 <?php endif; ?>

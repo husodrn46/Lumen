@@ -1,24 +1,18 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../includes/oturum.php';
+
 // Output buffering başlat (tüm çıktıyı yakala)
 ob_start();
 
 include_once(__DIR__ . "/../ayr.php");
 
-// Session kontrolü
-if (session_id() === '') {
-    session_start();
-}
-
-if (!isset($_SESSION['plasiyer_id']) || empty($_SESSION['plasiyer_id'])) {
-    ob_clean(); // Önceki tüm çıktıları temizle
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => false, 'message' => 'Oturum gerekli']);
-    exit;
-}
-
-$terminalkullanici = $_SESSION['plasiyer_id'];
+// Oturum + zorla çıkış + saldırı modu kontrolü kontrol.php'den geçer (eskiden yalnız
+// $_SESSION'a bakılıyordu; yönetici tarafından kapatılan oturum okumaya devam
+// ediyordu). Bu uç yalnız JSON döndürdüğünden kontrol.php'nin JSON yanıt yolu seçilir.
+$_SERVER['HTTP_ACCEPT'] = 'application/json';
+require_once __DIR__ . '/../kontrol.php';
 
 // Önceki tüm çıktıları temizle (ayr.php, kontrol.php vs.'den gelen HTML)
 ob_clean();
@@ -27,6 +21,11 @@ ob_clean();
 header('Content-Type: application/json; charset=utf-8');
 
 $fisRef = isset($_GET['fis']) ? intval($_GET['fis']) : 0;
+if ($fisRef > 0 && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisRef)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Yetkiniz yok']);
+    exit;
+}
 
 if ($fisRef <= 0) {
     echo json_encode(['success' => false, 'message' => 'Geçersiz fiş referansı']);
@@ -45,7 +44,7 @@ try {
             SL.CODE AS KULLANICI_KODU,
             SL.DEFINITION_ AS KULLANICI_ADI
         FROM M_MOBIL_DIZAYN_LOG MD
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = MD.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = MD.KULLANICI
         WHERE MD.FIS = :fis
         ORDER BY MD.TARIH DESC
     ");

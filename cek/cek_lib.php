@@ -27,6 +27,82 @@ declare(strict_types=1);
  * Çağıran dosya ayr.php yüklemiş olmalı (guid(), $kayitsaat, $saat, $dakika, $saniye global).
  */
 
+if (!function_exists('cek_tutar_coz')) {
+    /**
+     * İstekten gelen tutarı float'a çevirir.
+     *
+     * Panel tutarı JSON'da SAYI olarak gönderir (1234.56). Eskiden değer önce metne
+     * çevrilip tüm noktalar binlik ayırıcı sayılarak silindiği için kuruşlu her tutar
+     * 100 katına çıkıyordu (1.234,56 TL → 123.456 TL). Metin girdide TR (1.234,56)
+     * ve EN (1234.56) biçimleri desteklenir; "1.234" gibi yalnız binlik gruplu değer
+     * TR binlik olarak okunur.
+     */
+    function cek_tutar_coz(mixed $deger): float
+    {
+        if (is_int($deger) || is_float($deger)) {
+            return (float) $deger;
+        }
+        if (!is_string($deger)) {
+            return 0.0;
+        }
+        $s = str_replace([' ', "\u{00A0}"], '', trim($deger));
+        if (str_contains($s, ',')) {
+            // TR: nokta binlik, virgül ondalık
+            $s = str_replace(['.', ','], ['', '.'], $s);
+        } elseif (preg_match('/^-?\d{1,3}(\.\d{3})+$/', $s)) {
+            // Yalnız binlik gruplu TR tamsayı: 1.234 / 12.345.678
+            $s = str_replace('.', '', $s);
+        }
+        return is_numeric($s) ? (float) $s : 0.0;
+    }
+}
+
+if (!function_exists('cek_log_kilitle')) {
+    /**
+     * Geri alma için M_CEK_LOG satırını KİLİTLEYEREK okur ve doğrular. Açık bir
+     * transaction içinde çağrılmalıdır.
+     *
+     * - UPDLOCK: eşzamanlı iki geri alma aynı kaydı "başarıyla" iki kez işleyemez.
+     * - FIRMADONEM: LOGICALREF'ler döneme özeldir. Önceki dönemin kaydı güncel
+     *   dönem tablolarında geri alınırsa ilgisiz çek/cari satırları silinir.
+     * - TUR: giriş/ciro/kendi çek kayıtları birbirinin geri alma yoluyla işlenemez.
+     *
+     * @return array{0: ?array, 1: ?array} [log, hata]
+     */
+    function cek_log_kilitle(PDO $dbh, string $fd, int $logId, string $tur, string $ad): array
+    {
+        $lg = $dbh->prepare("SELECT * FROM M_CEK_LOG WITH (UPDLOCK, ROWLOCK) WHERE ID = :id");
+        $lg->execute([':id' => $logId]);
+        $log = $lg->fetch(PDO::FETCH_ASSOC);
+        $lg->closeCursor();
+        if (!$log) {
+            return [null, ['ok' => false, 'kod' => 404, 'mesaj' => "{$ad} kaydı bulunamadı."]];
+        }
+        if ((string) $log['DURUM'] !== 'AKTIF') {
+            return [null, ['ok' => false, 'kod' => 409, 'mesaj' => "Bu {$ad} zaten geri alınmış."]];
+        }
+        if ((string) $log['TUR'] !== $tur) {
+            return [null, ['ok' => false, 'kod' => 422, 'mesaj' => "Bu kayıt bu ekrandan geri alınamaz ({$log['TUR']})."]];
+        }
+        if ((string) $log['FIRMADONEM'] !== $fd) {
+            return [null, ['ok' => false, 'kod' => 409, 'mesaj' => 'Bu kayıt başka bir döneme ait (' . $log['FIRMADONEM'] . '); yalnız kendi döneminde geri alınabilir.']];
+        }
+        return [$log, null];
+    }
+}
+
+if (!function_exists('cek_log_geri_alindi_isaretle')) {
+    /** Log satırını GERIALINDI yapar; tam bir satır güncellenmezse istisna fırlatır. */
+    function cek_log_geri_alindi_isaretle(PDO $dbh, int $logId, int $personel, string $not): void
+    {
+        $u = $dbh->prepare("UPDATE M_CEK_LOG SET DURUM='GERIALINDI', GERIALAN_KULLANICI=:k, GERIALMA=GETDATE(), GERIALMA_NOT=:n WHERE ID=:id AND DURUM='AKTIF'");
+        $u->execute([':k' => $personel, ':n' => mb_substr($not, 0, 240), ':id' => $logId]);
+        if ($u->rowCount() !== 1) {
+            throw new RuntimeException('Çek kaydı eşzamanlı olarak değiştirildi; işlem iptal edildi.');
+        }
+    }
+}
+
 if (!function_exists('cek_log_tablo_olustur')) {
     function cek_log_tablo_olustur(PDO $dbh): void
     {
@@ -102,6 +178,57 @@ SELECT id FROM @yeni;";
     }
 }
 
+if (!function_exists('cek_numara_kilidi')) {
+    /**
+     * Çek/bordro numaralandırmasını (PORTFOYNO, ROLLNO = MAX+1) seri hale getirir.
+     * Kilitsiz MAX+1 okumasında eşzamanlı iki giriş aynı numarayı alıyordu
+     * (LOGO'da DOC+PORTFOYNO tekildir → biri hata verir ya da mükerrer bordro no).
+     * Kilit transaction'a bağlıdır; commit/rollback ile kendiliğinden bırakılır.
+     */
+    function cek_numara_kilidi(PDO $dbh): void
+    {
+        $st = $dbh->prepare("DECLARE @s INT; EXEC @s = sp_getapplock @Resource = 'lumen_cek_numara',
+            @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000; SELECT @s;");
+        $st->execute();
+        $sonuc = (int) $st->fetchColumn();
+        $st->closeCursor();
+        if ($sonuc < 0) {
+            throw new RuntimeException('Çek numaralandırma kilidi alınamadı (yoğunluk); lütfen tekrar deneyin.');
+        }
+    }
+}
+
+if (!function_exists('cek_istek_id')) {
+    /**
+     * İstemcinin (panel sayfası açılışında üretilen) istek kimliği; geçersizse
+     * sunucu üretir. Aynı kimlikle gelen tekrar (çift tıklama, ağ tekrarı, ikinci
+     * sekme) cek_istek_tekrari() ile yakalanır. Eskiden kimlik her istekte sunucuda
+     * üretildiğinden M_CEK_LOG.REQUEST_ID tekilliği mükerrer kaydı hiç önlemiyordu.
+     */
+    function cek_istek_id(mixed $istemci): string
+    {
+        if (is_string($istemci) && preg_match('/^[a-f0-9]{32}$/', $istemci) === 1) {
+            return 'i-' . $istemci;
+        }
+        return (string) guid();
+    }
+}
+
+if (!function_exists('cek_istek_tekrari')) {
+    /**
+     * Bu istek kimliğiyle başarıyla işlenmiş bir kayıt varsa onun log ID'sini döner.
+     * cek_numara_kilidi() altında çağrılır; eşzamanlı tekrarlar da sıraya girer.
+     */
+    function cek_istek_tekrari(PDO $dbh, string $requestId): ?int
+    {
+        $q = $dbh->prepare("SELECT TOP 1 ID FROM M_CEK_LOG WHERE REQUEST_ID = :r AND DURUM <> 'HATA'");
+        $q->execute([':r' => $requestId]);
+        $id = $q->fetchColumn();
+        $q->closeCursor();
+        return $id === false ? null : (int) $id;
+    }
+}
+
 if (!function_exists('cek_seri_no')) {
     /** Sayısal seriden sonraki numarayı üretir (soldan sıfır dolgulu). where ile scope daraltılır.
      *  $prefix verilirse (örn 'A') SADECE o ön-ekli kayıtlar içinde bağımsız sayar ve ön-ekli döner
@@ -164,6 +291,10 @@ if (!function_exists('cek_giris_core')) {
      */
     function cek_giris_core(PDO $dbh, string $firma, string $fd, int $cariRef, array $cek, int $personel, string $requestId, array $opt = []): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_giris_lumen($dbh, $fd, $cariRef, $cek, $personel, $requestId, $opt);
+        }
         global $kayitsaat, $saat, $dakika, $saniye;
         $ip  = (string) ($opt['ip'] ?? '');
         $ts  = (int) $kayitsaat;
@@ -207,6 +338,12 @@ if (!function_exists('cek_giris_core')) {
 
         try {
             $dbh->beginTransaction();
+            cek_numara_kilidi($dbh);
+            if (($oncekiLog = cek_istek_tekrari($dbh, $requestId)) !== null) {
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 409, 'tekrar' => true, 'log_id' => $oncekiLog,
+                        'mesaj' => 'Bu işlem zaten kaydedildi (tekrar gönderim). Sayfayı yenileyin.'];
+            }
 
             // Cari doğrula (isim OWING varsayılanı için de kullanılır)
             $cari = $dbh->prepare("SELECT LOGICALREF, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF = :r AND ACTIVE = 0");
@@ -324,8 +461,8 @@ if (!function_exists('cek_giris_core')) {
 
             $dbh->commit();
             $mesaj = $adet === 1
-                ? (cek_say($toplam) . ' TL çek portföye alındı (portföy no ' . $ilk['portfoyno'] . ').')
-                : ($adet . ' çek portföye alındı — toplam ' . cek_say($toplam) . ' TL (bordro no ' . ltrim($rollNo, '0') . ').');
+                ? (number_format((float) $toplam, 2, ',', '.') . ' TL çek portföye alındı (portföy no ' . $ilk['portfoyno'] . ').')
+                : ($adet . ' çek portföye alındı — toplam ' . number_format((float) $toplam, 2, ',', '.') . ' TL (bordro no ' . ltrim($rollNo, '0') . ').');
             return ['ok' => true, 'mesaj' => $mesaj,
                     'cscard_ref' => $ilk['cscard_ref'], 'csroll_ref' => $crRef, 'cstrans_ref' => $ilk['cstrans_ref'], 'clfline_ref' => $clRef,
                     'portfoyno' => $ilk['portfoyno'], 'rollno' => $rollNo, 'adet' => $adet, 'tutar' => $toplam, 'kayitlar' => $kayitlar, 'log_id' => $logId];
@@ -356,13 +493,14 @@ if (!function_exists('cek_geri_al_core')) {
      */
     function cek_geri_al_core(PDO $dbh, string $fd, int $logId, int $personel, string $not = ''): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_geri_al_lumen($dbh, $fd, $logId, $personel, $not, 'giris');
+        }
         try {
             $dbh->beginTransaction();
-            $lg = $dbh->prepare("SELECT * FROM M_CEK_LOG WHERE ID = :id");
-            $lg->execute([':id' => $logId]);
-            $log = $lg->fetch(PDO::FETCH_ASSOC);
-            if (!$log) { $dbh->rollBack(); return ['ok' => false, 'kod' => 404, 'mesaj' => 'Çek kaydı bulunamadı.']; }
-            if ((string) $log['DURUM'] !== 'AKTIF') { $dbh->rollBack(); return ['ok' => false, 'kod' => 409, 'mesaj' => 'Bu çek zaten geri alınmış.']; }
+            [$log, $hata] = cek_log_kilitle($dbh, $fd, $logId, 'giris', 'çek');
+            if ($hata !== null) { $dbh->rollBack(); return $hata; }
 
             $crRef = (int) $log['CSROLL_REF'];
             $clRef = (int) $log['CLFLINE_REF'];
@@ -397,8 +535,7 @@ if (!function_exists('cek_geri_al_core')) {
             $delCc = $dbh->prepare("DELETE FROM {$fd}CSCARD WHERE LOGICALREF=:r AND DOC=1");
             foreach ($kalemler as $k) { if ($k['cc'] > 0) { $delCc->execute([':r' => $k['cc']]); } }
 
-            $dbh->prepare("UPDATE M_CEK_LOG SET DURUM='GERIALINDI', GERIALAN_KULLANICI=:k, GERIALMA=GETDATE(), GERIALMA_NOT=:n WHERE ID=:id AND DURUM='AKTIF'")
-                ->execute([':k' => $personel, ':n' => mb_substr($not, 0, 240), ':id' => $logId]);
+            cek_log_geri_alindi_isaretle($dbh, $logId, $personel, $not);
 
             $dbh->commit();
             return ['ok' => true, 'mesaj' => 'Çek girişi geri alındı; portföyden çıkarıldı ve cari bakiye eski haline döndü.'];
@@ -421,6 +558,10 @@ if (!function_exists('cek_ciro_core')) {
      */
     function cek_ciro_core(PDO $dbh, string $firma, string $fd, int $hedefCariRef, array $cekRefleri, string $aciklama, int $personel, string $requestId, array $opt = []): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_ciro_lumen($dbh, $fd, $hedefCariRef, $cekRefleri, $aciklama, $personel, $requestId, $opt);
+        }
         global $kayitsaat, $saat, $dakika, $saniye;
         $ip = (string) ($opt['ip'] ?? '');
         $ts = (int) $kayitsaat; $hh = (int) $saat; $mm = (int) $dakika; $ss = (int) $saniye;
@@ -435,6 +576,12 @@ if (!function_exists('cek_ciro_core')) {
         $bugun = "DATEADD(day,0,datediff(day,0,GETDATE()))";
         try {
             $dbh->beginTransaction();
+            cek_numara_kilidi($dbh);
+            if (($oncekiLog = cek_istek_tekrari($dbh, $requestId)) !== null) {
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 409, 'tekrar' => true, 'log_id' => $oncekiLog,
+                        'mesaj' => 'Bu işlem zaten kaydedildi (tekrar gönderim). Sayfayı yenileyin.'];
+            }
 
             $c = $dbh->prepare("SELECT LOGICALREF, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF=:r AND ACTIVE=0");
             $c->execute([':r' => $hedefCariRef]);
@@ -538,7 +685,7 @@ if (!function_exists('cek_ciro_core')) {
             if ($logId <= 0) { $logId = (int) $dbh->query("SELECT MAX(ID) FROM M_CEK_LOG WHERE REQUEST_ID = " . $dbh->quote($requestId))->fetchColumn(); }
 
             $dbh->commit();
-            return ['ok' => true, 'mesaj' => $adet . ' çek ' . mb_substr($hedefAd, 0, 40) . '\'e ciro edildi — toplam ' . cek_say($toplam) . ' TL (bordro ' . ltrim($rollNo, '0') . ').',
+            return ['ok' => true, 'mesaj' => $adet . ' çek ' . mb_substr($hedefAd, 0, 40) . '\'e ciro edildi — toplam ' . number_format((float) $toplam, 2, ',', '.') . ' TL (bordro ' . ltrim($rollNo, '0') . ').',
                     'csroll_ref' => $crRef, 'clfline_ref' => $clRef, 'rollno' => $rollNo, 'adet' => $adet, 'tutar' => $toplam, 'kayitlar' => $kayitlar, 'log_id' => $logId];
         } catch (Throwable $e) {
             if ($dbh->inTransaction()) { $dbh->rollBack(); }
@@ -557,14 +704,14 @@ if (!function_exists('cek_ciro_geri_al')) {
      */
     function cek_ciro_geri_al(PDO $dbh, string $fd, int $logId, int $personel, string $not = ''): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_geri_al_lumen($dbh, $fd, $logId, $personel, $not, 'ciro');
+        }
         try {
             $dbh->beginTransaction();
-            $lg = $dbh->prepare("SELECT * FROM M_CEK_LOG WHERE ID = :id");
-            $lg->execute([':id' => $logId]);
-            $log = $lg->fetch(PDO::FETCH_ASSOC);
-            if (!$log) { $dbh->rollBack(); return ['ok' => false, 'kod' => 404, 'mesaj' => 'Ciro kaydı bulunamadı.']; }
-            if ((string) $log['DURUM'] !== 'AKTIF') { $dbh->rollBack(); return ['ok' => false, 'kod' => 409, 'mesaj' => 'Bu ciro zaten geri alınmış.']; }
-            if ((string) $log['TUR'] !== 'ciro') { $dbh->rollBack(); return ['ok' => false, 'kod' => 422, 'mesaj' => 'Bu kayıt bir ciro değil.']; }
+            [$log, $hata] = cek_log_kilitle($dbh, $fd, $logId, 'ciro', 'ciro');
+            if ($hata !== null) { $dbh->rollBack(); return $hata; }
 
             $crRef = (int) $log['CSROLL_REF']; $clRef = (int) $log['CLFLINE_REF'];
             $kalemler = [];
@@ -595,8 +742,7 @@ if (!function_exists('cek_ciro_geri_al')) {
                 if ($k['t1'] > 0) { $t1Res->execute([':r' => $k['t1']]); }
             }
 
-            $dbh->prepare("UPDATE M_CEK_LOG SET DURUM='GERIALINDI', GERIALAN_KULLANICI=:k, GERIALMA=GETDATE(), GERIALMA_NOT=:n WHERE ID=:id AND DURUM='AKTIF'")
-                ->execute([':k' => $personel, ':n' => mb_substr($not, 0, 240), ':id' => $logId]);
+            cek_log_geri_alindi_isaretle($dbh, $logId, $personel, $not);
             $dbh->commit();
             return ['ok' => true, 'mesaj' => 'Ciro geri alındı; çekler portföye döndü ve cari bakiye eski haline geldi.'];
         } catch (Throwable $e) {
@@ -611,6 +757,10 @@ if (!function_exists('cek_kendi_bankalar')) {
     /** Kendi çekimiz için seçilebilir banka hesapları (LG_XXX_BNCARD, aktif). @return array<int,array{ref:int,kod:string,ad:string}> */
     function cek_kendi_bankalar(PDO $dbh, string $firma): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_kendi_bankalar_lumen($dbh);
+        }
         $out = [];
         try {
             foreach ($dbh->query("SELECT LOGICALREF, CODE, DEFINITION_ FROM {$firma}BNCARD WHERE ACTIVE=0 ORDER BY LOGICALREF")->fetchAll(PDO::FETCH_ASSOC) as $r) {
@@ -631,6 +781,10 @@ if (!function_exists('cek_kendi_core')) {
      */
     function cek_kendi_core(PDO $dbh, string $firma, string $fd, int $hedefCariRef, int $bankaRef, array $kalemler, string $aciklama, int $personel, string $requestId, array $opt = []): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_kendi_lumen($dbh, $fd, $hedefCariRef, $bankaRef, $kalemler, $aciklama, $personel, $requestId, $opt);
+        }
         global $kayitsaat, $saat, $dakika, $saniye;
         $ip = (string) ($opt['ip'] ?? '');
         $ts = (int) $kayitsaat; $hh = (int) $saat; $mm = (int) $dakika; $ss = (int) $saniye;
@@ -659,6 +813,12 @@ if (!function_exists('cek_kendi_core')) {
         $bugun = "DATEADD(day,0,datediff(day,0,GETDATE()))";
         try {
             $dbh->beginTransaction();
+            cek_numara_kilidi($dbh);
+            if (($oncekiLog = cek_istek_tekrari($dbh, $requestId)) !== null) {
+                $dbh->rollBack();
+                return ['ok' => false, 'kod' => 409, 'tekrar' => true, 'log_id' => $oncekiLog,
+                        'mesaj' => 'Bu işlem zaten kaydedildi (tekrar gönderim). Sayfayı yenileyin.'];
+            }
 
             $c = $dbh->prepare("SELECT LOGICALREF, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF=:r AND ACTIVE=0");
             $c->execute([':r' => $hedefCariRef]);
@@ -767,7 +927,7 @@ if (!function_exists('cek_kendi_core')) {
             if ($logId <= 0) { $logId = (int) $dbh->query("SELECT MAX(ID) FROM M_CEK_LOG WHERE REQUEST_ID = " . $dbh->quote($requestId))->fetchColumn(); }
 
             $dbh->commit();
-            return ['ok' => true, 'mesaj' => $adet . ' kendi çekimiz ' . mb_substr($hedefAd, 0, 40) . '\'e verildi — toplam ' . cek_say($toplam) . ' TL (bordro ' . ltrim($rollNo, '0') . ').',
+            return ['ok' => true, 'mesaj' => $adet . ' kendi çekimiz ' . mb_substr($hedefAd, 0, 40) . '\'e verildi — toplam ' . number_format((float) $toplam, 2, ',', '.') . ' TL (bordro ' . ltrim($rollNo, '0') . ').',
                     'csroll_ref' => $crRef, 'clfline_ref' => $clRef, 'rollno' => $rollNo, 'adet' => $adet, 'tutar' => $toplam, 'kayitlar' => $kayitlar, 'log_id' => $logId];
         } catch (Throwable $e) {
             if ($dbh->inTransaction()) { $dbh->rollBack(); }
@@ -785,14 +945,14 @@ if (!function_exists('cek_kendi_geri_al')) {
      */
     function cek_kendi_geri_al(PDO $dbh, string $fd, int $logId, int $personel, string $not = ''): array
     {
+        if (lumen_bagimsiz_mi()) {   // bağımsız mod: LM_CEK… (cek/cek_lumen_lib.php)
+            require_once __DIR__ . '/cek_lumen_lib.php';
+            return cek_geri_al_lumen($dbh, $fd, $logId, $personel, $not, 'kendi_cek');
+        }
         try {
             $dbh->beginTransaction();
-            $lg = $dbh->prepare("SELECT * FROM M_CEK_LOG WHERE ID = :id");
-            $lg->execute([':id' => $logId]);
-            $log = $lg->fetch(PDO::FETCH_ASSOC);
-            if (!$log) { $dbh->rollBack(); return ['ok' => false, 'kod' => 404, 'mesaj' => 'Kayıt bulunamadı.']; }
-            if ((string) $log['DURUM'] !== 'AKTIF') { $dbh->rollBack(); return ['ok' => false, 'kod' => 409, 'mesaj' => 'Bu işlem zaten geri alınmış.']; }
-            if ((string) $log['TUR'] !== 'kendi_cek') { $dbh->rollBack(); return ['ok' => false, 'kod' => 422, 'mesaj' => 'Bu kayıt kendi çekimiz değil.']; }
+            [$log, $hata] = cek_log_kilitle($dbh, $fd, $logId, 'kendi_cek', 'işlem');
+            if ($hata !== null) { $dbh->rollBack(); return $hata; }
 
             $crRef = (int) $log['CSROLL_REF']; $clRef = (int) $log['CLFLINE_REF'];
             $kalemler = [];
@@ -817,8 +977,7 @@ if (!function_exists('cek_kendi_geri_al')) {
             $delCc = $dbh->prepare("DELETE FROM {$fd}CSCARD WHERE LOGICALREF=:r AND DOC=3");
             foreach ($kalemler as $k) { if ($k['cc'] > 0) { $delCc->execute([':r' => $k['cc']]); } }
 
-            $dbh->prepare("UPDATE M_CEK_LOG SET DURUM='GERIALINDI', GERIALAN_KULLANICI=:k, GERIALMA=GETDATE(), GERIALMA_NOT=:n WHERE ID=:id AND DURUM='AKTIF'")
-                ->execute([':k' => $personel, ':n' => mb_substr($not, 0, 240), ':id' => $logId]);
+            cek_log_geri_alindi_isaretle($dbh, $logId, $personel, $not);
             $dbh->commit();
             return ['ok' => true, 'mesaj' => 'Kendi çek verme geri alındı; çekler silindi ve cari bakiye eski haline geldi.'];
         } catch (Throwable $e) {

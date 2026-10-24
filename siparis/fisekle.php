@@ -65,7 +65,7 @@ if ($stokhareket > 0) {
 }
 
 // ── M3 (Mağaza Satış) YENİ SİPARİŞ cari kısıtı — Issue #3 (CWE-863) ──
-// M3 yalnızca mağaza satış carisi (LOGICALREF=2, CODE=SATIS) için yeni sipariş
+// M3 yalnızca mağaza satış carisi (.env MAGAZA_CARI) için yeni sipariş
 // açabilir; M1 (Yeni Sipariş) ve admin herhangi GÖRÜNÜR cari için açabilir.
 // Buraya konur çünkü: (a) stokhareket>0 düzenleme-yönlendirmesinden SONRA — yalnız
 // YENİ başlık oluşturma kısıtlanır, mevcut sipariş düzenleme etkilenmez; (b) aşağıdaki
@@ -74,12 +74,16 @@ if ($stokhareket > 0) {
 // cariid vektörlerinin ikisini de kapatır. KOŞUL üstteki M1/M3/admin kapısını birebir
 // yansıtır: admin (yetkidurum===0) ve M1 sahipleri MUAFTIR — aksi halde canlıdaki tüm
 // kullanıcılar (hepsi M3=1) gerçek-müşteri siparişlerinde kırılır.
-$magazaSatisCari = 2; // CODE=SATIS / DEFINITION_=MAGAZA SATIS (index.php M3 menüsüyle aynı sabit)
+// Mağaza satış carisi .env MAGAZA_CARI'den (_bilgi_.inc → $magaza_cari; index.php M3
+// menüsüyle aynı kaynak). Eskiden sabit 2 idi: MAGAZA_CARI farklıysa M3 kullanıcıları
+// mağaza satışı yapamıyor, LOGICALREF=2 olan gerçek bir cariye sipariş açabiliyordu.
+// 0 (özellik kapalı) → M3 tek başına yeni sipariş açamaz.
+$magazaSatisCari = (int) ($magaza_cari ?? 0);
 if (
     (int) ($yetkidurum ?? 1) !== 0
     && m_p_yetki($terminalkullanici, 'M1') != 1
     && m_p_yetki($terminalkullanici, 'M3') == 1
-    && $cariid !== $magazaSatisCari
+    && ($magazaSatisCari <= 0 || $cariid !== $magazaSatisCari)
 ) {
     header('Location: ' . APP_ROOT_URL . '/403.html');
     exit;
@@ -108,16 +112,28 @@ if (
 	$fisno = $sipno . $fisnox;
 	$guid = guid();
 
-	$stmtEkle = $dbh->prepare("INSERT INTO " . $firmadonem . "ORFICHE  ( 
+	$sqlFisEkle = "INSERT INTO " . $firmadonem . "ORFICHE  ( 
 TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,CENTERREF,SOURCEINDEX,SOURCECOSTGRP,UPDCURR,ADDDISCOUNTS,TOTALDISCOUNTS,TOTALDISCOUNTED,ADDEXPENSES,TOTALEXPENSES,TOTALPROMOTIONS,TOTALVAT,GROSSTOTAL,NETTOTAL,REPORTRATE,REPORTNET,GENEXP1,GENEXP2,GENEXP3,GENEXP4,EXTENREF,PAYDEFREF,PRINTCNT,BRANCH,DEPARTMENT,STATUS,CAPIBLOCK_CREATEDBY,CAPIBLOCK_CREADEDDATE,CAPIBLOCK_CREATEDHOUR,CAPIBLOCK_CREATEDMIN,CAPIBLOCK_CREATEDSEC,CAPIBLOCK_MODIFIEDBY,CAPIBLOCK_MODIFIEDDATE,CAPIBLOCK_MODIFIEDHOUR,CAPIBLOCK_MODIFIEDMIN,CAPIBLOCK_MODIFIEDSEC,SALESMANREF,SHPTYPCOD,SHPAGNCOD,GENEXCTYP,LINEEXCTYP,TRADINGGRP,TEXTINC,SITEID,RECSTATUS,ORGLOGICREF,FACTORYNR,WFSTATUS,SHIPINFOREF,CUSTORDNO,SENDCNT,DLVCLIENT,DOCTRACKINGNR,CANCELLED,ORGLOGOID,OFFERREF,OFFALTREF,TYP,ALTNR,ADVANCEPAYM,TRCURR,TRRATE,TRNET,PAYMENTTYPE,ONLYONEPAYLINE,OPSTAT,WITHPAYTRANS,PROJECTREF,WFLOWCRDREF,UPDTRCURR,AFFECTCOLLATRL,POFFERBEGDT,POFFERENDDT,REVISNR,LASTREVISION,CHECKAMOUNT,SLSOPPRREF,SLSACTREF,SLSCUSTREF,AFFECTRISK,TOTALADDTAX,TOTALEXADDTAX,APPROVE,APPROVEDATE,CHECKPRICE,GUID,EINVOICE 
 )VALUES (
 :siparisdurum,:fisno,DATEADD(day,0,datediff(day,0,GETDATE())),:kayitsaat,'','','',:cariid,0,0,0,:depo,0,0,0,0,0,0,0,0,0,0,0,1,0,'','','','',0,0,0,0,0,:status,1,DATEADD(day,0,datediff(day,0,GETDATE())),:saat,:dakika,:saniye,0,NULL,0,0,0,:terminalkullanici,'','',2,0,'',0,0,1,0,0,0,0,'',0,0,'',0,'',0,0,0,0,0,:doviz,:dovizkuru,0,0,0,0,0,0,0,0,0,NULL,NULL,'',0,0,0,0,0,1,0,0,0,NULL,0,:guid,0
-)");
-	$ekle = $stmtEkle->execute([':siparisdurum' => $siparisdurum, ':fisno' => $fisno, ':kayitsaat' => (int) $kayitsaat, ':cariid' => $cariid, ':depo' => (int) $depo, ':status' => $status, ':saat' => (int) $saat, ':dakika' => (int) $dakika, ':saniye' => (int) $saniye, ':terminalkullanici' => (int) $terminalkullanici, ':doviz' => (int) $doviz, ':dovizkuru' => (float) $dovizkuru, ':guid' => (string) $guid]);
+)";
+	// Gerçek kimlik OUTPUT INSERTED ile alınır (MAX(LOGICALREF) eşzamanlı kayıtta
+	// başka kullanıcının fişini döndürebiliyordu). Tahmini fiş no gerçek kimlikten
+	// farklıysa düzeltilir; böylece iki fiş aynı FICHENO'yu almaz.
+	$ekle = false;
+	try {
+		$sonsiparisid = lumen_insert_kimlik($dbh, $sqlFisEkle, [':siparisdurum' => $siparisdurum, ':fisno' => $fisno, ':kayitsaat' => (int) $kayitsaat, ':cariid' => $cariid, ':depo' => (int) $depo, ':status' => $status, ':saat' => (int) $saat, ':dakika' => (int) $dakika, ':saniye' => (int) $saniye, ':terminalkullanici' => (int) $terminalkullanici, ':doviz' => (int) $doviz, ':dovizkuru' => (float) $dovizkuru, ':guid' => (string) $guid]);
+		$ekle = true;
+	} catch (Throwable $e) {
+		error_log('fisekle INSERT: ' . $e->getMessage());
+	}
 	if ($ekle) {//echo "fiş açma işlem başarılı";
-		$stmtSonId->execute();
-		$sip = $stmtSonId->fetch(PDO::FETCH_ASSOC);
-		$sonsiparisid = intcevir($sip['SONID']);
+		$gercekFisno = $sipno . str_pad((string) $sonsiparisid, 6, '0', STR_PAD_LEFT);
+		if ($gercekFisno !== $fisno) {
+			$fisno = $gercekFisno;
+			$dbh->prepare("UPDATE " . $firmadonem . "ORFICHE SET FICHENO = :f WHERE LOGICALREF = :id")
+				->execute([':f' => $fisno, ':id' => $sonsiparisid]);
+		}
 
 		// ========================================
 		// Fiş oluşturma işlemini logla

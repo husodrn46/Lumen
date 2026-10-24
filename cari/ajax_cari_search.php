@@ -9,31 +9,33 @@ header('Content-Type: application/json; charset=utf-8');
  *  Parametre ve joker (%) hazırlığı
  * ----------------------------------------------------- */
 $raw = isset($_GET['term']) ? trim((string) $_GET['term']) : '';
-$like = '%' . str_replace(['%', '_'], ['\%','\_'], $raw) . '%';
+$like = '%' . lumen_arama_terimi($raw) . '%';
 
 /* -------------------------------------------------------
  *  Sorgu – aktif cariler + arama filtresi
  * ----------------------------------------------------- */
+// Özel cari kısıtı: gizlenen cariler aramada da çıkmaz (eskiden uygulanmıyordu).
+$ozel = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.ID', 'cari_ara_gizli');
 $sql = "
   SELECT TOP 20
-         LOGICALREF,
-         CODE,
-         DEFINITION_      AS UNVAN,
-         DEFINITION2,
-         ADDR1,
-         ADDR2,
-         TOWN,
-         CITY,
-         COUNTRY
-  FROM   {$firma}CLCARD
-  WHERE  ACTIVE = 0
-    AND ( CODE          LIKE :q
-       OR DEFINITION_   LIKE :q
-       OR DEFINITION2   LIKE :q )
-  ORDER BY CODE";
+         C.ID       AS LOGICALREF,
+         C.KOD      AS CODE,
+         C.UNVAN,
+         C.UNVAN2   AS DEFINITION2,
+         C.ADRES    AS ADDR1,
+         C.ADRES2   AS ADDR2,
+         C.ILCE     AS TOWN,
+         C.IL       AS CITY,
+         C.ULKE     AS COUNTRY
+  FROM   " . lumen_tablo('cari') . " C
+  WHERE  C.AKTIF = 1
+    AND ( " . lumen_arama_sql('C.KOD') . " LIKE :q1
+       OR " . lumen_arama_sql('C.UNVAN') . " LIKE :q2
+       OR " . lumen_arama_sql('C.UNVAN2') . " LIKE :q3 )" . ($ozel['sql'] !== '' ? "\n    AND {$ozel['sql']}" : '') . "
+  ORDER BY C.KOD";
 
 $stmt = $dbh->prepare($sql);
-$stmt->execute([':q' => $like]);
+$stmt->execute([':q1' => $like, ':q2' => $like, ':q3' => $like] + $ozel['params']);
 
 /* -------------------------------------------------------
  *  JSON çıktısı

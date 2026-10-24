@@ -80,36 +80,32 @@ if ($ozelCariTumSiparisFiltresi['sql'] !== '') {
     $params = array_merge($params, $ozelCariTumSiparisFiltresi['params']);
 }
 
-// Türkçe karakter duyarsız arama için SQL REPLACE fonksiyonu
-$sqlNormalize = function($column) {
-    return "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-        {$column}, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')";
-};
+// Türkçe harf ve büyük/küçük harf duyarsız arama: kolon lumen_arama_sql(), terim lumen_arama_terimi().
 
 // Unvan (Türkçe karakter duyarsız)
 if ($unvan !== '') {
-    $whereClauses[] = $sqlNormalize("CR.DEFINITION_") . " COLLATE Turkish_CI_AS LIKE :unvan";
-    $params[':unvan'] = '%' . turkce($unvan) . '%';
+    $whereClauses[] = lumen_arama_sql('CR.DEFINITION_') . " LIKE :unvan";
+    $params[':unvan'] = '%' . lumen_arama_terimi((string) $unvan) . '%';
 } elseif (!$showClient14) {
     $whereClauses[] = "FS.CLIENTREF <> 14";
 }
 
 // Cari kodu (Türkçe karakter duyarsız)
 if ($code !== '') {
-    $whereClauses[] = $sqlNormalize("CR.CODE") . " COLLATE Turkish_CI_AS LIKE :code";
-    $params[':code'] = '%' . turkce($code) . '%';
+    $whereClauses[] = lumen_arama_sql('CR.CODE') . " LIKE :code";
+    $params[':code'] = '%' . lumen_arama_terimi((string) $code) . '%';
 }
 
 // Şehir (Türkçe karakter duyarsız)
 if ($city !== '') {
-    $whereClauses[] = $sqlNormalize("CR.CITY") . " COLLATE Turkish_CI_AS LIKE :city";
-    $params[':city'] = '%' . turkce($city) . '%';
+    $whereClauses[] = lumen_arama_sql('CR.CITY') . " LIKE :city";
+    $params[':city'] = '%' . lumen_arama_terimi((string) $city) . '%';
 }
 
 // Fiş No
 if ($ficheno !== '') {
-    $whereClauses[] = "FS.FICHENO LIKE :ficheno";
-    $params[':ficheno'] = '%' . $ficheno . '%';
+    $whereClauses[] = lumen_arama_sql('FS.FICHENO') . " LIKE :ficheno";
+    $params[':ficheno'] = '%' . lumen_arama_terimi((string) $ficheno) . '%';
 }
 
 // Tutar aralığı
@@ -203,25 +199,11 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -229,40 +211,11 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        /* Sticky header */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; align-items: center; gap: 14px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-        .header-title {
-            font-size: 16px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 8px;
-            flex: 1 1 auto;
-        }
-        .header-title i { color: var(--red); font-size: 14px; }
         .header-title .badge-count {
             margin-left: 6px;
             padding: 2px 8px;
@@ -314,7 +267,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .field select {
             width: 100%;
             padding: 10px 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             color: var(--text-1);
             background: #fff;
@@ -366,7 +319,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: #fff;
             border: 1px solid var(--red,#6F1022);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
@@ -384,7 +337,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 10px 16px;
             background: #fff; color: var(--text-2);
             border: 1px solid var(--border); border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 600;
+            font-family: var(--font); font-size: 12.5px; font-weight: 600;
             cursor: pointer; transition: all 0.2s ease;
             text-decoration: none;
             white-space: nowrap;
@@ -404,7 +357,7 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .live-search-input {
             width: 100%;
             padding: 11px 14px 11px 40px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -624,9 +577,6 @@ $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             .filter-grid { grid-template-columns: repeat(3, 1fr); }
         }
         @media (max-width: 767px) {
-            .header-inner { padding: 12px 14px; gap: 10px; }
-            .header-title { font-size: 13.5px; }
-            .header-back { width: 30px; height: 30px; border-radius: 8px; }
             main { padding: 14px 12px 40px; }
 
             .filter-panel { padding: 12px; }

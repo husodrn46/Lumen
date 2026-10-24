@@ -113,12 +113,25 @@ if (isset($_POST['stkid'])) {
     exit('Gecersiz fis bilgisi.');
   }
 
-  if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+  // YETKI: satir eklemek yazma islemidir (fisekle.php kapisi: admin / M1 / M3) + cari gorunurlugu.
+  if (
+    !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+    || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)
+  ) {
     hareketekle_trace_log('AUTH_REJECTED', [
       'stokhareket' => $stokhareket,
       'terminalkullanici' => $terminalkullanici ?? null,
     ]);
-    header('Location: 403.html');
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+  }
+
+  // Satır yalnız gerçek bir SİPARİŞE eklenir. Görünürlük denetimi irsaliye/fatura kimliğini de
+  // (STFICHE yedeği) kabul ettiğinden, bağımsız modda bir faturaya satır eklenebiliyordu.
+  $siparisVar = $dbh->prepare("SELECT COUNT(*) FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :f");
+  $siparisVar->execute([':f' => $stokhareket]);
+  if ((int) $siparisVar->fetchColumn() === 0) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
     exit;
   }
 
@@ -491,10 +504,8 @@ if (isset($_POST['stkid'])) {
        . ', stokmiktar=' . $stokmiktar . ', stokfiyat=' . $stokfiyat
        . ', uomref=' . $uomref . ', stokbirim=' . $stokbirim
        . ', trcurr=' . $trcurr . ', trrate=' . $trrate);
-     if (function_exists('app_log_exception')) {
-       try { app_log_exception($e, 'hareketekle.insert', ['error_info' => $errInfo, 'binds' => $insertTraceBinds]); } catch (Throwable $x) {}
-     }
-     echo '<script>if (window.toast) { toast("Satir eklenemedi: ' . addslashes($e->getMessage()) . '", "error"); } else { alert("Satir eklenemedi: ' . addslashes($e->getMessage()) . '"); } window.history.back();</script>';
+     $kullaniciMesaji = app_public_error_message($e, 'siparis/hareketekle.insert', 'Sipariş satırı eklenemedi.');
+     echo '<script>if (window.toast) { toast("' . addslashes($kullaniciMesaji) . '", "error"); } else { alert("' . addslashes($kullaniciMesaji) . '"); } window.history.back();</script>';
      exit;
    }
    // ========================================

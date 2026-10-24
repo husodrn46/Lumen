@@ -46,7 +46,7 @@ if ($activeTab === 'ziyaret') {
                    SUM(Z.ZIYARET_SAYISI) AS TOP_ZIYARET,
                    MAX(Z.SON_ZIYARET) AS SON
             FROM M_SAYFA_ZIYARET Z
-            LEFT JOIN LG_SLSMAN S ON S.LOGICALREF = Z.PERSONEL_ID
+            LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = Z.PERSONEL_ID
             GROUP BY Z.PERSONEL_ID
             ORDER BY MAX(Z.SON_ZIYARET) DESC
         ");
@@ -377,6 +377,18 @@ if (empty($_SESSION['hata_merkezi_csrf'])) {
     $_SESSION['hata_merkezi_csrf'] = bin2hex(random_bytes(32));
 }
 $hataCsrfToken = (string) $_SESSION['hata_merkezi_csrf'];
+
+// Sistem grubu işlemleri (hata çözüldü işareti, IP onayı): yalnız yönetici veya M18.
+// Personel izleme grubuna M23 ile girilebildiğinden bu işlemler eskiden yalnız M23
+// yetkili kullanıcıya da açıktı (loglar.php?grup=personel'e POST).
+$loglarSistemYetkisi = (int) ($yetkidurum ?? 1) === 0 || m_p_yetki($terminalkullanici, 'M18') == 1;
+if (!$loglarSistemYetkisi && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
+    && (isset($_POST['ajax_action']) || (string) ($_POST['action'] ?? '') === 'toggle_solved')) {
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'message' => 'Bu işlem için yetkiniz yok']);
+    exit;
+}
 
 $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 if ($requestMethod === 'POST' && (string) ($_POST['action'] ?? '') === 'toggle_solved') {
@@ -990,11 +1002,9 @@ if (isset($_POST['ajax_action'])) {
                 END
             ");
             // Upsert: kullaniciya ait kapatma damgasini GETDATE() yap (delete+insert; named param tekrarsiz)
-            $dbh->beginTransaction();
-            $dbh->prepare("DELETE FROM M_OTURUM_KAPAT WHERE KULLANICI_ID = :id")->execute([':id' => $kullaniciId]);
-            $dbh->prepare("INSERT INTO M_OTURUM_KAPAT (KULLANICI_ID, KAPATMA_TS, KAPATAN_ID) VALUES (:id, GETDATE(), :kapatan)")
-                ->execute([':id' => $kullaniciId, ':kapatan' => (int) $terminalkullanici]);
-            $dbh->commit();
+            // Damga + "Beni hatırla" + API belirteçleri birlikte (yalnız damga yetmiyordu:
+            // hatırlama çerezi olan kullanıcı bir sonraki istekte geri giriyordu).
+            lumen_oturumlari_sonlandir($dbh, (int) $kullaniciId, (int) $terminalkullanici);
             echo json_encode(['success' => true, 'message' => 'Kullanicinin tum oturumlari kapatildi. Bir sonraki islemde cikis yapacak.']);
         } catch (Throwable $e) {
             if ($dbh->inTransaction()) { $dbh->rollBack(); }
@@ -1083,7 +1093,7 @@ try {
             NULL AS STOK_KODU,
             NULL AS STOK_ADI
         FROM M_FIS_LOG FL
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = FL.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = FL.KULLANICI
         WHERE FL.TARIH >= :date_from
           AND FL.TARIH < :date_to_exclusive
     ");
@@ -1118,7 +1128,7 @@ try {
             SD.STOK_KODU,
             SD.STOK_ADI
         FROM M_SATIR_DEGISIKLIK_LOG SD
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = SD.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = SD.KULLANICI
         WHERE SD.TARIH >= :date_from
           AND SD.TARIH < :date_to_exclusive
     ");
@@ -1153,7 +1163,7 @@ try {
             NULL AS STOK_KODU,
             NULL AS STOK_ADI
         FROM M_ISKONTO_LOG IL
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = IL.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = IL.KULLANICI
         WHERE IL.TARIH >= :date_from
           AND IL.TARIH < :date_to_exclusive
     ");
@@ -1188,7 +1198,7 @@ try {
             KD.STOK_KODU,
             KD.STOK_ADI
         FROM M_KDV_DEGISIKLIK_LOG KD
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = KD.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = KD.KULLANICI
         WHERE KD.TARIH >= :date_from
           AND KD.TARIH < :date_to_exclusive
     ");
@@ -1255,7 +1265,7 @@ try {
             MD.KULLANICI,
             SL.DEFINITION_ AS KULLANICI_ADI
         FROM M_MOBIL_DIZAYN_LOG MD
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = MD.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = MD.KULLANICI
         WHERE MD.TARIH >= :date_from
           AND MD.TARIH < :date_to_exclusive
     ");
@@ -1311,7 +1321,7 @@ try {
             FL.STOK_KODU,
             FL.STOK_ADI
         FROM M_FIYAT_LOG FL
-        LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = FL.KULLANICI_ID
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = FL.KULLANICI_ID
         WHERE FL.TARIH >= :date_from
           AND FL.TARIH < :date_to_exclusive
     ");
@@ -1432,7 +1442,7 @@ foreach ($filtrelenmisLoglar as $log) {
 
         // Tutar bilgisini güncelle
         if (!empty($log['GENEL_TOPLAM']) && $log['GENEL_TOPLAM'] > $grupluLoglar[$ficheno]['TOPLAM_TUTAR']) {
-            $grupluLoglar[$ficheno]['TOPLAM_TUTAR'] = $log['GENEL_TOPLAM'];
+            $grupluLoglar[$ficheno]['TOPLAM_TUTAR'] = (float) $log['GENEL_TOPLAM'];
         }
 
         // Kullanıcıyı ekle
@@ -1625,8 +1635,6 @@ foreach ($filtrelenmisLoglar as $log) {
 }
 arsort($islemTipleri);
 
-
-
 // Tüm kullanıcılar (dropdown için)
 $tumKullanicilar = [];
 foreach ($tumLoglar as $log) {
@@ -1687,25 +1695,11 @@ $islemRenkleri = [
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (is_file(__DIR__ . '/pwa-header.php')) { include_once(__DIR__ . '/pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -1713,7 +1707,7 @@ $islemRenkleri = [
         }
         * { box-sizing: border-box; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             margin: 0;
@@ -1722,47 +1716,18 @@ $islemRenkleri = [
         .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
         a { color: inherit; }
 
-        /* Sticky top header */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-        }
-        .header-inner {
-            max-width: 1280px; margin: 0 auto;
-            height: 100%; display: flex; align-items: center; gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            font-size: 18px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 10px;
-        }
-        .header-title i { color: var(--red,#ef4444); font-size: 16px; }
-
         /* Main layout */
         main.page { max-width: 1280px; margin: 0 auto; padding: 22px 24px 60px; }
 
         /* Glass card */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             margin-bottom: 18px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .card-head {
             padding: 14px 20px;
@@ -2292,10 +2257,6 @@ $islemRenkleri = [
             .kv-list dt { padding-top: 8px; }
         }
         @media (max-width: 767px) {
-            .top-header { height: 52px; }
-            .header-inner { padding: 0 14px; gap: 10px; }
-            .header-title { font-size: 14px; }
-            .header-back { width: 30px; height: 30px; border-radius: 8px; }
             main.page { padding: 14px 12px 50px; }
 
             .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -2375,7 +2336,7 @@ $islemRenkleri = [
         .cihaz-badge.b-on { background: var(--emerald-soft); color: #065f46; }
         .cihaz-badge.b-multi { background: var(--amber-soft); color: #92400e; }
         .cihaz-user-spacer { flex: 1; }
-        .cihaz-logout-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--red-soft); color: var(--red); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
+        .cihaz-logout-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--red-soft); color: var(--red); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; font-family: var(--font); font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; white-space: nowrap; }
         .cihaz-logout-btn:hover { background: var(--red); color: #fff; border-color: var(--red); }
         .cihaz-logout-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .cihaz-logout-btn i { font-size: 11px; }
@@ -2763,9 +2724,11 @@ $islemRenkleri = [
                 <div>Filtreye uygun aktivite bulunamadi</div>
             </div>
         <?php else: ?>
-            <?php foreach ($sayfaGruplar as $grup): ?>
+            <?php foreach ($sayfaGruplar as $grupNo => $grup): ?>
+                <?php // DOM kimliği için sıra no: FICHENO LOGO'da serbest metindir; tırnak içeren
+                      // bir fiş no, id/onclick içinden çıkıp yönetici tarayıcısında betik çalıştırıyordu. ?>
                 <div class="fis-group">
-                    <div class="fis-head" id="head-<?php echo $grup['FICHENO']; ?>" onclick="toggleGrup('<?php echo $grup['FICHENO']; ?>')">
+                    <div class="fis-head" id="head-g<?php echo (int) $grupNo; ?>" onclick="toggleGrup('g<?php echo (int) $grupNo; ?>')">
                         <div class="f-left">
                             <div class="f-ico"><i class="fas fa-file-invoice"></i></div>
                             <div style="min-width:0;">
@@ -2773,7 +2736,7 @@ $islemRenkleri = [
                                 <div class="f-sub">
                                     <i class="fas fa-hashtag"></i> <span class="fis-no"><?php echo htmlspecialchars((string) $grup['FICHENO']); ?></span>
                                     <?php if ($grup['TOPLAM_TUTAR'] > 0): ?>
-                                        &nbsp;&middot;&nbsp;<i class="fas fa-lira-sign"></i> <?php echo number_format($grup['TOPLAM_TUTAR'], 2, ',', '.'); ?>
+                                        &nbsp;&middot;&nbsp;<i class="fas fa-lira-sign"></i> <?php echo number_format((float) $grup['TOPLAM_TUTAR'], 2, ',', '.'); ?>
                                     <?php endif; ?>
                                     &nbsp;&middot;&nbsp;<?php echo date('d.m.Y', strtotime((string) $grup['SON_TARIH'])); ?>
                                 </div>
@@ -2781,11 +2744,11 @@ $islemRenkleri = [
                         </div>
                         <div class="f-right">
                             <span class="f-count"><?php echo count($grup['ISLEMLER']); ?> islem</span>
-                            <i class="fas fa-chevron-down f-chevron" id="icon-<?php echo $grup['FICHENO']; ?>"></i>
+                            <i class="fas fa-chevron-down f-chevron" id="icon-g<?php echo (int) $grupNo; ?>"></i>
                         </div>
                     </div>
 
-                    <div class="fis-body" id="grup-<?php echo $grup['FICHENO']; ?>">
+                    <div class="fis-body" id="grup-g<?php echo (int) $grupNo; ?>">
                         <?php
                         $islemler = $grup['ISLEMLER'];
                         usort($islemler, fn($a, $b): int => strtotime((string) $a['TARIH']) - strtotime((string) $b['TARIH']));

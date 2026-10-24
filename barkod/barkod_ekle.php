@@ -93,14 +93,10 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root { --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; --amber:#b45309; --amber-soft:#fffbeb; }
+
     * { box-sizing:border-box; margin:0; }
-    body { font-family:'Avenir Next','Montserrat',sans-serif; letter-spacing:-0.02em; background:var(--bg); color:var(--t1); font-size:14px; }
-    .top { position:sticky; top:0; z-index:30; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--border); }
-    .top-in { max-width:800px; margin:0 auto; padding:11px 16px; display:flex; align-items:center; gap:12px; }
-    .top a.geri { width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); text-decoration:none; border:1px solid var(--border); background:#fff; }
-    .top .baslik { font-size:15px; font-weight:700; flex:1; display:flex; align-items:center; gap:8px; }
-    .top .baslik i { color:var(--red); }
+    body { font-family: var(--font); letter-spacing:-0.02em; background:var(--bg); color:var(--t1); font-size:14px; }
+
     main { max-width:800px; margin:0 auto; padding:20px 16px 60px; }
     .kart { background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:18px; overflow:hidden; }
     .kart-bas { padding:14px 18px; display:flex; align-items:center; gap:9px; font-weight:700; font-size:14px; border-bottom:1px solid var(--border); }
@@ -134,10 +130,10 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
   </style>
 </head>
 <body>
-  <header class="top">
-    <div class="top-in">
-      <a href="barkodlar.php" class="geri" title="Barkodlar"><i class="fa fa-arrow-left"></i></a>
-      <span class="baslik"><i class="fa-solid fa-barcode"></i> Barkod Ekle / Düzenle</span>
+  <header class="top-header">
+    <div class="header-inner">
+      <a href="barkodlar.php" class="header-back" title="Barkodlar"><i class="fa fa-arrow-left"></i></a>
+      <span class="header-title"><i class="fa-solid fa-barcode"></i> Barkod Ekle / Düzenle</span>
     </div>
   </header>
   <main>

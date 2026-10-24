@@ -4,6 +4,11 @@ declare(strict_types=1);
 ob_start();
 
 require_once __DIR__ . '/../kontrol.php';
+// Cari finans bilgisi (bakiye/ekstre/fatura) yalnız bakiye ya da ekstre yetkisiyle görülür
+// (adres doğrudan yazılarak da açılmasın; menüdeki "Müşteri Bakiye" kuralıyla aynı aile).
+if (!m_p_cari_finans_erisim_var_mi($terminalkullanici)) {
+    lumen_hata_sayfasi('Yetkiniz yok', 'Cari bakiye ve ekstre için Müşteri Bakiye ya da Cari Bakiye/Ekstre yetkisi gerekir.', 403, 'fa-lock');
+}
 include_once __DIR__ . '/../ayr.php';
 include_once __DIR__ . '/../log_ip.php';
 
@@ -14,6 +19,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Conditional;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 
 $CARIID = (int) ($_GET['cariid'] ?? 0);
@@ -34,72 +40,20 @@ if (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $CARIID, 'M4
     exit;
 }
 
-// Cari bilgileri
-$stmtCari = $dbh->prepare("SELECT CODE, DEFINITION_ FROM {$firma}CLCARD WHERE LOGICALREF = :cariid");
-$stmtCari->execute([':cariid' => $CARIID]);
-$cari = $stmtCari->fetch(PDO::FETCH_ASSOC) ?: ['CODE' => '', 'DEFINITION_' => 'Bilinmeyen Cari'];
+// Cari, resmi bakiye ve hareketler ekranla aynı kaynaktan (cari/cari_ekstre_lib.php), iki modda.
+require_once __DIR__ . '/cari_ekstre_lib.php';
+$cari = cari_ekstre_cari($dbh, (int) $CARIID) ?: ['CODE' => '', 'DEFINITION_' => 'Bilinmeyen Cari'];
 
-// Firma adı
-$stmtFirma = $dbh->prepare("SELECT TOP 1 DEFINITION_ FROM {$firma}CLCARD WHERE ACTIVE = 0 ORDER BY LOGICALREF");
-$stmtFirma->execute();
-$firmaAdi = (string) ($stmtFirma->fetchColumn() ?: 'Firma');
+// Firma adı: kurulumun firması (eskiden listedeki ilk carinin unvanı basılıyordu).
+$stmtFirma = $dbh->prepare("SELECT TOP 1 F.NAME FROM " . lumen_tablo('firma') . " F WHERE F.NR = :nr");
+$stmtFirma->execute([':nr' => (int) ($firmano ?? 1)]);
+$firmaAdi = (string) ($stmtFirma->fetchColumn() ?: ($firmabaslik ?? 'Firma'));
 
-// Resmi bakiye
-$stmtResmi = $dbh->prepare("SELECT (ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE
-    FROM {$firmadonemx}GNTOTCL G WITH(NOLOCK)
-    WHERE G.CARDREF = :cariid AND G.TOTTYP = 1");
-$stmtResmi->execute([':cariid' => $CARIID]);
-$resmi_bakiye = (float) $stmtResmi->fetchColumn();
-
-// Dönem prefixleri
-$donemPrefixler = match ($donemSecim) {
-    'onceki' => [$eskifirmadonem],
-    'tumu' => [$firmadonem, $eskifirmadonem],
-    default => [$firmadonem],
-};
-
-$trcodeCaseExpr = "CASE HAREKET.TRCODE
-    WHEN 1 THEN 'Nakit Tahsilat' WHEN 2 THEN 'Nakit Odeme' WHEN 3 THEN 'Borc Dekontu' WHEN 4 THEN 'Alacak Dekontu' WHEN 5 THEN 'Virman Fisi'
-    WHEN 6 THEN 'Kur Farki Fisi' WHEN 12 THEN 'Ozel Fis' WHEN 14 THEN 'Acilis Fisi' WHEN 20 THEN 'Gelen Havale' WHEN 21 THEN 'Gonderilen Havale'
-    WHEN 24 THEN 'Doviz Alis Belgesi' WHEN 25 THEN 'Doviz Satis belgesi' WHEN 28 THEN 'Alinan Hizmet Faturasi' WHEN 29 THEN 'Verilen Hizmet Faturasi'
-    WHEN 31 THEN 'Satin Alma Faturasi' WHEN 32 THEN 'Perakende Satis Iade Faturasi' WHEN 33 THEN 'Toptan Satis Iade Faturasi'
-    WHEN 34 THEN 'Alinan Hizmet Faturasi' WHEN 35 THEN 'Alinan Proforma Fatura' WHEN 36 THEN 'Satin Alma Iade Faturasi'
-    WHEN 37 THEN 'Perakende Satis Faturasi' WHEN 38 THEN 'Toptan Satis Faturasi' WHEN 39 THEN 'Verilen Hizmet Faturasi'
-    WHEN 40 THEN 'Verilen proforma fatura' WHEN 41 THEN 'Verilen Vade Farki Faturasi' WHEN 42 THEN 'Alinan Vade Farki Faturasi'
-    WHEN 43 THEN 'Satin Alma Fiyat Farki Faturasi' WHEN 44 THEN 'Satis Fiyat Farki Faturasi' WHEN 45 THEN 'Verilen Serbest Meslek Makbuzu'
-    WHEN 46 THEN 'Alinan Serbest Meslek Makbuzu' WHEN 56 THEN 'Mustahsil Makbuzu'
-    WHEN 61 THEN 'Cek Girisi' WHEN 62 THEN 'Senet Girisi'
-    WHEN 63 THEN 'Cek Cikisi (Cari Hesaba)' WHEN 64 THEN 'Senet Cikisi (Cari Hesaba)'
-    WHEN 70 THEN 'Kredi Karti Fisi' WHEN 71 THEN 'Kredi Karti Iade Fisi' WHEN 72 THEN 'Firma Kredi Karti Fisi' WHEN 73 THEN 'Firma Kredi Karti Iade Fisi'
-    WHEN 81 THEN 'Satinalma Siparisi' WHEN 82 THEN 'Satis Siparisi'
-  END";
-
-$cariIdSafe = (int) $CARIID;
-$queryParts = [];
-foreach ($donemPrefixler as $prefix) {
-    $acilisFiltresi = ($donemSecim === 'tumu') ? ' AND HAREKET.TRCODE <> 14' : '';
-    $queryParts[] = "
-    SELECT
-      HAREKET.LOGICALREF,
-      HAREKET.DATE_,
-      HAREKET.TRANNO AS DOCODE,
-      HAREKET.TRCODE AS TRCODE_NO,
-      {$trcodeCaseExpr} AS TRCODE,
-      HAREKET.LINEEXP AS ACIKLAMA,
-      ISNULL((1 - HAREKET.SIGN) * HAREKET.AMOUNT, 0) AS BORC,
-      ISNULL(HAREKET.SIGN * HAREKET.AMOUNT, 0) AS ALACAK,
-      '{$prefix}' AS DONEM_PREFIX
-    FROM {$prefix}CLFLINE AS HAREKET
-    WHERE HAREKET.CANCELLED = 0 AND HAREKET.CLIENTREF = {$cariIdSafe}{$acilisFiltresi}";
-}
-
-$sql = "SELECT * FROM (" . implode(" UNION ALL ", $queryParts) . ") AS BIRLESIK ORDER BY DATE_ ASC, LOGICALREF ASC";
-$stmt = $dbh->prepare($sql);
-$stmt->execute();
+$resmi_bakiye = cari_ekstre_resmi_bakiye($dbh, (int) $CARIID);
 $hareketler = [];
 $toplam_borc = 0.0;
 $toplam_alacak = 0.0;
-while ($h = $stmt->fetch(PDO::FETCH_ASSOC)) {
+foreach (cari_ekstre_hareketleri($dbh, (int) $CARIID, (string) $donemSecim) as $h) {
     $hareketler[] = $h;
     $toplam_borc += (float) $h['BORC'];
     $toplam_alacak += (float) $h['ALACAK'];
@@ -107,13 +61,13 @@ while ($h = $stmt->fetch(PDO::FETCH_ASSOC)) {
 $islem_net_etki = $toplam_borc - $toplam_alacak;
 $baslangic_bakiye = $resmi_bakiye - $islem_net_etki;
 
-$donemEtiket = match ($donemSecim) {
-    'onceki' => '2025 (Onceki Donem)',
-    'tumu' => 'Tum Donemler',
-    default => '2026 (Aktif Donem)',
-};
+$donemEtiket = cari_ekstre_donem_etiketi((string) $donemSecim);
 
 // Excel oluştur
+// Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
+require_once __DIR__ . '/../includes/xlsx_guvenli.php';
+lumen_xlsx_guvenli_baglayici();
+lumen_bellek_en_az(256);   // çok satırlı listede tablo kütüphanesi 128 MB'ı aşabiliyor
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator($firmaAdi)
@@ -272,6 +226,10 @@ if (empty($hareketler)) {
     $sheet->getRowDimension($row)->setRowHeight(40);
     $row++;
 } else {
+    // Değerler tek seferde yazılır, biçimler aralığa bir kez uygulanır (hücre hücre biçim
+    // binlerce harekette 30 sn sınırını aşıyordu). Renkler koşullu biçimle verilir.
+    $ilkSatir = $row;
+    $veri = [];
     foreach ($hareketler as $h) {
         $borc = (float) $h['BORC'];
         $alacak = (float) $h['ALACAK'];
@@ -283,47 +241,42 @@ if (empty($hareketler)) {
             $ts = strtotime((string) $h['DATE_']);
             $tarihGoster = $ts ? date('d.m.Y', $ts) : (string) $h['DATE_'];
         }
-
-        $sheet->setCellValue('A' . $row, $tarihGoster);
-        $sheet->setCellValue('B' . $row, (string) ($h['TRCODE'] ?? ''));
-        $sheet->setCellValue('C' . $row, (string) ($h['ACIKLAMA'] ?? ''));
-        if ($alacak > 0) {
-            $sheet->setCellValue('D' . $row, $alacak);
-            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode($moneyFormat);
-            $sheet->getStyle('D' . $row)->getFont()->getColor()->setRGB($colorGreen);
-        } else {
-            $sheet->setCellValue('D' . $row, '-');
-            $sheet->getStyle('D' . $row)->getFont()->getColor()->setRGB('9CA3AF');
-        }
-        if ($borc > 0) {
-            $sheet->setCellValue('E' . $row, $borc);
-            $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode($moneyFormat);
-            $sheet->getStyle('E' . $row)->getFont()->getColor()->setRGB($colorRed);
-        } else {
-            $sheet->setCellValue('E' . $row, '-');
-            $sheet->getStyle('E' . $row)->getFont()->getColor()->setRGB('9CA3AF');
-        }
-        $sheet->setCellValue('F' . $row, $bakiye);
-        $sheet->getStyle('F' . $row)->getNumberFormat()->setFormatCode($moneyFormat);
-        $sheet->getStyle('F' . $row)->getFont()->setBold(true)->getColor()->setRGB($bakiye >= 0 ? $colorGreen : $colorRed);
-
-        $sheet->getStyle('D' . $row . ':F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('A' . $row . ':F' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle('C' . $row)->getAlignment()->setWrapText(true);
-
-        if ($satirIndex % 2 === 1) {
-            $sheet->getStyle('A' . $row . ':F' . $row)->applyFromArray([
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $colorZebra]],
-            ]);
-        }
-        $sheet->getStyle('A' . $row . ':F' . $row)->applyFromArray([
-            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => $colorBorder]]],
-        ]);
-
-        $row++;
-        $satirIndex++;
+        $veri[] = [$tarihGoster, (string) ($h['TRCODE'] ?? ''), (string) ($h['ACIKLAMA'] ?? ''),
+            $alacak > 0 ? $alacak : '-', $borc > 0 ? $borc : '-', $bakiye];
     }
+    $sheet->fromArray($veri, null, 'A' . $ilkSatir, true);
+    $row = $ilkSatir + count($veri);
+    $son = $row - 1;
+    $alan = "A{$ilkSatir}:F{$son}";
+    $sheet->getStyle("D{$ilkSatir}:F{$son}")->getNumberFormat()->setFormatCode($moneyFormat);
+    $sheet->getStyle("D{$ilkSatir}:F{$son}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+    $sheet->getStyle("A{$ilkSatir}:A{$son}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getStyle($alan)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+    $sheet->getStyle("C{$ilkSatir}:C{$son}")->getAlignment()->setWrapText(true);
+    $sheet->getStyle("F{$ilkSatir}:F{$son}")->getFont()->setBold(true);
+    $sheet->getStyle($alan)->applyFromArray([
+        'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => $colorBorder]]],
+    ]);
+    $kosul = static function (string $formul, string $renk, bool $zemin = false): Conditional {
+        $k = (new Conditional())->setConditionType(Conditional::CONDITION_EXPRESSION)->addCondition($formul);
+        if ($zemin) {
+            $k->getStyle()->getFill()->setFillType(Fill::FILL_SOLID)->getEndColor()->setRGB($renk);
+        } else {
+            $k->getStyle()->getFont()->getColor()->setRGB($renk);
+        }
+        return $k;
+    };
+    $sheet->getStyle("D{$ilkSatir}:D{$son}")->setConditionalStyles([
+        $kosul("ISTEXT(D{$ilkSatir})", '9CA3AF'), $kosul("D{$ilkSatir}>0", $colorGreen),
+    ]);
+    $sheet->getStyle("E{$ilkSatir}:E{$son}")->setConditionalStyles([
+        $kosul("ISTEXT(E{$ilkSatir})", '9CA3AF'), $kosul("E{$ilkSatir}>0", $colorRed),
+    ]);
+    $sheet->getStyle("F{$ilkSatir}:F{$son}")->setConditionalStyles([
+        $kosul("F{$ilkSatir}<0", $colorRed), $kosul("F{$ilkSatir}>=0", $colorGreen),
+    ]);
+    $zebra = 'MOD(ROW()-' . $ilkSatir . ',2)=1';
+    $sheet->getStyle("A{$ilkSatir}:C{$son}")->setConditionalStyles([$kosul($zebra, $colorZebra, true)]);
 }
 $dataEndRow = $row - 1;
 $row++;

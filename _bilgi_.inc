@@ -159,6 +159,9 @@ $rapor_haric_cari_kelimeleri = [];
 // ürünleri kapsar. Yalnız kendi ürettiğiniz ürünleri raporlamak isterseniz
 // kullanın (ör. 'URN'). BOŞ bırakılırsa tüm ürünler dahil edilir (varsayılan).
 $urun_kodu_oneki = '';
+// Pazarlamacı raporlarının varsayılan cari kodu ön eki (.env PAZARLAMACI_CARI_ONEKI).
+// Boş = tüm cariler. Raporda ön ek ekrandan da değiştirilebilir.
+$pazarlamaci_cari_oneki = (string) (getenv('PAZARLAMACI_CARI_ONEKI') ?: '');
 
 // Yukarıdaki kapsamdan ayrıca hariç tutulacak ön ekler. Örnek: ['URN-HURDA']
 $urun_kodu_haric_onekleri = [];
@@ -185,3 +188,11 @@ $fatura_irsaliye_prefix = 'LMI'; // STFICHE serisi (örn. LMI000000001)
 // YETKİ AYARLARI
 // ============================================================================
 $toplusipfaturalama = '1';      // Toplu sipariş faturalama yetkisi (0: Hayır, 1: Evet)
+
+// ============================================================================
+// EKRANDAN DEĞİŞTİRİLEN AYARLAR
+// Ayarlar ekranı bu dosyaya YAZMAZ; değerler database/ayarlar.json'da tutulur ve
+// burada varsayılanların üzerine uygulanır (includes/ayar_deposu.php).
+// ============================================================================
+require_once __DIR__ . '/includes/ayar_deposu.php';
+lumen_ayar_uygula();

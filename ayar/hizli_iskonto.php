@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * hizli_iskonto.php — Sipariş ekranı hızlı iskonto kısayollarını yönet.
- * Her kısayol: etiket + yüzde. Değerler _bilgi_.inc içindeki $hizli_iskontolar
+ * Her kısayol: etiket + yüzde. Değerler database/ayarlar.json'daki hizli_iskontolar
  * dizisine yazılır (tek satır; regex ile güncellenir). Admin-only + CSRF.
  */
 
@@ -15,54 +15,28 @@ require_once __DIR__ . '/admin_guard.php';
 
 ayar_require_m16($terminalkullanici);
 
-$bilgi_file = __DIR__ . '/../_bilgi_.inc';
 $mesaj = '';
 $mesajTip = '';
 
-/** Etiketten tehlikeli karakterleri temizle (tırnak/köşeli parantez/; olmaz). */
-function hi_temiz_ad(string $ad): string
-{
-    $ad = trim($ad);
-    $ad = preg_replace('/[^\p{L}\p{N} .\-\/]/u', '', $ad) ?? '';
-    return mb_substr(trim($ad), 0, 24);
-}
-
+// Kısayollar _bilgi_.inc'e PHP literali olarak yazılıyordu; artık
+// database/ayarlar.json'a doğrulanmış veri olarak kaydedilir (includes/ayar_deposu.php).
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kaydet'])) {
     ayar_require_csrf();
 
     $adlar   = (array) ($_POST['ad'] ?? []);
     $oranlar = (array) ($_POST['oran'] ?? []);
-    $yeni = [];
+    $liste = [];
     foreach ($adlar as $i => $ad) {
-        $ad = hi_temiz_ad((string) $ad);
-        $oran = (float) str_replace(',', '.', (string) ($oranlar[$i] ?? ''));
-        if ($ad !== '' && $oran > 0 && $oran <= 100) {
-            $yeni[] = ['ad' => $ad, 'oran' => $oran];
-        }
+        $liste[] = ['ad' => (string) $ad, 'oran' => str_replace(',', '.', (string) ($oranlar[$i] ?? ''))];
     }
 
-    // Array literalini kur (tek satır, güvenli — ad temizlendi, oran sayı)
-    $parcalar = [];
-    foreach ($yeni as $r) {
-        $oranYaz = rtrim(rtrim(number_format($r['oran'], 2, '.', ''), '0'), '.');
-        $parcalar[] = "['ad' => '" . $r['ad'] . "', 'oran' => " . $oranYaz . "]";
-    }
-    $literal = '$hizli_iskontolar = [' . implode(', ', $parcalar) . '];';
-
-    $icerik = (string) file_get_contents($bilgi_file);
-    if (preg_match('/\$hizli_iskontolar\s*=\s*\[.*?\];/s', $icerik)) {
-        $icerik = preg_replace('/\$hizli_iskontolar\s*=\s*\[.*?\];/s', $literal, $icerik, 1);
-    } else {
-        // değişken yoksa dosya sonuna ekle
-        $icerik = rtrim($icerik) . "\n" . $literal . "\n";
-    }
-
-    if (file_put_contents($bilgi_file, $icerik) !== false) {
+    if (lumen_ayar_kaydet(['hizli_iskontolar' => $liste], (int) $terminalkullanici)) {
         $mesaj = 'Hızlı iskonto kısayolları kaydedildi.';
         $mesajTip = 'ok';
-        $hizli_iskontolar = $yeni; // güncel değerleri göster
+        lumen_ayar_uygula();
+        $hizli_iskontolar = $GLOBALS['hizli_iskontolar'] ?? [];
     } else {
-        $mesaj = 'Kaydedilemedi — _bilgi_.inc yazma izinlerini kontrol edin.';
+        $mesaj = 'Kaydedilemedi — database/ klasörü yazma izinlerini kontrol edin.';
         $mesajTip = 'error';
     }
 }
@@ -81,9 +55,9 @@ $h = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#f9fafb; --card:#fff; --t1:#1f2937; --t2:#6b7280; --t3:#9ca3af; --border:#e5e7eb; --red:#6F1022; --red-soft:#fef2f2; --emerald:#059669; --emerald-soft:#ecfdf5; }
+
         * { box-sizing:border-box; margin:0; }
-        body { font-family:'Avenir Next','Montserrat',sans-serif; letter-spacing:-0.02em; background:var(--bg); color:var(--t1); font-size:14px; }
+        body { font-family: var(--font); letter-spacing:-0.02em; background:var(--bg); color:var(--t1); font-size:14px; }
         .top { position:sticky; top:0; z-index:20; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--border); }
         .top-in { max-width:720px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:12px; }
         .top a.geri { width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; color:var(--t2); text-decoration:none; border:1px solid var(--border); background:#fff; }

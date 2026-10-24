@@ -62,6 +62,15 @@ $lgStokEkleBackUrl = safeLocalReturnUrl(
   '../siparis/lg_fis.php?stokhareket=' . $fisid
 );
 
+if (
+  $fisid <= 0
+  || !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum)
+  || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisid)
+) {
+  lumen_hata_sayfasi('Erişim reddedildi', 'Bu siparişe ürün ekleme yetkiniz bulunmuyor.', 403);
+  exit;
+}
+
 if ($stokid > 0 && $fisid > 0) {
   include_once(__DIR__ . "/../fiyat/fiyatgrup.php");
 
@@ -72,11 +81,13 @@ if ($stokid > 0 && $fisid > 0) {
     setPageParam('stokid', $stokid, 'lg_stok_duzenle');
     setPageParam('stokhareket', $fisid, 'lg_stok_duzenle');
     setPageParam('return_to', $lgStokEkleBackUrl, 'lg_stok_duzenle');
-    echo '<script>window.location="lg_stok_duzenle.php";</script>';
+    // Kimlikler adreste taşınır (sekme güvenliği: oturum tüm sekmelerde ortaktır)
+    echo '<script>window.location="lg_stok_duzenle.php?stokid=' . (int) $stokid . '&stokhareket=' . (int) $fisid
+        . '&return_to=' . rawurlencode((string) $lgStokEkleBackUrl) . '";</script>';
     exit;
   }
 } else {
-  exit;
+  lumen_hata_sayfasi('Ürün seçilmedi', 'Siparişe eklenecek ürün veya sipariş bilgisi eksik. Siparişten tekrar deneyin.');
 }
 
 $stmt = $dbh->prepare("SELECT CLIENTREF FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :fisid");
@@ -106,7 +117,7 @@ ORDER BY URUN.CODE");
 $stmt->execute([':stokid' => $stokid]);
 $stokara = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!is_array($stokara) || $stokara === []) {
-  header('Location: ' . APP_ROOT_URL . '/lg_fis.php?stokhareket=' . $fisid . '&hata=stok_bulunamadi', true, 303);
+  header('Location: ' . APP_ROOT_URL . '/siparis/lg_fis.php?stokhareket=' . $fisid . '&hata=stok_bulunamadi', true, 303);
   exit;
 }
 
@@ -167,32 +178,18 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
   <title>Stok Ekle</title>
   <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
   <script src="/tm/js/jquery-3.7.1.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f9fafb;
-      --text-1: #1f2937;
-      --text-2: #6b7280;
-      --text-3: #9ca3af;
-      --border: #e5e7eb;
-      --red: #6F1022;
-      --red-soft: #fef2f2;
-      --emerald: #059669;
-      --emerald-soft: #ecfdf5;
       --indigo: #4f46e5;
       --indigo-soft: #eef2ff;
-      --amber: #d97706;
-      --amber-soft: #fffbeb;
       --sky: #0284c7;
       --sky-soft: #eff6ff;
-    }
+        }
     * { box-sizing: border-box; margin: 0; }
     body {
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--text-1);
       min-height: 100vh;
@@ -201,44 +198,14 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
 
-    /* ═══════ HEADER ═══════ */
-    .top-header {
-      position: sticky; top: 0; z-index: 40;
-      height: 64px;
-      background: rgba(255,255,255,0.88);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-      box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-    }
-    .header-inner {
-      max-width: 760px; margin: 0 auto;
-      height: 100%; display: flex; align-items: center; gap: 14px;
-      padding: 0 24px;
-    }
-    .header-back {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 36px; height: 36px; border-radius: 10px;
-      color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-    }
-    .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-    .header-divider { width: 1px; height: 24px; background: var(--border); }
-    .header-title {
-      font-size: 18px; font-weight: 700; color: var(--text-1);
-      display: inline-flex; align-items: center; gap: 8px;
-    }
-    .header-title i { color: var(--red,#ef4444); font-size: 16px; }
-
     /* ═══════ CARD ═══════ */
     .glass-card {
-      background: rgba(255,255,255,0.92);
+      background: var(--card);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
-      border: 1px solid rgba(248, 113, 113, 0.18);
+      border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-      will-change: transform, opacity;
-      animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+      box-shadow: var(--golge-1);
       overflow: hidden;
       margin-bottom: 16px;
     }
@@ -286,7 +253,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
       border: 1px solid var(--border);
       cursor: pointer;
       transition: all 0.2s ease;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     .price-pill:hover {
@@ -380,7 +347,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     .doviz-grid .d-item input {
       width: 100%;
       padding: 8px 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 13px;
       font-weight: 600;
       color: var(--text-1);
@@ -416,7 +383,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     .field-control {
       width: 100%;
       padding: 11px 14px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 14px;
       font-weight: 600;
       color: var(--text-1);
@@ -516,7 +483,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
       color: #fff;
       border: none;
       border-radius: 12px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
@@ -537,7 +504,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
       color: var(--indigo);
       border: 1px solid rgba(79, 70, 229, 0.25);
       border-radius: 12px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
@@ -832,7 +799,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     .btn-modal-close {
       padding: 9px 20px; background: #64748b; color: #fff;
       border: none; border-radius: 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-weight: 600; font-size: 13px;
+      font-family: var(--font); font-weight: 600; font-size: 13px;
       cursor: pointer; transition: all 0.15s ease;
     }
     .btn-modal-close:hover { background: #475569; }
@@ -850,10 +817,6 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
 
     /* ═══════ MOBILE ═══════ */
     @media (max-width: 767px) {
-      .top-header { height: 50px; }
-      .header-inner { padding: 0 12px; gap: 10px; }
-      .header-title { font-size: 15px; }
-      .header-back { width: 30px; height: 30px; border-radius: 8px; }
 
       main { padding: 14px 12px 40px !important; }
 
@@ -894,7 +857,7 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
 
   <header class="top-header">
     <div class="header-inner">
-      <a href="<?php echo htmlspecialchars($lgStokEkleBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Geri Don">
+      <a href="<?php echo htmlspecialchars($lgStokEkleBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Geri Dön">
         <i class="fa fa-arrow-left"></i>
       </a>
       <div class="header-divider"></div>
@@ -1334,7 +1297,6 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     {
       var f = document.getElementById("iskontoartir").value;
 
-
       document.getElementById("stkfyt").value = f;
     }
   }
@@ -1342,29 +1304,23 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
   function degistir1() {
     var f = document.getElementById("yenifiyat1").value;
 
-
     document.getElementById("stkfyt").value = f;
   }
   function degistir2() {
     var f = document.getElementById("yenifiyat2").value;
-
 
     document.getElementById("stkfyt").value = f;
   }
   function degistir3() {
     var f = document.getElementById("yenifiyat3").value;
 
-
     document.getElementById("stkfyt").value = f;
   }
   function degistir4() {
     var f = document.getElementById("yenifiyat4").value;
 
-
     document.getElementById("stkfyt").value = f;
   }
-
-
 
   function dovizkuruhesapla() {
     var stokkdv = document.getElementById('stkkdv').value;
@@ -1373,7 +1329,6 @@ $iskonto3FiyatDoviz = ($dovizAktif && $iskonto3Fiyat !== null) ? ($iskonto3Fiyat
     var stokadet = document.getElementById('stkadt').value;
     var dovizli = (stokadet * fiyattl) / fiyatdoviz;
     document.getElementById('dovizlif').value = (dovizli).toFixed(2);
-
 
     var dovizlikdvoran = dovizli * (stokkdv / 100);
     document.getElementById('dovizlikdvtutar').innerHTML = "%" + stokkdv + " kdv =" + (dovizlikdvoran).toFixed(2);

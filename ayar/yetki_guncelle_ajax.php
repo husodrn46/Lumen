@@ -46,7 +46,7 @@ if (!in_array($yetki_kodu, $izin_verilen_yetkiler)) {
 // Değer kontrolü
 if ($yetki_kodu === 'YETKI') {
     // YETKI icin 0, 1, 2 kabul edilir
-    if (!in_array($yeni_deger, [0, 1, 2], true)) {
+    if (!array_key_exists($yeni_deger, lumen_kullanici_turleri())) {
         echo json_encode(['success' => false, 'message' => 'YETKI için gecerli değerler: 0 (Yönetici), 1 (Personel), 2 (Müşteri)']);
         exit;
     }
@@ -56,6 +56,14 @@ if ($yetki_kodu === 'YETKI') {
         echo json_encode(['success' => false, 'message' => 'Geçersiz değer: ' . $yeni_deger]);
         exit;
     }
+}
+
+$engel = lumen_yetki_degisikligi_engeli($dbh, (int) $terminalkullanici, $personel_id,
+    $yetki_kodu === 'YETKI' ? $yeni_deger : null, $yetki_kodu);
+if ($engel !== null) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => $engel]);
+    exit;
 }
 
 try {

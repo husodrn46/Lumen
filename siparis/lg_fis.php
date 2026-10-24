@@ -106,9 +106,26 @@ if (isset($_POST['kdviptal'])) {
 
    $isKdvAjax = isset($_POST['ajax']) && $_POST['ajax'] === '1';
    $stokhareket = isset($_POST['stokhareket']) ? (int)$_POST['stokhareket'] : 0;
+
+   // YETKI + GORUNURLUK: POST'taki stokhareket yukaridaki GET/session kontrolunu atlar;
+   // KDV degisikligi bir yazma islemidir (fisekle.php kapisi: admin / M1 / M3).
+   if (
+      !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+      || ($stokhareket > 0 && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket))
+   ) {
+      if ($isKdvAjax) {
+         http_response_code(403);
+         header('Content-Type: application/json; charset=utf-8');
+         echo json_encode(['ok' => false, 'msg' => 'Bu islem icin yetkiniz yok']);
+         exit;
+      }
+      header('Location: ' . APP_ROOT_URL . '/403.html');
+      exit;
+   }
+
    $yenikdv = $resmiKdvZorunlu
       ? $resmiKdvOrani
-      : (isset($_POST['kdviptal']) ? (float)virgul($_POST['kdviptal']) : 0.0);
+      : (isset($_POST['kdviptal']) ? max(0.0, min(100.0, (float)virgul($_POST['kdviptal']))) : 0.0);
 
    if ($stokhareket > 0) {
       try {
@@ -146,7 +163,7 @@ if (isset($_POST['kdviptal'])) {
 
    // Session'a kaydet ve temiz URL'ye yönlendir
    setPageParam('stokhareket', $stokhareket);
-   echo '<script>window.location="lg_fis-beta.php";</script>';
+   echo '<script>window.location="lg_fis.php?stokhareket=' . $stokhareket . '";</script>';
 }
 
 function paraformat_lg_fis(float|int|string|null $kusurat): string
@@ -188,7 +205,6 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
    return round($netFiyat, 2);
 }
 
-
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -199,9 +215,11 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
    <title>Stok Hareket</title>
    <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
    <script src="/tm/css/tailwind.js"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
    <script>
       if (typeof tailwind !== 'undefined') {
          tailwind.config = {
+            darkMode: 'class',
             corePlugins: { preflight: false }
          };
       }
@@ -213,24 +231,16 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
    <style>
       :root {
-         --bg: #f9fafb;
-         --surface: #ffffff;
-         --text-1: #1f2937;
-         --text-2: #6b7280;
-         --text-3: #9ca3af;
-         --border: #e5e7eb;
-         --red: #ef4444;
-         --red-soft: #fef2f2;
+
          --red-border: rgba(248, 113, 113, 0.25);
-         --amber: #f59e0b;
-         --emerald: #10b981;
+
          --indigo: #6366f1;
       }
 
       * { box-sizing: border-box; margin: 0; }
 
       body {
-         font-family: 'Avenir Next', 'Montserrat', 'Segoe UI', sans-serif;
+         font-family: var(--font);
          background: var(--bg);
          color: var(--text-1);
          min-height: 100vh;
@@ -253,32 +263,10 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
       }
 
       /* ═══════════ STICKY HEADER ═══════════ */
-      .beta-header {
-         position: sticky;
-         top: 0;
-         z-index: 50;
-         height: 64px;
-         background: rgba(255, 255, 255, 0.88);
-         backdrop-filter: blur(6px);
-         -webkit-backdrop-filter: blur(6px);
-         border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-         box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-         animation: headerSlide 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-      }
-
-      .beta-header-inner {
-         max-width: 1400px;
-         margin: 0 auto;
-         height: 100%;
-         display: flex;
-         align-items: center;
-         gap: 14px;
-         padding: 0 20px;
-      }
-
       /* ═══════════ FLAT BUTTONS ═══════════ */
       .btn-flat {
          display: inline-flex;
+         min-height: var(--dokun);
          align-items: center;
          justify-content: center;
          gap: 6px;
@@ -286,7 +274,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          border-radius: 10px;
          font-size: 13px;
          font-weight: 600;
-         font-family: 'Avenir Next', 'Montserrat', sans-serif;
+         font-family: var(--font);
          border: none;
          cursor: pointer;
          text-decoration: none;
@@ -303,17 +291,17 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          transform: translateY(0);
       }
 
-      .btn-red { background: var(--red,#ef4444); color: #fff; }
+      .btn-red { background: var(--red); color: #fff; }
       .btn-red:hover { background: var(--red,#6F1022); color: #fff; }
 
-      .btn-amber { background: #f59e0b; color: #fff; }
-      .btn-amber:hover { background: #d97706; color: #fff; }
+      .btn-amber { background: var(--card); color: var(--text-2); border: 1px solid var(--border-strong); }
+      .btn-amber:hover { background: var(--red-soft); color: var(--red); }
 
       .btn-emerald { background: #10b981; color: #fff; }
       .btn-emerald:hover { background: #059669; color: #fff; }
 
-      .btn-indigo { background: #6366f1; color: #fff; }
-      .btn-indigo:hover { background: #4f46e5; color: #fff; }
+      .btn-indigo { background: var(--red); color: #fff; }
+      .btn-indigo:hover { background: var(--red); color: #fff; filter: brightness(1.1); }
 
       .btn-slate { background: #64748b; color: #fff; }
       .btn-slate:hover { background: #475569; color: #fff; }
@@ -333,34 +321,19 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
 
       /* ═══════════ GLASS CARD ═══════════ */
       .glass-card {
-         background: rgba(255, 255, 255, 0.88);
+         background: var(--card);
          backdrop-filter: blur(6px);
          -webkit-backdrop-filter: blur(6px);
-         border: 1px solid rgba(248, 113, 113, 0.18);
+         border: 1px solid var(--border);
          border-radius: 16px;
-         box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+         box-shadow: var(--golge-1);
          will-change: transform, opacity;
-         animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+
          position: relative;
          overflow: hidden;
       }
 
       /* Shimmer hover effect */
-      .glass-card::before {
-         content: "";
-         position: absolute;
-         inset: 0;
-         background: linear-gradient(120deg, transparent 15%, rgba(255, 255, 255, 0.5) 45%, transparent 75%);
-         transform: translateX(-130%);
-         transition: transform 0.75s ease;
-         pointer-events: none;
-         z-index: 1;
-      }
-
-      .glass-card:hover::before {
-         transform: translateX(130%);
-      }
-
       .glass-card-body {
          padding: 20px 24px;
          position: relative;
@@ -377,7 +350,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          border-radius: 10px;
          border: 1px solid var(--border);
          background: #fff;
-         font-family: 'Avenir Next', 'Montserrat', sans-serif;
+         font-family: var(--font);
          font-size: 14px;
          color: var(--text-1);
          outline: none;
@@ -387,8 +360,8 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
       .search-input::placeholder { color: var(--text-3); }
 
       .search-input:focus {
-         border-color: rgba(239, 68, 68, 0.5);
-         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+         border-color: rgba(111, 16, 34, 0.5);
+         box-shadow: 0 0 0 3px rgba(111, 16, 34, 0.1);
       }
 
       .search-form {
@@ -403,12 +376,6 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          white-space: nowrap;
          padding: 12px 20px;
          font-size: 15px;
-         flex-shrink: 0;
-      }
-
-      .header-back-btn {
-         padding: 12px 16px;
-         border-radius: 12px;
          flex-shrink: 0;
       }
 
@@ -443,11 +410,11 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
       .beta-table-wrap {
          overflow-x: auto;
          border-radius: 16px;
-         border: 1px solid rgba(248, 113, 113, 0.18);
+         border: 1px solid var(--border);
          background: #fff;
-         box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+         box-shadow: var(--golge-1);
          will-change: transform, opacity;
-         animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+
       }
 
       .beta-table {
@@ -457,8 +424,8 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
       }
 
       .beta-table thead th {
-         background: var(--red,#ef4444);
-         color: #fff;
+         background: var(--baslik-zemin);
+         color: var(--text-2);
          font-size: 11px;
          font-weight: 700;
          letter-spacing: 0.06em;
@@ -486,7 +453,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
       .beta-table tbody tr:hover {
          background: rgba(254, 242, 242, 0.5);
          transform: translateY(-1px);
-         box-shadow: 0 4px 12px rgba(239, 68, 68, 0.06);
+         box-shadow: 0 4px 12px rgba(111, 16, 34, 0.06);
       }
 
       .beta-table tbody tr:last-child td {
@@ -510,7 +477,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          height: 26px;
          border-radius: 8px;
          background: #fef2f2;
-         color: var(--red,#ef4444);
+         color: var(--red);
          font-size: 11px;
          font-weight: 700;
          border: 1px solid rgba(248, 113, 113, 0.2);
@@ -529,7 +496,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
       /* ═══════════ SUMMARY METRICS ═══════════ */
       .summary-panel {
          will-change: transform, opacity;
-         animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+
       }
 
       .metric-row {
@@ -618,7 +585,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          padding: 6px 8px;
          font-size: 13px;
          font-weight: 600;
-         font-family: 'Avenir Next', 'Montserrat', sans-serif;
+         font-family: var(--font);
          outline: none;
          color: var(--text-1);
       }
@@ -681,12 +648,9 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
 
       /* ═══════════ RESPONSIVE ═══════════ */
       @media (max-width: 768px) {
-         .beta-header { height: 50px; }
-         .beta-header-inner { padding: 0 12px; gap: 8px; }
          .search-input { max-width: 100%; font-size: 16px; padding: 9px 12px; }
          .search-submit { padding: 10px 12px; min-width: 44px; min-height: 44px; }
          .search-submit span { display: none; }
-         .header-back-btn { padding: 12px 14px; }
          .glass-card-body { padding: 14px 16px; }
          .beta-table td { font-size: 12px; padding: 8px 10px; }
          .beta-table thead th { font-size: 10px; padding: 10px 10px; }
@@ -711,10 +675,10 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
    <?php unset($_SESSION['uyari_mesaj']); endif; ?>
 
    <!-- ═══════════ STICKY HEADER ═══════════ -->
-   <header class="beta-header">
-      <div class="beta-header-inner">
+   <header class="beta-header top-header">
+      <div class="beta-header-inner header-inner">
          <!-- Back Button -->
-         <a href="<?php echo htmlspecialchars($lgFisBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn-flat btn-red header-back-btn" title="Geri Don">
+         <a href="<?php echo htmlspecialchars($lgFisBackUrl, ENT_QUOTES, 'UTF-8'); ?>" class="header-back" title="Geri dön" aria-label="Geri dön">
             <i class="fa fa-arrow-left" style="font-size: 18px;"></i>
          </a>
 
@@ -724,7 +688,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                autocomplete="off" aria-label="Urun veya barkod ara"
                placeholder="🔍 Ürün ara veya barkod okut...">
             <input type="hidden" name="fisid" value="<?php echo $stokhareket; ?>">
-            <button type="submit" class="btn-flat btn-red search-submit">
+            <button type="submit" class="btn btn-birincil search-submit" aria-label="Ürün ara">
                <i class="fa fa-search"></i>
                <span class="hidden md:inline">Ara</span>
             </button>
@@ -764,7 +728,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
    FROM {$firma}CLCARD C WITH(NOLOCK)
    LEFT JOIN SonFatura SF ON SF.CLIENTREF = C.LOGICALREF
    LEFT JOIN {$firmadonemx}GNTOTCL G WITH(NOLOCK) ON G.CARDREF = C.LOGICALREF AND G.TOTTYP = 1
-   LEFT JOIN LG_SLSMAN SL WITH(NOLOCK) ON SL.LOGICALREF = SF.SALESMANREF
+   LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = SF.SALESMANREF
    WHERE C.ACTIVE = 0 AND C.LOGICALREF = :clientRef2;
    ";
       $stmt = $dbh->prepare($sql);
@@ -790,8 +754,8 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
             <!-- Üst: Müşteri Adı + Butonlar -->
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid rgba(0,0,0,0.05);flex-wrap:wrap;">
                <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-                  <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#eef2ff,#e0e7ff);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                     <i class="fa-solid fa-building" style="color:#6366f1;font-size:16px;"></i>
+                  <div style="width:40px;height:40px;border-radius:12px;background:var(--red-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                     <i class="fa-solid fa-building" style="color:var(--text-2);font-size:16px;"></i>
                   </div>
                   <div style="min-width:0;">
                      <div style="font-size:16px;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -806,6 +770,14 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                </div>
                <!-- Butonlar -->
                <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+                  <?php if (lumen_modul_hazir_mi('belge') && m_p_yetki($terminalkullanici, 'M31') == 1): ?>
+                  <!-- Bağımsız mod: siparişten Lumen faturası / irsaliyesi (belge modülü) -->
+                  <a href="../belge/siparisten.php?siparis=<?php echo (int) $stokhareket; ?>"
+                     class="btn-flat btn-red" title="Faturala / İrsaliye" style="padding:8px 14px;">
+                     <i class="fa fa-file-invoice"></i>
+                     <span class="hidden sm:inline">Faturala</span>
+                  </a>
+                  <?php endif; ?>
                   <a href="../yazdir/yeni_dizayn.php?stokhareket=<?php echo $stokhareket; ?>&tipdurum=1"
                      class="btn-flat btn-amber" title="Yazdır" style="padding:8px 14px;">
                      <i class="fa fa-print"></i>
@@ -813,7 +785,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                   </a>
                   <button id="btnFastPrint" type="button"
                      class="btn-flat btn-red" style="padding:8px 14px;"
-                     data-url="../yazdir/hizli_yazdir.php?stokhareket=<?php echo $stokhareket; ?>&tip=1&ajax=1"
+                     data-url="../yazdir/hizli_yazdir.php?stokhareket=<?php echo (int) $stokhareket; ?>&tip=1&ajax=1&t=<?php echo urlencode(csrf_token()); ?>"
                      title="Hızlı Yazdır">
                      <i class="fa fa-bolt"></i><i class="fa fa-print"></i>
                   </button>
@@ -829,7 +801,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                            <i class="fa fa-file-excel" style="color:#059669;"></i> Excel'e Aktar
                         </a>
                         <a href="../stok/stok_hareket_pdf.php?stokhareket=<?php echo $stokhareket; ?>">
-                           <i class="fa fa-file-pdf" style="color:var(--red,#ef4444);"></i> PDF'e Aktar
+                           <i class="fa fa-file-pdf" style="color:var(--red);"></i> PDF'e Aktar
                         </a>
                         <div class="dropdown-divider"></div>
                         <a href="../stok/stok_hareket_aktar.php?stokhareket=<?php echo $stokhareket; ?>">
@@ -843,13 +815,16 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                         <a href="../stok/stok_hareket_tarih_degistir.php?stokhareket=<?php echo $stokhareket; ?>">
                            <i class="fa fa-calendar" style="color:#8b5cf6;"></i> Tarih Değiştir
                         </a>
+                        <?php // Teklif çıktıları ayrı kurulur (açık kaynakta yok): dosya varsa bağlantı görünür
+                        $teklifler = array_filter(['resimsizteklif.php' => ['fa-file-alt', '#6b7280', 'Resimsiz Teklif'], 'resimliteklif.php' => ['fa-image', '#6366f1', 'Resimli Teklif']],
+                            static fn($d) => is_file(__DIR__ . '/' . $d), ARRAY_FILTER_USE_KEY);
+                        if ($teklifler): ?>
                         <div class="dropdown-divider"></div>
-                        <a href="resimsizteklif.php?stokhareket=<?php echo $stokhareket; ?>&yazdir=yazdir">
-                           <i class="fa fa-file-alt" style="color:#6b7280;"></i> Resimsiz Teklif
+                        <?php foreach ($teklifler as $dosya => [$ikon, $renk, $ad]): ?>
+                        <a href="<?php echo $dosya; ?>?stokhareket=<?php echo $stokhareket; ?>&yazdir=yazdir">
+                           <i class="fa <?php echo $ikon; ?>" style="color:<?php echo $renk; ?>;"></i> <?php echo $ad; ?>
                         </a>
-                        <a href="resimliteklif.php?stokhareket=<?php echo $stokhareket; ?>&yazdir=yazdir">
-                           <i class="fa fa-image" style="color:#6366f1;"></i> Resimli Teklif
-                        </a>
+                        <?php endforeach; endif; ?>
                      </div>
                   </div>
                </div>
@@ -858,11 +833,11 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
             <div style="display:flex;align-items:center;gap:0;padding:0;border-top:1px solid rgba(0,0,0,0.05);">
                <div style="flex:1;padding:10px 16px;border-right:1px solid rgba(0,0,0,0.05);text-align:center;">
                   <span style="font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);"><i class="fa-solid fa-percent" style="margin-right:2px;"></i>İskonto</span>
-                  <div style="font-size:14px;font-weight:700;color:#d97706;margin-top:2px;">%<?php echo number_format($iskontoYuzde, 2, ',', '.'); ?></div>
+                  <div style="font-size:14px;font-weight:700;color:var(--text-1);margin-top:2px;">%<?php echo number_format($iskontoYuzde, 2, ',', '.'); ?></div>
                </div>
                <div style="flex:1;padding:10px 16px;border-right:1px solid rgba(0,0,0,0.05);text-align:center;">
                   <span style="font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);"><i class="fa-solid fa-file-invoice-dollar" style="margin-right:2px;"></i>KDV</span>
-                  <div style="font-size:14px;font-weight:700;color:#6366f1;margin-top:2px;">%<?php echo number_format($kdvYuzde, 2, ',', '.'); ?></div>
+                  <div style="font-size:14px;font-weight:700;color:var(--text-2);margin-top:2px;">%<?php echo number_format($kdvYuzde, 2, ',', '.'); ?></div>
                </div>
                <div style="flex:1;padding:10px 16px;text-align:center;">
                   <span style="font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-3);"><i class="fa-solid fa-wallet" style="margin-right:2px;"></i>Bakiye <?php echo $bakiyeLabel; ?></span>
@@ -1007,8 +982,15 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
           REPORTNET=:reportnet,
           TRNET=:trnet
       WHERE LOGICALREF=:stokhareket
+        -- Yalnız toplamlar gerçekten farklıysa ve fiş iptal değilse yaz: eskiden
+        -- her GÖRÜNTÜLEMEDE (iptal/faturalı fişler dahil) LOGO kaydı yeniden
+        -- yazılıyor, gereksiz kilit ve değişiklik damgası oluşuyordu.
+        AND ISNULL(CANCELLED, 0) = 0
+        AND (ABS(ISNULL(GROSSTOTAL, 0) - :k_brut) > 0.004 OR ABS(ISNULL(NETTOTAL, 0) - :k_net) > 0.004
+             OR ABS(ISNULL(TOTALVAT, 0) - :k_kdv) > 0.004 OR ABS(ISNULL(TOTALDISCOUNTS, 0) - :k_isk) > 0.004)
    ");
-               $stmtGuncelleFiche->execute([':adddiscounts' => $bakiskoto, ':totaldiscounts' => $bakiskoto, ':totaldiscounted' => $bakiyebrut, ':totalvat' => $bakiyk, ':grosstotal' => $bakiyebrut, ':nettotal' => $bakiyekdv, ':reportnet' => $bakiyekdv, ':trnet' => $bakiyekdv, ':stokhareket' => $stokhareket]);
+               $stmtGuncelleFiche->execute([':adddiscounts' => $bakiskoto, ':totaldiscounts' => $bakiskoto, ':totaldiscounted' => $bakiyebrut, ':totalvat' => $bakiyk, ':grosstotal' => $bakiyebrut, ':nettotal' => $bakiyekdv, ':reportnet' => $bakiyekdv, ':trnet' => $bakiyekdv, ':stokhareket' => $stokhareket,
+                  ':k_brut' => $bakiyebrut, ':k_net' => $bakiyekdv, ':k_kdv' => $bakiyk, ':k_isk' => $bakiskoto]);
 
                $stmtBakiyex = $dbh->prepare("
       SELECT *
@@ -1046,7 +1028,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
             ' . csrf_field() . '
             <input type="hidden" name="hareketsil" value="' . $stokhareketid . '">
             <input type="hidden" name="stokhareket" value="' . $stokhareket . '">
-            <button type="submit" style="background:none;border:none;cursor:pointer;padding:0;font-family:Montserrat,sans-serif;font-size:12.5px;font-weight:600;color:var(--red,#ef4444);display:inline-flex;align-items:center;gap:4px;">
+            <button type="submit" style="background:none;border:none;cursor:pointer;padding:0;font-family:Montserrat,sans-serif;font-size:12.5px;font-weight:600;color:var(--red);display:inline-flex;align-items:center;gap:4px;">
               <i class="fa fa-trash-alt" style="font-size:11px;"></i>' . e_tr($liste['KODU']) . '
             </button>
           </form>
@@ -1119,13 +1101,15 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
          <?php
             // Hacim ve ağırlık hesapla
             $hacimAgirlik = fis_hacim_agirlik_hesapla($stokhareket, 'siparis');
+            // Fiyat görme (ST2) yetkisi yoksa satır fiyatları gibi özet tutarları da gizlenir
+            $ozetTutar = static fn(string $t): string => (int) m_p_yetki($terminalkullanici, 'ST2') === 1 ? $t : '<i class="fa fa-lock" style="color:var(--text-3);"></i> ***';
             ?>
          <div style="width: 100%; max-width: 480px; margin-left: auto;">
             <div class="glass-card summary-panel">
                <div class="glass-card-body">
                   <!-- Title -->
                   <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6;">
-                     <i class="fa-solid fa-calculator" style="color: var(--red,#ef4444); font-size: 18px;"></i>
+                     <i class="fa-solid fa-calculator" style="color: var(--red); font-size: 18px;"></i>
                      <h5 style="font-size: 16px; font-weight: 700; color: var(--text-1); margin: 0;">Sipariş Özeti</h5>
                   </div>
 
@@ -1163,13 +1147,13 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                      <span class="metric-label">
                         <i class="fa-solid fa-turkish-lira-sign" style="color: #059669;"></i>Ara Toplam (TL)
                      </span>
-                     <span class="metric-value" style="color: #166534;"><?php echo paraformat_lg_fis($bakiye_toplam); ?></span>
+                     <span class="metric-value" style="color: #166534;"><?php echo $ozetTutar(paraformat_lg_fis($bakiye_toplam)); ?></span>
                   </div>
 
                   <!-- İskonto -->
                   <div class="metric-row">
                      <span class="metric-label">
-                        <i class="fa-solid fa-percent" style="color: var(--red,#ef4444);"></i>İskonto
+                        <i class="fa-solid fa-percent" style="color: var(--red);"></i>İskonto
                         <?php
                         // Iskonto satirlarindaki gercek oranlari (DISCPER) goster - kademeli iskonto icin
                         $isk1Oran = (float)($iskvarmic1['DISCPER'] ?? 0);
@@ -1186,7 +1170,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                         }
                         ?>
                      </span>
-                     <span class="metric-value" style="color: var(--red,#6F1022);">-<?php echo paraformat_lg_fis($bakiskoto); ?></span>
+                     <span class="metric-value" style="color: var(--red,#6F1022);">-<?php echo $ozetTutar(paraformat_lg_fis($bakiskoto)); ?></span>
                   </div>
 
                   <!-- KDV -->
@@ -1199,7 +1183,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                         }
                         ?>
                      </span>
-                     <span class="metric-value" style="color: #059669;">+<?php echo paraformat_lg_fis($bakiyk); ?></span>
+                     <span class="metric-value" style="color: #059669;">+<?php echo $ozetTutar(paraformat_lg_fis($bakiyk)); ?></span>
                   </div>
 
                   <!-- Divider -->
@@ -1210,7 +1194,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                      <span class="metric-label" style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 12px;">
                         <i class="fa-solid fa-turkish-lira-sign" style="color: #059669;"></i>Genel Toplam (TL)
                      </span>
-                     <span class="grand-total-value"><?php echo paraformat_lg_fis($bakiyekdv); ?></span>
+                     <span class="grand-total-value"><?php echo $ozetTutar(paraformat_lg_fis($bakiyekdv)); ?></span>
                   </div>
 
                   <?php if ($dovizAktif):
@@ -1228,21 +1212,21 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                            <span class="metric-label">
                               <i class="fa-solid <?php echo $dovizIcon; ?>" style="color: #2563eb;"></i>Ara Toplam (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
                            </span>
-                           <span class="metric-value" style="color: #2563eb;"><?php echo paraformat_doviz_lg_fis($bakiye_toplam / $dovizKuru, $dovizSembol); ?></span>
+                           <span class="metric-value" style="color: #2563eb;"><?php echo $ozetTutar(paraformat_doviz_lg_fis($bakiye_toplam / $dovizKuru, $dovizSembol)); ?></span>
                         </div>
 
                         <div class="metric-row">
                            <span class="metric-label">
-                              <i class="fa-solid fa-percent" style="color: var(--red,#ef4444);"></i>İskonto (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
+                              <i class="fa-solid fa-percent" style="color: var(--red);"></i>İskonto (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
                            </span>
-                           <span class="metric-value" style="color: var(--red,#6F1022);">-<?php echo paraformat_doviz_lg_fis($bakiskoto / $dovizKuru, $dovizSembol); ?></span>
+                           <span class="metric-value" style="color: var(--red,#6F1022);">-<?php echo $ozetTutar(paraformat_doviz_lg_fis($bakiskoto / $dovizKuru, $dovizSembol)); ?></span>
                         </div>
 
                         <div class="metric-row">
                            <span class="metric-label">
                               <i class="fa-solid fa-receipt" style="color: #059669;"></i>KDV (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
                            </span>
-                           <span class="metric-value" style="color: #059669;">+<?php echo paraformat_doviz_lg_fis($bakiyk / $dovizKuru, $dovizSembol); ?></span>
+                           <span class="metric-value" style="color: #059669;">+<?php echo $ozetTutar(paraformat_doviz_lg_fis($bakiyk / $dovizKuru, $dovizSembol)); ?></span>
                         </div>
 
                         <hr class="metric-divider" />
@@ -1251,7 +1235,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                            <span class="metric-label" style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 12px;">
                               <i class="fa-solid <?php echo $dovizIcon; ?>" style="color: #2563eb;"></i>Genel Toplam (<?php echo htmlspecialchars((string) $dovizSembol, ENT_QUOTES, 'UTF-8'); ?>)
                            </span>
-                           <span class="grand-total-value" style="color: #2563eb;"><?php echo paraformat_doviz_lg_fis($bakiyekdv / $dovizKuru, $dovizSembol); ?></span>
+                           <span class="grand-total-value" style="color: #2563eb;"><?php echo $ozetTutar(paraformat_doviz_lg_fis($bakiyekdv / $dovizKuru, $dovizSembol)); ?></span>
                         </div>
                   <?php endif; ?>
 
@@ -1672,17 +1656,17 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
    <style>
       .yca-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.45); z-index:9999; align-items:center; justify-content:center; padding:16px; }
       .yca-overlay.acik { display:flex; }
-      .yca-dialog { background:#fff; border-radius:16px; max-width:440px; width:100%; box-shadow:0 20px 50px rgba(0,0,0,0.25); overflow:hidden; font-family:'Avenir Next','Montserrat',sans-serif; }
+      .yca-dialog { background:#fff; border-radius:16px; max-width:440px; width:100%; box-shadow:0 20px 50px rgba(0,0,0,0.25); overflow:hidden; font-family: var(--font); }
       .yca-head { padding:15px 18px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between; }
       .yca-head h3 { font-size:15px; font-weight:700; color:#1f2937; display:flex; align-items:center; gap:8px; margin:0; }
       .yca-x { background:none; border:none; font-size:24px; line-height:1; color:#6b7280; cursor:pointer; }
       .yca-body { padding:18px; display:flex; flex-direction:column; gap:13px; }
       .yca-label { font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:5px; }
-      .yca-input { width:100%; padding:11px 13px; font-family:'Avenir Next','Montserrat',sans-serif; font-size:16px; color:#1f2937; background:#fff; border:1px solid #e5e7eb; border-radius:10px; outline:none; }
+      .yca-input { width:100%; padding:11px 13px; font-family: var(--font); font-size:16px; color:#1f2937; background:#fff; border:1px solid #e5e7eb; border-radius:10px; outline:none; }
       .yca-input:focus { border-color:rgba(16,185,129,0.5); box-shadow:0 0 0 3px rgba(16,185,129,0.12); }
       .yca-hata { display:none; color:var(--red,#6F1022); font-size:13px; font-weight:600; }
       .yca-foot { padding:13px 18px; border-top:1px solid #e5e7eb; background:#fafafa; display:flex; gap:8px; justify-content:flex-end; }
-      .yca-btn { padding:11px 18px; border-radius:10px; font-family:'Avenir Next','Montserrat',sans-serif; font-size:13.5px; font-weight:600; cursor:pointer; border:1px solid transparent; }
+      .yca-btn { padding:11px 18px; border-radius:10px; font-family: var(--font); font-size:13.5px; font-weight:600; cursor:pointer; border:1px solid transparent; }
       .yca-btn-iptal { background:#fff; color:#6b7280; border-color:#e5e7eb; }
       .yca-btn-kaydet { background:#10b981; color:#fff; }
       .yca-btn-kaydet:disabled { opacity:0.6; cursor:not-allowed; }

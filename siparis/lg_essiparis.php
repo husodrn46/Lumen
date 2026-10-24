@@ -77,10 +77,11 @@ $salesmanRef = isset($_GET['salesman']) ? (int)$_GET['salesman'] : 0;
 // -- 1c) Gelişmiş filtreler
 $searchQuery = trim((string)($_GET['q'] ?? ''));
 $searchQuery = function_exists('mb_substr') ? mb_substr($searchQuery, 0, 120) : substr($searchQuery, 0, 120);
-// Turkce karakterleri normalize et (magaza = MAĞAZA esitligi icin).
-// DB charset latin5, PHP UTF-8. Kullanici "mağa" yazarsa "maga"ya cevrilir,
-// SQL tarafinda COLLATE Turkish_CI_AI ile accent-insensitive eslesir.
-$searchQueryNorm = function_exists('turkce') ? turkce($searchQuery) : $searchQuery;
+// Türkçe harf ve büyük/küçük harf duyarsız arama (MAĞAZA = magaza, IC ANADOLU = İç Anadolu):
+// kolon tarafında lumen_arama_sql(), terim tarafında lumen_arama_terimi() (LIKE kaçışlı).
+$searchQueryNorm = lumen_arama_terimi($searchQuery);
+// Tam eşleşme (=) için LIKE kaçışı uygulanmaz; yalnız ı→i katlaması.
+$searchQueryExact = str_replace('ı', 'i', $searchQuery);
 $dateFromInput = trim((string)($_GET['date_from'] ?? ''));
 $dateToInput = trim((string)($_GET['date_to'] ?? ''));
 $minTotalInput = trim((string)($_GET['min_total'] ?? ''));
@@ -118,7 +119,7 @@ $smSql = "
     SELECT DISTINCT SL.LOGICALREF AS ID, SL.CODE, SL.DEFINITION_
     FROM {$firmadonem}ORFICHE FS
     LEFT JOIN {$firma}CLCARD CR ON CR.LOGICALREF = FS.CLIENTREF
-    LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = FS.SALESMANREF
+    LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = FS.SALESMANREF
     WHERE FS.TRCODE IN (1, 20, 21, 22) AND FS.NETTOTAL > 0 AND FS.SALESMANREF IS NOT NULL AND SL.LOGICALREF IS NOT NULL" .
     ($ozelCariSiparisFiltresi['sql'] !== '' ? " AND {$ozelCariSiparisFiltresi['sql']}" : '') . "
     ORDER BY SL.CODE
@@ -185,30 +186,33 @@ if ($salesmanRef > 0) {
 
 $relevanceSelect = "0 AS RELEVANCE_SCORE";
 if ($searchQuery !== '') {
-    // COLLATE Latin1_General_CI_AI: Case Insensitive + Accent Insensitive,
-    // "I = i" esitligi (Ingilizce kurali). Turkish_CI_AI kullanmiyoruz cunku
-    // Turkce'de I -> ı cevriliyor ve "teklif" aramasi "TEKLIF" ile eslesmiyor.
-    // Latin1_General ile hem ş/s, ğ/g hem de I/i esit sayilir.
-    $conditions[] = "(FS.FICHENO COLLATE Latin1_General_CI_AI LIKE :q_where_ficheno
-        OR CR.DEFINITION_ COLLATE Latin1_General_CI_AI LIKE :q_where_musteri
-        OR CR.CITY COLLATE Latin1_General_CI_AI LIKE :q_where_sehir
-        OR SL.CODE COLLATE Latin1_General_CI_AI LIKE :q_where_satiskodu
-        OR SL.DEFINITION_ COLLATE Latin1_General_CI_AI LIKE :q_where_satisadi
-        OR FS.GENEXP1 COLLATE Latin1_General_CI_AI LIKE :q_where_aciklama)";
+    // lumen_arama_sql(): NVARCHAR + Latin1_General_CI_AI + ı→i; Türkçe harf ve
+    // büyük/küçük harf duyarsız (I = i = İ = ı, ş = s, ğ = g ...).
+    $aFis = lumen_arama_sql('FS.FICHENO');
+    $aMusteri = lumen_arama_sql('CR.DEFINITION_');
+    $aSehir = lumen_arama_sql('CR.CITY');
+    $aSatisKodu = lumen_arama_sql('SL.CODE');
+    $aSatisAdi = lumen_arama_sql('SL.DEFINITION_');
+    $aAciklama = lumen_arama_sql('FS.GENEXP1');
+    $conditions[] = "({$aFis} LIKE :q_where_ficheno
+        OR {$aMusteri} LIKE :q_where_musteri
+        OR {$aSehir} LIKE :q_where_sehir
+        OR {$aSatisKodu} LIKE :q_where_satiskodu
+        OR {$aSatisAdi} LIKE :q_where_satisadi
+        OR {$aAciklama} LIKE :q_where_aciklama)";
 
     $relevanceSelect = "CASE
-            WHEN FS.FICHENO COLLATE Latin1_General_CI_AI = :q_exact THEN 100
-            WHEN FS.FICHENO COLLATE Latin1_General_CI_AI LIKE :q_prefix_fis THEN 70
-            WHEN FS.FICHENO COLLATE Latin1_General_CI_AI LIKE :q_like_fis THEN 50
-            WHEN CR.DEFINITION_ COLLATE Latin1_General_CI_AI LIKE :q_prefix_musteri THEN 35
-            WHEN CR.DEFINITION_ COLLATE Latin1_General_CI_AI LIKE :q_like_musteri THEN 25
-            WHEN CR.CITY COLLATE Latin1_General_CI_AI LIKE :q_like_sehir THEN 15
-            WHEN SL.CODE COLLATE Latin1_General_CI_AI LIKE :q_prefix_satiskodu THEN 12
-            WHEN SL.DEFINITION_ COLLATE Latin1_General_CI_AI LIKE :q_like_satisadi THEN 10
+            WHEN {$aFis} = :q_exact THEN 100
+            WHEN {$aFis} LIKE :q_prefix_fis THEN 70
+            WHEN {$aFis} LIKE :q_like_fis THEN 50
+            WHEN {$aMusteri} LIKE :q_prefix_musteri THEN 35
+            WHEN {$aMusteri} LIKE :q_like_musteri THEN 25
+            WHEN {$aSehir} LIKE :q_like_sehir THEN 15
+            WHEN {$aSatisKodu} LIKE :q_prefix_satiskodu THEN 12
+            WHEN {$aSatisAdi} LIKE :q_like_satisadi THEN 10
             ELSE 1
         END AS RELEVANCE_SCORE";
 
-    // Normalize edilmis (Turkce karakteri cikarilmis) versiyonla arama yap
     $searchLike = '%' . $searchQueryNorm . '%';
     $searchPrefix = $searchQueryNorm . '%';
     $queryParams[':q_where_ficheno'] = $searchLike;
@@ -217,7 +221,7 @@ if ($searchQuery !== '') {
     $queryParams[':q_where_satiskodu'] = $searchLike;
     $queryParams[':q_where_satisadi'] = $searchLike;
     $queryParams[':q_where_aciklama'] = $searchLike;
-    $queryParams[':q_exact'] = $searchQueryNorm;
+    $queryParams[':q_exact'] = $searchQueryExact;
     $queryParams[':q_prefix_fis'] = $searchPrefix;
     $queryParams[':q_like_fis'] = $searchLike;
     $queryParams[':q_prefix_musteri'] = $searchPrefix;
@@ -272,7 +276,7 @@ $whereClause = implode("\n        AND ", $conditions);
 $fromClause = "
     FROM {$firmadonem}ORFICHE FS
     LEFT JOIN {$firma}CLCARD CR ON FS.CLIENTREF = CR.LOGICALREF
-    LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = FS.SALESMANREF
+    LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = FS.SALESMANREF
     LEFT JOIN (
         SELECT ORDFICHEREF, COUNT(*) AS SATIR_SAYISI
         FROM {$firmadonem}ORFLINE
@@ -294,7 +298,7 @@ $countParams = array_filter($queryParams, function($key) {
 $countFromClause = "
     FROM {$firmadonem}ORFICHE FS
     LEFT JOIN {$firma}CLCARD CR ON FS.CLIENTREF = CR.LOGICALREF
-    LEFT JOIN LG_SLSMAN SL ON SL.LOGICALREF = FS.SALESMANREF
+    LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} SL ON SL.LOGICALREF = FS.SALESMANREF
     {$yazdirJoin}
     WHERE {$whereClause}";
 $countSql = "SELECT COUNT(*) AS TOPLAM, ISNULL(SUM(FS.NETTOTAL), 0) AS TOPLAM_TUTAR {$countFromClause}";
@@ -461,26 +465,12 @@ foreach ($resultRows as $r) {
     <title>Siparis Listesi</title>
     <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" onerror="(function(){var s=document.createElement('script');s.defer=true;s.src='https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f9fafb;
             --surface: #ffffff;
-            --text-1: #1f2937;
-            --text-2: #4b5563;
-            --text-3: #6b7280;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
             --red-border: rgba(248, 113, 113, 0.25);
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
         }
@@ -488,7 +478,7 @@ foreach ($resultRows as $r) {
         * { box-sizing: border-box; margin: 0; }
 
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
@@ -496,62 +486,10 @@ foreach ($resultRows as $r) {
 
         [x-cloak]:not(.print-dropdown) { display: none !important; }
 
-        /* ═══════════ HEADER ═══════════ */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-            animation: headerSlide 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
-        .header-inner {
-            max-width: 1280px;
-            margin: 0 auto;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-        }
-
         .header-left {
             display: flex;
             align-items: center;
             gap: 14px;
-        }
-
-        .header-back {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            color: var(--text-2);
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-        .header-back:hover {
-            background: rgba(0,0,0,0.04);
-            color: var(--red);
-        }
-
-        .header-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-1);
-        }
-
-        .header-divider {
-            width: 1px;
-            height: 24px;
-            background: var(--border);
         }
 
         /* ═══════════ SUMMARY CARDS ═══════════ */
@@ -616,11 +554,6 @@ foreach ($resultRows as $r) {
         }
 
         @media (max-width: 767px) {
-            .top-header { height: 50px; }
-            .header-inner { padding: 0 12px; }
-            .header-title { font-size: 15px; }
-            .header-back { width: 30px; height: 30px; border-radius: 8px; }
-            .header-divider { height: 18px; }
 
             .summary-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
             .summary-card {
@@ -653,7 +586,7 @@ foreach ($resultRows as $r) {
             padding: 10px 12px 10px 40px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -670,7 +603,7 @@ foreach ($resultRows as $r) {
             padding: 10px 12px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -698,7 +631,7 @@ foreach ($resultRows as $r) {
             gap: 6px;
             padding: 10px 18px;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             border: none;
@@ -714,10 +647,6 @@ foreach ($resultRows as $r) {
         .btn-red:hover { background: var(--red,#6F1022); }
         .btn-light { background: #fff; color: var(--text-2); border: 1px solid var(--border); }
         .btn-light:hover { background: #f9fafb; color: var(--text-1); }
-        .btn-indigo { background: #6366f1; color: #fff; }
-        .btn-indigo:hover { background: #4f46e5; }
-        .btn-amber { background: #f59e0b; color: #fff; }
-        .btn-amber:hover { background: #d97706; }
 
         .sort-btn {
             flex: 1;
@@ -772,38 +701,20 @@ foreach ($resultRows as $r) {
             overflow: hidden;
             background: #ffffff;
             backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.24);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+            box-shadow: var(--golge-1);
             display: flex;
             flex-direction: column;
-            /* opacity: 0 kaldirildi - render blok sorunu. Keyframe ilk %0'da opacity:0 ile baslar */
-            will-change: transform, opacity;
-            animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
             transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
                         box-shadow 0.35s ease,
                         border-color 0.35s ease;
             touch-action: pan-y;
         }
 
-        /* Shimmer */
-        .order-card::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(120deg, transparent 15%, rgba(255,255,255,0.5) 45%, transparent 75%);
-            transform: translateX(-130%);
-            transition: transform 0.75s ease;
-            pointer-events: none;
-            z-index: 1;
-        }
-        .order-card:hover::before {
-            transform: translateX(130%);
-        }
         .order-card:hover {
-            transform: translate3d(0, -4px, 0);
-            border-color: rgba(239, 68, 68, 0.35);
-            box-shadow: 0 18px 35px -18px rgba(111, 16, 34, 0.2), 0 8px 18px rgba(15, 23, 42, 0.08);
+            border-color: rgba(var(--red-rgb), .35);
+            box-shadow: var(--golge-2);
         }
 
         @media (max-width: 767px) {
@@ -860,8 +771,8 @@ foreach ($resultRows as $r) {
 
         .oc-price-box {
             padding: 12px 14px;
-            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-            border: 1px solid rgba(16,185,129,0.2);
+            background: var(--baslik-zemin);
+            border: 1px solid var(--border);
             border-radius: 12px;
             text-align: center;
         }
@@ -869,7 +780,8 @@ foreach ($resultRows as $r) {
         .oc-price {
             font-size: 22px;
             font-weight: 700;
-            color: #065f46;
+            color: var(--text-1);
+            font-variant-numeric: tabular-nums;
             line-height: 1.2;
         }
 
@@ -897,13 +809,12 @@ foreach ($resultRows as $r) {
 
         .oc-note {
             font-size: 12px;
-            font-style: italic;
-            color: var(--text-3);
+            color: var(--text-2);
             line-height: 1.4;
             padding: 8px 12px;
-            background: #eef2ff;
+            background: var(--baslik-zemin);
             border-radius: 8px;
-            border: 1px solid rgba(99,102,241,0.15);
+            border: 1px solid var(--border);
         }
 
         /* Card Footer */
@@ -1069,7 +980,7 @@ foreach ($resultRows as $r) {
             gap: 6px;
             padding: 7px 14px;
             border-radius: 100px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12px;
             font-weight: 600;
             border: 1px solid transparent;
@@ -1104,7 +1015,7 @@ foreach ($resultRows as $r) {
         .odeme-btn {
             padding: 8px 6px;
             border-radius: 8px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12px;
             font-weight: 600;
             border: 1px solid #fde68a;
@@ -1482,7 +1393,7 @@ foreach ($resultRows as $r) {
             width: 100%;
             padding: 10px;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             color: var(--text-2);
@@ -1697,7 +1608,7 @@ foreach ($resultRows as $r) {
                         <button type="submit" class="btn-flat btn-red">
                             <i class="fa-solid fa-filter"></i> Filtre Uygula
                         </button>
-                        <a href="lg_essiparis-beta.php" class="btn-flat btn-light">
+                        <a href="lg_essiparis.php" class="btn-flat btn-light">
                             <i class="fa-solid fa-rotate-left"></i> Temizle
                         </a>
                     </div>
@@ -1800,7 +1711,7 @@ foreach ($resultRows as $r) {
                             <?php if ($hasDoviz): ?>
                                 <span class="status-badge status-doviz"><i class="fa-solid <?php echo $dovizIcon; ?>" style="margin-right:3px;font-size:10px;"></i><?php echo htmlspecialchars($dovizSembol, ENT_QUOTES, 'UTF-8'); ?></span>
                             <?php endif; ?>
-                            <a href="../yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>"
+                            <a href="../yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>&t=<?php echo urlencode(csrf_token()); ?>"
                                class="btn-flat btn-red" style="padding:6px 10px;font-size:12px;" title="Hızlı Yazdır">
                                 <i class="fa-solid fa-print"></i>
                             </a>
@@ -1811,7 +1722,7 @@ foreach ($resultRows as $r) {
                     <div class="oc-body">
                         <!-- Müşteri Adı -->
                         <div class="oc-customer js-highlight-musteri" title="<?php echo e_tr($ila['DEFINITION_']); ?>">
-                            <i class="fa-regular fa-building" style="color:#6366f1;margin-right:4px;font-size:13px;"></i>
+                            <i class="fa-regular fa-building" style="color:var(--red);margin-right:4px;font-size:13px;"></i>
                             <?php echo e_tr($ila['DEFINITION_']); ?>
                         </div>
 
@@ -1841,7 +1752,7 @@ foreach ($resultRows as $r) {
                                 <?php echo htmlspecialchars((string) $salesmanKodu, ENT_QUOTES, 'UTF-8'); ?>
                             </span>
                             <span class="oc-meta-dot"></span>
-                            <span><i class="fa-solid fa-box-open" style="margin-right:2px;color:#f59e0b;"></i><?php echo $eynes['T']; ?> ürün</span>
+                            <span><i class="fa-solid fa-box-open" style="margin-right:2px;color:var(--text-3);"></i><?php echo $eynes['T']; ?> ürün</span>
                             <?php if ((float)$ila['HACIM'] > 0): ?>
                                 <span class="oc-meta-dot"></span>
                                 <span><i class="fa-solid fa-cube" style="margin-right:2px;"></i><?php echo number_format((float)$ila['HACIM'], 2, ',', '.'); ?> m³</span>
@@ -1851,7 +1762,7 @@ foreach ($resultRows as $r) {
                         <!-- Açıklama -->
                         <?php if (!empty($ila['GENEXP1'])): ?>
                             <div class="oc-note">
-                                <i class="fa-solid fa-circle-info" style="margin-right:4px;color:#6366f1;"></i>
+                                <i class="fa-solid fa-circle-info" style="margin-right:4px;color:var(--text-2);"></i>
                                 <?php echo e_tr($ila['GENEXP1']); ?>
                             </div>
                         <?php endif; ?>
@@ -1893,27 +1804,27 @@ foreach ($resultRows as $r) {
 
                     <!-- FOOTER: Detay + Yazdır Dropdown -->
                     <div class="oc-footer">
-                        <a href="lg_fis.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>" class="btn-flat btn-indigo" style="flex:1;">
+                        <a href="lg_fis.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>" class="btn btn-birincil" style="flex:1;">
                             <i class="fa fa-list-alt"></i> Detay
                         </a>
 
                         <?php if (m_p_yetki($terminalkullanici, 'M18') == 1): ?>
-                            <a href="../yazdir/fis_gecmis.php?fis=<?php echo intcevir($ila['LOGICALREF']); ?>&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>" class="btn-flat btn-light" style="padding:10px 12px;" title="Geçmiş">
+                            <a href="../yazdir/fis_gecmis.php?fis=<?php echo intcevir($ila['LOGICALREF']); ?>&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>" class="btn btn-ikincil btn-ikon" title="Geçmiş">
                                 <i class="fa fa-history"></i>
                             </a>
                         <?php endif; ?>
 
                         <!-- Yazdır Dropdown -->
                         <div style="position:relative;flex:1;">
-                            <button class="btn-flat btn-amber btn-yazdir-toggle" style="width:100%;">
+                            <button class="btn btn-ikincil btn-yazdir-toggle" style="width:100%;">
                                 <i class="fa fa-print"></i> Yazdır
                                 <i class="fa fa-chevron-down" style="font-size:10px;margin-left:2px;"></i>
                             </button>
                             <div class="print-dropdown" style="display:none;">
-                                <a href="../yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="../yazdir/hizli_yazdir.php?fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>&t=<?php echo urlencode(csrf_token()); ?>">
                                     <i class="fa-solid fa-bolt"></i> Hızlı Yazdır
                                 </a>
-                                <a href="../yazdir/hizli_yazdir.php?tercih=depo.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="../yazdir/hizli_yazdir.php?tercih=depo.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>&t=<?php echo urlencode(csrf_token()); ?>">
                                     <i class="fa-solid fa-warehouse"></i> Depo Yazdır
                                 </a>
                                 <a href="../yazdir/fisyazhtml.php?stokhareket=<?php echo intcevir($ila['LOGICALREF']); ?>&yazdir=yazdir&return_to=<?php echo rawurlencode($lgEssiparisReturnUrl); ?>">
@@ -1923,7 +1834,7 @@ foreach ($resultRows as $r) {
                                     <i class="fa-solid fa-file"></i> PDF (Fiyatsız)
                                 </a>
                                 <?php if ($hasDoviz): ?>
-                                <a href="../yazdir/hizli_yazdir.php?tercih=dovizli.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>">
+                                <a href="../yazdir/hizli_yazdir.php?tercih=dovizli.frx&fisno=<?php echo urlencode((string) $ila['FICHENO']); ?>&t=<?php echo urlencode(csrf_token()); ?>">
                                     <i class="fa-solid <?php echo $dovizIcon; ?>"></i> <?php echo htmlspecialchars($dovizLabel, ENT_QUOTES, 'UTF-8'); ?>
                                 </a>
                                 <?php endif; ?>
@@ -2026,7 +1937,7 @@ foreach ($resultRows as $r) {
                 </div>
                 <div id="modalIcerik" class="modal-body">
                     <div style="display:flex;align-items:center;justify-content:center;padding:32px 0;">
-                        <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#6366f1;"></i>
+                        <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--text-2);"></i>
                         <span style="margin-left:12px;color:var(--text-2);">Yukleniyor...</span>
                     </div>
                 </div>
@@ -2252,7 +2163,7 @@ foreach ($resultRows as $r) {
         // Print detail modal
         function yazdirmaDetayGoster(fisRef) {
             document.getElementById('yazdirmaModal').classList.remove('hidden');
-            document.getElementById('modalIcerik').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;padding:32px 0;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#6366f1;"></i><span style="margin-left:12px;color:#6b7280;">Yukleniyor...</span></div>';
+            document.getElementById('modalIcerik').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;padding:32px 0;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--text-2);"></i><span style="margin-left:12px;color:#6b7280;">Yukleniyor...</span></div>';
 
             fetch('../yazdir/yazdirma_detay.php?fis=' + fisRef)
                 .then(function(response) { return response.json(); })

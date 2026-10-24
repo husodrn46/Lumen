@@ -52,12 +52,20 @@ if ($logId <= 0) {
     // siparis_ref ile aktif log bul
     $orf = (int) ($_POST['siparis_ref'] ?? 0);
     if ($orf > 0) {
-        $st = $dbh->prepare("SELECT TOP 1 ID FROM M_FATURA_LOG WHERE ORFICHE_REF = :r AND DURUM = 'AKTIF' ORDER BY ID DESC");
-        $st->execute([':r' => $orf]);
+        $st = $dbh->prepare("SELECT TOP 1 ID FROM M_FATURA_LOG WHERE ORFICHE_REF = :r AND FIRMADONEM = :fd AND DURUM = 'AKTIF' ORDER BY ID DESC");
+        $st->execute([':r' => $orf, ':fd' => $firmadonem]);
         $logId = (int) $st->fetchColumn();
     }
 }
 if ($logId <= 0) {
+    fatura_geri_json(['ok' => false, 'mesaj' => 'Geri alınacak aktif fatura kaydı bulunamadı.'], 404);
+}
+
+// Özel Cari kısıtı: kısıtlı carinin faturası geri alınamaz (faturalama ile aynı kural).
+$cs = $dbh->prepare("SELECT CLIENTREF FROM M_FATURA_LOG WHERE ID = :id");
+$cs->execute([':id' => $logId]);
+$logCari = (int) $cs->fetchColumn();
+if ($logCari <= 0 || !m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, $logCari)) {
     fatura_geri_json(['ok' => false, 'mesaj' => 'Geri alınacak aktif fatura kaydı bulunamadı.'], 404);
 }
 

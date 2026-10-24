@@ -1,0 +1,477 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Lumen akış testleri — uçtan uca iş akışları (demo veritabanında).
+ *
+ * Duman testi (tests/duman) sayfaların açıldığını sınar; bu dosya gerçek işlem
+ * yapar ve sonucu veritabanından doğrular: sipariş, iskonto, satır silme, yazdırma
+ * düğmeleri, çek girişi/geri alma, dövizli sipariş, ayarlar, yetki, sekme
+ * güvenliği. Bu daldaki düzeltmelerin geri gelmesini (regresyon) yakalar.
+ *
+ *   docker compose -f demo/docker-compose.yml exec app php tests/akis/akislar.php
+ *
+ * Yalnız LUMEN_ ile başlayan veritabanında çalışır (demo verisini değiştirir).
+ */
+
+require __DIR__ . '/_ortak.php';
+
+// Bağımsız modda da çalışır: doğrulama sorgularındaki LOGO tablo adları LMV_ görünümlerine
+// çevrilir (tests/akis/_ortak.php). Henüz taşınmamış modülün akışı atlanır.
+
+$yonetici = (new Tarayici($URL))->giris('YONETICI');
+
+// ---------------------------------------------------------------- akışlar
+echo "Akış testleri ({$DB})\n";
+
+$fis = 0;
+akis('sipariş aç: kimlik ve fiş no tutarlı (MAX(LOGICALREF) değil)', function () use ($yonetici, $pdo, &$fis): void {
+    $once = (int) tek($pdo, "SELECT ISNULL(MAX(LOGICALREF),0) FROM LG_001_02_ORFICHE");
+    $yonetici->istek('siparis/fisekle.php?cariid=5');
+    $fis = (int) tek($pdo, "SELECT MAX(LOGICALREF) FROM LG_001_02_ORFICHE");
+    bekle($fis > $once, 'yeni fiş oluşmadı');
+    $no = (string) tek($pdo, "SELECT FICHENO FROM LG_001_02_ORFICHE WHERE LOGICALREF = :f", [':f' => $fis]);
+    bekle(str_ends_with($no, str_pad((string) $fis, 6, '0', STR_PAD_LEFT)), "FICHENO ({$no}) kimlikle ({$fis}) uyuşmuyor");
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM M_FIS_LOG WHERE FIS_REF = :f", [':f' => $fis]) === 1, 'fiş logu yazılmadı');
+});
+
+akis('satır ekle (web) → fiş toplamları', function () use ($yonetici, $pdo, &$fis): void {
+    foreach ([[1, 12, 42.5], [7, 48, 18.25]] as [$stok, $adet, $fiyat]) {
+        $t = $yonetici->belirtec("stok/lg_stok_ekle.php?stok={$stok}&fisid={$fis}");
+        $yonetici->istek("siparis/lg_fis.php?stokhareket={$fis}", ['csrf_token' => $t, 'stkid' => $stok, 'stokhareket' => $fis,
+            'kontrol' => uniqid(), 'stkbirim' => 1, 'stkadt' => $adet, 'stbrm' => 1, 'stkfyt' => $fiyat, 'stkkdv' => 20, 'aciklama' => '']);
+    }
+    $n = (int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :f AND LINETYPE = 0", [':f' => $fis]);
+    bekle($n === 2, "2 satır beklendi, {$n} var");
+    $yonetici->istek("siparis/lg_fis.php?stokhareket={$fis}"); // toplamlar görüntülemede yenilenir
+    yakin(1386.0, (float) tek($pdo, "SELECT GROSSTOTAL FROM LG_001_02_ORFICHE WHERE LOGICALREF = :f", [':f' => $fis]), 'brüt');
+});
+
+akis('iskonto %10 + %5, sonra satır sil → iskonto yeniden dağıtılır, sıra no 1..N', function () use ($yonetici, $pdo, &$fis): void {
+    $t = $yonetici->belirtec("siparis/lg_fis.php?stokhareket={$fis}");
+    $yonetici->istek('siparis/iskonto.php', ['csrf_token' => $t, 'stokhareket' => $fis, 'isk1' => 10, 'ajax' => 1]);
+    $yonetici->istek('siparis/iskonto.php', ['csrf_token' => $t, 'stokhareket' => $fis, 'isk2' => 5, 'ajax' => 1]);
+    $isk = (float) tek($pdo, "SELECT SUM(TOTAL) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :f AND LINETYPE = 2", [':f' => $fis]);
+    // 1386 × %10 = 138,60; kalan 1247,40 × %5 = 62,37 → ~201 (satır bazlı yuvarlama farkı olabilir)
+    bekle(abs($isk - 200.97) < 1.0, "iskonto toplamı beklenmedik: {$isk}");
+    $sil = (int) tek($pdo, "SELECT TOP 1 LOGICALREF FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :f AND LINETYPE = 0 ORDER BY LOGICALREF DESC", [':f' => $fis]);
+    $yonetici->istek("siparis/lg_fis.php?stokhareket={$fis}", ['csrf_token' => $t, 'hareketsil' => $sil, 'stokhareket' => $fis]);
+    $isk2 = (float) tek($pdo, "SELECT SUM(TOTAL) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :f AND LINETYPE = 2", [':f' => $fis]);
+    bekle($isk2 < 100, "silinen satır iskontoda kaldı: {$isk2}");
+    $sira = $pdo->query("SELECT LINENO_ FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = {$fis} ORDER BY LINENO_")->fetchAll(PDO::FETCH_COLUMN);
+    bekle(array_map('intval', $sira) === range(1, count($sira)), 'sıra numaraları 1..N değil: ' . implode(',', $sira));
+});
+
+akis('sipariş ekranı yazdırma düğmeleri doğru fişi açar', function () use ($yonetici, &$fis): void {
+    $t = $yonetici->belirtec("siparis/lg_siparis.php?stokhareket={$fis}");
+    foreach (['print_html', 'export_excel', 'print_dovizli'] as $a) {
+        $r = $yonetici->istek("siparis/lg_siparis.php?stokhareket={$fis}", ['csrf_token' => $t, 'action' => $a, 'aciklama1' => 'a', 'aciklama2' => 'b']);
+        bekle(str_contains($r['yer'], "stokhareket={$fis}"), "{$a}: yönlendirme fiş kimliği taşımıyor ({$r['yer']})");
+        $g = $yonetici->istek($r['yer']);
+        if ($a === 'print_dovizli') {
+            // TL siparişin dövizli çıktısı yoktur (TRRATE=0): açıklayıcı hata sayfası beklenir.
+            bekle($g['kod'] === 422 && str_contains($g['govde'], 'Dövizli sipariş değil'), "{$a}: TL fişte beklenen uyarı yok (HTTP {$g['kod']})");
+            continue;
+        }
+        bekle($g['kod'] === 200 && !str_contains($g['govde'], 'fiş numarası belirtin'), "{$a}: sayfa fişi açmadı (HTTP {$g['kod']})");
+    }
+});
+
+akis('yazdırılan satır toplamları fişin net toplamını verir', function () use ($yonetici, $pdo, &$fis): void {
+    $net = (float) tek($pdo, "SELECT NETTOTAL FROM LG_001_02_ORFICHE WHERE LOGICALREF = :f", [':f' => $fis]);
+    $g = $yonetici->istek("yazdir/fisyazhtml.php?stokhareket={$fis}")['govde'];
+    preg_match_all('/<td class="cell-total">[^\d-]*([\d.,]+)/u', $g, $m);
+    bekle($m[1] !== [], 'satır toplamı bulunamadı');
+    $toplam = array_sum(array_map(static fn(string $v): float => (float) str_replace(['.', ','], ['', '.'], $v), $m[1]));
+    yakin($net, $toplam, 'satır toplamları');
+
+});
+
+akis('yazdırılan genel toplam KDV\'yi iki kez eklemez', function () use ($yonetici, $pdo, &$fis): void {
+    $net = (float) tek($pdo, "SELECT NETTOTAL FROM LG_001_02_ORFICHE WHERE LOGICALREF = :f", [':f' => $fis]);
+    $g = $yonetici->istek("stok/stok_hareket_detay.php?stokhareket={$fis}")['govde'];
+    bekle((bool) preg_match('/GENEL TOPLAM \(KDV Dahil\):<\/td><td[^>]*>([\d.,]+)/', $g, $m), 'genel toplam bulunamadı');
+    yakin($net, (float) str_replace(['.', ','], ['', '.'], $m[1]), 'genel toplam');
+});
+
+akis('sekme güvenliği: başka sekmede açılan fiş ilk sekmeyi etkilemez', function () use ($yonetici, &$fis): void {
+    $yonetici->istek("stok/lg_stok_ekle.php?stok=3&fisid={$fis}");
+    $yonetici->istek('stok/lg_stok_ekle.php?stok=3&fisid=1');
+    $g = $yonetici->istek("stok/lg_stok_ekle.php?stok=3&fisid={$fis}")['govde'];
+    bekle(str_contains($g, "stokhareket={$fis}"), 'ilk sekme diğer sekmenin fişine yazacak');
+});
+
+akis('arama Türkçe harf ve büyük/küçük harf duyarsız (cari + ürün)', function () use ($yonetici): void {
+    foreach (['İç Anadolu', 'ic anadolu', 'IC ANADOLU'] as $q) {
+        bekle(str_contains($yonetici->istek('cari/cari.php?cari=' . rawurlencode($q))['govde'], '120.DM.009'), "cari bulunamadı: {$q}");
+    }
+    foreach (['Tabağı', 'tabagi', 'TABAGI', 'TABAĞI'] as $q) {
+        bekle(str_contains($yonetici->istek('fiyat/fiyat_listesi.php?q=' . rawurlencode($q))['govde'], 'DM-0001'), "ürün bulunamadı: {$q}");
+    }
+});
+
+akis('çek girişi kuruşlu tutarı aynen kaydeder; mükerrer gönderim ve geri alma', function () use ($yonetici, $pdo): void {
+    $t = $yonetici->belirtec('cek/cek_panel.php?cari=4');
+    $istek = bin2hex(random_bytes(16));
+    $post = ['csrf_token' => $t, 'cari_ref' => 4, 'aciklama' => 'akis', 'istek_id' => $istek,
+             'kalemler' => json_encode([['tutar' => 1234.56, 'cekno' => 'AKIS', 'banka' => 'Demo', 'vade' => '2026-12-15', 'sahibi' => '']])];
+    $j = json_decode($yonetici->istek('cek/cek_giris.php', $post)['govde'], true);
+    bekle(($j['ok'] ?? false) === true, 'çek girişi başarısız: ' . ($j['mesaj'] ?? '?'));
+    yakin(1234.56, (float) tek($pdo, "SELECT AMOUNT FROM LG_001_02_CSCARD WHERE LOGICALREF = :r", [':r' => $j['cscard_ref']]), 'CSCARD tutarı');
+    yakin(1234.56, (float) tek($pdo, "SELECT AMOUNT FROM LG_001_02_CLFLINE WHERE LOGICALREF = :r", [':r' => $j['clfline_ref']]), 'CLFLINE tutarı');
+    // Aynı istek kimliğiyle TAZE belirteçli tekrar (ör. ikinci sekme / yeniden gönderim)
+    $post['csrf_token'] = $yonetici->belirtec('cek/cek_panel.php?cari=4');
+    $j2 = json_decode($yonetici->istek('cek/cek_giris.php', $post)['govde'], true);
+    bekle(($j2['kod'] ?? 0) === 409, 'aynı istek kimliği ikinci kez kaydedildi');
+    $t2 = $yonetici->belirtec('cek/cek_panel.php?cari=4');
+    $g = json_decode($yonetici->istek('cek/cek_geri_al.php', ['csrf_token' => $t2, 'log_id' => $j['log_id']])['govde'], true);
+    bekle(($g['ok'] ?? false) === true, 'geri alma başarısız: ' . ($g['mesaj'] ?? '?'));
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_CSCARD WHERE LOGICALREF = :r", [':r' => $j['cscard_ref']]) === 0, 'çek kartı silinmedi');
+}, 'cek');
+
+akis('dövizli sipariş: döviz kodu TRCURR\'a yazılır, TRNET = NETTOTAL / kur', function () use ($yonetici, $pdo): void {
+    $t = $yonetici->belirtec('doviz/fisekle.php?cariid=3&doviz=1');
+    $r = $yonetici->istek('doviz/fisekle.php?cariid=3&doviz=1', ['csrf_token' => $t, 'kur' => '40', 'genexp1' => 'akis']);
+    bekle((bool) preg_match('/id=(\d+)/', $r['yer'], $m), 'dövizli fiş açılmadı');
+    $df = (int) $m[1];
+    $g = $yonetici->istek("doviz/stok_bul.php?fisid={$df}&q=Tabak")['govde'];
+    preg_match('/name="csrf_token" value="([a-f0-9]+)"/', $g, $tm);
+    $re = $yonetici->istek("doviz/stok_bul.php?fisid={$df}", ['csrf_token' => $tm[1], 'stokid' => 1, 'miktar' => 10, 'fiyat' => 2, 'kdv' => 20, 'aciklama' => ''])['govde'];
+    preg_match('/name="csrf_token" value="([a-f0-9]+)"/', $re, $tm2);
+    $yonetici->istek("doviz/fis.php?id={$df}", ['csrf_token' => $tm2[1], 'stokid' => 1, 'miktar' => 10, 'fiyat' => 2, 'kdv' => 20, 'aciklama' => '']);
+    $t3 = $yonetici->belirtec("doviz/doviz_degistir.php?stokhareket={$df}");
+    $yonetici->istek('doviz/doviz_degistir.php', ['csrf_token' => $t3, 'stokhareket' => $df, 'trcurr' => 20, 'trrate' => 48]);
+    $st = $pdo->query("SELECT TRCODE, TRCURR, TRRATE, NETTOTAL, TRNET FROM LG_001_02_ORFICHE WHERE LOGICALREF = {$df}")->fetch(PDO::FETCH_ASSOC);
+    bekle((int) $st['TRCODE'] === 1, 'sipariş türü (TRCODE) bozuldu');
+    bekle((int) $st['TRCURR'] === 20, 'döviz TRCURR\'a yazılmadı');
+    bekle((float) $st['NETTOTAL'] > 0, 'satır eklenmedi');
+    yakin((float) $st['NETTOTAL'] / 48, (float) $st['TRNET'], 'TRNET');
+    // Dövizli çıktı para birimini oturumdan değil fişin kendisinden (TRCURR) alır.
+    $d = $yonetici->istek("yazdir/fisyazdoviz.php?stokhareket={$df}");
+    bekle($d['kod'] === 200 && str_contains($d['govde'], '1 EUR =') && !str_contains($d['govde'], '1 0 ='), 'dövizli çıktı fişin dövizini (EUR) göstermiyor');
+});
+
+akis('ayarlar JSON\'a yazılır; _bilgi_.inc değişmez; UNC yazıcı adı korunur', function () use ($yonetici): void {
+    $kok = dirname(__DIR__, 2);
+    $once = md5_file($kok . '/_bilgi_.inc');
+    $t = $yonetici->belirtec('ayar/sistem_ayarlari.php');
+    $yonetici->istek('ayar/sistem_ayarlari.php', ['csrf_token' => $t, 'guncelle' => 1, 'fisyazici' => '\\\\SRV\\HP',
+        'sipno' => '{${system(1)}}', 'dovizlicalis' => 1]);
+    bekle(md5_file($kok . '/_bilgi_.inc') === $once, '_bilgi_.inc değişti');
+    $a = json_decode((string) file_get_contents($kok . '/database/ayarlar.json'), true)['ayarlar'] ?? [];
+    bekle(($a['fisyazici'] ?? '') === '\\\\SRV\\HP', 'UNC yazıcı adı bozuldu: ' . ($a['fisyazici'] ?? '-'));
+    bekle(!str_contains((string) ($a['sipno'] ?? ''), '$'), 'enjeksiyon süzülmedi');
+    @unlink($kok . '/database/ayarlar.json');
+});
+
+akis('yetki: stok personeli sipariş satırı ekleyemez, M16 personeli yönetici olamaz', function () use ($URL, $pdo, &$fis): void {
+    $depo = (new Tarayici($URL))->giris('DEPO1');
+    $once = (int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :f", [':f' => $fis]);
+    $t = $depo->belirtec('sifre_degistir.php');   // DEPO1'in açabildiği, CSRF formu olan bir sayfa
+    $depo->istek("siparis/lg_fis.php?stokhareket={$fis}", ['csrf_token' => $t, 'stkid' => 2, 'stokhareket' => $fis,
+        'kontrol' => uniqid(), 'stkbirim' => 1, 'stkadt' => 1, 'stbrm' => 1, 'stkfyt' => 1, 'stkkdv' => 20]);
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :f", [':f' => $fis]) === $once, 'DEPO1 satır ekleyebildi');
+
+    $pdo->exec("UPDATE M_P_YETKI SET M16 = 1 WHERE PERSONEL = 2");
+    try {
+        $satis = (new Tarayici($URL))->giris('SATIS1');
+        $t2 = $satis->belirtec('ayar/yetki_matrisi.php');
+        $satis->istek('ayar/yetki_guncelle_ajax.php', ['csrf_token' => $t2, 'personel_id' => 2, 'yetki_kodu' => 'YETKI', 'yeni_deger' => 0]);
+        bekle((int) tek($pdo, "SELECT YETKI FROM M_P_YETKI WHERE PERSONEL = 2") === 1, 'M16 personeli kendini yönetici yaptı');
+    } finally {
+        $pdo->exec("UPDATE M_P_YETKI SET M16 = 0, YETKI = 1 WHERE PERSONEL = 2");
+    }
+});
+
+akis('API: fiyat override SP1 ister; pasif kullanıcının belirteci geçersiz', function () use ($URL, $pdo): void {
+    $tok = static function (string $k) use ($URL): string {
+        $ch = curl_init("{$URL}/api/login.php");
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode(['kullanici' => $k, 'sifre' => 'demo1234'])]);
+        $j = json_decode((string) curl_exec($ch), true);
+        curl_close($ch);
+        return (string) ($j['token'] ?? '');
+    };
+    $api = static function (string $tok, string $uc, ?array $govde = null) use ($URL): array {
+        $ch = curl_init("{$URL}/api/{$uc}");
+        $h = ["Authorization: Bearer {$tok}", 'Content-Type: application/json'];
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => $h]);
+        if ($govde !== null) {
+            curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode($govde)]);
+        }
+        $j = json_decode((string) curl_exec($ch), true) ?: [];
+        $j['_kod'] = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+        return $j;
+    };
+    $s = $tok('SATIS1');
+    $o = $api($s, 'siparis_onizle.php', ['cari_id' => 4, 'kalemler' => [['stok_id' => 2, 'miktar' => 12, 'fiyat' => 0.01, 'kdv' => 0]]]);
+    yakin(528.0, (float) ($o['ara_toplam'] ?? 0), 'SP1 olmadan liste fiyatı');
+    $d = $tok('DEPO1');
+    bekle($api($d, 'rapor_kasa.php')['_kod'] === 403, 'DEPO1 kasa raporunu okudu');
+    $pdo->exec("UPDATE LG_SLSMAN SET ACTIVE = 1 WHERE LOGICALREF = 3");
+    try {
+        bekle($api($d, 'stok_ara.php')['_kod'] === 401, 'pasif kullanıcının belirteci çalıştı');
+    } finally {
+        $pdo->exec("UPDATE LG_SLSMAN SET ACTIVE = 0 WHERE LOGICALREF = 3");
+    }
+});
+
+akis('entegrasyon hesabı: API okur, yazamaz, web\'e giremez', function () use ($URL): void {
+    $ch = curl_init("{$URL}/api/login.php");
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode(['kullanici' => 'ENTEGRASYON', 'sifre' => 'demo1234'])]);
+    $tok = (string) (json_decode((string) curl_exec($ch), true)['token'] ?? '');
+    curl_close($ch);
+    bekle($tok !== '', 'entegrasyon hesabı API girişi yapamadı');
+    $kod = static function (string $uc, bool $post) use ($URL, $tok): int {
+        $ch = curl_init("{$URL}/api/{$uc}");
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ["Authorization: Bearer {$tok}", 'Content-Type: application/json']]);
+        if ($post) {
+            curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode(['cari_id' => 4, 'kalemler' => [['stok_id' => 1, 'miktar' => 1]]])]);
+        }
+        curl_exec($ch);
+        $k = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+        return $k;
+    };
+    // Okuma ucu: bağımsız modda rapor uçları henüz kapalı (Faz 6) — stok araması.
+    $okuma = lumen_bagimsiz_mi() ? 'stok_ara.php?q=tabak' : 'rapor_kasa.php';
+    bekle($kod($okuma, false) === 200, "okuma ucu kapalı: {$okuma}");
+    foreach (['siparis_olustur.php', 'stok_guncelle.php', 'kullanici_listesi.php'] as $uc) {
+        bekle($kod($uc, true) === 403, "yazma/yönetim ucu açık: {$uc}");
+    }
+    $web = (new Tarayici($URL));
+    $web->istek('giris.php');
+    $web->istek('giris.php', ['kullaniciadi' => 'ENTEGRASYON', 'kullanicisifre' => 'demo1234']);
+    bekle(str_contains($web->istek('index.php')['yer'], 'hata=entegrasyon'), 'entegrasyon hesabı web\'e girdi');
+});
+
+akis('bildirim: görev atanınca alıcının zilinde görünür, tıklayınca okunur', function () use ($yonetici, $URL, $pdo): void {
+    $t = $yonetici->belirtec('gorev/gorevler.php');
+    $baslik = 'Akış testi görevi ' . bin2hex(random_bytes(3));
+    $j = json_decode($yonetici->istek('gorev/gorev_islem.php', ['csrf_token' => $t, 'islem' => 'olustur', 'atanan_id' => 2,
+        'baslik' => $baslik, 'oncelik' => 1, 'kategori' => 1])['govde'], true);
+    bekle(($j['ok'] ?? $j['success'] ?? false) == true, 'görev oluşturulamadı: ' . json_encode($j, JSON_UNESCAPED_UNICODE));
+    $id = (int) tek($pdo, "SELECT TOP 1 ID FROM M_BILDIRIM WHERE PERSONEL_ID = 2 AND TUR = 'gorev' AND METIN LIKE :b ORDER BY ID DESC",
+        [':b' => $baslik . '%']);
+    bekle($id > 0, 'atanana bildirim yazılmadı');
+    $satis = (new Tarayici($URL))->giris('SATIS1');
+    bekle(str_contains($satis->istek('index.php')['govde'], 'h-btn-badge'), 'zilde okunmamış rozeti yok');
+    $tb = $satis->belirtec('bildirimler.php');
+    $r = $satis->istek('bildirimler.php', ['csrf_token' => $tb, 'ac' => $id]);
+    bekle(str_contains($r['yer'], 'gorev/gorevler.php'), 'bildirim görev sayfasına götürmedi');
+    bekle((int) tek($pdo, "SELECT OKUNDU FROM M_BILDIRIM WHERE ID = :i", [':i' => $id]) === 1, 'bildirim okundu işaretlenmedi');
+    // Başkasının bildirimini okundu yapamaz
+    $diger = (int) tek($pdo, "INSERT INTO M_BILDIRIM (PERSONEL_ID, TUR, BASLIK) OUTPUT INSERTED.ID VALUES (3, 'sistem', N'DEPO1 icin')");
+    $satis->istek('bildirimler.php', ['csrf_token' => $satis->belirtec('bildirimler.php'), 'ac' => $diger]);
+    bekle((int) tek($pdo, "SELECT OKUNDU FROM M_BILDIRIM WHERE ID = :i", [':i' => $diger]) === 0, 'başkasının bildirimi değiştirildi');
+});
+
+akis('faturalama (BETA): kapalıyken kapalı; sipariş faturalanır, ikinci kez kesilmez, geri alınınca iz kalmaz', function () use ($yonetici, $URL, $pdo): void {
+    require_once dirname(__DIR__, 2) . '/includes/ayar_deposu.php';
+    $ayarla = static function (string $deger): void {
+        bekle(lumen_ayar_kaydet(['faturalama_aktif' => $deger], 0), 'ayar yazılamadı');
+        // Test konteynerde root olarak çalışır; uygulama (www-data) sonra yazabilsin.
+        foreach (glob(dirname(__DIR__, 2) . '/database/{ayarlar.json,.ayarlar.lock}', GLOB_BRACE) ?: [] as $d) {
+            @chown($d, 'www-data');
+        }
+    };
+    bekle($yonetici->istek('fatura/fatura_panel.php')['kod'] === 403, 'kapalıyken panel açıldı');
+    $ayarla('1');
+    try {
+        $satis = (new Tarayici($URL))->giris('SATIS1');
+        bekle($satis->istek('fatura/fatura_panel.php')['kod'] === 403, 'M31 yetkisi olmadan panel açıldı');
+
+        $sip = (int) tek($pdo, "SELECT TOP 1 o.LOGICALREF FROM LG_001_02_ORFICHE o
+            WHERE o.TRCODE = 1 AND ISNULL(o.TRCURR, 0) = 0 AND ISNULL(o.CANCELLED, 0) = 0 AND o.NETTOTAL > 0
+              AND EXISTS (SELECT 1 FROM LG_001_02_ORFLINE l WHERE l.ORDFICHEREF = o.LOGICALREF AND l.LINETYPE = 0)
+              AND NOT EXISTS (SELECT 1 FROM LG_001_02_STLINE s WHERE s.ORDFICHEREF = o.LOGICALREF AND s.INVOICEREF > 0)
+            ORDER BY o.LOGICALREF");
+        bekle($sip > 0, 'faturalanabilir sipariş yok');
+        $net = (float) tek($pdo, "SELECT SUM(LINENET) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :s AND LINETYPE = 0", [':s' => $sip]);
+        $satirSay = (int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = :s AND LINETYPE = 0", [':s' => $sip]);
+        $cari = (int) tek($pdo, "SELECT CLIENTREF FROM LG_001_02_ORFICHE WHERE LOGICALREF = :s", [':s' => $sip]);
+
+        $j = json_decode($yonetici->istek('fatura/fatura.php', ['csrf_token' => $yonetici->belirtec('fatura/fatura_panel.php'),
+            'siparis_ref' => $sip])['govde'], true);
+        bekle(($j['ok'] ?? false) === true, 'fatura kesilemedi: ' . json_encode($j, JSON_UNESCAPED_UNICODE));
+        $inv = (int) $j['invoice_ref'];
+        $f = $pdo->query("SELECT FICHENO, CLIENTREF, NETTOTAL, TOTALVAT FROM LG_001_02_INVOICE WHERE LOGICALREF = {$inv}")->fetch(PDO::FETCH_ASSOC);
+        bekle(str_starts_with((string) $f['FICHENO'], 'LMF'), 'fatura LOGO serisinden ayrı (LMF) numaralanmadı: ' . $f['FICHENO']);
+        bekle((int) $f['CLIENTREF'] === $cari && (float) $f['TOTALVAT'] == 0.0, 'fatura başlığı yanlış');
+        yakin($net, (float) $f['NETTOTAL'], 'fatura net');
+        bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_STLINE WHERE INVOICEREF = :i AND LINETYPE = 0 AND ORDFICHEREF = :s",
+            [':i' => $inv, ':s' => $sip]) === $satirSay, 'stok çıkış satırı sayısı sipariş satırlarını tutmuyor');
+        bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_STFICHE WHERE INVOICEREF = :i AND IOCODE = 3", [':i' => $inv]) === 1, 'irsaliye yok');
+        yakin($net, (float) tek($pdo, "SELECT AMOUNT FROM LG_001_02_CLFLINE WHERE SOURCEFREF = :i AND TRCODE = 38 AND MODULENR = 4 AND CLIENTREF = :c",
+            [':i' => $inv, ':c' => $cari]), 'cari borç');
+
+        $r2 = $yonetici->istek('fatura/fatura.php', ['csrf_token' => $yonetici->belirtec('fatura/fatura_panel.php'), 'siparis_ref' => $sip]);
+        bekle($r2['kod'] === 409, "aynı sipariş ikinci kez faturalandı (HTTP {$r2['kod']})");
+
+        $log = (int) $j['log_id'];
+        $g = json_decode($yonetici->istek('fatura/fatura_geri_al.php', ['csrf_token' => $yonetici->belirtec('fatura/fatura_panel.php'),
+            'log_id' => $log])['govde'], true);
+        bekle(($g['ok'] ?? false) === true, 'geri alınamadı: ' . json_encode($g, JSON_UNESCAPED_UNICODE));
+        $kalan = (int) tek($pdo, "SELECT (SELECT COUNT(*) FROM LG_001_02_INVOICE WHERE LOGICALREF = :a) + (SELECT COUNT(*) FROM LG_001_02_STLINE WHERE INVOICEREF = :b)
+            + (SELECT COUNT(*) FROM LG_001_02_STFICHE WHERE INVOICEREF = :c) + (SELECT COUNT(*) FROM LG_001_02_CLFLINE WHERE SOURCEFREF = :d AND MODULENR = 4)",
+            [':a' => $inv, ':b' => $inv, ':c' => $inv, ':d' => $inv]);
+        bekle($kalan === 0, "geri almadan sonra {$kalan} kayıt kaldı");
+        bekle(tek($pdo, "SELECT DURUM FROM M_FATURA_LOG WHERE ID = :l", [':l' => $log]) === 'GERIALINDI', 'log geri alındı işaretlenmedi');
+        bekle(str_contains($yonetici->istek('fatura/fatura_panel.php')['govde'], 'data-ref="' . $sip . '"'), 'geri alınan sipariş yeniden faturalanabilir değil');
+    } finally {
+        $ayarla('0');
+    }
+}, 'logo_fatura');
+
+akis('cari ekstresi: ekran, bakiye listesi, PDF ve Excel aynı kaynaktan (cari_ekstre_lib)', function () use ($yonetici, $pdo): void {
+    $bakiye = (float) tek($pdo, "SELECT DEBIT - CREDIT FROM LV_001_02_GNTOTCL WHERE CARDREF = 5 AND TOTTYP = 1");
+    $metin = number_format(abs($bakiye), 2, ',', '.');
+    $e = $yonetici->istek('cari/lg_hareket.php?cariid=5')['govde'];
+    bekle(str_contains($e, $metin), "ekstrede bakiye ({$metin}) yok");
+    // Demo verisi: LOGO'da satış faturaları (CLFLINE 38), bağımsızda açılış hareketleri.
+    $etiket = lumen_bagimsiz_mi() ? 'Açılış Fişi' : 'Toptan Satış Faturası';
+    bekle(str_contains($e, $etiket), "ekstrede işlem türü etiketi ({$etiket}) yok");
+    bekle(str_contains($yonetici->istek('cari/lg_bakiye.php?q=' . rawurlencode('anadolu ev'))['govde'], $metin), 'bakiye listesinde bakiye yok');
+    foreach (['cari/lg_hareket_ekstre_pdf.php?cariid=5' => '%PDF', 'cari/lg_hareket_ekstre_excel.php?cariid=5' => "PK\x03\x04"] as $yol => $imza) {
+        $r = $yonetici->istek($yol);
+        bekle($r['kod'] === 200 && str_starts_with($r['govde'], $imza), "{$yol}: dosya üretilmedi (HTTP {$r['kod']})");
+    }
+});
+
+akis('koli ölçüsü: ondalıklı ağırlık kaydedilir (eskiden tamsayı dönüşüm hatası)', function () use ($yonetici, $pdo): void {
+    $t = $yonetici->belirtec('stok/koli_olcu_toplu.php');
+    $eski = (string) tek($pdo, "SELECT NAME FROM LG_001_ITEMS WHERE LOGICALREF = 4");
+    $j = json_decode($yonetici->istekJson('stok/koli_olcu_kaydet.php', ['csrf_token' => $t, 'id' => 4, 'name' => $eski,
+        'width' => 120, 'length' => 300, 'height' => 90, 'weight' => 2.5])['govde'], true);
+    bekle(($j['success'] ?? false) === true, 'kaydedilmedi: ' . json_encode($j, JSON_UNESCAPED_UNICODE));
+    yakin(2.5, (float) tek($pdo, "SELECT WEIGHT FROM LG_001_ITMUNITA WHERE ITEMREF = 4 AND LINENR = 1"), 'ağırlık');
+});
+
+akis('sistem ve yedek: mod görünür; yönetici yedek alır, listeler, indirir; yetkisiz giremez', function () use ($yonetici, $URL): void {
+    $g = $yonetici->istek('ayar/sistem_yedek.php')['govde'];
+    $bagimsiz = strtolower((string) getenv('LUMEN_VERI_KAYNAGI')) === 'lumen';
+    bekle(str_contains($g, $bagimsiz ? 'Bağımsız' : "LOGO'ya bağlı") && str_contains($g, 'LUMEN_VERI_KAYNAGI'), 'çalışma modu görünmüyor');
+    $t = $yonetici->belirtec('ayar/sistem_yedek.php');
+    $r = $yonetici->istek('ayar/sistem_yedek.php', ['csrf_token' => $t, 'islem' => 'yedek_al']);
+    bekle(str_contains($r['govde'], 'Yedek alındı'), 'yedek alınamadı');
+    bekle(preg_match('/\?indir=(lumen_[0-9_]+_elle_[a-f0-9]{6}\.lumen\.gz)/', $r['govde'], $m) === 1, 'yedek listede yok');
+    $d = $yonetici->istek('ayar/sistem_yedek.php?indir=' . $m[1]);
+    bekle($d['kod'] === 200 && str_starts_with($d['govde'], "\x1f\x8b"), 'yedek indirilemedi');
+    bekle(str_contains((string) gzdecode($d['govde']), '"lumen_yedek":1'), 'indirilen dosya Lumen yedeği değil');
+    bekle($yonetici->istek('ayar/sistem_yedek.php?indir=..%2F..%2F.env')['kod'] !== 200, 'klasör dışı dosya indirildi');
+    @unlink(dirname(__DIR__, 2) . '/database/yedekler/' . $m[1]);
+    $satis = (new Tarayici($URL))->giris('SATIS1');
+    bekle($satis->istek('ayar/sistem_yedek.php?indir=' . $m[1])['kod'] !== 200, 'yetkisiz kullanıcı yedek indirdi');
+});
+
+akis('özel cari: gizli sipariş yazdırma, stok yardımcıları, döviz ekranları ve API üzerinden açılamaz', function () use ($URL, $pdo): void {
+    $sip = $pdo->query('SELECT TOP 1 F.LOGICALREF, F.CLIENTREF, F.FICHENO, F.DATE_, F.TRCURR, F.TRRATE, F.TRNET,
+                               L.STOCKREF
+                        FROM LG_001_02_ORFICHE F
+                        JOIN LG_001_02_ORFLINE L ON L.ORDFICHEREF = F.LOGICALREF AND L.LINETYPE = 0
+                        WHERE F.CLIENTREF > 0 ORDER BY F.LOGICALREF, L.LOGICALREF')->fetch(PDO::FETCH_ASSOC);
+    bekle($sip !== false, 'gizlenecek sipariş bulunamadı');
+    $cari = (int) $sip['CLIENTREF'];
+    $fis = (int) $sip['LOGICALREF'];
+    $stok = (int) $sip['STOCKREF'];
+    $kod = (string) tek($pdo, "SELECT CODE FROM LG_001_CLCARD WHERE LOGICALREF = {$cari}");
+    $stokKod = (string) tek($pdo, "SELECT CODE FROM LG_001_ITEMS WHERE LOGICALREF = {$stok}");
+    $eskiM21 = (int) tek($pdo, 'SELECT M21 FROM M_P_YETKI WHERE PERSONEL = 2');
+    $logoModu = !lumen_bagimsiz_mi();
+    $pdo->exec("DELETE FROM M_OZEL_CARI_KISIT WHERE CARIREF = {$cari}");
+    $pdo->exec("INSERT INTO M_OZEL_CARI_KISIT (CARIREF, OLUSTURAN, OLUSTURMA_TARIHI, YETKI_KODU, PERSONEL_ID)
+                VALUES ({$cari}, 1, GETDATE(), 'M19', 2), ({$cari}, 1, GETDATE(), 'M4', 2)");
+    try {
+        if ($logoModu) {
+            $pdo->exec('UPDATE M_P_YETKI SET M21 = 1 WHERE PERSONEL = 2');
+            $pdo->exec("UPDATE LG_001_02_ORFICHE SET TRCURR = 1, TRRATE = 40, TRNET = NETTOTAL / 40 WHERE LOGICALREF = {$fis}");
+        }
+        $s = (new Tarayici($URL))->giris('SATIS1');
+        $j = json_decode($s->istek('cek/cek_giris.php', ['csrf_token' => $s->belirtec('cek/cek_panel.php'), 'cari_ref' => $cari, 'aciklama' => 'x',
+            'istek_id' => bin2hex(random_bytes(16)), 'kalemler' => json_encode([['tutar' => 1, 'cekno' => 'G', 'banka' => 'B', 'vade' => date('Y-m-d', strtotime('+9 days')), 'sahibi' => '']])])['govde'], true);
+        bekle(($j['ok'] ?? null) === false, 'gizli cariye çek girildi');
+        bekle($s->istek("yazdir/fis_goruntule.php?tip=siparis&fis={$fis}")['kod'] === 404, 'gizli carinin siparişi yazdırma görünümünde açıldı');
+        foreach ([
+            "stok/lg_stoksonalisx.php" => ['userid' => "{$fis},{$stok},ADET"],
+        ] as $yol => $post) {
+            bekle($s->istek($yol, $post)['kod'] === 403, "gizli sipariş {$yol} üzerinden açıldı");
+        }
+        foreach ([
+            "stok/lg_stok_ekle.php?stok={$stok}&fisid={$fis}",
+            "stok/lg_stok_duzenle.php?stokid={$stok}&stokhareket={$fis}",
+            'stok/lg_stok_bul.php?barkod=' . rawurlencode($stokKod) . "&fisid={$fis}",
+        ] as $yol) {
+            bekle($s->istek($yol)['kod'] === 403, "gizli sipariş {$yol} üzerinden açıldı");
+        }
+        if ($logoModu) {
+            $ay = date('Y-m', strtotime((string) $sip['DATE_']));
+            $liste = $s->istek('doviz/siparisler.php?tarih=' . rawurlencode($ay));
+            bekle($liste['kod'] === 200 && !str_contains($liste['govde'], (string) $sip['FICHENO']), 'gizli sipariş döviz listesinde göründü');
+            foreach (['doviz/yazdir.php', 'doviz/yazdirx.php', 'doviz/fis_excel_xlsx.php'] as $yol) {
+                bekle($s->istek("{$yol}?id={$fis}")['kod'] === 403, "gizli sipariş {$yol} üzerinden açıldı");
+            }
+        }
+        $ch = curl_init("{$URL}/api/login.php");
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode(['kullanici' => 'SATIS1', 'sifre' => 'demo1234'])]);
+        $tok = (string) (json_decode((string) curl_exec($ch), true)['token'] ?? '');
+        $ch = curl_init("{$URL}/api/cek_listesi.php");
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ["Authorization: Bearer {$tok}"]]);
+        $liste = json_decode((string) curl_exec($ch), true);
+        bekle(is_array($liste) && !str_contains((string) json_encode($liste, JSON_UNESCAPED_UNICODE), '"' . $kod . '"'), 'API çek listesinde gizli carinin çeki var');
+    } finally {
+        if ($logoModu) {
+            $trcurr = (int) $sip['TRCURR'];
+            $trrate = (float) $sip['TRRATE'];
+            $trnet = (float) $sip['TRNET'];
+            $pdo->exec("UPDATE LG_001_02_ORFICHE SET TRCURR = {$trcurr}, TRRATE = {$trrate}, TRNET = {$trnet} WHERE LOGICALREF = {$fis}");
+        }
+        $pdo->exec("UPDATE M_P_YETKI SET M21 = {$eskiM21} WHERE PERSONEL = 2");
+        $pdo->exec("DELETE FROM M_OZEL_CARI_KISIT WHERE CARIREF = {$cari}");
+    }
+});
+
+akis('sipariş satırı: sipariş olmayan kimliğe satır eklenmez; sevk edilen miktarın altına inilmez', function () use ($yonetici, $pdo): void {
+    $yok = (int) tek($pdo, 'SELECT ISNULL(MAX(LOGICALREF), 0) + 5000 FROM LG_001_02_ORFICHE');
+    $yonetici->istek("siparis/lg_fis.php?stokhareket={$yok}", ['csrf_token' => $yonetici->belirtec('cek/cek_panel.php'), 'stkid' => 1, 'stokhareket' => $yok,
+        'kontrol' => uniqid(), 'stkbirim' => 1, 'stkadt' => 1, 'stbrm' => 1, 'stkfyt' => 1, 'stkkdv' => 20, 'aciklama' => '']);
+    bekle((int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFLINE WHERE ORDFICHEREF = {$yok}") === 0, 'sipariş olmayan kimliğe satır eklendi');
+    $sat = $pdo->query('SELECT TOP 1 L.LOGICALREF, L.ORDFICHEREF, L.AMOUNT, L.SHIPPEDAMOUNT FROM LG_001_02_ORFLINE L JOIN LG_001_02_ORFICHE F ON F.LOGICALREF = L.ORDFICHEREF
+                        WHERE L.SHIPPEDAMOUNT > 1 AND L.LINETYPE = 0 AND ISNULL(F.TRCURR, 0) = 0 ORDER BY L.LOGICALREF')->fetch(PDO::FETCH_ASSOC);
+    if ($sat === false) {
+        return;   // bu veritabanında sevk edilmiş satır yok
+    }
+    $yonetici->istek("siparis/lg_fis.php?stokhareket={$sat['ORDFICHEREF']}", ['csrf_token' => $yonetici->belirtec('cek/cek_panel.php'),
+        'stkduzenle' => (int) $sat['LOGICALREF'], 'stokhareket' => (int) $sat['ORDFICHEREF'], 'stkadt' => '1', 'stkfyt' => '1', 'stkkdv' => '20', 'aciklama' => '']);
+    yakin((float) $sat['AMOUNT'], (float) tek($pdo, "SELECT AMOUNT FROM LG_001_02_ORFLINE WHERE LOGICALREF = {$sat['LOGICALREF']}"), 'sevk edilen satırın miktarı');
+});
+
+akis('cari finans bilgisi: bakiye/ekstre yetkisi olmayan kullanıcı ekstre, PDF/Excel ve fatura görünümü açamaz', function () use ($URL): void {
+    $depo = (new Tarayici($URL))->giris('DEPO1');   // M15 + ST1; M4/CR yok
+    foreach (['cari/lg_hareket.php?cariid=2', 'cari/lg_hareket_ekstre_pdf.php?cariid=2', 'cari/lg_hareket_ekstre_excel.php?cariid=2', 'cari/lg_nakit.php?cariid=2'] as $yol) {
+        // 403: yetki yok; 501: bağımsız modda sayfa zaten kapalı (LOGO nakit görünümü)
+        bekle(in_array($depo->istek($yol)['kod'], [403, 501], true), "yetkisiz kullanıcı {$yol} açtı");
+    }
+    $satis = (new Tarayici($URL))->giris('SATIS1');  // M4 + CR1/CR2
+    bekle($satis->istek('cari/lg_hareket.php?cariid=2')['kod'] === 200, 'bakiye yetkili kullanıcı ekstreyi açamadı');
+});
+
+akis('üretim: geçersiz fiş HTML hata kartı, ürün araması JSON döndürür', function () use ($yonetici): void {
+    if (lumen_bagimsiz_mi()) {
+        return; // Üretim ekranı yalnız LOGO modunda açıktır.
+    }
+    $r = $yonetici->istek('stok/uretim_giris.php?fis=2147483647');
+    bekle($r['kod'] === 404, 'geçersiz üretim fişi 404 dönmedi');
+    bekle(str_contains($r['govde'], 'Üretim fişi bulunamadı') && str_contains($r['govde'], 'class="top-header"'), 'ortak hata kartı gösterilmedi');
+    bekle(!str_contains($r['govde'], '{"ok":false'), 'HTML sayfasına JSON karıştı');
+    $r = $yonetici->istek('stok/uretim_giris.php?ajax=item&value=LUMEN_TASARIM_YOK_2147483647');
+    $json = json_decode($r['govde'], true);
+    bekle(is_array($json) && ($json['ok'] ?? null) === false, 'ürün araması JSON yanıtını kaybetti');
+});
+
+$basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
+printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
+exit($basarisiz === 0 ? 0 : 1);

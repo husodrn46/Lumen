@@ -34,6 +34,12 @@ try {
     }
 
     $cariid = $caridata['CLIENTREF'];
+    // Özel cari kısıtı: kısıtlı carinin son sipariş/favori ürünleri listelenmez.
+    if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisid)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Yetkiniz yok']);
+        exit;
+    }
 
     // Bu müşterinin en çok sipariş ettiği ürünleri getir (son 6 ay)
     $stmt_favoriler = $dbh->prepare("SELECT TOP 10
@@ -59,7 +65,7 @@ try {
 
     // Miktarları tam sayıya yuvarla
     foreach ($urunler as &$urun) {
-        $urun['miktar'] = ceil($urun['miktar']);
+        $urun['miktar'] = ceil((float) $urun['miktar']); // pdo_sqlsrv metin döndürür (strict_types)
     }
 
     echo json_encode(['success' => true, 'message' => 'Favori ürünler yüklendi', 'urunler' => $urunler]);

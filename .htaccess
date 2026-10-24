@@ -11,6 +11,19 @@
 #  bloklarını sunucu yapılandırmanıza ekleyin — nginx .htaccess okumaz.
 # ============================================================================
 
+# --- PHP2Shell (CVE-2026-109618/109619) önlemleri ----------------------------
+#  Tam çözüm PHP'yi 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 ya da üstüne güncellemektir.
+#  İstek gövdesi 32 MB ile sınırlı (Lumen'in en büyük yüklemesi daha küçüktür).
+LimitRequestBody 33554432
+#  mod_php'de (en riskli kurulum) yükleme ilerlemesi kapalı; Lumen kullanmaz.
+#  Asıl yeri sunucunun php.ini'sidir: session.upload_progress.enabled=0
+<IfModule mod_php.c>
+    php_flag session.upload_progress.enabled off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag session.upload_progress.enabled off
+</IfModule>
+
 # --- Dizin listelemeyi kapat -------------------------------------------------
 Options -Indexes
 
@@ -25,7 +38,17 @@ Options -Indexes
 #  .sql  : şema betikleri (tablo yapısını ifşa eder)
 #  .log  : uygulama logları
 #  .bak / .old / .orig / .example : yedek ve örnek dosyalar
-<FilesMatch "\.(inc|ini|sql|log|bak|old|orig|example)$">
+# --- IIS kural dosyası (Apache'de kullanılmaz; güvenlik kurallarını ifşa etmesin) ---
+<Files "web.config">
+    Require all denied
+</Files>
+
+<FilesMatch "\.(inc|ini|sql|log|bak|old|orig|example|db)$">
+    Require all denied
+</FilesMatch>
+
+# --- Bağımlılık listesi (sürüm bilgisi saldırgana hedef verir) ----------------
+<FilesMatch "^composer\.(json|lock)$">
     Require all denied
 </FilesMatch>
 
@@ -36,7 +59,12 @@ RedirectMatch 404 (?i)/\.claude(/|$)
 RedirectMatch 404 (?i)/logs?(/|$)
 RedirectMatch 404 (?i)/tmp(/|$)
 RedirectMatch 404 (?i)/sql(/|$)
+RedirectMatch 404 (?i)/database(/|$)
+RedirectMatch 404 (?i)/demo(/|$)
+RedirectMatch 404 (?i)/tests(/|$)
 RedirectMatch 404 (?i)/vendor(/|$)
+RedirectMatch 404 (?i)/includes(/|$)
+RedirectMatch 404 (?i)\.lumen\.gz$
 RedirectMatch 404 (?i)/scripts(/|$)
 
 # --- Güvenlik başlıkları -----------------------------------------------------
@@ -44,6 +72,11 @@ RedirectMatch 404 (?i)/scripts(/|$)
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # web.config ile aynı içerik güvenlik politikası (IIS'te vardı, Apache'de yoktu)
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tailwindcss.com cdnjs.cloudflare.com cdn.jsdelivr.net cdn.datatables.net code.jquery.com unpkg.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com cdn.jsdelivr.net cdn.datatables.net; font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com data:; img-src 'self' data: blob:; connect-src 'self' cdn.datatables.net; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self';"
+    Header unset X-Powered-By
+    # HTTPS kullanıyorsanız etkinleştirin (yalnız HTTPS yanıtlarında gönderin):
+    # Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
 </IfModule>
 
 # --- Authorization header'ını PHP'ye aktar (Bearer token) --------------------

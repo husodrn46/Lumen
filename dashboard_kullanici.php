@@ -72,7 +72,7 @@ $satisSiparisWhereF = "F.TRCODE IN (1,20,21,22) AND F.NETTOTAL > 0 AND ISNULL(F.
 // Tüm aktif kullanıcıları çek
 $stmtKullanicilar = $dbh->prepare("
     SELECT LOGICALREF, CODE, DEFINITION_
-    FROM LG_SLSMAN
+    FROM {$GLOBALS['LUMEN_SLSMAN']}
     WHERE FIRMNR = :firmaNr
         AND ACTIVE = 0
     ORDER BY DEFINITION_ ASC
@@ -93,7 +93,7 @@ $performansSQL = "
         ISNULL(AVG(F.NETTOTAL), 0) AS ORTALAMA_ISLEM,
         SUM(CASE WHEN CONVERT(VARCHAR, F.DATE_, 102) = :bugun_islem THEN 1 ELSE 0 END) AS BUGUN_ISLEM,
         ISNULL(SUM(CASE WHEN CONVERT(VARCHAR, F.DATE_, 102) = :bugun_tutar THEN F.NETTOTAL ELSE 0 END), 0) AS BUGUN_TUTAR
-    FROM LG_SLSMAN S
+    FROM {$GLOBALS['LUMEN_SLSMAN']} S
     LEFT JOIN (
         -- Satış siparişleri - iptal ve 0 TL hariç
         SELECT
@@ -261,7 +261,7 @@ try {
             ISNULL(AVG(IL.YENI_DISCPER), 0) AS ORTALAMA_ISKONTO,
             ISNULL(MAX(IL.YENI_DISCPER), 0) AS MAX_ISKONTO
         FROM M_ISKONTO_LOG IL
-        LEFT JOIN LG_SLSMAN S ON S.LOGICALREF = IL.KULLANICI
+        LEFT JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = IL.KULLANICI
         LEFT JOIN " . $firmadonem . "ORFICHE F ON F.LOGICALREF = IL.FIS_REF
         WHERE CONVERT(VARCHAR, F.DATE_, 102) BETWEEN :filtre_tarih_bas AND :filtre_tarih_son
           AND {$satisSiparisWhereF}
@@ -289,29 +289,15 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kullanici Aktivite Dashboard</title>
+    <title>Kullanıcı Aktivitesi</title>
     <?php include_once(__DIR__ . '/pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
             --purple: #7c3aed;
@@ -319,39 +305,11 @@ try {
         }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        /* HEADER */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-        }
-        .header-inner {
-            max-width: 1200px; margin: 0 auto;
-            height: 100%; display: flex; align-items: center; gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            font-size: 18px; font-weight: 700; color: var(--text-1);
-            display: inline-flex; align-items: center; gap: 10px;
-        }
-        .header-title i { color: var(--red); font-size: 16px; }
         .header-sub {
             font-size: 11px; color: var(--text-3);
             margin-left: 4px; font-weight: 500;
@@ -366,13 +324,12 @@ try {
 
         /* GLASS CARD */
         .glass-card {
-            background: rgba(255,255,255,0.92);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(248, 113, 113, 0.18);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            box-shadow: var(--golge-1);
             margin-bottom: 18px;
         }
         .card-head {
@@ -419,7 +376,7 @@ try {
             padding: 10px 12px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             color: var(--text-1);
             background: #fff;
@@ -441,7 +398,7 @@ try {
             color: #fff;
             border: none;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
@@ -472,13 +429,12 @@ try {
         }
         .stat-card {
             position: relative;
-            background: #fff;
+            background: var(--card);
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 16px 18px 16px 22px;
             overflow: hidden;
             transition: all 0.25s ease;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
             display: flex;
             align-items: center;
             gap: 14px;
@@ -623,7 +579,9 @@ try {
         .empty p { font-size: 12.5px; color: var(--text-2); }
 
         /* TWO COL */
-        .two-col {
+
+        .two-col > *, .card-head > div { min-width: 0; }
+.two-col {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 18px;
@@ -776,7 +734,7 @@ try {
             border: none;
             background: var(--red);
             color: #fff;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 12.5px;
             font-weight: 600;
             cursor: pointer;
@@ -798,11 +756,7 @@ try {
             .two-col { grid-template-columns: 1fr; }
         }
         @media (max-width: 767px) {
-            .top-header { height: 52px; }
-            .header-inner { padding: 0 14px; gap: 10px; }
-            .header-title { font-size: 14px; }
             .header-sub { display: none; }
-            .header-back { width: 32px; height: 32px; border-radius: 8px; }
 
             main.page { padding: 14px 12px 40px; }
 
@@ -837,9 +791,9 @@ try {
         <div class="header-divider"></div>
         <span class="header-title">
             <i class="fa-solid fa-chart-line"></i>
-            Kullanici Aktivite Dashboard
+            Kullanıcı Aktivitesi
         </span>
-        <span class="header-sub">Satis ekibi performans ve kullanim analizi</span>
+        <span class="header-sub">Satış ekibinin performans ve kullanım analizi</span>
     </div>
 </header>
 
@@ -850,7 +804,7 @@ try {
             <span class="icon-box"><i class="fa-solid fa-sliders"></i></span>
             <div>
                 <h2>Filtreler</h2>
-                <p>Donem, gun ve kullanici secimi</p>
+                <p>Dönem, gün ve kullanıcı seçimi</p>
             </div>
         </div>
         <div class="card-body">

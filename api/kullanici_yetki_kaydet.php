@@ -52,6 +52,11 @@ if (!in_array($kolon, $izinKolonlari, true)) {
     api_json(['ok' => false, 'mesaj' => 'Geçersiz kolon.'], 400);
 }
 
+$engel = lumen_yetki_degisikligi_engeli($dbh, $personel, $personelId, null, $kolon);
+if ($engel !== null) {
+    api_json(['ok' => false, 'mesaj' => $engel], 403);
+}
+
 try {
     // Kullanıcının M_P_YETKI satırı var mı? (named param tek kullanım — sqlsrv kuralı)
     $check = $dbh->prepare("SELECT COUNT(*) FROM M_P_YETKI WHERE PERSONEL = :id");

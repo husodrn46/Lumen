@@ -66,26 +66,8 @@ if (!function_exists('lumen_kontrol_yonlendir_veya_json')) {
 
 // 1. Güvenli Oturum Ayarları
 // session_start() öncesinde cookie parametreleri ayarlanır.
-if (session_status() === PHP_SESSION_NONE) {
-    if (function_exists('session_set_cookie_params')) {
-        // HTTPS kontrolü - secure flag'i otomatik ayarla
-        $is_https = (
-            (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
-            (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) ||
-            (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
-        );
-
-        session_set_cookie_params([
-            'lifetime' => 0,    // tarayıcı kapanana kadar
-            'path' => '/',
-            'domain' => '',
-            'secure' => $is_https,  // HTTPS varsa secure flag aktif
-            'httponly' => true,
-            'samesite' => 'Strict'
-        ]);
-    }
-    session_start();
-}
+require_once __DIR__ . '/includes/oturum.php';
+lumen_oturum_baslat();
 
 // 2. Session Fixation Koruması
 // Oturum ID'sini yenile (sadece ilk kontrolde)
@@ -105,22 +87,13 @@ if (!isset($_SESSION['plasiyer_id']) || empty($_SESSION['plasiyer_id'])) {
         $personelId = remember_token_dogrula($_COOKIE['remember_selector'], $_COOKIE['remember_token']);
         if ($personelId !== false) {
             try {
-                $stmtRemember = $dbh->prepare("
-                    SELECT L.LOGICALREF, L.CODE, L.CYPHCODE, L.SPECODE
-                    FROM LG_SLSMAN L
-                    WHERE L.LOGICALREF = :personel_id AND L.ACTIVE = 0
-                ");
-                $stmtRemember->execute([':personel_id' => $personelId]);
-                $personelRemember = $stmtRemember->fetch(PDO::FETCH_ASSOC);
+                $personelRemember = lumen_personel_getir($dbh, (int) $personelId);
 
                 if ($personelRemember) {
-                    session_regenerate_id(true);
-                    $_SESSION['plasiyer_id']    = $personelRemember['LOGICALREF'];
-                    $_SESSION['plasiyer_depo']  = $personelRemember['SPECODE'];
-                    $_SESSION['plasiyer_yetki'] = $personelRemember['CYPHCODE'];
-                    $_SESSION['kullanici_adi']  = $personelRemember['CODE'];
+                    lumen_oturum_ac($personelRemember);
+                    $personelRemember['LOGICALREF'] = (int) $personelRemember['ID'];
+                    $personelRemember['CODE'] = (string) $personelRemember['KOD'];
                     $_SESSION['session_regenerated'] = true;
-                    $_SESSION['login_ts']       = time(); // force-logout referansi (oturum baslangici)
 
                     if (function_exists('m_p_yetki_cache_temizle')) {
                         m_p_yetki_cache_temizle($personelRemember['LOGICALREF']);
@@ -129,6 +102,8 @@ if (!isset($_SESSION['plasiyer_id']) || empty($_SESSION['plasiyer_id'])) {
                         logGiris($personelRemember['LOGICALREF'], $personelRemember['CODE'], true, 'Token ile otomatik oturum kurtarma (kontrol.php)');
                     }
                     $rememberRestored = true;
+                    // Doğrulayıcı her kullanımda yenilenir; kopyalanan eski çerez geçersizleşir.
+                    remember_token_yenile((string) $_COOKIE['remember_selector']);
                 }
             } catch (Exception $e) {
                 error_log("kontrol.php remember me hatası: " . $e->getMessage());
@@ -193,7 +168,14 @@ $yetkidurum = null; // Başlangıçta yetkiyi tanımsız yap
 // *KRİTİK:* m_p_yetki() içinde mutlaka prepare edilmiş sorgu (prepared statement) kullanın.
 $kullaniciYetkiKodu = m_p_yetki($terminalkullanici, 'YETKI');
 
-switch ($kullaniciYetkiKodu) {
+// DİKKAT: m_p_yetki() veritabanı hatasında null döner. PHP 8'de switch gevşek
+// karşılaştırma yapar ve null == 0 olduğundan null "Yönetici" dalına düşüyordu:
+// geçici bir DB hatasında istek yönetici yetkisiyle çalışıyordu. Katı eşleme:
+$yetkiKoduInt = (is_int($kullaniciYetkiKodu) || (is_string($kullaniciYetkiKodu) && ctype_digit($kullaniciYetkiKodu)))
+    ? (int) $kullaniciYetkiKodu
+    : null;
+
+switch ($yetkiKoduInt ?? -1) {
     case 0: // Yönetici
         $yetkidurum = 0;
         break;
@@ -202,6 +184,9 @@ switch ($kullaniciYetkiKodu) {
         break;
     case 2: // Müşteri
         $yetkidurum = 2;
+        break;
+    case 3: // Entegrasyon (salt okunur API) — web arayüzüne giremez (aşağıda)
+        $yetkidurum = 3;
         break;
     default:
         // Beklenmedik veya geçersiz bir yetki kodu dönerse, bu bir güvenlik riskidir.
@@ -227,9 +212,27 @@ if ($yetkidurum === 2) {
     );
 }
 
+// 6. Entegrasyon (bot) hesabı yalnız API içindir; web oturumu açamaz.
+if ($yetkidurum === 3) {
+    session_unset();
+    session_destroy();
+    lumen_kontrol_yonlendir_veya_json(
+        APP_ROOT_URL . '/giris.php?hata=entegrasyon',
+        'Entegrasyon hesabi web arayuzune giris yapamaz.',
+        403
+    );
+}
+
 // Bu betik başarıyla çalıştığında, dahil edildiği sayfada
 // $terminalkullanici (kullanıcı ID'si) ve $yetkidurum (0, 1, veya 2)
 // değişkenleri güvenli bir şekilde kullanılabilir.
+// Bağımsız modda henüz taşınmamış modülün sayfası durdurulur (501 + açıklama).
+lumen_modul_korumasi();
+
+// Günlük otomatik yedek (ayarlardan kapatılabilir): günün ilk oturumlu isteğinde, yanıttan sonra.
+require_once __DIR__ . '/includes/yedek/yedek_lib.php';
+lumen_otomatik_yedek($dbh);
+
 require_once __DIR__ . '/log_ip.php';
 require_once __DIR__ . '/includes/page_visit_shortcuts.php';
 

@@ -7,6 +7,16 @@ include_once(__DIR__ . "/../log_ip.php");
 
 $stokhareket = isset($_GET['stokhareket']) ? (int) $_GET['stokhareket'] : 0;
 
+// YETKI: siparisi baska cariye aktarmak yazma islemidir — admin veya M1 (Yeni Siparis);
+// kaynak siparisin carisi de kullaniciya gorunur olmalidir.
+if (
+    ((int) ($yetkidurum ?? 1) !== 0 && m_p_yetki($terminalkullanici, 'M1') != 1)
+    || ($stokhareket > 0 && !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket))
+) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 // Mevcut fiş bilgilerini al
 $mevcutFis = null;
 if ($stokhareket > 0) {
@@ -36,6 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
             $hata = 'Lütfen geçerli bir cari seçin.';
         } elseif ($yeni_cari === (int)$mevcutFis['CLIENTREF']) {
             $hata = 'Seçilen cari mevcut cari ile aynı.';
+        } elseif (!m_p_cariid_goruntulebilir_mi($dbh, $firma, $terminalkullanici, $yeni_cari)) {
+            // Hedef cari de kullaniciya gorunur olmali
+            $hata = 'Seçilen cariye aktarma yetkiniz yok.';
         } else {
             // Eski cari bilgileri
             $eski_cari_kodu = $mevcutFis['CARI_KODU'];
@@ -57,15 +70,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
                 $yeni_cari_kodu = $yeniCari['CARI_KODU'];
                 $yeni_cari_adi = $yeniCari['CARI_ADI'];
 
-                // Aktarım işlemi
-                $stmtGuncelle = $dbh->prepare("
-                    UPDATE {$firmadonem}ORFICHE
-                    SET CLIENTREF = :yeni_cari
-                    WHERE LOGICALREF = :stokhareket
-                ");
-                $gncl = $stmtGuncelle->execute([':yeni_cari' => $yeni_cari, ':stokhareket' => $stokhareket]);
+                // Aktarım işlemi: fiş başlığı ve satırlar (ORFLINE.CLIENTREF) tek transaction'da.
+                // Sevk edilmiş (SHIPPEDAMOUNT > 0) satırı olan sipariş aktarılamaz.
+                $gncl = false;
+                $sevkliVar = false;
+                try {
+                    $dbh->beginTransaction();
 
-                if ($gncl) {
+                    $stmtSevk = $dbh->prepare("
+                        SELECT COUNT(*) FROM {$firmadonem}ORFLINE WITH (UPDLOCK, HOLDLOCK)
+                        WHERE ORDFICHEREF = :stokhareket AND SHIPPEDAMOUNT > 0
+                    ");
+                    $stmtSevk->execute([':stokhareket' => $stokhareket]);
+                    $sevkliVar = (int) $stmtSevk->fetchColumn() > 0;
+
+                    if ($sevkliVar) {
+                        $dbh->rollBack();
+                    } else {
+                        $stmtGuncelle = $dbh->prepare("
+                            UPDATE {$firmadonem}ORFICHE
+                            SET CLIENTREF = :yeni_cari
+                            WHERE LOGICALREF = :stokhareket
+                        ");
+                        $stmtGuncelle->execute([':yeni_cari' => $yeni_cari, ':stokhareket' => $stokhareket]);
+
+                        $stmtSatirGuncelle = $dbh->prepare("
+                            UPDATE {$firmadonem}ORFLINE
+                            SET CLIENTREF = :yeni_cari
+                            WHERE ORDFICHEREF = :stokhareket
+                        ");
+                        $stmtSatirGuncelle->execute([':yeni_cari' => $yeni_cari, ':stokhareket' => $stokhareket]);
+
+                        $dbh->commit();
+                        $gncl = true;
+                    }
+                } catch (Throwable $e) {
+                    if ($dbh->inTransaction()) {
+                        $dbh->rollBack();
+                    }
+                    error_log('stok_hareket_aktar.php aktarim hatasi: ' . $e->getMessage());
+                }
+
+                if ($sevkliVar) {
+                    $hata = 'Sevk edilmiş satırı olan sipariş başka cariye aktarılamaz.';
+                } elseif ($gncl) {
                     $aciklama = "Cari değiştirildi: [{$eski_cari_kodu}] {$eski_cari_adi} → [{$yeni_cari_kodu}] {$yeni_cari_adi}";
                     if (function_exists('logFisGuncelleme')) {
                         logFisGuncelleme($stokhareket, $ficheno, $terminalkullanici, $aciklama, []);
@@ -89,76 +137,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Baska Cariye Aktar</title>
+    <title>Başka Cariye Aktar</title>
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once __DIR__ . '/../pwa-header.php'; } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --indigo: #4f46e5;
             --indigo-soft: #eef2ff;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
-        }
-
-        /* HEADER */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(2, 132, 199, 0.18);
-            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.05);
-        }
-        .header-inner {
-            max-width: 900px;
-            margin: 0 auto;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--sky); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-1);
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
         }
         .header-title .title-icon {
             width: 32px; height: 32px;
@@ -208,14 +205,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
 
         /* GLASS CARD */
         .glass-card {
-            background: rgba(255,255,255,0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            box-shadow: var(--golge-1);
             padding: 22px;
-            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .glass-card + .glass-card { margin-top: 18px; }
         .glass-card:nth-of-type(2) { animation-delay: 80ms; }
@@ -335,7 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
         .search-input {
             width: 100%;
             padding: 12px 14px 12px 40px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -507,7 +503,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
             gap: 8px;
             padding: 13px 20px;
             border-radius: 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 600;
             border: 1px solid transparent;
@@ -576,12 +572,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
 
         /* MOBILE */
         @media (max-width: 767px) {
-            .top-header { height: 52px; }
-            .header-inner { padding: 0 14px; gap: 10px; }
-            .header-title { font-size: 15px; }
             .header-title .title-icon { width: 28px; height: 28px; font-size: 12px; }
-            .header-back { width: 32px; height: 32px; border-radius: 8px; }
-            .header-divider { height: 20px; }
 
             main { padding: 14px 14px 48px; }
             .glass-card { padding: 16px; border-radius: 14px; }
@@ -620,7 +611,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['yeni_cari'])) {
             <div class="header-divider"></div>
             <h1 class="header-title">
                 <span class="title-icon"><i class="fa-solid fa-arrow-right-arrow-left"></i></span>
-                Baska Cariye Aktar
+                Başka Cariye Aktar
             </h1>
         </div>
     </header>

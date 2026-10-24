@@ -41,7 +41,10 @@ if (!function_exists('cariyeni_sonraki_kod')) {
     function cariyeni_sonraki_kod(PDO $dbh, string $firma, string $onek): string
     {
         $like = cariyeni_onek_like($onek) . str_repeat('[0-9]', 4);
-        $max = $dbh->query("SELECT MAX(CODE) FROM {$firma}CLCARD WHERE CODE LIKE '{$like}'")->fetchColumn();
+        // Ortak cari tablosu: LOGO'da CLCARD, bağımsızda LM_CARI ($firma yalnız LOGO'da anlamlı).
+        $st = $dbh->prepare("SELECT MAX(C.KOD) FROM " . lumen_tablo('cari') . " C WHERE C.KOD LIKE :desen");
+        $st->execute([':desen' => $like]);
+        $max = $st->fetchColumn();
         $n = 1;
         if ($max && preg_match('/^' . preg_quote($onek, '/') . '(\d+)$/', (string) $max, $m)) {
             $n = (int) $m[1] + 1;
@@ -86,6 +89,16 @@ if (!function_exists('cari_olustur_yeni')) {
             $denendi++;
             $yeniKod = cariyeni_sonraki_kod($dbh, $firma, $onek);
             try {
+                if (lumen_bagimsiz_mi()) {
+                    // Bağımsız mod: Lumen'in kendi cari tablosu; şablon kopyalamaya gerek yok.
+                    $cariid = lumen_insert_kimlik($dbh,
+                        'INSERT INTO LM_CARI (KOD, UNVAN, TELEFON, IL, ILCE) VALUES (:k, :u, :t, :i, :c)',
+                        [':k' => $yeniKod, ':u' => $unvan, ':t' => $telefon, ':i' => $sehir, ':c' => $ilce], 'ID');
+                    if (function_exists('logGenel')) {
+                        @logGenel('cari_olustur', "Yeni cari: [{$yeniKod}] {$unvan}", $kullanici);
+                    }
+                    return ['ok' => true, 'cariid' => $cariid, 'kod' => $yeniKod, 'ad' => $unvan, 'mesaj' => 'Cari olusturuldu.'];
+                }
                 // Sablon: ayni on ekle acilmis en son cari (tum alanlar = LOGO butunlugu)
                 $sablon = $dbh->prepare("SELECT TOP 1 * FROM {$firma}CLCARD WHERE CODE LIKE :onek AND ACTIVE=0 ORDER BY LOGICALREF DESC");
                 $sablon->execute([':onek' => cariyeni_onek_like($onek) . '%']);
@@ -126,12 +139,12 @@ if (!function_exists('cari_olustur_yeni')) {
                 $kolonlar = array_keys($ref);
                 $kolStr = '[' . implode('],[', $kolonlar) . ']';
                 $phStr = ':' . implode(', :', $kolonlar);
-                $stmt = $dbh->prepare("INSERT INTO {$firma}CLCARD ({$kolStr}) VALUES ({$phStr})");
+                $deger = [];
                 foreach ($ref as $k => $v) {
-                    $stmt->bindValue(':' . $k, $v);
+                    $deger[':' . $k] = $v;
                 }
-                $stmt->execute();
-                $cariid = (int) $dbh->lastInsertId();
+                // Kimlik OUTPUT ile (CLCARD tetikleyicili olabilir; lastInsertId() yanlış kayıt döndürebilir).
+                $cariid = lumen_insert_kimlik($dbh, "INSERT INTO {$firma}CLCARD ({$kolStr}) VALUES ({$phStr})", $deger);
 
                 if (function_exists('logGenel')) {
                     @logGenel('cari_olustur', "Yeni cari: [{$yeniKod}] {$unvan}", $kullanici);

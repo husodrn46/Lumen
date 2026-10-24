@@ -27,22 +27,7 @@ if (function_exists('saldiri_modu_erisim_engelli_mi') && saldiri_modu_erisim_eng
 // Hata mesajlarını tutar
 $error_message = '';
 
-function normalize_login_username(string $username): string
-{
-    $username = trim($username);
-    $username = strtr($username, [
-        'ç' => 'c', 'Ç' => 'C',
-        'ğ' => 'g', 'Ğ' => 'G',
-        'ı' => 'i', 'I' => 'I',
-        'İ' => 'i', 'i' => 'i',
-        'ö' => 'o', 'Ö' => 'O',
-        'ş' => 's', 'Ş' => 'S',
-        'ü' => 'u', 'Ü' => 'U',
-    ]);
-    $username = preg_replace('/[^A-Za-z0-9_.-]/', '', $username) ?? '';
-
-    return strtoupper($username);
-}
+// normalize_login_username() ayr.php'dedir (web ve API girişinde aynı kural).
 
 // Oturum zorunluluğu veya yetki hatası ile yönlendirme durumunda mesaj göster
 if (isset($_GET['hata'])) {
@@ -50,6 +35,8 @@ if (isset($_GET['hata'])) {
         $error_message = 'Oturum gerekli: Lütfen giriş yapın.';
     } elseif ($_GET['hata'] === 'gecersiz_yetki') {
         $error_message = 'Geçersiz yetki: Erişim reddedildi.';
+    } elseif ($_GET['hata'] === 'entegrasyon') {
+        $error_message = 'Entegrasyon hesapları yalnız API ile kullanılır; web arayüzüne giriş yapamaz.';
     }
 }
 
@@ -67,31 +54,22 @@ if (!isset($_SESSION['plasiyer_id']) && (!function_exists('saldiri_modu_aktif_mi
     if ($personelId !== false) {
         // Personel bilgilerini al
         try {
-            $stmt = $dbh->prepare("
-                SELECT L.LOGICALREF, L.CODE, L.CYPHCODE, L.SPECODE
-                FROM LG_SLSMAN L
-                WHERE L.LOGICALREF = :personel_id AND L.ACTIVE = 0
-            ");
-            $stmt->execute([':personel_id' => $personelId]);
-            $personel = $stmt->fetch(PDO::FETCH_ASSOC);
+            $personel = lumen_personel_getir($dbh, (int) $personelId);
 
             if ($personel) {
                 // Oturum baslat
-                session_regenerate_id(true);
-                $_SESSION['plasiyer_id']    = $personel['LOGICALREF'];
-                $_SESSION['plasiyer_depo']  = $personel['SPECODE'];
-                $_SESSION['plasiyer_yetki'] = $personel['CYPHCODE'];
-                $_SESSION['kullanici_adi']  = $personel['CODE'];
-                $_SESSION['login_ts']       = time(); // force-logout referansi (oturum baslangici)
+                lumen_oturum_ac($personel);
+                // Doğrulayıcı her kullanımda yenilenir; kopyalanan eski çerez geçersizleşir.
+                remember_token_yenile($selector);
 
                 // Yetki cache'ini temizle
                 if (function_exists('m_p_yetki_cache_temizle')) {
-                    m_p_yetki_cache_temizle($personel['LOGICALREF']);
+                    m_p_yetki_cache_temizle((int) $personel['ID']);
                 }
 
                 // Basarili otomatik girisi logla
                 if (function_exists('logGiris')) {
-                    logGiris($personel['LOGICALREF'], $personel['CODE'], true, 'Token ile otomatik giriş');
+                    logGiris((int) $personel['ID'], (string) $personel['KOD'], true, 'Token ile otomatik giriş');
                 }
 
                 header('Location: index.php?giris=basarili');
@@ -181,6 +159,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kullaniciadi'])) {
         if ($kilitRow && (int) $kilitRow['sayi'] >= $hesap_kilit_esik) {
             $kalan_dk = max(1, (int) ceil(((int) $kilitRow['kalan_saniye']) / 60));
             $error_message = "Çok fazla hatalı giriş nedeniyle hesabınız geçici olarak kilitlendi. Lütfen {$kalan_dk} dakika sonra tekrar deneyin.";
+            require_once __DIR__ . '/includes/bildirim.php';
+            // Saat başına bir bildirim (anahtar): kilitliyken her deneme yeni bildirim üretmez.
+            lumen_bildirim_yoneticilere($dbh, 'guvenlik', 'Hesap geçici olarak kilitlendi: ' . $veri_kullanici,
+                'Çok fazla hatalı giriş denemesi (IP ' . getUserIP() . ').', 'loglar.php', 'kilit-' . md5($veri_kullanici) . '-' . date('YmdH'));
             goto render_form;
         }
     } catch (Exception $e) {
@@ -189,27 +171,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kullaniciadi'])) {
     }
 
     // Kullaniciyi bul (sifre kontrolu PHP tarafinda yapilacak)
-    $sorgu_str = "SELECT L.LOGICALREF, L.CYPHCODE, L.SPECODE, M.SIFRE
-                  FROM LG_SLSMAN L
-                  LEFT JOIN M_P_YETKI M ON L.LOGICALREF = M.PERSONEL
-                  WHERE L.FIRMNR = :firmano
-                    AND L.CODE   = :kullanici
-                    AND L.ACTIVE = 0";
-    $stmt = $dbh->prepare($sorgu_str);
-    $stmt->bindParam(':firmano', $firmano, PDO::PARAM_INT);
-    $stmt->bindParam(':kullanici', $veri_kullanici);
-    $stmt->execute();
-
-    $sorgu2 = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Kullanıcı: LOGO modunda LG_SLSMAN, bağımsız modda LM_PERSONEL (includes/veri/veri.php)
+    $sorgu2 = lumen_personel_giris_bilgisi($dbh, (string) $veri_kullanici);
+    if ($sorgu2) {
+        $sorgu2['LOGICALREF'] = (int) $sorgu2['ID'];   // aşağıdaki mevcut kullanımlar için
+    }
 
     // Sifre dogrulama (hash veya duz metin destekli)
     if ($sorgu2 && isset($sorgu2['SIFRE']) && sifre_dogrula($veri_parola, $sorgu2['SIFRE'])) {
-        session_regenerate_id(true);
-        $_SESSION['plasiyer_id']   = $sorgu2['LOGICALREF'];
-        $_SESSION['plasiyer_depo'] = $sorgu2['SPECODE'];
-        $_SESSION['plasiyer_yetki']= $sorgu2['CYPHCODE'];
+        lumen_oturum_ac($sorgu2);
         $_SESSION['kullanici_adi'] = $veri_kullanici;
-        $_SESSION['login_ts']      = time(); // force-logout referansi (oturum baslangici)
 
         // Yetki cache'ini temizle (güncel yetkileri almak için)
         if (function_exists('m_p_yetki_cache_temizle')) {
@@ -232,18 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['kullaniciadi'])) {
             $tokenData = remember_token_olustur((int)$sorgu2['LOGICALREF'], 30);
             if ($tokenData) {
                 $cookie_duration = time() + (86400 * 30); // 30 gun
-                setcookie('remember_selector', $tokenData['selector'], [
-                    'expires' => $cookie_duration,
-                    'path' => '/',
-                    'httponly' => true,
-                    'samesite' => 'Strict'
-                ]);
-                setcookie('remember_token', $tokenData['token'], [
-                    'expires' => $cookie_duration,
-                    'path' => '/',
-                    'httponly' => true,
-                    'samesite' => 'Strict'
-                ]);
+                lumen_hatirla_cerezi_yaz($tokenData['selector'], $tokenData['token'], $cookie_duration);
             }
             // Kullanici adini da sakla (form icin)
             setcookie('giriskontroladi', (string) $veri_kullanici, ['expires' => $cookie_duration, 'path' => '/', 'httponly' => true, 'samesite' => 'Strict']);
@@ -288,9 +248,10 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="googlebot" content="noindex, nofollow">
-    <title>Lumen - Giris</title>
+    <title>Lumen - Giriş</title>
     <?php include_once(__DIR__ . '/pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
             --font-sans: "Segoe UI", Roboto, Arial, sans-serif;
@@ -623,8 +584,8 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
             <div class="logo-area">
                 <span class="lock-box"><i class="fa-solid fa-lock"></i></span>
                 <img src="logo.png" alt="Lumen" onerror="this.style.display='none'">
-                <h1>Lumen Siparis Sistemi</h1>
-                <div class="subtitle">Guvenli Giris</div>
+                <h1>Lumen Sipariş Sistemi</h1>
+                <div class="subtitle">Güvenli Giriş</div>
             </div>
 
             <!-- Hata mesaji -->
@@ -638,7 +599,7 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
             <!-- Giris formu -->
             <form method="POST" action="">
                 <div class="field">
-                    <label for="kullaniciadi" class="field-label">Kullanici Adi</label>
+                    <label for="kullaniciadi" class="field-label">Kullanıcı Adı</label>
                     <div class="input-wrap">
                         <i class="fa-solid fa-user input-icon"></i>
                         <input type="text"
@@ -646,26 +607,26 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
                                name="kullaniciadi"
                                value="<?php echo htmlspecialchars((string) $ck_kullanici, ENT_QUOTES, 'UTF-8'); ?>"
                                required
-                               placeholder="Kullanici adiniz"
+                               placeholder="Kullanıcı adınız"
                                autocomplete="username"
                                autocapitalize="characters"
                                spellcheck="false"
-                               pattern="[A-Z0-9_.-]*"
+                               pattern="[A-Z0-9_.\-]*"
                                autofocus>
                     </div>
                 </div>
 
                 <div class="field">
-                    <label for="kullanicisifre" class="field-label">Sifre</label>
+                    <label for="kullanicisifre" class="field-label">Şifre</label>
                     <div class="input-wrap">
                         <i class="fa-solid fa-lock input-icon"></i>
                         <input type="password"
                                id="kullanicisifre"
                                name="kullanicisifre"
                                required
-                               placeholder="Sifreniz"
+                               placeholder="Şifreniz"
                                autocomplete="current-password">
-                        <button type="button" id="togglePassword" class="toggle-pw" aria-label="Sifreyi goster/gizle">
+                        <button type="button" id="togglePassword" class="toggle-pw" aria-label="Şifreyi göster/gizle">
                             <i class="fa-solid fa-eye" id="eyeIcon"></i>
                         </button>
                     </div>
@@ -673,11 +634,11 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
 
                 <div class="remember-row">
                     <input type="checkbox" id="hatirla" name="hatirla" <?php echo $hatirlakontrol; ?>>
-                    <label for="hatirla">Beni Hatirla (30 gun)</label>
+                    <label for="hatirla">Beni Hatırla (30 gün)</label>
                 </div>
 
                 <button type="submit" class="btn-giris">
-                    <span>Giris Yap</span>
+                    <span>Giriş Yap</span>
                     <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </form>
@@ -685,7 +646,7 @@ $ck_kullanici   = normalize_login_username((string) ($_COOKIE['giriskontroladi']
         </div>
 
         <div class="login-footer">
-            &copy; <?php echo date('Y'); ?> Lumen &middot; Tum haklari saklidir
+            &copy; <?php echo date('Y'); ?> Lumen &middot; Tüm hakları saklıdır
         </div>
     </div>
 

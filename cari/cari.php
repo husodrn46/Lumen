@@ -43,37 +43,37 @@ if (!function_exists('paraformat')) {
 $rows = [];
 // Session bazli parametre sistemi
 $raw = getPageParamString('cari');
-$cari = turkce($raw);
+$cari = lumen_arama_terimi($raw);
 $hasSearch = ($cari !== '');
 $limit = isset($carilistesayisi) ? max(1, (int) $carilistesayisi) : 100;
 
 // Yetkiler satir bazli degil, sayfa bazli hesaplanir
 $cr1Yetkisi = (m_p_yetki($terminalkullanici, 'CR1') == 1);
 
+// Ortak tablolar (includes/veri/veri.php): LOGO'da CLCARD/GNTOTCL, bağımsızda LM_CARI/LMV_CARI_BAKIYE.
 $bakiyeSecim = "CAST(0 AS DECIMAL(18,2)) AS BAKIYE";
 $joinSql = "";
 if ($cr1Yetkisi) {
-    $bakiyeSecim = "(ISNULL(G.DEBIT, 0) - ISNULL(G.CREDIT, 0)) AS BAKIYE";
-    $joinSql = "LEFT JOIN {$firmadonemx}GNTOTCL G WITH(NOLOCK)
-        ON G.CARDREF = C.LOGICALREF AND G.TOTTYP = 1";
+    $bakiyeSecim = "ISNULL(G.BAKIYE, 0) AS BAKIYE";
+    $joinSql = "LEFT JOIN " . lumen_tablo('cari_bakiye') . " G ON G.CARI_ID = C.ID";
 }
 
 $sql = "
   SELECT TOP {$limit}
-    C.LOGICALREF  AS CARIID,
-    C.CITY        AS SEHIR,
-    C.DISTRICT    AS AMBAR,
-    C.CODE        AS KODU,
-    C.TELNRS1,
-    C.EMAILADDR,
-    C.DEFINITION_ AS UNVANI,
+    C.ID          AS CARIID,
+    C.IL          AS SEHIR,
+    C.SEMT        AS AMBAR,
+    C.KOD         AS KODU,
+    C.TELEFON     AS TELNRS1,
+    C.EPOSTA      AS EMAILADDR,
+    C.UNVAN       AS UNVANI,
     {$bakiyeSecim}
-  FROM {$firma}CLCARD C WITH(NOLOCK)
+  FROM " . lumen_tablo('cari') . " C
   {$joinSql}
-  WHERE C.ACTIVE = 0
+  WHERE C.AKTIF = 1
 ";
 $params = [];
-$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.LOGICALREF', 'cari_liste_gizli');
+$ozelCariFiltresi = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.ID', 'cari_liste_gizli');
 if ($ozelCariFiltresi['sql'] !== '') {
     $sql .= "\n  AND " . $ozelCariFiltresi['sql'];
     $params = array_merge($params, $ozelCariFiltresi['params']);
@@ -83,21 +83,15 @@ if ($hasSearch) {
     $like = "%{$cari}%";
     $sql .= "
     AND (
-         REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-           C.DEFINITION_, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-           COLLATE Turkish_CI_AS LIKE :p1
-      OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-           C.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-           COLLATE Turkish_CI_AS LIKE :p2
-      OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-           C.CITY, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')
-           COLLATE Turkish_CI_AS LIKE :p3
+         " . lumen_arama_sql('C.UNVAN') . " LIKE :p1
+      OR " . lumen_arama_sql('C.KOD') . " LIKE :p2
+      OR " . lumen_arama_sql('C.IL') . " LIKE :p3
     )";
     $params = array_merge($params, [':p1' => $like, ':p2' => $like, ':p3' => $like]);
 }
 
 $sql .= "
-  ORDER BY C.DEFINITION_ ASC
+  ORDER BY C.UNVAN ASC
 ";
 
 if ($hasSearch) {
@@ -122,22 +116,23 @@ if ($hasSearch) {
 $enCokCariler = [];
 if (!$hasSearch) {
     try {
+        // Fatura sayısı: LOGO'da INVOICE (TRCODE 7 satış, 8 iade), bağımsızda LM_BELGE (TUR 3 fatura, 4 iade).
+        $faturaSql = lumen_bagimsiz_mi()
+            ? "SELECT CARI_ID, ID FROM dbo.LM_BELGE WHERE TUR IN (3, 4) AND DURUM = 1"
+            : "SELECT CLIENTREF AS CARI_ID, LOGICALREF AS ID FROM {$firmadonem}INVOICE WITH(NOLOCK) WHERE CANCELLED = 0 AND TRCODE IN (7, 8)";
         $stmtTopCari = $dbh->query("
             SELECT TOP 5
-                C.LOGICALREF       AS CARIID,
-                C.CODE             AS KODU,
-                C.DEFINITION_      AS UNVANI,
-                C.CITY             AS SEHIR,
-                COUNT(I.LOGICALREF) AS ISLEM_ADEDI
-            FROM {$firma}CLCARD C WITH(NOLOCK)
-            INNER JOIN {$firmadonem}INVOICE I WITH(NOLOCK)
-                ON I.CLIENTREF = C.LOGICALREF
-            WHERE C.ACTIVE = 0
-              AND C.LOGICALREF <> 2          -- mağaza/perakende satışı hariç
-              AND I.CANCELLED = 0
-              AND I.TRCODE IN (7, 8)         -- 7=satış faturası, 8=iade
-            GROUP BY C.LOGICALREF, C.CODE, C.DEFINITION_, C.CITY
-            ORDER BY COUNT(I.LOGICALREF) DESC
+                C.ID               AS CARIID,
+                C.KOD              AS KODU,
+                C.UNVAN            AS UNVANI,
+                C.IL               AS SEHIR,
+                COUNT(I.ID)        AS ISLEM_ADEDI
+            FROM " . lumen_tablo('cari') . " C
+            INNER JOIN ({$faturaSql}) I ON I.CARI_ID = C.ID
+            WHERE C.AKTIF = 1
+              AND C.ID <> 2                  -- mağaza/perakende satışı hariç
+            GROUP BY C.ID, C.KOD, C.UNVAN, C.IL
+            ORDER BY COUNT(I.ID) DESC
         ");
         $enCokCariler = $stmtTopCari->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) {
@@ -151,70 +146,18 @@ if (!$hasSearch) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Musteri Listesi</title>
+    <title>Müşteri Listesi</title>
     <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
-        :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
-        }
         * { box-sizing: border-box; margin: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
         }
-
-        /* ═══════ HEADER ═══════ */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            height: 64px;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-            box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-        }
-        .header-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 10px;
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-        }
-        .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-        .header-divider { width: 1px; height: 24px; background: var(--border); }
-        .header-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-1);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .header-title i { color: var(--red,#ef4444); font-size: 16px; }
 
         /* ═══════ SEARCH PANEL ═══════ */
         .search-panel {
@@ -250,7 +193,7 @@ if (!$hasSearch) {
         .search-input {
             width: 100%;
             padding: 12px 14px 12px 40px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             color: var(--text-1);
             background: #fff;
@@ -273,7 +216,7 @@ if (!$hasSearch) {
             color: #fff;
             border: none;
             border-radius: 10px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -485,11 +428,6 @@ if (!$hasSearch) {
 
         /* ═══════ MOBILE ═══════ */
         @media (max-width: 767px) {
-            .top-header { height: 50px; }
-            .header-inner { padding: 0 12px; gap: 10px; }
-            .header-title { font-size: 15px; }
-            .header-back { width: 40px; height: 40px; border-radius: 8px; }
-            .header-divider { height: 18px; }
 
             main { padding: 14px 12px 40px !important; }
 
@@ -556,7 +494,7 @@ if (!$hasSearch) {
             </a>
             <div class="header-divider"></div>
             <span class="header-title">
-                <i class="fa-solid fa-users"></i>Musteri Listesi
+                <i class="fa-solid fa-users"></i>Müşteri Listesi
             </span>
             <?php if (m_p_yetki($terminalkullanici, 'M12') == 1): ?>
             <a href="cariyeni.php" title="Yeni Cari Ekle"
@@ -590,7 +528,7 @@ if (!$hasSearch) {
         <div class="topcari-panel">
             <div class="topcari-head">
                 <i class="fa-solid fa-crown"></i>
-                <span>En Cok Islem Goren Musteriler</span>
+                <span>En Çok İşlem Gören Müşteriler</span>
             </div>
             <div class="topcari-list">
                 <?php foreach ($enCokCariler as $tcIx => $tc): ?>
@@ -621,7 +559,7 @@ if (!$hasSearch) {
                         <div class="desc">Arama kriterlerinize uyan bir kayit bulunamadi.</div>
                     <?php else: ?>
                         <div class="big-icon" style="background:#f3f4f6;color:#9ca3af;"><i class="fa-solid fa-magnifying-glass"></i></div>
-                        <div class="title">Arama Yapiniz</div>
+                        <div class="title">Arama Yapınız</div>
                         <div class="desc">Musterileri listelemek icin yukaridaki alana bir arama terimi girin.</div>
                     <?php endif; ?>
                 </div>
@@ -705,6 +643,11 @@ if (!$hasSearch) {
                             <a href="<?php echo htmlspecialchars($cariOrderUrl, ENT_QUOTES, 'UTF-8'); ?>?cariid=<?php echo (int) $rowx['CARIID']; ?>&stokhareket=0" class="btn-order">
                                 <i class="fa-solid fa-pen-to-square"></i> Siparis Yaz
                             </a>
+                            <?php if (lumen_modul_hazir_mi('kart')): ?>
+                            <a href="../kart/cari.php?id=<?php echo (int) $rowx['CARIID']; ?>" class="btn-order" title="Cari kartı">
+                                <i class="fa-solid fa-address-card"></i> Kart
+                            </a>
+                            <?php endif; ?>
                         </div>
                     </article>
                 <?php endforeach; ?>

@@ -11,6 +11,16 @@ if ($stokhareket <= 0) {
     exit;
 }
 
+// YETKI: siparis tarihini degistirmek yazma islemidir (fisekle.php kapisi: admin / M1 / M3)
+// + siparisin carisi kullaniciya gorunur olmali.
+if (
+    !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+    || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)
+) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 if (isset($_POST['yeni_tarih'])) {
     // CSRF koruması (POST istekleri için)
     if (!csrf_verify()) {
@@ -18,13 +28,39 @@ if (isset($_POST['yeni_tarih'])) {
         die('Geçersiz güvenlik doğrulaması.');
     }
 
-    $yeni_tarih = $_POST['yeni_tarih'];
+    $yeni_tarih = trim((string) $_POST['yeni_tarih']);
 
-    // Stok hareketinin tarihini güncelle
-    $stmt = $dbh->prepare("UPDATE {$firmadonem}ORFICHE SET DATE_ = :tarih WHERE LOGICALREF = :stokhareket");
-    $gncl = $stmt->execute([':tarih' => $yeni_tarih, ':stokhareket' => $stokhareket]);
+    // Tarih dogrulama: yalniz gecerli Y-m-d kabul edilir
+    $tarihObj = DateTime::createFromFormat('!Y-m-d', $yeni_tarih);
+    $tarihParca = explode('-', $yeni_tarih);
+    $tarihGecerli = $tarihObj !== false
+        && $tarihObj->format('Y-m-d') === $yeni_tarih
+        && count($tarihParca) === 3
+        && checkdate((int) $tarihParca[1], (int) $tarihParca[2], (int) $tarihParca[0]);
 
-    if ($gncl) {
+    // Stok hareketinin tarihini güncelle: fiş başlığı (ORFICHE) ve satırlar (ORFLINE) tek transaction'da
+    $gncl = false;
+    if ($tarihGecerli) {
+        $sqlTarih = $tarihObj->format('Ymd'); // SQL Server'da dil/DATEFORMAT'tan bagimsiz ISO bicim
+        try {
+            $dbh->beginTransaction();
+            $stmt = $dbh->prepare("UPDATE {$firmadonem}ORFICHE SET DATE_ = :tarih WHERE LOGICALREF = :stokhareket");
+            $stmt->execute([':tarih' => $sqlTarih, ':stokhareket' => $stokhareket]);
+            $stmtSatir = $dbh->prepare("UPDATE {$firmadonem}ORFLINE SET DATE_ = :tarih WHERE ORDFICHEREF = :stokhareket");
+            $stmtSatir->execute([':tarih' => $sqlTarih, ':stokhareket' => $stokhareket]);
+            $dbh->commit();
+            $gncl = true;
+        } catch (Throwable $e) {
+            if ($dbh->inTransaction()) {
+                $dbh->rollBack();
+            }
+            error_log('stok_hareket_tarih_degistir.php tarih guncelleme hatasi: ' . $e->getMessage());
+        }
+    }
+
+    if (!$tarihGecerli) {
+        echo "<script>if (window.toast) { toast('Geçersiz tarih!', 'error'); } else { alert('Geçersiz tarih!'); }</script>";
+    } elseif ($gncl) {
         echo "<script>if (window.toast) { toast('Stok hareketinin tarihi güncellendi!', 'success'); } else { alert('Stok hareketinin tarihi güncellendi!'); } window.location='../index.php';</script>";
     } else {
         echo "<script>if (window.toast) { toast('Hata oluştu!', 'error'); } else { alert('Hata oluştu!'); }</script>";
@@ -42,48 +78,21 @@ if (isset($_POST['yeni_tarih'])) {
     <link rel="icon" type="image/png" href="icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --sky: #0284c7;
             --sky-soft: #eff6ff;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background:
                 radial-gradient(1200px 600px at 8% -10%, rgba(56, 189, 248, .14), transparent 60%),
                 radial-gradient(900px 500px at 92% 110%, rgba(99, 102, 241, .08), transparent 55%),
                 var(--bg);
             color: var(--text-1);
             min-height: 100vh;
-        }
-
-        /* TOP HEADER */
-        .top-header {
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-            padding: 12px 18px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
         }
         .top-header .back-btn {
             width: 38px;
@@ -148,14 +157,13 @@ if (isset($_POST['yeni_tarih'])) {
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.94);
+            background: var(--card);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             border: 1px solid rgba(56, 189, 248, 0.22);
             border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+            box-shadow: var(--golge-1);
             padding: 36px 28px 30px;
-            animation: cardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
 
         /* HERO */
@@ -219,7 +227,7 @@ if (isset($_POST['yeni_tarih'])) {
             padding: 13px 14px 13px 42px;
             border: 1px solid var(--border);
             border-radius: 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 500;
             color: var(--text-1);
@@ -240,7 +248,7 @@ if (isset($_POST['yeni_tarih'])) {
             padding: 14px 22px;
             border: none;
             border-radius: 12px;
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             font-size: 14px;
             font-weight: 700;
             color: #fff;
@@ -278,7 +286,6 @@ if (isset($_POST['yeni_tarih'])) {
 
         /* RESPONSIVE */
         @media (max-width: 480px) {
-            .top-header { padding: 10px 14px; }
             .top-header .header-title { font-size: 13.5px; }
             .main-wrap { padding: 22px 14px 32px; }
             .glass-card { padding: 28px 20px 24px; border-radius: 16px; }
@@ -310,7 +317,7 @@ if (isset($_POST['yeni_tarih'])) {
         <span class="divider"></span>
         <div class="header-title">
             <span class="title-icon"><i class="fa-solid fa-calendar-day"></i></span>
-            <span>Tarih Degistir</span>
+            <span>Tarih Değiştir</span>
         </div>
     </header>
 
@@ -319,8 +326,8 @@ if (isset($_POST['yeni_tarih'])) {
 
             <div class="hero">
                 <span class="icon-box"><i class="fa-solid fa-calendar-day"></i></span>
-                <h1>Tarih Degistir</h1>
-                <div class="subtitle">Stok hareket tarihini guncelleyin</div>
+                <h1>Tarih Değiştir</h1>
+                <div class="subtitle">Stok hareket tarihini güncelleyin</div>
             </div>
 
             <form method="POST" action="">

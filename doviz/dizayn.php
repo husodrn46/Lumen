@@ -42,6 +42,12 @@ if (!$siparis) {
     die('<script>alert("Sipariş bulunamadı!"); window.location="siparisler.php";</script>');
 }
 
+// Yetki: yalnızca bu siparişi görebilen kullanıcı (kısıtlı cari filtresi)
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+    header('Location: ' . APP_ROOT_URL . '/403.html');
+    exit;
+}
+
 // Döviz kontrolü
 $trcurr = (int)$siparis['TRCURR'];
 $trrate = (float)$siparis['TRRATE'];
@@ -59,28 +65,37 @@ $doviz = $dovizBilgileri[$trcurr] ?? ['kod' => 'DV', 'sembol' => '?'];
 
 // Form gönderildi mi kontrol et
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF koruması (açıklama güncellemesi ve yazdırma kuyruğu yazma işlemidir)
+    if (!csrf_verify()) {
+        http_response_code(403);
+        die('Gecersiz guvenlik dogrulamasi. Sayfayi yenileyip tekrar deneyin.');
+    }
     $miktar = isset($_POST['miktar']) ? intval($_POST['miktar']) : 1;
     $yazici = $_POST['yazici'] ?? '';
     $dizayn = $_POST['dizayn'] ?? '';
     $lokasyon = isset($_POST['lokasyon']) ? intval($_POST['lokasyon']) : 1;
-    $aciklama = $_POST['aciklama'] ?? '';
-    $aciklama2 = $_POST['aciklama2'] ?? '';
+    // GENEXP1/2 sütunları 250 karakter
+    $aciklama = mb_substr(trim((string)($_POST['aciklama'] ?? '')), 0, 250, 'UTF-8');
+    $aciklama2 = mb_substr(trim((string)($_POST['aciklama2'] ?? '')), 0, 250, 'UTF-8');
 
     $islem_basarili = false;
     $hata_mesaji = '';
 
     try {
-        // Açıklamaları güncelle
-        $stmt_update = $dbh->prepare("
-            UPDATE {$firmadonem}ORFICHE
-            SET GENEXP1 = :aciklama, GENEXP2 = :aciklama2
-            WHERE LOGICALREF = :stokhareket
-        ");
-        $stmt_update->execute([
-            ':aciklama' => $aciklama,
-            ':aciklama2' => $aciklama2,
-            ':stokhareket' => $stokhareket,
-        ]);
+        // Açıklamaları güncelle — yalnız sipariş düzenleme yetkisiyle (lg_siparis.php ile aynı);
+        // yetkisiz kullanıcıda yazma atlanır, yazdırma akışı devam eder.
+        if (m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)) {
+            $stmt_update = $dbh->prepare("
+                UPDATE {$firmadonem}ORFICHE
+                SET GENEXP1 = :aciklama, GENEXP2 = :aciklama2
+                WHERE LOGICALREF = :stokhareket
+            ");
+            $stmt_update->execute([
+                ':aciklama' => $aciklama,
+                ':aciklama2' => $aciklama2,
+                ':stokhareket' => $stokhareket,
+            ]);
+        }
 
         // M_MOBIL_DIZAYN tablosunun var olup olmadığını kontrol et
         $tableCheck = $dbh->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'M_MOBIL_DIZAYN'");
@@ -205,8 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
     } catch (PDOException $e) {
-        $hata_mesaji = "Veritabanı hatası: " . $e->getMessage();
-        logError($hata_mesaji);
+        $hata_mesaji = app_public_error_message($e, 'doviz/dizayn.kuyruk', 'Yazdırma kuyruğuna eklenemedi.');
     }
 
     // Hata varsa session'a kaydet
@@ -302,21 +316,9 @@ $print_actions = [
     <link rel="icon" type="image/png" href="../icon.png">
     <?php if (file_exists(__DIR__ . '/../pwa-header.php')) { include_once(__DIR__ . '/../pwa-header.php'); } ?>
     <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
     <style>
         :root {
-            --bg: #f9fafb;
-            --text-1: #1f2937;
-            --text-2: #6b7280;
-            --text-3: #9ca3af;
-            --border: #e5e7eb;
-            --red: #6F1022;
-            --red-soft: #fef2f2;
-            --emerald: #059669;
-            --emerald-soft: #ecfdf5;
             --green: #16a34a;
             --green-soft: #f0fdf4;
             --indigo: #4f46e5;
@@ -326,8 +328,6 @@ $print_actions = [
             --purple: #7c3aed;
             --purple-soft: #f5f3ff;
             --purple-strong: #6d28d9;
-            --amber: #d97706;
-            --amber-soft: #fffbeb;
             --slate: #475569;
             --slate-soft: #f1f5f9;
         }
@@ -335,55 +335,14 @@ $print_actions = [
         * { box-sizing: border-box; margin: 0; }
 
         body {
-            font-family: 'Avenir Next', 'Montserrat', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-1);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ═══════ PURPLE STICKY HEADER ═══════ */
-        .top-header {
-            position: sticky; top: 0; z-index: 40;
-            height: 64px;
-            background: rgba(255, 255, 255, 0.88);
-            backdrop-filter: saturate(180%) blur(12px);
-            -webkit-backdrop-filter: saturate(180%) blur(12px);
-            border-bottom: 1px solid rgba(124, 58, 237, 0.18);
-            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.05);
-        }
-        .header-inner {
-            max-width: 980px; margin: 0 auto;
-            height: 100%; display: flex; align-items: center; gap: 14px;
-            padding: 0 24px;
-        }
-        .header-back {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 40px; height: 40px; border-radius: 12px;
-            background: #fff; border: 1px solid var(--border);
-            color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .header-back:hover {
-            border-color: var(--purple);
-            color: var(--purple);
-            background: var(--purple-soft);
-            transform: translateX(-2px);
-        }
-        .header-icon {
-            width: 42px; height: 42px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #f5f3ff, #ede9fe);
-            color: var(--purple);
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 18px;
-            flex-shrink: 0;
-        }
         .header-titles { flex: 1; min-width: 0; }
-        .header-title {
-            font-size: 17px; font-weight: 700; color: var(--text-1);
-            letter-spacing: -0.01em; line-height: 1.2;
-        }
         .header-subtitle {
             font-size: 12px; color: var(--text-2); margin-top: 2px;
             display: inline-flex; align-items: center; gap: 6px;
@@ -480,16 +439,14 @@ $print_actions = [
 
         /* ═══════ GLASS CARD ═══════ */
         .glass-card {
-            background: rgba(255, 255, 255, 0.88);
+            background: var(--card);
             backdrop-filter: saturate(180%) blur(10px);
             -webkit-backdrop-filter: saturate(180%) blur(10px);
             border: 1px solid var(--border);
             border-radius: 18px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-            animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-            will-change: transform, opacity;
+            box-shadow: var(--golge-1);
         }
         .section-title {
             font-size: 11px; font-weight: 600; color: var(--text-3);
@@ -621,11 +578,7 @@ $print_actions = [
 
         /* ═══════ MOBILE ═══════ */
         @media (max-width: 767px) {
-            .top-header { height: 56px; }
-            .header-inner { padding: 0 14px; gap: 10px; }
-            .header-back { width: 36px; height: 36px; border-radius: 10px; }
-            .header-icon { width: 38px; height: 38px; font-size: 16px; border-radius: 11px; }
-            .header-title { font-size: 15px; }
+
             .header-subtitle { font-size: 11px; }
             .header-badge { padding: 7px 10px; font-size: 12px; }
 

@@ -42,36 +42,13 @@ $lokasyon    = isset($_GET['lokasyon'])    ? (int)$_GET['lokasyon']          : 1
 $miktar      = isset($_GET['miktar'])      ? max(1, (int)$_GET['miktar'])    : 1;
 $back_raw    = isset($_GET['back'])        ? trim((string)$_GET['back'])     : '';
 
-// Open redirect koruması: Sadece yerel URL'lere izin ver
+// Open redirect koruması: yalnız bu sitedeki .php yolları. Eski kontrol '/\\evil.com'
+// gibi değerleri (tarayıcılar '//evil.com' sayar) göreli adres diye kabul ediyordu.
 $back = '';
-if ($back_raw !== '') {
-    // URL parse et
-    $parsed = parse_url($back_raw);
-
-    // Host içeriyorsa (tam URL) reddet
-    if (isset($parsed['host'])) {
-        // Aynı domain olup olmadığını kontrol et
-        $current_host = $_SERVER['HTTP_HOST'] ?? '';
-        if ($parsed['host'] !== $current_host) {
-            // Farklı domain - open redirect saldırısı, yoksay
-            $back = '';
-            error_log("Open redirect attempt blocked: " . $back_raw);
-        } else {
-            // Aynı domain, path'i al
-            $back = $parsed['path'] ?? '';
-            if (isset($parsed['query'])) {
-                $back .= '?' . $parsed['query'];
-            }
-        }
-    } else {
-        // Göreceli URL (/ ile başlamalı veya protokol içermemeli)
-        if (str_starts_with($back_raw, '/') || !preg_match('/^[a-z]+:/i', $back_raw)) {
-            // javascript:, data: vb. protokolleri engelle
-            if (!preg_match('/^(javascript|data|vbscript):/i', $back_raw)) {
-                $back = $back_raw;
-            }
-        }
-    }
+if ($back_raw !== ''
+    && preg_match('#^/?[A-Za-z0-9_\-/.]+\.php(\?[A-Za-z0-9_\-=&%.]*)?$#', $back_raw) === 1
+    && !str_contains($back_raw, '//') && !str_contains($back_raw, '..')) {
+    $back = $back_raw;
 }
 $ajax        = isset($_GET['ajax'])        ? (int)$_GET['ajax']              : 0;
 
@@ -112,6 +89,20 @@ if ($stokhareket <= 0) {
         exit;
     }
     die('Geçersiz stokhareket/fisno');
+}
+
+// Yazdırma/e-posta kuyruğa yazan bir işlemdir: bağlantı CSRF belirteci taşımalı
+// (t=) ve fiş kullanıcıya görünür olmalı. Eskiden <img src=...&tip=4> ile başka
+// bir sayfadan müşteriye sipariş e-postası tetiklenebiliyordu.
+if (!csrf_verify(isset($_GET['t']) && is_string($_GET['t']) ? $_GET['t'] : null)
+    || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+    http_response_code(403);
+    if ($ajax !== 0) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'error' => 'Yetkisiz veya süresi dolmuş istek; sayfayı yenileyin.']);
+        exit;
+    }
+    die('Yetkisiz veya süresi dolmuş istek; sayfayı yenileyin.');
 }
 
 // Tip -> dizayn klasörü (Windows uyumlu yol)
@@ -272,11 +263,12 @@ try {
     exit;
 
 } catch (Exception $e) {
-    logErrorQuick("Kuyruk ekleme hatası: " . $e->getMessage());
+    $mesaj = app_public_error_message($e, 'yazdir/hizli_yazdir', 'Yazdırma kuyruğuna eklenemedi.');
     if ($ajax !== 0) {
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => false, 'error' => 'DB insert failed']);
+        echo json_encode(['ok' => false, 'error' => 'queue_failed', 'message' => $mesaj], JSON_UNESCAPED_UNICODE);
         exit;
     }
-    die('Yazdırma kuyruğuna eklenemedi: ' . $e->getMessage());
+    lumen_hata_sayfasi('Yazdırma hatası', $mesaj, 500);
+    exit;
 }

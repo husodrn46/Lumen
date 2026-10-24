@@ -1,0 +1,47 @@
+name: Security
+
+on:
+  push:
+    branches: [main, beta]
+  pull_request:
+    branches: [main, beta]
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  image-scan:
+    name: Nginx imaj güvenliği
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sabitlenmiş nginx imajını tara
+        run: |
+          hedef='nginx@sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417'
+          docker pull "$hedef"
+          if docker run --rm \
+            --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+            aquasec/trivy@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c \
+            image --db-repository ghcr.io/aquasecurity/trivy-db:2 \
+            --image-src docker --exit-code 1 --ignore-unfixed \
+            --severity HIGH,CRITICAL --scanners vuln "$hedef" 2>&1 | tee trivy.log; then
+            exit 0
+          fi
+          ozet="$(tail -n 20 trivy.log | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')"
+          echo "::error title=Trivy taraması başarısız::${ozet}"
+          exit 1
+
+  secret-scan:
+    name: Sır taraması
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Git geçmişini Gitleaks ile tara
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

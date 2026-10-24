@@ -36,6 +36,10 @@ for ($i = 1; $i <= 12; $i++) {
 
 $urunKosulu = urun_kodu_kosulu('ITM');
 
+// Dönem seçimi (rapor sayfasıyla aynı eşleme): geçmiş yıl → önceki dönem tablosu
+// VARSAYIM: güncel dönem içinde bulunulan takvim yılıdır; geçmiş yıllar önceki dönem tablosunda
+$donemTablo = ($year < (int) date('Y') && !empty($eskifirmadonem)) ? $eskifirmadonem : $firmadonem;
+
 $sql = "
     SELECT
         MONTH(SL.DATE_)                                        AS M,
@@ -43,7 +47,7 @@ $sql = "
         SUM(CASE WHEN SL.TRCODE IN (7,8)
                  THEN ISNULL(SL.LINENET, (SL.PRICE * SL.AMOUNT - SL.DISTDISC)) + ISNULL(SL.VATAMNT, 0)
                  ELSE -(ISNULL(SL.LINENET, (SL.PRICE * SL.AMOUNT - SL.DISTDISC)) + ISNULL(SL.VATAMNT, 0)) END) AS NET
-    FROM {$firmadonem}STLINE SL WITH(NOLOCK)
+    FROM {$donemTablo}STLINE SL WITH(NOLOCK)
     JOIN {$firma}ITEMS ITM ON SL.STOCKREF = ITM.LOGICALREF
     WHERE {$urunKosulu}
       AND SL.TRCODE IN (2,3,7,8)
@@ -91,6 +95,10 @@ $decimals = (int) ($GLOBALS['parakusurat'] ?? 2);
 $fmtMoney = '#,##0' . ($decimals > 0 ? '.' . str_repeat('0', $decimals) : '') . '" ₺"';
 
 // Excel
+// Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
+require_once __DIR__ . '/../includes/xlsx_guvenli.php';
+lumen_xlsx_guvenli_baglayici();
+lumen_bellek_en_az(256);   // çok satırlı listede tablo kütüphanesi 128 MB'ı aşabiliyor
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator('Lumen')

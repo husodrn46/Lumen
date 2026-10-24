@@ -39,6 +39,10 @@ if (!csrf_verify($_POST['csrf_token'] ?? null)) {
 }
 
 $hedefCari = (int) ($_POST['hedef_cari'] ?? 0);
+// Özel cari kısıtı: kullanıcının göremediği cariye çek işlemi yapılamaz.
+if ($hedefCari > 0 && !m_p_cariid_goruntulebilir_mi($dbh, $firma, (int) $terminalkullanici, $hedefCari)) {
+    cek_ciro_json(['ok' => false, 'mesaj' => 'Cari bulunamadı.'], 404);
+}
 $aciklama  = trim((string) ($_POST['aciklama'] ?? ''));
 
 $cekRefleri = [];
@@ -51,7 +55,7 @@ if ($ham !== '') {
 if ($hedefCari <= 0) { cek_ciro_json(['ok' => false, 'mesaj' => 'Hedef cari (tedarikçi) seçilmedi.'], 400); }
 if (!$cekRefleri)    { cek_ciro_json(['ok' => false, 'mesaj' => 'Ciro edilecek çek seçilmedi.'], 422); }
 
-$requestId = (string) guid();
+$requestId = cek_istek_id($_POST['istek_id'] ?? null);
 $res = cek_ciro_core($dbh, $firma, $firmadonem, $hedefCari, $cekRefleri, $aciklama, (int) $terminalkullanici, $requestId, [
     'ip' => function_exists('getUserIP') ? (string) getUserIP() : (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
 ]);

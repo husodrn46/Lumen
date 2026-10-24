@@ -40,6 +40,36 @@ function hesaplaIskontoluSatir(float $brutToplam, float $miktar, float $oran): a
 }
 } // if (!function_exists('hesaplaIskontoluSatir')) — iskonto_lib.php ile cakismayi onler
 
+	// YETKI + GORUNURLUK: iskonto handler'lari POST'taki stokhareket'i kullanir; lg_fis.php'nin
+	// GET/session gorunurluk kontrolu bunu kapsamaz ve bu dosya dogrudan da POST edilebilir.
+	// Yazma kapisi fisekle.php ile ayni (admin / M1 / M3). Iskonto satirinin CLIENTREF'i
+	// POST'taki 'cari' yerine fisin kendisinden (ORFICHE) okunur.
+	$iskFisCari = 0;
+	if (isset($_POST['isk1']) || isset($_POST['isk2']) || isset($_POST['isk1b']) || isset($_POST['isk2b'])) {
+	  $iskFisRef = isset($_POST['stokhareket']) ? (int) $_POST['stokhareket'] : 0;
+	  $iskFisSatir = false;
+	  if ($iskFisRef > 0) {
+	    $stmtIskFis = $dbh->prepare("SELECT CLIENTREF FROM " . $firmadonem . "ORFICHE WHERE LOGICALREF = :stokhareket");
+	    $stmtIskFis->execute([':stokhareket' => $iskFisRef]);
+	    $iskFisSatir = $stmtIskFis->fetch(PDO::FETCH_ASSOC);
+	  }
+	  if (
+	    $iskFisSatir === false
+	    || !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum ?? null)
+	    || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $iskFisRef)
+	  ) {
+	    if ($isIskontoAjax) {
+	      http_response_code(403);
+	      header('Content-Type: application/json; charset=utf-8');
+	      echo json_encode(['ok' => false, 'msg' => 'Bu islem icin yetkiniz yok']);
+	      exit;
+	    }
+	    header('Location: ' . APP_ROOT_URL . '/403.html');
+	    exit;
+	  }
+	  $iskFisCari = (int) $iskFisSatir['CLIENTREF'];
+	}
+
 		if (isset($_POST['isk1'])) {
       // CSRF koruması
       if (!csrf_verify()) {
@@ -47,9 +77,9 @@ function hesaplaIskontoluSatir(float $brutToplam, float $miktar, float $oran): a
         die("Geçersiz güvenlik doğrulaması.");
       }
 
-      $isk1 = isset($_POST['isk1']) ? (float) virgul($_POST['isk1']) : 0.0;
+      $isk1 = isset($_POST['isk1']) ? max(0.0, min(100.0, (float) virgul($_POST['isk1']))) : 0.0;
       $stokhareket = isset($_POST['stokhareket']) ? (int) $_POST['stokhareket'] : 0;
-      $cari = isset($_POST['cari']) ? (int) $_POST['cari'] : 0;
+      $cari = $iskFisCari; // POST'taki 'cari' degil, fisin CLIENTREF'i
       $stmtSirano = $dbh->prepare("SELECT MAX(LINENO_) AS SATIR FROM " . $firmadonem . "ORFLINE WHERE ORDFICHEREF = :stokhareket");
       $stmtSirano->execute([':stokhareket' => $stokhareket]);
       $sirano = $stmtSirano->fetch(PDO::FETCH_ASSOC);
@@ -270,9 +300,9 @@ function hesaplaIskontoluSatir(float $brutToplam, float $miktar, float $oran): a
         http_response_code(403);
         die("Geçersiz güvenlik doğrulaması.");
       }
-      $isk2 = isset($_POST['isk2']) ? (float) virgul($_POST['isk2']) : 0.0;
+      $isk2 = isset($_POST['isk2']) ? max(0.0, min(100.0, (float) virgul($_POST['isk2']))) : 0.0;
       $stokhareket = isset($_POST['stokhareket']) ? (int) $_POST['stokhareket'] : 0;
-      $cari = isset($_POST['cari']) ? (int) $_POST['cari'] : 0;
+      $cari = $iskFisCari; // POST'taki 'cari' degil, fisin CLIENTREF'i
       $stmtSirano = $dbh->prepare("SELECT MAX(LINENO_) AS SATIR FROM " . $firmadonem . "ORFLINE WHERE ORDFICHEREF = :stokhareket");
       $stmtSirano->execute([':stokhareket' => $stokhareket]);
       $sirano = $stmtSirano->fetch(PDO::FETCH_ASSOC);
@@ -494,15 +524,20 @@ function hesaplaIskontoluSatir(float $brutToplam, float $miktar, float $oran): a
         http_response_code(403);
         die("Geçersiz güvenlik doğrulaması.");
       }
-      $isk1b = isset($_POST['isk1b']) ? (float) virgul($_POST['isk1b']) : 0.0;
-      $isk2bx = isset($_POST['isk2bx']) ? (float) virgul($_POST['isk2bx']) : 0.0;
+      $isk1b = isset($_POST['isk1b']) ? max(0.0, min(100.0, (float) virgul($_POST['isk1b']))) : 0.0;
+      $isk2bx = isset($_POST['isk2bx']) ? max(0.0, min(100.0, (float) virgul($_POST['isk2bx']))) : 0.0;
       $iskidno = isset($_POST['iskidno']) ? (int) $_POST['iskidno'] : 0;
       $stokhareket = isset($_POST['stokhareket']) ? (int) $_POST['stokhareket'] : 0;
-      $cari = isset($_POST['cari']) ? (int) $_POST['cari'] : 0;
+      $cari = $iskFisCari; // POST'taki 'cari' degil, fisin CLIENTREF'i
       // Eski iskonto değerini al
-      $stmtEskiIskonto = $dbh->prepare("SELECT DISCPER, TOTAL FROM ".$firmadonem."ORFLINE WHERE LOGICALREF = :ref");
-      $stmtEskiIskonto->execute([':ref' => $iskidno]);
+      // Iskonto satiri bu fise ait LINETYPE=2 satiri olmali (baska fisin satiri ezilemez)
+      $stmtEskiIskonto = $dbh->prepare("SELECT DISCPER, TOTAL FROM ".$firmadonem."ORFLINE WHERE LOGICALREF = :ref AND ORDFICHEREF = :stokhareket AND LINETYPE = 2");
+      $stmtEskiIskonto->execute([':ref' => $iskidno, ':stokhareket' => $stokhareket]);
       $eskiIskonto = $stmtEskiIskonto->fetch(PDO::FETCH_ASSOC);
+      if ($eskiIskonto === false) {
+        http_response_code(400);
+        exit('Gecersiz iskonto satiri.');
+      }
       $stmtIskGuncelle=$dbh->prepare("SELECT LOGICALREF,TOTAL,VAT,AMOUNT FROM ".$firmadonem."ORFLINE  WHERE ORDFICHEREF = :stokhareket AND LINETYPE=0");
       $stmtIskGuncelle->execute([':stokhareket' => $stokhareket]);
       $stmtIskSatirGuncelle = $dbh->prepare("UPDATE ".$firmadonem."ORFLINE SET VATAMNT = :vatamnt, DISTCOST = :distcost, DISTDISC = :distdisc, VATMATRAH = :vatmatrah, LINENET = :linenet WHERE LOGICALREF = :logicalref");
@@ -531,8 +566,8 @@ function hesaplaIskontoluSatir(float $brutToplam, float $miktar, float $oran): a
     	$stmtIskSatirGuncelle->execute([':vatamnt' => $stoktoplamkdvlp, ':distcost' => $topisk, ':distdisc' => $topisk, ':vatmatrah' => $iskontolu2, ':linenet' => $iskontolu2, ':logicalref' => (int) $idnohi]);
     	 }
       $iskonbir = round($iskonbir, 2);
-      $stmtIskontoGuncelle = $dbh->prepare("UPDATE ".$firmadonem."ORFLINE SET DISCPER = :discper, TOTAL = :total WHERE LOGICALREF = :ref");
-      $stmtIskontoGuncelle->execute([':discper' => $isk1b, ':total' => $iskonbir, ':ref' => $iskidno]);
+      $stmtIskontoGuncelle = $dbh->prepare("UPDATE ".$firmadonem."ORFLINE SET DISCPER = :discper, TOTAL = :total WHERE LOGICALREF = :ref AND ORDFICHEREF = :stokhareket AND LINETYPE = 2");
+      $stmtIskontoGuncelle->execute([':discper' => $isk1b, ':total' => $iskonbir, ':ref' => $iskidno, ':stokhareket' => $stokhareket]);
       // İskonto logla (1. İskonto güncelleme)
       $stmtFisInfo = $dbh->prepare("SELECT FICHENO FROM ".$firmadonem."ORFICHE WHERE LOGICALREF = :stokhareket");
       $stmtFisInfo->execute([':stokhareket' => $stokhareket]);
@@ -563,15 +598,20 @@ function hesaplaIskontoluSatir(float $brutToplam, float $miktar, float $oran): a
         http_response_code(403);
         die("Geçersiz güvenlik doğrulaması.");
       }
-      $isk2b = isset($_POST['isk2b']) ? (float) virgul($_POST['isk2b']) : 0.0;
-      $isk1b = isset($_POST['isk1bx']) ? (float) virgul($_POST['isk1bx']) : 0.0;
+      $isk2b = isset($_POST['isk2b']) ? max(0.0, min(100.0, (float) virgul($_POST['isk2b']))) : 0.0;
+      $isk1b = isset($_POST['isk1bx']) ? max(0.0, min(100.0, (float) virgul($_POST['isk1bx']))) : 0.0;
       $iskidno2 = isset($_POST['iskidno2']) ? (int) $_POST['iskidno2'] : 0;
       $stokhareket = isset($_POST['stokhareket']) ? (int) $_POST['stokhareket'] : 0;
-      $cari = isset($_POST['cari']) ? (int) $_POST['cari'] : 0;
+      $cari = $iskFisCari; // POST'taki 'cari' degil, fisin CLIENTREF'i
       // Eski iskonto değerini al
-      $stmtEskiIskonto2 = $dbh->prepare("SELECT DISCPER, TOTAL FROM ".$firmadonem."ORFLINE WHERE LOGICALREF = :ref");
-      $stmtEskiIskonto2->execute([':ref' => $iskidno2]);
+      // Iskonto satiri bu fise ait LINETYPE=2 satiri olmali (baska fisin satiri ezilemez)
+      $stmtEskiIskonto2 = $dbh->prepare("SELECT DISCPER, TOTAL FROM ".$firmadonem."ORFLINE WHERE LOGICALREF = :ref AND ORDFICHEREF = :stokhareket AND LINETYPE = 2");
+      $stmtEskiIskonto2->execute([':ref' => $iskidno2, ':stokhareket' => $stokhareket]);
       $eskiIskonto2 = $stmtEskiIskonto2->fetch(PDO::FETCH_ASSOC);
+      if ($eskiIskonto2 === false) {
+        http_response_code(400);
+        exit('Gecersiz iskonto satiri.');
+      }
       $stmtIskGuncelle=$dbh->prepare("SELECT LOGICALREF,TOTAL,VAT,AMOUNT FROM ".$firmadonem."ORFLINE  WHERE ORDFICHEREF = :stokhareket AND LINETYPE=0");
       $stmtIskGuncelle->execute([':stokhareket' => $stokhareket]);
       $stmtIskSatirGuncelle = $dbh->prepare("UPDATE ".$firmadonem."ORFLINE SET VATAMNT = :vatamnt, DISTCOST = :distcost, DISTDISC = :distdisc, VATMATRAH = :vatmatrah, LINENET = :linenet WHERE LOGICALREF = :logicalref");
@@ -600,8 +640,8 @@ function hesaplaIskontoluSatir(float $brutToplam, float $miktar, float $oran): a
     	$stmtIskSatirGuncelle->execute([':vatamnt' => $stoktoplamkdvlp, ':distcost' => $topisk, ':distdisc' => $topisk, ':vatmatrah' => $iskontolu2, ':linenet' => $iskontolu2, ':logicalref' => (int) $idnohi]);
     	 }
       $iskoniki = round($iskoniki, 2);
-      $stmtIskontoGuncelle = $dbh->prepare("UPDATE ".$firmadonem."ORFLINE SET DISCPER = :discper, TOTAL = :total WHERE LOGICALREF = :ref");
-      $stmtIskontoGuncelle->execute([':discper' => $isk2b, ':total' => $iskoniki, ':ref' => $iskidno2]);
+      $stmtIskontoGuncelle = $dbh->prepare("UPDATE ".$firmadonem."ORFLINE SET DISCPER = :discper, TOTAL = :total WHERE LOGICALREF = :ref AND ORDFICHEREF = :stokhareket AND LINETYPE = 2");
+      $stmtIskontoGuncelle->execute([':discper' => $isk2b, ':total' => $iskoniki, ':ref' => $iskidno2, ':stokhareket' => $stokhareket]);
       // İskonto logla (2. İskonto güncelleme)
       $stmtFisInfo = $dbh->prepare("SELECT FICHENO FROM ".$firmadonem."ORFICHE WHERE LOGICALREF = :stokhareket");
       $stmtFisInfo->execute([':stokhareket' => $stokhareket]);

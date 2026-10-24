@@ -40,8 +40,16 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
     setPageParam('stokhareket', $fisid, 'lg_fis');
     echo '<script>if (window.toast) { toast("Lütfen bir ürün kodu veya adı girin.", "warning"); } else { alert("Lütfen bir ürün kodu veya adı girin."); } window.location="../siparis/lg_fis.php";</script>';
   } else {
-    die('<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Hata</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-red-100 flex items-center justify-center min-h-screen"><div class="p-6 bg-white rounded-lg shadow text-center"><h2 class="text-xl font-bold text-red-700 mb-1">Hata!</h2><p class="text-gray-600 text-sm">Geçersiz veya eksik parametre. Lütfen işlemi tekrar deneyin.</p><a href="../index.php" class="mt-3 inline-block px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">Ana Sayfaya Dön</a></div></body></html>');
+    lumen_hata_sayfasi('Ürün seçilmedi', 'Ürün arama için sipariş bilgisi eksik veya geçersiz. Siparişten tekrar deneyin.');
   }
+  exit;
+}
+
+if (
+  !m_p_siparis_duzenleyebilir_mi($terminalkullanici, $yetkidurum)
+  || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $fisid)
+) {
+  lumen_hata_sayfasi('Erişim reddedildi', 'Bu siparişe ürün ekleme yetkiniz bulunmuyor.', 403);
   exit;
 }
 ?>
@@ -50,30 +58,18 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stok Arama Sonuclari</title>
+  <title>Stok Arama Sonuçları</title>
   <?php include_once(__DIR__ . '/../pwa-header.php'); ?>
   <script src="/tm/css/tailwind.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.tailwindcss.com';document.head.appendChild(s);}())"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
   <style>
     :root {
-      --bg: #f9fafb;
-      --text-1: #1f2937;
-      --text-2: #6b7280;
-      --text-3: #9ca3af;
-      --border: #e5e7eb;
-      --red: #6F1022;
-      --red-soft: #fef2f2;
-      --emerald: #059669;
-      --emerald-soft: #ecfdf5;
       --indigo: #4f46e5;
       --indigo-soft: #eef2ff;
-    }
+        }
     * { box-sizing: border-box; margin: 0; }
     body {
-      font-family: 'Avenir Next', 'Montserrat', sans-serif;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--text-1);
       min-height: 100vh;
@@ -82,44 +78,6 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
-
-    /* ═══════ HEADER ═══════ */
-    .top-header {
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      height: 64px;
-      background: rgba(255,255,255,0.88);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      border-bottom: 1px solid rgba(248, 113, 113, 0.18);
-      box-shadow: 0 2px 8px rgba(111, 16, 34, 0.04);
-    }
-    .header-inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 0 24px;
-    }
-    .header-back {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 36px; height: 36px; border-radius: 10px;
-      color: var(--text-2); text-decoration: none; transition: all 0.2s ease;
-    }
-    .header-back:hover { background: rgba(0,0,0,0.04); color: var(--red); }
-    .header-divider { width: 1px; height: 24px; background: var(--border); }
-    .header-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-1);
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .header-title i { color: var(--red,#ef4444); font-size: 16px; }
 
     /* ═══════ BULK PANEL ═══════ */
     .bulk-panel {
@@ -147,7 +105,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
     }
     .bulk-input {
       width: 100%; padding: 10px 12px 10px 34px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 14px;
+      font-family: var(--font); font-size: 14px;
       color: var(--text-1); background: #fff;
       border: 1px solid var(--border); border-radius: 10px;
       outline: none; transition: all 0.2s ease;
@@ -160,7 +118,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
       padding: 10px 16px; background: #64748b; color: #fff;
       border: none; border-radius: 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
+      font-family: var(--font); font-size: 13px; font-weight: 600;
       cursor: pointer; transition: all 0.2s ease;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08); white-space: nowrap;
     }
@@ -269,7 +227,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
     .price-input {
       width: 100%; padding: 9px 10px 9px 28px;
       text-align: center;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
+      font-family: var(--font); font-size: 13px; font-weight: 600;
       color: var(--emerald); background: #fff;
       border: 1px solid var(--border); border-radius: 9px;
       outline: none; transition: all 0.2s ease;
@@ -290,7 +248,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
     .qty-input {
       width: 100%; padding: 9px 10px;
       text-align: center;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
+      font-family: var(--font); font-size: 13px; font-weight: 600;
       color: var(--text-1); background: #fff;
       border: 1px solid var(--border); border-radius: 9px;
       outline: none; transition: all 0.2s ease;
@@ -302,7 +260,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
     }
     /* ═══════ ADET / KOLI BIRIM GECISI ═══════ */
     .unit-toggle { display: inline-flex; background: #f3f4f6; border-radius: 8px; padding: 3px; gap: 2px; margin-bottom: 5px; }
-    .unit-toggle .ut-btn { border: none; background: transparent; font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-2); padding: 4px 11px; border-radius: 6px; cursor: pointer; transition: all 0.12s ease; }
+    .unit-toggle .ut-btn { border: none; background: transparent; font-family: var(--font); font-size: 11px; font-weight: 600; color: var(--text-2); padding: 4px 11px; border-radius: 6px; cursor: pointer; transition: all 0.12s ease; }
     .unit-toggle .ut-btn.on { background: var(--red); color: #fff; }
     .qty-input.mode-koli { border-color: #f0b429; background: #fffdf6; }
     .koli-hint { font-size: 10.5px; color: var(--text-2); margin-top: 5px; line-height: 1.35; }
@@ -327,7 +285,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       padding: 13px 28px; background: var(--red,#ef4444); color: #fff;
       border: none; border-radius: 12px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-size: 14px; font-weight: 600;
+      font-family: var(--font); font-size: 14px; font-weight: 600;
       cursor: pointer; transition: all 0.2s ease;
       box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2);
     }
@@ -385,7 +343,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
     .btn-modal-close {
       padding: 9px 20px; background: #64748b; color: #fff;
       border: none; border-radius: 10px;
-      font-family: 'Avenir Next', 'Montserrat', sans-serif; font-weight: 600; font-size: 13px;
+      font-family: var(--font); font-weight: 600; font-size: 13px;
       cursor: pointer; transition: all 0.15s ease;
     }
     .btn-modal-close:hover { background: #475569; }
@@ -450,11 +408,6 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
       .stok-meta { border-top: 1px dashed var(--border); padding-top: 10px; }
     }
     @media (max-width: 767px) {
-      .top-header { height: 50px; }
-      .header-inner { padding: 0 12px; gap: 10px; }
-      .header-title { font-size: 15px; }
-      .header-back { width: 30px; height: 30px; border-radius: 8px; }
-      .header-divider { height: 18px; }
 
       main { padding: 14px 12px 40px !important; }
 
@@ -517,7 +470,7 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
       </a>
       <div class="header-divider"></div>
       <span class="header-title">
-        <i class="fa-solid fa-magnifying-glass"></i>Stok Arama Sonuclari
+        <i class="fa-solid fa-magnifying-glass"></i>Stok Arama Sonuçları
       </span>
     </div>
   </header>
@@ -551,6 +504,11 @@ if ($a_barkod === '' || $a_barkod === '0' || $fisid <= 0) {
         $is_hizli_miktar_processed = false;
 $stmt_barcode = $dbh->prepare("SELECT TOP 1 B.ITEMREF FROM {$firma}UNITBARCODE B INNER JOIN {$firma}ITEMS S ON B.ITEMREF=S.LOGICALREF WHERE B.BARCODE = :barkod AND S.ACTIVE=0 ");
 $stmt_barcode->execute([':barkod' => $a_barkod]);
+// Okutulan barkod bir KOLİ birimine aitse o ürünün satırı "Koli" kipinde açılır (1 okutma = 1 koli)
+$stmtKoliBarkod = $dbh->prepare("SELECT TOP 1 B.ITEMREF FROM {$firma}UNITBARCODE B JOIN {$firma}UNITSETL U ON U.LOGICALREF = B.UNITLINEREF
+                                 WHERE B.BARCODE = :barkod AND U.CODE = 'KOLI'");
+$stmtKoliBarkod->execute([':barkod' => $a_barkod]);
+$koliBarkodUrun = (int) ($stmtKoliBarkod->fetchColumn() ?: 0);
 $barcode_match = $stmt_barcode->fetch(PDO::FETCH_ASSOC);
 if ($barcode_match) {
   $stokid_match = intcevir($barcode_match['ITEMREF']);
@@ -561,10 +519,9 @@ $where_clause = "";
 $order_clause = "URUN.CODE";
 $params = [];
 $a_barkod_normalized = "";
-$normalizedCodeSql = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-  URUN.CODE, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')";
-$normalizedNameSql = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
-  URUN.NAME, 'Ğ','G'), 'ğ','g'), 'Ü','U'), 'ü','u'), 'Ş','S'), 'ş','s'), 'İ','I'), 'ı','i'), 'Ö','O'), 'ö','o'), 'Ç','C'), 'ç','c')";
+// Türkçe harf/büyük-küçük harf duyarsız arama (TABAĞI = tabagi = Tabağı)
+$normalizedCodeSql = lumen_arama_sql('URUN.CODE');
+$normalizedNameSql = lumen_arama_sql('URUN.NAME');
 if (str_contains($a_barkod, ',')) {
   $codes = array_filter(array_map('trim', explode(',', $a_barkod)));
   if ($codes !== []) {
@@ -576,7 +533,7 @@ if (str_contains($a_barkod, ',')) {
   }
 } else {
   // Türkçe karakterleri ASCII'ye çevir (mağaza -> magaza)
-  $a_barkod_normalized = turkce($a_barkod);
+  $a_barkod_normalized = lumen_arama_terimi($a_barkod);
   if (preg_match('/^\d+$/', $a_barkod_normalized) === 1) {
     $where_clause = " (
       URUN.CODE = ?
@@ -748,14 +705,15 @@ while ($row = $stmt_list->fetch(PDO::FETCH_ASSOC)) {
         <input type="hidden" name="cstok_fiyati[]" value="<?php echo kusuratpara($fiyati); ?>">
         <?php endif; ?>
 
-        <div class="qty-field"<?php echo $koliVar ? ' data-koli-field data-mode="adet"' : ''; ?>>
+        <?php $koliKip = $koliVar && $koliBarkodUrun === $stokidx; ?>
+        <div class="qty-field"<?php echo $koliVar ? ' data-koli-field data-mode="' . ($koliKip ? 'koli' : 'adet') . '"' : ''; ?>>
           <?php if ($koliVar): ?>
           <div class="unit-toggle" role="group" aria-label="Birim seçimi">
-            <button type="button" class="ut-btn on" data-mode="adet">Adet</button>
-            <button type="button" class="ut-btn" data-mode="koli">Koli</button>
+            <button type="button" class="ut-btn<?php echo $koliKip ? '' : ' on'; ?>" data-mode="adet">Adet</button>
+            <button type="button" class="ut-btn<?php echo $koliKip ? ' on' : ''; ?>" data-mode="koli">Koli</button>
           </div>
-          <input type="number" step="any" class="qty-input qty-koli" data-koli="<?php echo $koliGoster; ?>"
-                 placeholder="Miktar" inputmode="decimal" aria-label="Miktar"
+          <input type="number" step="any" class="qty-input qty-koli<?php echo $koliKip ? ' mode-koli' : ''; ?>" data-koli="<?php echo $koliGoster; ?>"
+                 placeholder="<?php echo $koliKip ? 'Kaç koli?' : 'Miktar'; ?>" inputmode="decimal" aria-label="Miktar"
                  oninput="kbSync(this.closest('.qty-field'))">
           <input type="hidden" name="cstok_miktari[]" class="qty-real" value="">
           <div class="koli-hint"><span class="kref">1 koli = <?php echo $koliGoster; ?> adet</span><span class="kcalc"></span></div>

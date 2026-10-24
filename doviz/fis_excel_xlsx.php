@@ -76,6 +76,10 @@ if (isset($_GET['id'])) {
 if ($stokhareket <= 0) {
     die("Sipariş ID eksik!");
 }
+if (!m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $stokhareket)) {
+    lumen_hata_sayfasi('Erişim reddedildi', 'Bu siparişi dışa aktarma yetkiniz bulunmuyor.', 403);
+    exit;
+}
 
 // Veritabanı sorguları
 try {
@@ -169,10 +173,15 @@ try {
     $iskontolar = $iskontolarSorgu->fetchAll(PDO::FETCH_COLUMN);
 
 } catch (PDOException $e) {
-    die("Veritabanı hatası: " . $e->getMessage());
+    $mesaj = app_public_error_message($e, 'doviz/fis_excel_xlsx', 'Excel dosyası hazırlanamadı.');
+    lumen_hata_sayfasi('Dışa aktarma hatası', $mesaj, 500);
+    exit;
 }
 
 // Excel oluştur (PhpSpreadsheet)
+// Kullanıcı metinleri formül olarak yazılmaz (formül enjeksiyonu koruması).
+require_once __DIR__ . '/../includes/xlsx_guvenli.php';
+lumen_xlsx_guvenli_baglayici();
 $spreadsheet = new Spreadsheet();
 $spreadsheet->getProperties()
     ->setCreator($firmaAdi)
@@ -293,8 +302,8 @@ foreach ($satirlar as $satir) {
     // Net birim fiyat (TL)
     $netBirimTl = $miktar > 0 ? ($satirNetTl / $miktar) : $birimFiyatTl;
 
-    // Döviz birim fiyatı (PRPRICE varsa kullan)
-    if ($birimFiyatDoviz <= 0 && $trrate > 0) {
+    // Döviz birim fiyatı = TL fiyat / kur (PRPRICE kur değişince eskir)
+    if ($trrate > 0) {
         $birimFiyatDoviz = $birimFiyatTl / $trrate;
     }
 

@@ -13,6 +13,10 @@ require_once __DIR__ . '/doviz_guard.php';
 doviz_require_m21($terminalkullanici);
 
 $reqId = (int)($_GET['id'] ?? 0);
+if ($reqId <= 0 || !m_p_siparis_goruntulebilir_mi($dbh, $firmadonem, $firma, $terminalkullanici, $reqId)) {
+    lumen_hata_sayfasi('Erişim reddedildi', 'Bu siparişi görüntüleme yetkiniz bulunmuyor.', 403);
+    exit;
+}
 
 // Windows printer extension kontrolü
 if (!function_exists('printer_open')) {
@@ -28,6 +32,7 @@ if (!function_exists('printer_open')) {
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
         <script src="https://cdn.tailwindcss.com"></script>
+    <script>/* Lumen koyu temayı kendi yönetir: Tailwind'in dark: sınıfları işletim sistemi temasıyla açılmasın */try{tailwind.config=Object.assign(tailwind.config||{},{darkMode:'class'});}catch(e){}</script>
         <script>
           // Tailwind CDN fallback (offline / CSP)
           window.addEventListener('load', function(){
@@ -172,7 +177,11 @@ if (!function_exists('printer_open')) {
                 .btn { padding: 12px 18px; font-size: 14px; min-height: 44px; }
                 .icon-box { width: 72px; height: 72px; margin-bottom: 16px; font-size: 34px; }
             }
-        </style>
+
+        /* Ortak palet: birincil eylem bordo, Excel yeşil, Yazdır ikincil (tasarım incelemesi) */
+        .btn-primary { background: var(--red, #6F1022); color: #fff; border-color: var(--red, #6F1022); box-shadow: 0 4px 12px rgba(111, 16, 34, 0.18); }
+        .btn-primary:hover { background: var(--red, #6F1022); color: #fff; filter: brightness(1.1); box-shadow: 0 6px 16px rgba(111, 16, 34, 0.26); }
+    </style>
     </head>
     <body>
         <main class="glass-card" id="errorCard">
@@ -218,12 +227,7 @@ if (!function_exists('printer_open')) {
     exit;
 }
 
-if(!isset($_GET['id'])){
-    echo '<div class="notification msgerror">Lütfen bir fiş numarası belirtin.</div>';
-    exit;
-}
-
-$stokhareket = (int)$_GET['id'];
+$stokhareket = $reqId;
 
 // Sipariş bilgilerini çek (döviz dahil)
 $stmtFis = $dbh->prepare("SELECT
@@ -343,7 +347,7 @@ while($liste = $stmtList->fetch(PDO::FETCH_ASSOC)) {
     $adetmiktar += $liste['AMOUNT'];
 
     // Döviz fiyatları
-    $dovizBirimFiyat = $liste['PRPRICE'] > 0 ? $liste['PRPRICE'] : ($liste['PRICE'] / $dovizfiyat);
+    $dovizBirimFiyat = (float) $liste['PRICE'] / $dovizfiyat; // TL fiyat / kur (PRPRICE kur değişince eskir)
     $dovizToplam = $liste['TOTAL'] / $dovizfiyat;
 
     // Çoklu sayfa döngüsü
