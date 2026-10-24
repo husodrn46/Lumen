@@ -764,8 +764,8 @@ akis('cari kartı düzenle: adres, vergi, vade, risk; geçersiz vergi no reddedi
     bekle($h['kod'] === 200 && str_contains($h['govde'], 'geçersiz'), 'kontrol basamağı tutmayan vergi no kabul edildi');
     $pdo->exec("INSERT INTO LM_CARI (KOD, UNVAN, VERGI_NO) VALUES ('MUK.TEST', N'Mükerrer Kaynak', '1234567890')");
     $m = $gonder(['vergi_no' => '123 456 7890'] + $alan);
-    bekle($m['kod'] === 200 && str_contains($m['govde'], 'MUK.TEST') && str_contains($m['govde'], 'Mükerrer Kaynak')
-        && str_contains($m['govde'], 'mukerrer_onay'), 'düzenlemede mükerrer vergi no uyarısı yok');
+    bekle($m['kod'] === 200 && str_contains($m['govde'], 'Bu numara [') && str_contains($m['govde'], 'carisinde kullanılıyor')
+        && str_contains($m['govde'], 'mukerrer_onay'), 'düzenlemede mükerrer vergi no cari kodu/unvanıyla gösterilmedi');
     $pasif = ['vergi_no' => '10000000146'] + $alan;
     unset($pasif['aktif']);   // işaretsiz kutu tarayıcıdan hiç gönderilmez
     $gonder($pasif);
