@@ -8,6 +8,8 @@
   alanına düşmek yerine kaynak işlem saatini gösterir; saat kaynağı yoksa `--:--` kullanır.
 - Yeni cari ve cari düzenleme akışları mükerrer vergi no/TCKN eşleşmesini cari kodu ve
   unvanıyla bildirir; bilinçli istisnalar onaylanabilir. Excel aktarımı mükerrer satırı reddeder.
+- TL ve dövizli sipariş ekranları her satırda toplam, teslim edilen ve kalan miktarı ayrı
+  gösterir; hiç teslim edilmemiş, kısmi ve tam teslim durumları testlerle doğrulanır.
 
 ## [1.3.1] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
@@ -59,8 +61,8 @@ kez `php scripts/sema_guncelle.php`. LOGO tablolarına dokunulmaz; davranış de
 Bağımsız moda geçiş: `docs/mimari/bagimsiz-lumen.md` → "Kurulum ve LOGO'dan geçiş".
 Kullanım: `docs/kullanim/KILAVUZ.md`. Bilinen sınırlar: `docs/mimari/bagimsiz-lumen.md`.
 
-**Bilinen küçük konular** (sonraki bakım sürümü): belgede para birimi gidiş-dönüşünde fiyat
-kuruş kayması; sipariş ekranında kısmi teslim miktarı gösterilmiyor.
+**Bilinen küçük konu** (sonraki bakım sürümü): belgede para birimi gidiş-dönüşünde fiyat
+kuruş kayması.
 
 ## [1.3.0-rc.3] — 2026-10-22 (SÜRÜM ADAYI)
 

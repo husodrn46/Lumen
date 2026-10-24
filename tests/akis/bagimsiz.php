@@ -249,6 +249,11 @@ akis('siparişten kısmi satış faturası: stok çıkar, cari borçlanır, sipa
     yakin($bakiyeOnce + $genel, (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = {$cari}"), 'cari bakiye');
     yakin($stokOnce - $yarim * (float) $satir['CARPAN'], (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = :s", [':s' => $satir['STOK_ID']]), 'stok');
     yakin($yarim, (float) tek($pdo, "SELECT TESLIM_MIKTAR FROM LM_BELGE_SATIR WHERE ID = :i", [':i' => $satir['ID']]), 'teslim miktarı');
+    $siparisEkrani = $yonetici->istek("siparis/lg_fis.php?stokhareket={$sip}")['govde'];
+    bekle(str_contains($siparisEkrani, 'Toplam Miktar'), 'sipariş ekranında toplam miktar başlığı yok');
+    bekle(str_contains($siparisEkrani, 'Teslim Edilen'), 'sipariş ekranında teslim edilen miktar başlığı yok');
+    bekle(str_contains($siparisEkrani, 'Kalan'), 'sipariş ekranında kalan miktar başlığı yok');
+    bekle(str_contains($siparisEkrani, 'data-teslimat-durum="kismi"'), 'kısmi teslim durumu sipariş ekranında görünmüyor');
     // LOGO uyumlu görünüm: sipariş ekranlarının "faturalandı mı" kontrolü
     bekle((int) tek($pdo, "SELECT COUNT(*) FROM LMV_STLINE WHERE ORDFICHEREF = :s AND INVOICEREF = :f", [':s' => $sip, ':f' => $r['id']]) === 1, 'LMV_STLINE siparişi bağlamıyor');
     $g = $yonetici->istek("belge/goster.php?id={$r['id']}")['govde'];
