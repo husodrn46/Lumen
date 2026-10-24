@@ -184,7 +184,7 @@ akis('yetki: stok personeli sipariş satırı ekleyemez, M16 personeli yönetici
     }
 });
 
-akis('API: fiyat override SP1 ister; pasif kullanıcının belirteci geçersiz', function () use ($URL, $pdo): void {
+akis('API: fiyat yetkisi, idempotency ve token yaşam döngüsü', function () use ($URL, $pdo): void {
     $tok = static function (string $k) use ($URL): string {
         $ch = curl_init("{$URL}/api/login.php");
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
@@ -193,9 +193,9 @@ akis('API: fiyat override SP1 ister; pasif kullanıcının belirteci geçersiz',
         curl_close($ch);
         return (string) ($j['token'] ?? '');
     };
-    $api = static function (string $tok, string $uc, ?array $govde = null) use ($URL): array {
+    $api = static function (string $tok, string $uc, ?array $govde = null, array $ekBasliklar = []) use ($URL): array {
         $ch = curl_init("{$URL}/api/{$uc}");
-        $h = ["Authorization: Bearer {$tok}", 'Content-Type: application/json'];
+        $h = array_merge(["Authorization: Bearer {$tok}", 'Content-Type: application/json'], $ekBasliklar);
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => $h]);
         if ($govde !== null) {
             curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode($govde)]);
@@ -208,6 +208,91 @@ akis('API: fiyat override SP1 ister; pasif kullanıcının belirteci geçersiz',
     $s = $tok('SATIS1');
     $o = $api($s, 'siparis_onizle.php', ['cari_id' => 4, 'kalemler' => [['stok_id' => 2, 'miktar' => 12, 'fiyat' => 0.01, 'kdv' => 0]]]);
     yakin(528.0, (float) ($o['ara_toplam'] ?? 0), 'SP1 olmadan liste fiyatı');
+
+    $siparisGovdesi = ['cari_id' => 4, 'kalemler' => [['stok_id' => 2, 'miktar' => 2]]];
+    $anahtar = hash('sha256', 'akis-tekrar-' . uniqid('', true));
+    $once = (int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFICHE WHERE DOCODE = 'MASA-API'");
+    $ilk = $api($s, 'siparis_olustur.php', $siparisGovdesi, ["Idempotency-Key: {$anahtar}"]);
+    $tekrar = $api($s, 'siparis_olustur.php', $siparisGovdesi, ["Idempotency-Key: {$anahtar}"]);
+    bekle($ilk['_kod'] === 200 && $tekrar['_kod'] === 200, 'idempotent sipariş isteği başarısız');
+    $ilkGovde = $ilk;
+    $tekrarGovde = $tekrar;
+    unset($ilkGovde['_kod'], $tekrarGovde['_kod']);
+    bekle($ilkGovde === $tekrarGovde, 'aynı anahtar önceki yanıtı aynen döndürmedi');
+    bekle(($ilk['fis']['id'] ?? 0) === ($tekrar['fis']['id'] ?? -1), 'aynı anahtar yeni sipariş oluşturdu');
+    bekle(
+        (int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFICHE WHERE DOCODE = 'MASA-API'") === $once + 1,
+        'tekrar gönderim birden fazla sipariş oluşturdu'
+    );
+    bekle(
+        (int) tek(
+            $pdo,
+            'SELECT COUNT(*) FROM M_API_IDEMPOTENCY WHERE KEYHASH = :anahtar',
+            [':anahtar' => hash('sha256', $anahtar)]
+        ) === 1,
+        'sipariş sonucu idempotency kaydına yazılmadı'
+    );
+    $degisik = $siparisGovdesi;
+    $degisik['kalemler'][0]['miktar'] = 3;
+    bekle(
+        $api($s, 'siparis_olustur.php', $degisik, ["Idempotency-Key: {$anahtar}"])['_kod'] === 409,
+        'aynı anahtar farklı gövdeyle kabul edildi'
+    );
+
+    // İki HTTP isteğini aynı anda başlat: CI'da nginx + PHP-FPM gerçekten paralel işler;
+    // tek iş parçacıklı yerel PHP sunucusunda da tekrar oynatma yolu doğrulanır.
+    $paralel = static function (string $token, array $govde, string $key) use ($URL): array {
+        $multi = curl_multi_init();
+        $istekler = [];
+        for ($i = 0; $i < 2; $i++) {
+            $ch = curl_init("{$URL}/api/siparis_olustur.php");
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    "Authorization: Bearer {$token}",
+                    'Content-Type: application/json',
+                    "Idempotency-Key: {$key}",
+                ],
+                CURLOPT_POSTFIELDS => json_encode($govde),
+            ]);
+            curl_multi_add_handle($multi, $ch);
+            $istekler[] = $ch;
+        }
+        do {
+            $durum = curl_multi_exec($multi, $aktif);
+            if ($aktif && $durum === CURLM_OK && curl_multi_select($multi, 1.0) === -1) {
+                usleep(1000);
+            }
+        } while ($aktif && $durum === CURLM_OK);
+
+        $yanitlar = [];
+        foreach ($istekler as $ch) {
+            $json = json_decode((string) curl_multi_getcontent($ch), true) ?: [];
+            $json['_kod'] = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            $yanitlar[] = $json;
+            curl_multi_remove_handle($multi, $ch);
+            curl_close($ch);
+        }
+        curl_multi_close($multi);
+        return $yanitlar;
+    };
+    $paralelAnahtar = hash('sha256', 'akis-paralel-' . uniqid('', true));
+    $once = (int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFICHE WHERE DOCODE = 'MASA-API'");
+    $paralelYanitlar = $paralel($s, $siparisGovdesi, $paralelAnahtar);
+    $paralelGovde0 = $paralelYanitlar[0];
+    $paralelGovde1 = $paralelYanitlar[1];
+    unset($paralelGovde0['_kod'], $paralelGovde1['_kod']);
+    bekle(
+        $paralelYanitlar[0]['_kod'] === 200 && $paralelYanitlar[1]['_kod'] === 200
+            && $paralelGovde0 === $paralelGovde1,
+        'eşzamanlı aynı anahtar tek sonucu döndürmedi'
+    );
+    bekle(
+        (int) tek($pdo, "SELECT COUNT(*) FROM LG_001_02_ORFICHE WHERE DOCODE = 'MASA-API'") === $once + 1,
+        'eşzamanlı aynı anahtar birden fazla sipariş oluşturdu'
+    );
+
     $saklanan = (string) tek($pdo, 'SELECT TOP 1 TOKEN FROM M_API_TOKEN WHERE PERSONEL = 2 AND AKTIF = 1 ORDER BY ID DESC');
     bekle(str_starts_with($saklanan, 'sha256:') && $saklanan !== $s, 'API tokenı güvenli özet biçiminde saklanmadı');
     bekle($api($saklanan, 'siparis_listesi.php')['_kod'] === 401, 'veritabanındaki token özeti Bearer olarak kullanılabildi');

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 /**
  * POST /api/siparis_olustur.php
+ * Başlık: Idempotency-Key: UUIDv4 veya 64 hex (isteğe bağlı, önerilir)
  * Gövde: { "cari_id": 123, "kalemler": [ { "stok_id":1, "miktar":5, "fiyat"?:.. }, ... ] }
  * Yanıt: { ok, fis:{id,fisno}, cari, satir_sayisi, ara_toplam, genel_toplam, atlanan, mesaj }
  *
@@ -15,8 +16,9 @@ declare(strict_types=1);
 include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 include_once(__DIR__ . '/_siparis.inc');
+include_once(__DIR__ . '/_idempotency.inc');
 
-global $dbh, $firma, $firmadonem, $firmadonemx, $sipno, $depo, $kayitsaat, $saat, $dakika, $saniye, $reserve, $terminalkullanici;
+global $dbh, $firmano, $firma, $firmadonem, $firmadonemx, $sipno, $depo, $kayitsaat, $saat, $dakika, $saniye, $reserve, $terminalkullanici;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     api_json(['ok' => false, 'mesaj' => 'Yalnızca POST desteklenir.'], 405);
@@ -29,7 +31,13 @@ if (!api_yetki_var($personel, 'M1')) {
     api_json(['ok' => false, 'mesaj' => 'Sipariş oluşturma yetkiniz yok.'], 403);
 }
 
-$body     = api_body();
+$body = api_body();
+try {
+    $idempotencyKey = siparis_idempotency_anahtari();
+    $bodyHash = $idempotencyKey === null ? null : siparis_idempotency_parmakizi($body);
+} catch (InvalidArgumentException | JsonException $e) {
+    api_json(['ok' => false, 'mesaj' => 'Geçerli bir Idempotency-Key ve JSON gövdesi gerekli.'], 400);
+}
 $cariId   = (int) ($body['cari_id'] ?? 0);
 $kalemler = is_array($body['kalemler'] ?? null) ? $body['kalemler'] : [];
 $iskonto1 = max(0.0, min(100.0, siparis_sayi($body['iskonto1'] ?? 0)));
@@ -51,18 +59,6 @@ if (count($kalemler) > 200) {
     api_json(['ok' => false, 'mesaj' => 'Tek seferde en fazla 200 kalem gönderilebilir.'], 400);
 }
 
-$cari = siparis_cari_getir($dbh, $firma, $cariId);
-if ($cari === null) {
-    api_json(['ok' => false, 'mesaj' => 'Cari bulunamadı.'], 404);
-}
-
-// Fiş AÇMADAN önce tüm kalemleri doğrula (F3 kuralı) — fiyatsız kalem orphan fiş bırakmaz.
-$h     = siparis_kalemleri_hazirla($dbh, $firma, $firmadonemx, $kalemler, api_yetki_var($personel, 'SP1'));
-$ready = $h['ready'];
-if (!$ready) {
-    api_json(['ok' => false, 'mesaj' => 'Geçerli kalem bulunamadı, sipariş açılmadı.', 'atlanan' => $h['skipped']], 422);
-}
-
 $kayitsaatI = (int) $kayitsaat;
 $saatI      = (int) $saat;
 $dakikaI    = (int) $dakika;
@@ -74,9 +70,52 @@ $brut = 0.0;
 $netKdv = 0.0;
 $fisId = 0;
 $fisno = '';
+$yanit = [];
+$idempotencyDonem = lumen_bagimsiz_mi() ? 'LUMEN' : $firmadonem;
 
 try {
     $dbh->beginTransaction();
+
+    if ($idempotencyKey !== null) {
+        $onceki = siparis_idempotency_baslat(
+            $dbh,
+            $idempotencyKey,
+            (int) $firmano,
+            $idempotencyDonem,
+            $personel,
+            (string) $bodyHash
+        );
+        if ($onceki !== null) {
+            if (!$dbh->commit()) {
+                throw new RuntimeException('Commit sonucu doğrulanamadı.');
+            }
+            api_json($onceki);
+        }
+    }
+
+    $cari = siparis_cari_getir($dbh, $firma, $cariId);
+    if ($cari === null) {
+        $dbh->rollBack();
+        api_json(['ok' => false, 'mesaj' => 'Cari bulunamadı.'], 404);
+    }
+
+    // Fiş AÇMADAN önce tüm kalemleri doğrula (F3 kuralı) — fiyatsız kalem orphan fiş bırakmaz.
+    $h = siparis_kalemleri_hazirla(
+        $dbh,
+        $firma,
+        $firmadonemx,
+        $kalemler,
+        api_yetki_var($personel, 'SP1')
+    );
+    $ready = $h['ready'];
+    if (!$ready) {
+        $dbh->rollBack();
+        api_json([
+            'ok' => false,
+            'mesaj' => 'Geçerli kalem bulunamadı, sipariş açılmadı.',
+            'atlanan' => $h['skipped'],
+        ], 422);
+    }
 
     // ---- ORFICHE başlık (ai_beta_order_header sözleşmesi) ----
     $stmtMax = $dbh->prepare("SELECT MAX(LOGICALREF) AS SONID FROM {$firmadonem}ORFICHE");
@@ -203,13 +242,71 @@ STOCKREF,ORDFICHEREF,CLIENTREF,LINETYPE,PREVLINEREF,PREVLINENO,DETLINE,LINENO_,T
         ':fisno' => $fisno, ':ref' => $fisId,
     ]);
 
-    $dbh->commit();
+    // Sipariş ve tekrar gönderimde dönülecek sonuç aynı transaction içinde tamamlanır.
+    $yanit = [
+        'ok'  => true,
+        'fis' => ['id' => $fisId, 'fisno' => $fisno],
+        'cari' => $cari,
+        'satir_sayisi'         => count($ready),
+        'ara_toplam'           => $brut,
+        'ara_toplam_metin'     => api_money($brut),
+        'iskonto_toplam'       => $isk,
+        'iskonto_toplam_metin' => api_money($isk),
+        'kdv_toplam'           => $kdvT,
+        'kdv_toplam_metin'     => api_money($kdvT),
+        'genel_toplam'         => $netKdv,
+        'genel_toplam_metin'   => api_money($netKdv),
+        'atlanan'              => $h['skipped'],
+        'mesaj'                => $fisno . ' numaralı sipariş oluşturuldu.',
+    ];
+    if ($idempotencyKey !== null) {
+        siparis_idempotency_tamamla(
+            $dbh,
+            $idempotencyKey,
+            (int) $firmano,
+            $idempotencyDonem,
+            $personel,
+            (string) $bodyHash,
+            $yanit
+        );
+    }
+    if (!$dbh->commit()) {
+        throw new RuntimeException('Commit sonucu doğrulanamadı.');
+    }
 } catch (Throwable $e) {
-    if ($dbh->inTransaction()) {
-        $dbh->rollBack();
+    try {
+        if ($dbh->inTransaction()) {
+            $dbh->rollBack();
+        }
+    } catch (Throwable $rollbackError) {
+        error_log('API sipariş rollback sonucu doğrulanamadı.');
+    }
+    if ($e instanceof SiparisIdempotencyCakisma) {
+        api_json(['ok' => false, 'mesaj' => 'İşlem anahtarı bu istek için kullanılamaz.'], 409);
+    }
+    if ($e instanceof SiparisIdempotencyHazirDegil) {
+        error_log('API idempotency şeması hazır değil.');
+        api_json([
+            'ok' => false,
+            'mesaj' => 'Tekrar gönderim koruması hazır değil; isteği anahtarsız göndermeyin.',
+        ], 503);
+    }
+    if ($e instanceof SiparisIdempotencyBekle) {
+        if (!headers_sent()) {
+            header('Retry-After: 1');
+        }
+        api_json([
+            'ok' => false,
+            'mesaj' => 'İşlem sonucu henüz alınamadı; aynı anahtarla tekrar deneyin.',
+        ], 503);
     }
     error_log('api/siparis_olustur: ' . $e->getMessage());
-    api_json(['ok' => false, 'mesaj' => 'Sipariş kaydedilirken hata oluştu, hiçbir kayıt yapılmadı.'], 500);
+    api_json([
+        'ok' => false,
+        'mesaj' => $idempotencyKey === null
+            ? 'Sipariş sonucu doğrulanamadı; yeniden göndermeden önce kontrol edin.'
+            : 'Sipariş sonucu doğrulanamadı; aynı anahtar ve içerikle tekrar deneyin.',
+    ], 500);
 }
 
 // Denetim izi (mevcut web akışıyla aynı) — log hatası siparişi etkilemez.
@@ -226,19 +323,4 @@ if (function_exists('logFisOlusturma')) {
     }
 }
 
-api_json([
-    'ok'  => true,
-    'fis' => ['id' => $fisId, 'fisno' => $fisno],
-    'cari' => $cari,
-    'satir_sayisi'         => count($ready),
-    'ara_toplam'           => $brut,
-    'ara_toplam_metin'     => api_money($brut),
-    'iskonto_toplam'       => $isk,
-    'iskonto_toplam_metin' => api_money($isk),
-    'kdv_toplam'           => $kdvT,
-    'kdv_toplam_metin'     => api_money($kdvT),
-    'genel_toplam'         => $netKdv,
-    'genel_toplam_metin'   => api_money($netKdv),
-    'atlanan'              => $h['skipped'],
-    'mesaj'                => $fisno . ' numaralı sipariş oluşturuldu.',
-]);
+api_json($yanit);
