@@ -17,6 +17,9 @@
 
 - API token özetleri tür işaretli biçimde saklanır; veritabanındaki özet artık Bearer
   token olarak tekrar kullanılamaz. Kesin Bearer başlığı, JSON gövde sınırı ve API çıkışı eklendi.
+- API sipariş oluşturma ucu `Idempotency-Key` ile aynı veya eşzamanlı tekrarları tek
+  siparişe indirir; farklı içerikle anahtar tekrarını reddeder ve sonucu siparişle aynı
+  transaction içinde saklar.
 
 ## [1.3.1] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
