@@ -504,10 +504,8 @@ if (isset($_POST['stkid'])) {
        . ', stokmiktar=' . $stokmiktar . ', stokfiyat=' . $stokfiyat
        . ', uomref=' . $uomref . ', stokbirim=' . $stokbirim
        . ', trcurr=' . $trcurr . ', trrate=' . $trrate);
-     if (function_exists('app_log_exception')) {
-       try { app_log_exception($e, 'hareketekle.insert', ['error_info' => $errInfo, 'binds' => $insertTraceBinds]); } catch (Throwable $x) {}
-     }
-     echo '<script>if (window.toast) { toast("Satir eklenemedi: ' . addslashes($e->getMessage()) . '", "error"); } else { alert("Satir eklenemedi: ' . addslashes($e->getMessage()) . '"); } window.history.back();</script>';
+     $kullaniciMesaji = app_public_error_message($e, 'siparis/hareketekle.insert', 'Sipariş satırı eklenemedi.');
+     echo '<script>if (window.toast) { toast("' . addslashes($kullaniciMesaji) . '", "error"); } else { alert("' . addslashes($kullaniciMesaji) . '"); } window.history.back();</script>';
      exit;
    }
    // ========================================

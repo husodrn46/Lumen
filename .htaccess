@@ -73,7 +73,7 @@ RedirectMatch 404 (?i)/scripts(/|$)
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     # web.config ile aynı içerik güvenlik politikası (IIS'te vardı, Apache'de yoktu)
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tailwindcss.com cdnjs.cloudflare.com cdn.jsdelivr.net cdn.datatables.net code.jquery.com unpkg.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com cdn.jsdelivr.net cdn.datatables.net; font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com data:; img-src 'self' data: blob:; connect-src 'self' cdn.datatables.net;"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tailwindcss.com cdnjs.cloudflare.com cdn.jsdelivr.net cdn.datatables.net code.jquery.com unpkg.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com cdn.jsdelivr.net cdn.datatables.net; font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com data:; img-src 'self' data: blob:; connect-src 'self' cdn.datatables.net; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self';"
     Header unset X-Powered-By
     # HTTPS kullanıyorsanız etkinleştirin (yalnız HTTPS yanıtlarında gönderin):
     # Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS

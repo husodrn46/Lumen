@@ -131,16 +131,15 @@ try {
     $lineItems = $stmtDetails->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    $dbh_error = "Veritabani hatasi: " . $e->getMessage();
+    $dbh_error = app_public_error_message($e, 'stok/stok_hareket_pdf.db', 'PDF dosyası hazırlanamadı.');
 } catch (Exception $e) {
-     $dbh_error = "Genel bir hata olustu: " . $e->getMessage();
+    $dbh_error = app_public_error_message($e, 'stok/stok_hareket_pdf', 'PDF dosyası hazırlanamadı.');
 }
 
 // Hata varsa göster ve çık
 if ($dbh_error !== null) {
     ob_end_clean();
     header("Content-Type: text/plain; charset=utf-8");
-    // Gerçek ortamda hatayı loglamak daha iyi olabilir
     die($dbh_error);
 }
 

@@ -58,7 +58,9 @@ try {
         $tum_kasalar[$id] = ['CODE' => (string) $kasa['CODE'], 'NAME' => (string) $kasa['NAME']];
     }
 } catch (PDOException $e) {
-    die("Veritabanı hatası (Kasa isimleri): " . $e->getMessage());
+    $mesaj = app_public_error_message($e, 'rapor/finans_kartlar.kasalar', 'Kasa bilgileri alınamadı.');
+    lumen_hata_sayfasi('Rapor hatası', $mesaj, 500);
+    exit;
 }
 
 if ($tum_kasalar !== []) {
@@ -102,7 +104,9 @@ try {
         $kasa_verileri[$kasa_id] = $sorgu->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (PDOException $e) {
-    die("Veritabanı hatası: " . $e->getMessage());
+    $mesaj = app_public_error_message($e, 'rapor/finans_kartlar.hareketler', 'Kasa raporu hazırlanamadı.');
+    lumen_hata_sayfasi('Rapor hatası', $mesaj, 500);
+    exit;
 }
 
 $turkce_aylar = [1 => 'Ocak', 2 => 'Şubat', 3 => 'Mart', 4 => 'Nisan', 5 => 'Mayıs', 6 => 'Haziran', 7 => 'Temmuz', 8 => 'Ağustos', 9 => 'Eylül', 10 => 'Ekim', 11 => 'Kasım', 12 => 'Aralık'];

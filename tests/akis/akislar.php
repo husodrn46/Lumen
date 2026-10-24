@@ -367,19 +367,53 @@ akis('sistem ve yedek: mod görünür; yönetici yedek alır, listeler, indirir;
     bekle($satis->istek('ayar/sistem_yedek.php?indir=' . $m[1])['kod'] !== 200, 'yetkisiz kullanıcı yedek indirdi');
 });
 
-akis('özel cari: gizli cariye çek girilemez; yazdırma görünümü ve API çek listesi gizli cariyi göstermez', function () use ($URL, $pdo): void {
-    $sip = $pdo->query('SELECT TOP 1 LOGICALREF, CLIENTREF FROM LG_001_02_ORFICHE WHERE CLIENTREF > 0 ORDER BY LOGICALREF')->fetch(PDO::FETCH_ASSOC);
+akis('özel cari: gizli sipariş yazdırma, stok yardımcıları, döviz ekranları ve API üzerinden açılamaz', function () use ($URL, $pdo): void {
+    $sip = $pdo->query('SELECT TOP 1 F.LOGICALREF, F.CLIENTREF, F.FICHENO, F.DATE_, F.TRCURR, F.TRRATE, F.TRNET,
+                               L.STOCKREF
+                        FROM LG_001_02_ORFICHE F
+                        JOIN LG_001_02_ORFLINE L ON L.ORDFICHEREF = F.LOGICALREF AND L.LINETYPE = 0
+                        WHERE F.CLIENTREF > 0 ORDER BY F.LOGICALREF, L.LOGICALREF')->fetch(PDO::FETCH_ASSOC);
+    bekle($sip !== false, 'gizlenecek sipariş bulunamadı');
     $cari = (int) $sip['CLIENTREF'];
+    $fis = (int) $sip['LOGICALREF'];
+    $stok = (int) $sip['STOCKREF'];
     $kod = (string) tek($pdo, "SELECT CODE FROM LG_001_CLCARD WHERE LOGICALREF = {$cari}");
+    $stokKod = (string) tek($pdo, "SELECT CODE FROM LG_001_ITEMS WHERE LOGICALREF = {$stok}");
+    $eskiM21 = (int) tek($pdo, 'SELECT M21 FROM M_P_YETKI WHERE PERSONEL = 2');
+    $logoModu = !lumen_bagimsiz_mi();
     $pdo->exec("DELETE FROM M_OZEL_CARI_KISIT WHERE CARIREF = {$cari}");
     $pdo->exec("INSERT INTO M_OZEL_CARI_KISIT (CARIREF, OLUSTURAN, OLUSTURMA_TARIHI, YETKI_KODU, PERSONEL_ID)
                 VALUES ({$cari}, 1, GETDATE(), 'M19', 2), ({$cari}, 1, GETDATE(), 'M4', 2)");
     try {
+        if ($logoModu) {
+            $pdo->exec('UPDATE M_P_YETKI SET M21 = 1 WHERE PERSONEL = 2');
+            $pdo->exec("UPDATE LG_001_02_ORFICHE SET TRCURR = 1, TRRATE = 40, TRNET = NETTOTAL / 40 WHERE LOGICALREF = {$fis}");
+        }
         $s = (new Tarayici($URL))->giris('SATIS1');
         $j = json_decode($s->istek('cek/cek_giris.php', ['csrf_token' => $s->belirtec('cek/cek_panel.php'), 'cari_ref' => $cari, 'aciklama' => 'x',
             'istek_id' => bin2hex(random_bytes(16)), 'kalemler' => json_encode([['tutar' => 1, 'cekno' => 'G', 'banka' => 'B', 'vade' => date('Y-m-d', strtotime('+9 days')), 'sahibi' => '']])])['govde'], true);
         bekle(($j['ok'] ?? null) === false, 'gizli cariye çek girildi');
-        bekle($s->istek("yazdir/fis_goruntule.php?tip=siparis&fis={$sip['LOGICALREF']}")['kod'] === 404, 'gizli carinin siparişi yazdırma görünümünde açıldı');
+        bekle($s->istek("yazdir/fis_goruntule.php?tip=siparis&fis={$fis}")['kod'] === 404, 'gizli carinin siparişi yazdırma görünümünde açıldı');
+        foreach ([
+            "stok/lg_stoksonalisx.php" => ['userid' => "{$fis},{$stok},ADET"],
+        ] as $yol => $post) {
+            bekle($s->istek($yol, $post)['kod'] === 403, "gizli sipariş {$yol} üzerinden açıldı");
+        }
+        foreach ([
+            "stok/lg_stok_ekle.php?stok={$stok}&fisid={$fis}",
+            "stok/lg_stok_duzenle.php?stokid={$stok}&stokhareket={$fis}",
+            'stok/lg_stok_bul.php?barkod=' . rawurlencode($stokKod) . "&fisid={$fis}",
+        ] as $yol) {
+            bekle($s->istek($yol)['kod'] === 403, "gizli sipariş {$yol} üzerinden açıldı");
+        }
+        if ($logoModu) {
+            $ay = date('Y-m', strtotime((string) $sip['DATE_']));
+            $liste = $s->istek('doviz/siparisler.php?tarih=' . rawurlencode($ay));
+            bekle($liste['kod'] === 200 && !str_contains($liste['govde'], (string) $sip['FICHENO']), 'gizli sipariş döviz listesinde göründü');
+            foreach (['doviz/yazdir.php', 'doviz/yazdirx.php', 'doviz/fis_excel_xlsx.php'] as $yol) {
+                bekle($s->istek("{$yol}?id={$fis}")['kod'] === 403, "gizli sipariş {$yol} üzerinden açıldı");
+            }
+        }
         $ch = curl_init("{$URL}/api/login.php");
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_POSTFIELDS => json_encode(['kullanici' => 'SATIS1', 'sifre' => 'demo1234'])]);
@@ -389,6 +423,13 @@ akis('özel cari: gizli cariye çek girilemez; yazdırma görünümü ve API çe
         $liste = json_decode((string) curl_exec($ch), true);
         bekle(is_array($liste) && !str_contains((string) json_encode($liste, JSON_UNESCAPED_UNICODE), '"' . $kod . '"'), 'API çek listesinde gizli carinin çeki var');
     } finally {
+        if ($logoModu) {
+            $trcurr = (int) $sip['TRCURR'];
+            $trrate = (float) $sip['TRRATE'];
+            $trnet = (float) $sip['TRNET'];
+            $pdo->exec("UPDATE LG_001_02_ORFICHE SET TRCURR = {$trcurr}, TRRATE = {$trrate}, TRNET = {$trnet} WHERE LOGICALREF = {$fis}");
+        }
+        $pdo->exec("UPDATE M_P_YETKI SET M21 = {$eskiM21} WHERE PERSONEL = 2");
         $pdo->exec("DELETE FROM M_OZEL_CARI_KISIT WHERE CARIREF = {$cari}");
     }
 });

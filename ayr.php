@@ -787,21 +787,8 @@ try {
   // Sadece temel güvenlik ayarını yapıyoruz
 
 } catch (PDOException $e) {
-  // Güvenlik: Hassas bilgi sızmasını önle
-  error_log("Veritabanı Bağlantı Hatası: " . $e->getMessage());
-
-  // Kullanıcıya genel hata mesajı göster (detay verme!)
-  // Geçici olarak hata detayını göster (geliştirme için)
-  // Üretim ortamında bu satırı kaldırın veya DEBUG_MODE kontrolü yapın
-  // Debug modu kapatıldı - güvenlik için
-  // Sadece sunucu ortam değişkeni ile aktifleştirilebilir
-  if (getenv('DEBUG_MODE') === 'true') {
-    die("Veritabanı Bağlantı Hatası: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') .
-        "<br><br>Sunucu: " . htmlspecialchars($anamakina ?? 'N/A', ENT_QUOTES, 'UTF-8') .
-        "<br>Veritabanı: " . htmlspecialchars($veritabani ?? 'N/A', ENT_QUOTES, 'UTF-8') .
-        "<br>Kullanıcı: " . htmlspecialchars($kullanici ?? 'N/A', ENT_QUOTES, 'UTF-8'));
-  }
-  die("Veritabanı bağlantısı kurulamadı. Lütfen sistem yöneticisine başvurun.");
+  $mesaj = app_public_error_message($e, 'veritabani/baglanti', 'Veritabanı bağlantısı kurulamadı.');
+  die(htmlspecialchars($mesaj, ENT_QUOTES, 'UTF-8') . ' Lütfen sistem yöneticisine başvurun.');
 }
 /*try{
 

@@ -377,6 +377,24 @@ if (!function_exists('app_log_exception')) {
     }
 }
 
+if (!function_exists('app_public_error_message')) {
+    /**
+     * İstisna ayrıntısını sunucuda referans koduyla saklar; istemciye yalnızca
+     * güvenli, destek ekibinin logla eşleştirebileceği bir mesaj döndürür.
+     */
+    function app_public_error_message(Throwable $e, string $scope, string $message = 'Beklenmeyen bir hata oluştu.', array $context = []): string
+    {
+        try {
+            $ref = app_log_exception($e, $scope, $context);
+        } catch (Throwable $logError) {
+            error_log('app_public_error_message log hatasi: ' . $logError->getMessage());
+            $ref = app_error_ref();
+        }
+
+        return rtrim($message) . ' Hata kodu: ' . $ref;
+    }
+}
+
 if (!function_exists('app_error_level_name')) {
     function app_error_level_name(int $severity): string
     {

@@ -100,9 +100,9 @@ try {
     echo json_encode(['success' => true, 'message' => 'Son sipariş yüklendi', 'urunler' => $urunler]);
 
 } catch (PDOException $e) {
-    error_log("Son sipariş yükleme hatası: " . $e->getMessage());
-    die(json_encode(['success' => false, 'message' => 'Veritabanı hatası', 'error' => $e->getMessage()]));
+    $mesaj = app_public_error_message($e, 'siparis/son_siparis_yukle.db', 'Son sipariş yüklenemedi.');
+    die(json_encode(['success' => false, 'message' => $mesaj, 'error' => 'database_error'], JSON_UNESCAPED_UNICODE));
 } catch (Exception $e) {
-    error_log("Son sipariş yükleme genel hatası: " . $e->getMessage());
-    die(json_encode(['success' => false, 'message' => 'Hata oluştu', 'error' => $e->getMessage()]));
+    $mesaj = app_public_error_message($e, 'siparis/son_siparis_yukle', 'Son sipariş yüklenemedi.');
+    die(json_encode(['success' => false, 'message' => $mesaj, 'error' => 'server_error'], JSON_UNESCAPED_UNICODE));
 }

@@ -165,12 +165,10 @@ if ($canSeeBalance) {
 
         $rows = $calistir($sqlList, $params, 'list')->fetchAll(PDO::FETCH_ASSOC);
     } catch (Throwable $e) {
-        if (function_exists('app_log_exception')) {
-            $ref = app_log_exception($e, 'rapor/rapor_cari_borc_alacak.php', ['q' => mb_substr($rawQ, 0, 120), 'limit' => $limit]);
-            $pageError = "Beklenmeyen bir hata oluştu. Ref: " . htmlspecialchars((string) $ref, ENT_QUOTES, 'UTF-8');
-        } else {
-            $pageError = "Beklenmeyen bir hata oluştu: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
-        }
+        $pageError = htmlspecialchars(app_public_error_message($e, 'rapor/rapor_cari_borc_alacak.php', 'Rapor hazırlanamadı.', [
+            'q' => mb_substr($rawQ, 0, 120),
+            'limit' => $limit,
+        ]), ENT_QUOTES, 'UTF-8');
         $rows = [];
     }
 }

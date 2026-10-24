@@ -220,8 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
     } catch (PDOException $e) {
-        $hata_mesaji = "Veritabanı hatası: " . $e->getMessage();
-        logError($hata_mesaji);
+        $hata_mesaji = app_public_error_message($e, 'doviz/dizayn.kuyruk', 'Yazdırma kuyruğuna eklenemedi.');
     }
 
     // Hata varsa session'a kaydet

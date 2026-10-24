@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/oturum.php';
+require_once __DIR__ . '/includes/app_observability.php';
 
 /**
  * kurulum.php — Lumen kurulum sihirbazı.
@@ -145,11 +146,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ->execute([':d' => $bas]);
                     } else {
                         $hata = 'Şema kısmen kuruldu (' . $sema['basarili'] . '/' . $sema['toplam'] . '). Hatalı: '
-                            . implode(', ', array_keys($sema['hatalar'])) . ' — ' . (string) reset($sema['hatalar']);
+                            . implode(', ', array_keys($sema['hatalar'])) . '. Ayrıntı sunucu günlüğüne yazıldı.';
                     }
                 }
             } catch (Throwable $e) {
-                $hata = 'Bağlantı/doğrulama başarısız: ' . $e->getMessage();
+                $hata = app_public_error_message($e, 'kurulum/bagimsiz_baglanti', 'Bağlantı/doğrulama başarısız.');
             }
         } else {
             try {
@@ -196,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             } catch (Throwable $e) {
-                $hata = 'Bağlantı/doğrulama başarısız: ' . $e->getMessage();
+                $hata = app_public_error_message($e, 'kurulum/logo_baglanti', 'Bağlantı/doğrulama başarısız.');
             }
         }
     } elseif (($_POST['adim'] ?? '') === '2' && !empty($_SESSION['kurulum_db'])) {
@@ -227,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $adim = 3;
                 }
             } catch (Throwable $e) {
-                $hata = 'Yönetici oluşturulamadı: ' . $e->getMessage();
+                $hata = app_public_error_message($e, 'kurulum/yonetici', 'Yönetici oluşturulamadı.');
             }
         }
     }

@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['repair'])) {
             if ($dbh->inTransaction()) {
                 $dbh->rollBack();
             }
-            $err = $e->getMessage();
+            $err = app_public_error_message($e, 'stok/uretim_miktar_onar', 'Seçilen satırlar onarılamadı.');
         }
     }
 }
