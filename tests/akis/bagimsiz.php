@@ -1037,6 +1037,48 @@ akis('döviz kuru geçmişi: 60 sonrası sayfalardan açılır', function () use
     }
 });
 
+akis('stok kartı: 100 hareketten sonrası açılır ve yürüyen bakiye korunur', function () use ($yonetici, $pdo): void {
+    $stok = 5;
+    $depo = (int) tek($pdo, 'SELECT ID FROM LM_DEPO WHERE NO = 0');
+    $once = (int) tek($pdo, 'SELECT COUNT(*) FROM LM_STOK_HAREKET WHERE STOK_ID = :id', [':id' => $stok]);
+    $no = 'SHG' . strtoupper(bin2hex(random_bytes(5)));
+    $belgeId = 0;
+    try {
+        $pdo->beginTransaction();
+        $ekle = $pdo->prepare('INSERT INTO LM_BELGE (TUR, YON, NO, TARIH, NET, DURUM) VALUES (3, 1, :no, :tarih, 0, 1)');
+        $ekle->execute([':no' => $no, ':tarih' => '2099-12-31']);
+        $belgeId = (int) tek($pdo, 'SELECT ID FROM LM_BELGE WHERE NO = :no', [':no' => $no]);
+        $ekle = $pdo->prepare('INSERT INTO LM_STOK_HAREKET (STOK_ID, DEPO_ID, TARIH, BELGE_ID, GIRIS)
+                               VALUES (:stok, :depo, :tarih, :belge, 1)');
+        for ($i = 0; $i < 105; $i++) {
+            $ekle->execute([':stok' => $stok, ':depo' => $depo, ':tarih' => '2099-12-31', ':belge' => $belgeId]);
+        }
+        $pdo->commit();
+
+        $ilk = $yonetici->istek("kart/stok.php?id={$stok}")['govde'];
+        $ikinci = $yonetici->istek("kart/stok.php?id={$stok}&sayfa=2")['govde'];
+        bekle(substr_count($ilk, $no) === 100 && substr_count($ikinci, $no) === 5,
+            'stok: hareketler iki sayfaya doğru dağılmadı');
+        bekle(str_contains($ilk, 'Hareketler (' . number_format($once + 105, 0, ',', '.') . ')'), 'stok: toplam hareket yanlış');
+        bekle(str_contains($ilk, "id={$stok}&amp;sayfa=2") && str_contains($ikinci, "id={$stok}&amp;sayfa=1"),
+            'stok: sayfa bağlantıları yok');
+        $eldeki = (float) tek($pdo, 'SELECT SUM(MIKTAR) FROM LMV_STOK_MIKTAR WHERE STOK_ID = :id', [':id' => $stok]);
+        bekle(preg_match('/<td class="sag koyu">([0-9.,-]+)<\\/td>/', $ilk, $m) === 1
+            && abs((float) str_replace(['.', ','], ['', '.'], $m[1]) - $eldeki) < 0.0005,
+            'stok: sayfalama yürüyen bakiyeyi bozdu');
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        if ($belgeId > 0) {
+            $sil = $pdo->prepare('DELETE FROM LM_STOK_HAREKET WHERE BELGE_ID = :id');
+            $sil->execute([':id' => $belgeId]);
+            $sil = $pdo->prepare('DELETE FROM LM_BELGE WHERE ID = :id');
+            $sil->execute([':id' => $belgeId]);
+        }
+    }
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

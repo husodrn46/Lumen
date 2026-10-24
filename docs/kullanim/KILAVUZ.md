@@ -603,7 +603,7 @@ Kartta şunlar vardır:
 - "Eldeki (tüm depolar)", "Bekleyen satış siparişi", "Bekleyen alış siparişi" ve "Kullanılabilir" miktarlar.
 - Birimler ve çarpanları, barkodlar, KDV oranı.
 - "Fiyatlar ve depolar": satış ve alış fiyatları, depo başına miktar.
-- "Hareketler (son 100)": giriş, çıkış ve yürüyen bakiye. "Birim maliyet" sütunu yalnız "Faturalama" yetkisi olana görünür.
+- "Hareketler": giriş, çıkış ve yürüyen bakiye. Kayıtlar 100'er gösterilir; "Önceki" ve "Sonraki" ile daha eski hareketlere ulaşabilirsiniz. "Birim maliyet" sütunu yalnız "Faturalama" yetkisi olana görünür.
 
 ### Üretim ve sayım
 

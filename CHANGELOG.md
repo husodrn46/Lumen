@@ -13,6 +13,8 @@
   sekme sayaçları toplamı gösterir ve eski kayıtlar sayfalardan açılır.
 - Tanımlar'daki döviz kuru geçmişi 60 kayıtla kesilmez; toplam sayı ve eski
   tarihler sayfalardan görülebilir.
+- Stok kartı hareketleri son 100 kayıtla sınırlı kalmaz; eski hareketler
+  yürüyen bakiyeleri korunarak sayfalardan açılır.
 
 ## [1.3.2] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
