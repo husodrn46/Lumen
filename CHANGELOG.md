@@ -11,6 +11,8 @@
   arama süzgeçleri korunarak 50'şer sayfalanır.
 - Cari kartındaki belge, tahsilat/ödeme ve çek geçmişi 50 kayıtla kesilmez;
   sekme sayaçları toplamı gösterir ve eski kayıtlar sayfalardan açılır.
+- Tanımlar'daki döviz kuru geçmişi 60 kayıtla kesilmez; toplam sayı ve eski
+  tarihler sayfalardan görülebilir.
 
 ## [1.3.2] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
