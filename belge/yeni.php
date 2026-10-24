@@ -109,6 +109,10 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
     var bicim = function (n) { return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
     var tl = function (n) { return bicim(n) + (pb() === 'TRY' ? ' ₺' : ' ' + pb()); };
     var r2 = function (n) { return Math.round((n + Number.EPSILON) * 100) / 100; };
+    // Birim fiyatlar veritabanıyla aynı şekilde altı hanede tutulur. Para birimi
+    // değişimlerinde ekrandaki yuvarlanmış değer değil, bu TL referansı kullanılır.
+    var fiyatYuvarla = function (n) { return Math.round((n + Number.EPSILON) * 1000000) / 1000000; };
+    var fiyatMetni = function (n) { return String(fiyatYuvarla(n)).replace('.', ','); };
     // TR (1.234,56) ve EN (1234.56) biçimleri; sunucudaki lumen_tutar_coz ile aynı kural
     var sayi = function (v) {
         var s = String(v).replace(/\s/g, '');
@@ -116,10 +120,27 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
         var n = parseFloat(s); return isNaN(n) ? 0 : n;
     };
     var kur = function () { return pb() === 'TRY' ? 1 : sayi(kurGir.value); };
-    // Ürünün liste fiyatını (kendi para biriminde) belgenin para birimine çevirir.
-    var cevir = function (fiyat, kaynakPb) {
-        var tlFiyat = kaynakPb === 'TRY' ? fiyat : fiyat * (kurlar[kaynakPb] || 0);
-        return pb() === 'TRY' ? tlFiyat : (kur() > 0 ? tlFiyat / kur() : 0);
+    var fiyatTlDegeri = function (girdi) {
+        var saklanan = Number(girdi.dataset.tlFiyat);
+        return Number.isFinite(saklanan) ? saklanan : fiyatYuvarla(sayi(girdi.value) * kur());
+    };
+    var fiyatTlSakla = function (girdi) {
+        var aktifKur = kur();
+        if (aktifKur > 0) { girdi.dataset.tlFiyat = String(fiyatYuvarla(sayi(girdi.value) * aktifKur)); }
+    };
+    var fiyatGoster = function (girdi) {
+        var hedefKur = kur();
+        if (hedefKur <= 0) {
+            girdi.value = '';
+            girdi.dataset.kurBekliyor = '1';
+            return;
+        }
+        girdi.value = fiyatMetni(fiyatTlDegeri(girdi) / hedefKur);
+        delete girdi.dataset.kurBekliyor;
+    };
+    // Ürünün liste fiyatını tek referans olan TL değerine çevirir.
+    var tlReferans = function (fiyat, kaynakPb) {
+        return fiyatYuvarla(kaynakPb === 'TRY' ? fiyat : fiyat * (kurlar[kaynakPb] || 0));
     };
     var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
     var tur = document.getElementById('tur'), tbody = document.querySelector('#satirlar tbody');
@@ -135,20 +156,20 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
 
     // Para birimi: değişince kur önerilir ve mevcut satır fiyatları yeni para birimine çevrilir.
     if (pbSec) {
-        var oncekiKur = 1;
         pbSec.addEventListener('change', function () {
             var yeni = pb();
             document.getElementById('kurAlan').style.display = yeni === 'TRY' ? 'none' : '';
             document.getElementById('kurPb').textContent = yeni;
             if (yeni !== 'TRY') { kurGir.value = kurlar[yeni] ? String(kurlar[yeni]).replace('.', ',') : ''; kurGir.required = true; } else { kurGir.required = false; }
-            tbody.querySelectorAll('[name="satir[fiyat][]"]').forEach(function (g) {
-                var tlFiyat = sayi(g.value) * oncekiKur;
-                g.value = String(Math.round((yeni === 'TRY' ? tlFiyat : (kur() > 0 ? tlFiyat / kur() : 0)) * 10000) / 10000).replace('.', ',');
-            });
-            oncekiKur = kur();
+            tbody.querySelectorAll('[name="satir[fiyat][]"]').forEach(fiyatGoster);
             hesapla();
         });
-        kurGir.addEventListener('input', function () { oncekiKur = kur(); hesapla(); });
+        kurGir.addEventListener('input', function () {
+            tbody.querySelectorAll('[name="satir[fiyat][]"]').forEach(function (g) {
+                if (g.dataset.kurBekliyor === '1' && kur() > 0) { fiyatGoster(g); } else { fiyatTlSakla(g); }
+            });
+            hesapla();
+        });
     }
 
     function hesapla() {
@@ -177,23 +198,37 @@ belge_sayfa_basla('Yeni Belge', 'fa-file-circle-plus', 'index.php');
         var secBirim = u.barkod_birim || (u.birimler[0] ? u.birimler[0].id : 0);
         var carpanOf = function (id) { var b = u.birimler.filter(function (x) { return x.id === id; })[0]; return b ? b.carpan : 1; };
         var birimler = u.birimler.map(function (b) { return '<option value="' + b.id + '"' + (b.id === secBirim ? ' selected' : '') + '>' + esc(b.kod) + (b.carpan !== 1 ? ' (' + b.carpan + ')' : '') + '</option>'; }).join('');
-        var ilkFiyat = cevir(u.fiyat, u.pb || 'TRY') * carpanOf(secBirim);
+        var ilkTlFiyat = tlReferans(u.fiyat, u.pb || 'TRY') * carpanOf(secBirim);
+        var ilkFiyat = kur() > 0 ? ilkTlFiyat / kur() : 0;
         tr.innerHTML = '<td><input type="hidden" name="satir[stok_id][]" value="' + u.id + '"><span class="koyu">' + esc(u.kod) + '</span> ' + esc(u.ad)
             + (u.eldeki === null ? '' : '<div class="soluk">Eldeki: ' + u.eldeki.toLocaleString('tr-TR') + '</div>') + '</td>'
             + '<td><input name="satir[miktar][]" inputmode="decimal" value="1"></td>'
             + '<td><select name="satir[birim_id][]">' + birimler + '</select></td>'
-            + '<td><input name="satir[fiyat][]" inputmode="decimal" value="' + String(Math.round(ilkFiyat * 10000) / 10000).replace('.', ',') + '"></td>'
+            + '<td><input name="satir[fiyat][]" inputmode="decimal" data-tl-fiyat="' + fiyatYuvarla(ilkTlFiyat) + '" value="' + fiyatMetni(ilkFiyat) + '"></td>'
             + '<td><input name="satir[iskonto][]" inputmode="decimal" value="0"></td>'
             + '<td><input name="satir[kdv][]" inputmode="decimal" value="' + u.kdv + '"></td>'
             + '<td class="sag koyu tutar"></td>'
             + '<td><button type="button" class="btn btn-ikincil sil" title="Satırı sil"><i class="fa-solid fa-xmark"></i></button></td>';
         tbody.appendChild(tr);
-        tr.querySelectorAll('input').forEach(function (i) { i.addEventListener('input', hesapla); });
+        var fiyatGir = tr.querySelector('[name="satir[fiyat][]"]');
+        if (pb() !== 'TRY' && kur() <= 0) { fiyatGoster(fiyatGir); }
+        tr.querySelectorAll('input').forEach(function (i) {
+            i.addEventListener('input', function () {
+                if (i === fiyatGir) {
+                    if (kur() <= 0) { delete i.dataset.kurBekliyor; }
+                    fiyatTlSakla(i);
+                }
+                hesapla();
+            });
+        });
         tr.querySelector('.sil').addEventListener('click', function () { tr.remove(); hesapla(); });
         var birimSec = tr.querySelector('[name="satir[birim_id][]"]'), oncekiCarpan = carpanOf(secBirim);
         birimSec.addEventListener('change', function () {
             var yeniCarpan = carpanOf(parseInt(birimSec.value, 10)), fg = tr.querySelector('[name="satir[fiyat][]"]');
-            if (oncekiCarpan > 0) { fg.value = String(Math.round(sayi(fg.value) / oncekiCarpan * yeniCarpan * 10000) / 10000).replace('.', ','); }
+            if (oncekiCarpan > 0) {
+                fg.dataset.tlFiyat = String(fiyatYuvarla(fiyatTlDegeri(fg) / oncekiCarpan * yeniCarpan));
+                fiyatGoster(fg);
+            }
             oncekiCarpan = yeniCarpan;
             hesapla();
         });

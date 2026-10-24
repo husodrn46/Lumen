@@ -10,6 +10,8 @@
   unvanıyla bildirir; bilinçli istisnalar onaylanabilir. Excel aktarımı mükerrer satırı reddeder.
 - TL ve dövizli sipariş ekranları her satırda toplam, teslim edilen ve kalan miktarı ayrı
   gösterir; hiç teslim edilmemiş, kısmi ve tam teslim durumları testlerle doğrulanır.
+- Yeni belge ekranında para birimi değiştirilip geri alındığında satır fiyatı ve toplam,
+  ara yuvarlamaya uğramadan aynı TL referans değerine döner.
 
 ## [1.3.1] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
@@ -60,9 +62,6 @@ varsayılan `logo`).
 kez `php scripts/sema_guncelle.php`. LOGO tablolarına dokunulmaz; davranış değişmez.
 Bağımsız moda geçiş: `docs/mimari/bagimsiz-lumen.md` → "Kurulum ve LOGO'dan geçiş".
 Kullanım: `docs/kullanim/KILAVUZ.md`. Bilinen sınırlar: `docs/mimari/bagimsiz-lumen.md`.
-
-**Bilinen küçük konu** (sonraki bakım sürümü): belgede para birimi gidiş-dönüşünde fiyat
-kuruş kayması.
 
 ## [1.3.0-rc.3] — 2026-10-22 (SÜRÜM ADAYI)
 
