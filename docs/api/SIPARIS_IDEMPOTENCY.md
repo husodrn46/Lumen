@@ -37,9 +37,9 @@ almaz. Yeni ve güncellenen istemciler her mantıksal sipariş için yeni bir an
 
 ## Yükseltme
 
-Canlı ortamda uygulama dosyaları yayımlandıktan sonra yönetici olarak **Sistem →
-Veritabanı Şeması** güncellemesini çalıştırın (komut satırı karşılığı:
-`php scripts/sema_guncelle.php`). Bu işlem `M_API_IDEMPOTENCY` tablosunu oluşturur.
+Canlı ortamda uygulama dosyaları yayımlandıktan sonra doğru veritabanına bağlı
+sunucuda `php scripts/sema_guncelle.php` komutunu çalıştırın. Betik tüm Lumen şema
+betiklerini yeniden uygular ve `M_API_IDEMPOTENCY` tablosunu oluşturur.
 Şema kurulmadan gönderilen anahtarlı istek, korumasız sipariş açmak yerine `503`
 döner. Anahtarsız eski istemciler bu sırada çalışmaya devam eder.
 
