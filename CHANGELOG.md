@@ -2,6 +2,8 @@
 
 ## [Yayımlanmadı]
 
+## [1.3.2] — 2026-10-24 (GÜVENLİK VE BAKIM)
+
 ### 🐛 Düzeltmeler
 
 - Günlük İşlemler ekranı ve Excel çıktısı, satış ve kasa kayıtlarında yalnız tarih
@@ -20,6 +22,21 @@
 - API sipariş oluşturma ucu `Idempotency-Key` ile aynı veya eşzamanlı tekrarları tek
   siparişe indirir; farklı içerikle anahtar tekrarını reddeder ve sonucu siparişle aynı
   transaction içinde saklar.
+
+### 🔧 Bakım
+
+- PHP bağımlılıkları ve GitHub Actions bileşenleri güncellendi; issue/PR şablonları
+  ve otomatik etiketleme eklendi.
+- Yönetici ana sayfası eksik `M_API_IDEMPOTENCY` tablosunu şema uyarısında gösterir.
+
+**Yükseltme (v1.3.1 → v1.3.2):** uygulama ve veritabanı yedeğini doğrulayın; sürüm
+dosyalarını güncelleyip `composer install` çalıştırın. Ardından doğru veritabanına
+bağlı sunucuda `php scripts/sema_guncelle.php` komutunu bir kez çalıştırın ve
+hatasız tamamlandığını doğrulayın. Betik `M_API_IDEMPOTENCY` tablosunu oluşturur;
+ayrıca bütün Lumen şema betiklerini yeniden uygular. Eski biçimdeki API tokenları
+geçersiz kalabilir; etkilenen istemciler yeniden giriş yapmalıdır. LOGO tablolarına
+dokunulmaz.
+
 
 ## [1.3.1] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
