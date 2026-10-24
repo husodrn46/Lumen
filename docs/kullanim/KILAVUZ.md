@@ -439,6 +439,7 @@ Ekranda şunlar görünür:
 
 - Her kasa ve banka hesabının bakiyesi ve "Toplam".
 - Tarih ve hesaba göre süzülebilen fiş listesi. Bir hesabın kutusuna tıklarsanız yalnız o hesabın fişleri listelenir.
+- Fişler 50'şer gösterilir; alttaki "Önceki" ve "Sonraki" düğmeleri seçili tarih ve hesabı korur.
 
 ### Tahsilat (müşteriden para almak)
 
