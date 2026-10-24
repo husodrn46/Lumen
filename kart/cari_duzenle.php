@@ -31,6 +31,7 @@ if (!$c) {
 $personeller = $dbh->query('SELECT ID, AD FROM dbo.LM_PERSONEL WHERE AKTIF = 1 ORDER BY AD')->fetchAll(PDO::FETCH_KEY_PAIR);
 
 $hata = null;
+$mukerrerUyari = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify()) {
         lumen_hata_sayfasi('Geçersiz istek', 'Güvenlik doğrulaması başarısız. Sayfayı yenileyip tekrar deneyin.', 403);
@@ -38,18 +39,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $v = static fn(string $k, int $uz): ?string => mb_substr(trim((string) ($_POST[$k] ?? '')), 0, $uz) ?: null;
     $unvan = $v('unvan', 200);
     $tur = (int) ($_POST['tur'] ?? 3);
-    $vno = preg_replace('/\s+/', '', (string) ($_POST['vergi_no'] ?? ''));
+    $vno = lumen_vergi_no_normalize((string) ($_POST['vergi_no'] ?? ''));
     $eposta = $v('eposta', 160);
     $vade = (int) ($_POST['vade_gun'] ?? 0);
     $riskHam = trim((string) ($_POST['risk_limiti'] ?? ''));
     $risk = $riskHam === '' ? null : lumen_tutar_coz($riskHam);
     $paz = (int) ($_POST['pazarlamaci_id'] ?? 0);
+    $eslesen = $vno !== '' && lumen_vergi_no_gecerli($vno)
+        ? lumen_cari_vergi_eslesmesi($dbh, $vno, $id)
+        : null;
     if ($unvan === null) {
         $hata = 'Unvan boş olamaz.';
     } elseif (!in_array($tur, [1, 2, 3], true)) {
         $hata = 'Geçersiz cari türü.';
     } elseif ($vno !== '' && !lumen_vergi_no_gecerli($vno)) {
         $hata = 'Vergi no (10 hane) / TCKN (11 hane) geçersiz; numarayı kontrol edin.';
+    } elseif ($eslesen !== null && !isset($_POST['mukerrer_onay'])) {
+        $hata = "Bu numara [{$eslesen['KOD']}] {$eslesen['UNVAN']} carisinde kullanılıyor. Bilinçli bir istisnaysa aşağıdan onaylayın.";
+        $mukerrerUyari = true;
     } elseif ($eposta !== null && filter_var($eposta, FILTER_VALIDATE_EMAIL) === false) {
         $hata = 'E-posta adresi geçersiz.';
     } elseif ($vade < 0 || $vade > 365) {
@@ -101,7 +108,8 @@ $risk = $c['RISK_LIMITI'] !== null ? rtrim(rtrim(number_format((float) $c['RISK_
             <select name="tur"><?php foreach ([1 => 'Alıcı (müşteri)', 2 => 'Satıcı (tedarikçi)', 3 => 'Alıcı + satıcı'] as $k => $a): ?>
                 <option value="<?= $k ?>" <?= $k === $turSec ? 'selected' : '' ?>><?= bh($a) ?></option><?php endforeach; ?></select></label>
         <label class="alan">Vergi dairesi <input name="vergi_dairesi" maxlength="80" value="<?= bh($d('vergi_dairesi', 'VERGI_DAIRESI')) ?>"></label>
-        <label class="alan">Vergi no / TCKN <input name="vergi_no" inputmode="numeric" maxlength="11" value="<?= bh($vnoDeger) ?>"></label>
+        <label class="alan">Vergi no / TCKN <input name="vergi_no" inputmode="numeric" maxlength="20" value="<?= bh($vnoDeger) ?>"></label>
+        <?php if ($mukerrerUyari): ?><label class="alan kutu" style="grid-column:1/-1"><input type="checkbox" name="mukerrer_onay" value="1"> Eşleşen cariyi gördüm; bu istisnayı bilerek yine de kaydet.</label><?php endif; ?>
         <label class="alan">İl <input name="il" maxlength="60" value="<?= bh($d('il', 'IL')) ?>"></label>
         <label class="alan">İlçe <input name="ilce" maxlength="60" value="<?= bh($d('ilce', 'ILCE')) ?>"></label>
         <label class="alan" style="grid-column:1/-1">Adres <input name="adres" maxlength="400" value="<?= bh($d('adres', 'ADRES')) ?>"></label>

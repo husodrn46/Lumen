@@ -121,17 +121,26 @@ akis('ekstre PDF ve Excel bağımsız modda üretilir', function () use ($yoneti
     }
 });
 
-akis('yeni cari: LM_CARI\'ye önekli kodla yazılır ve aramada çıkar', function () use ($yonetici, $pdo): void {
+akis('yeni cari: LM_CARI\'ye önekli kodla yazılır, mükerrer vergi no uyarılır', function () use ($yonetici, $pdo): void {
     $unvan = 'Akış Testi Cari ' . strtoupper(bin2hex(random_bytes(2)));
     $t = $yonetici->belirtec('cari/cariyeni.php');
     $yonetici->istek('cari/cariyeni.php', ['csrf_token' => $t, 'cari_ekle' => 1, 'unvan' => $unvan, 'telefon' => '0 555 000 00 00',
-        'sehir' => 'Eskişehir', 'ilce' => 'Odunpazarı']);
+        'sehir' => 'Eskişehir', 'ilce' => 'Odunpazarı', 'vergi_no' => '2000000002']);
     $r = $pdo->prepare("SELECT ID, KOD FROM LM_CARI WHERE UNVAN = :u");
     $r->execute([':u' => $unvan]);
     $c = $r->fetch(PDO::FETCH_ASSOC);
     bekle($c !== false, 'cari LM_CARI\'ye yazılmadı');
     bekle(preg_match('/^[A-Za-z0-9._-]+\d{4}$/', (string) $c['KOD']) === 1, 'kod önek + 4 hane değil: ' . $c['KOD']);
     bekle(str_contains($yonetici->istek('cari/cari.php?cari=' . rawurlencode($unvan))['govde'], $unvan), 'yeni cari aramada yok');
+    $ikinci = 'Mükerrer Cari ' . strtoupper(bin2hex(random_bytes(2)));
+    $r2 = $yonetici->istek('cari/cariyeni.php', ['csrf_token' => $yonetici->belirtec('cari/cariyeni.php'), 'cari_ekle' => 1,
+        'unvan' => $ikinci, 'vergi_no' => '200.000.000-2']);
+    bekle(str_contains($r2['govde'], (string) $c['KOD']) && str_contains($r2['govde'], $unvan) && str_contains($r2['govde'], 'mukerrer_onay'),
+        'mükerrer vergi no eşleşmesi cari kodu/unvanıyla gösterilmedi');
+    bekle((int) tek($pdo, 'SELECT COUNT(*) FROM LM_CARI WHERE UNVAN = N\'' . str_replace("'", "''", $ikinci) . '\'') === 0, 'mükerrer cari onaysız yazıldı');
+    $yonetici->istek('cari/cariyeni.php', ['csrf_token' => $yonetici->belirtec('cari/cariyeni.php'), 'cari_ekle' => 1,
+        'unvan' => $ikinci, 'vergi_no' => '2000000002', 'mukerrer_onay' => 1]);
+    bekle((int) tek($pdo, 'SELECT COUNT(*) FROM LM_CARI WHERE UNVAN = N\'' . str_replace("'", "''", $ikinci) . '\'') === 1, 'bilinçli mükerrer istisnası yazılmadı');
 });
 
 akis('özel cari kısıtı: gizlenen cari liste, otomatik tamamlama ve ekstrede görünmez', function () use ($URL, $pdo): void {
@@ -412,13 +421,14 @@ akis('Excel\'den aktar: şablon, önizleme ve satır hataları, onay; açılış
     $sablon = $yonetici->istek('tanimlar/ice_aktar.php?sablon=stok');
     bekle($sablon['kod'] === 200 && str_starts_with($sablon['govde'], 'PK'), 'şablon indirilemedi');
     $ek = (string) random_int(1000, 9999);
-    // Cari dosyası: 2 geçerli, 1 hatalı (vergi no), 1 dosya içi tekrar, 1 mevcut (atlanır)
+    // Cari dosyası: 2 geçerli, 1 hatalı no, 1 mükerrer no, 1 kod tekrarı, 1 mevcut (atlanır)
     $x = new PhpOffice\PhpSpreadsheet\Spreadsheet();
     $x->getActiveSheet()->fromArray([
         ['Kod *', 'Unvan *', 'Tür', 'Vergi dairesi', 'Vergi no / TCKN', 'İl', 'İlçe', 'Adres', 'Telefon', 'E-posta', 'Vade (gün)', 'Açılış bakiyesi'],
         ["XL{$ek}A", 'Excel Cari A', 'Alıcı', 'Kadıköy', '1234567890', 'İstanbul', '', '', '', 'a@ornek.test', 30, '1.250,50'],
         ["XL{$ek}B", 'Excel Cari B', 'Satıcı', '', '', 'Ankara', '', '', '', '', '', -400],
         ["XL{$ek}C", 'Hatalı Cari', '', '', '12', '', '', '', '', '', '', ''],
+        ["XL{$ek}D", 'Mükerrer Vergi', '', '', '123 456 7890', '', '', '', '', '', '', ''],
         ["XL{$ek}A", 'Tekrar', '', '', '', '', '', '', '', '', '', ''],
         ['120.DM.001', 'Mevcut', '', '', '', '', '', '', '', '', '', ''],
     ], null, 'A1', true);
@@ -427,7 +437,8 @@ akis('Excel\'den aktar: şablon, önizleme ve satır hataları, onay; açılış
     $once = (float) tek($pdo, 'SELECT ISNULL(SUM(BAKIYE), 0) FROM LMV_CARI_BAKIYE');
     $g = $yonetici->istekDosya('tanimlar/ice_aktar.php', ['csrf_token' => $yonetici->belirtec('tanimlar/ice_aktar.php'), 'islem' => 'yukle',
         'tur' => 'cari', 'tarih' => date('Y-m-d')], 'dosya', $dosya, 'cariler.xlsx')['govde'];
-    bekle(str_contains($g, 'Önizleme') && str_contains($g, 'Vergi no 10') && str_contains($g, 'dosyada 2. satırda'), 'önizleme/satır hataları görünmüyor');
+    bekle(str_contains($g, 'Önizleme') && str_contains($g, 'Vergi no 10') && str_contains($g, 'dosyada 2. satırda')
+        && str_contains($g, "XL{$ek}A") && str_contains($g, 'Excel Cari A'), 'önizleme/mükerrer vergi no hataları görünmüyor');
     preg_match('/name="anahtar" value="([a-f0-9]+)"/', $g, $m);
     bekle(isset($m[1]), 'önizleme anahtarı yok');
     $t = $yonetici->belirtec('tanimlar/ice_aktar.php');
@@ -751,6 +762,10 @@ akis('cari kartı düzenle: adres, vergi, vade, risk; geçersiz vergi no reddedi
     yakin(50000.0, (float) $c['RISK_LIMITI'], 'risk limiti');
     $h = $gonder(['vergi_no' => '4829103751'] + $alan);
     bekle($h['kod'] === 200 && str_contains($h['govde'], 'geçersiz'), 'kontrol basamağı tutmayan vergi no kabul edildi');
+    $pdo->exec("INSERT INTO LM_CARI (KOD, UNVAN, VERGI_NO) VALUES ('MUK.TEST', N'Mükerrer Kaynak', '1234567890')");
+    $m = $gonder(['vergi_no' => '123 456 7890'] + $alan);
+    bekle($m['kod'] === 200 && str_contains($m['govde'], 'MUK.TEST') && str_contains($m['govde'], 'Mükerrer Kaynak')
+        && str_contains($m['govde'], 'mukerrer_onay'), 'düzenlemede mükerrer vergi no uyarısı yok');
     $pasif = ['vergi_no' => '10000000146'] + $alan;
     unset($pasif['aktif']);   // işaretsiz kutu tarayıcıdan hiç gönderilmez
     $gonder($pasif);

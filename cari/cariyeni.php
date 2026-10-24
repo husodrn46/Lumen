@@ -25,6 +25,7 @@ $mesajTip = '';
 $olusanCariId = 0;
 $olusanCariKod = '';
 $olusanCariAd = '';
+$mukerrerUyari = false;
 
 if ($yeniCariAcik && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cari_ekle'])) {
     if (!csrf_verify()) {
@@ -36,12 +37,15 @@ if ($yeniCariAcik && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cari
     $telefon = trim((string) ($_POST['telefon'] ?? ''));
     $sehir = trim((string) ($_POST['sehir'] ?? ''));
     $ilce = trim((string) ($_POST['ilce'] ?? ''));
+    $vergiNo = trim((string) ($_POST['vergi_no'] ?? ''));
 
     // Uzunluk sınırları, boş unvan kontrolü ve kod çakışmasında yeniden deneme kütüphanededir.
-    $sonuc = cari_olustur_yeni($dbh, $firma, (int) $terminalkullanici, $unvan, $telefon, $sehir, $ilce, $onek);
+    $sonuc = cari_olustur_yeni($dbh, $firma, (int) $terminalkullanici, $unvan, $telefon, $sehir, $ilce, $onek,
+        $vergiNo, isset($_POST['mukerrer_onay']));
     if (!$sonuc['ok']) {
         $mesaj = $sonuc['mesaj'];
         $mesajTip = 'error';
+        $mukerrerUyari = (bool) ($sonuc['mukerrer'] ?? false);
     } else {
         $olusanCariId = $sonuc['cariid'];
         $olusanCariKod = $sonuc['kod'];
@@ -151,6 +155,19 @@ $csrf = function_exists('csrf_field') ? csrf_field() : '';
                                value="<?php echo htmlspecialchars((string) ($_POST['telefon'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                placeholder="05xx xxx xx xx">
                     </div>
+
+                    <div class="form-row">
+                        <label class="form-label" for="vergi_no">Vergi no / TCKN</label>
+                        <input type="text" name="vergi_no" id="vergi_no" class="form-input" maxlength="20" inputmode="numeric"
+                               value="<?php echo htmlspecialchars((string) ($_POST['vergi_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                               placeholder="10 haneli VKN veya 11 haneli TCKN">
+                    </div>
+
+                    <?php if ($mukerrerUyari): ?>
+                        <label class="form-row" style="display:flex;gap:9px;align-items:flex-start;font-size:13px">
+                            <input type="checkbox" name="mukerrer_onay" value="1"> Eşleşen cariyi gördüm; bu istisnayı bilerek yine de oluştur.
+                        </label>
+                    <?php endif; ?>
 
                     <div class="form-row form-grid">
                         <div>
