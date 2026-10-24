@@ -21,6 +21,8 @@ belge_sayfa_basla('Tanımlar', 'fa-sliders', '../index.php');
     .islemler { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
     .islemler form { display: inline; }
     .btn-kucuk { padding: 6px 10px; font-size: 12.5px; }
+    .sayfalama { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--border); }
+    .sayfalama .dugmeler { display: flex; gap: 8px; }
     tr.pasif td { color: var(--text-3); }
     .ipucu { font-size: 12.5px; color: var(--text-2); line-height: 1.5; margin-top: 4px; }
 </style>
@@ -155,7 +157,18 @@ if ($sekme === 'firma'):
 
 <?php else:
     $pbler = $dbh->query("SELECT KOD, AD FROM dbo.LM_PARA_BIRIMI WHERE KOD <> 'TRY' AND AKTIF = 1 ORDER BY KOD")->fetchAll(PDO::FETCH_KEY_PAIR);
-    $kurlar = $dbh->query('SELECT TOP 60 TARIH, PARA_BIRIMI, ALIS, SATIS FROM dbo.LM_KUR ORDER BY TARIH DESC, PARA_BIRIMI')->fetchAll(PDO::FETCH_ASSOC); ?>
+    $kurToplam = (int) $dbh->query('SELECT COUNT(*) FROM dbo.LM_KUR')->fetchColumn();
+    $sayfaGirdisi = $_GET['sayfa'] ?? '1';
+    $sayfa = is_string($sayfaGirdisi) ? filter_var($sayfaGirdisi, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) : false;
+    $sayfa = $sayfa === false ? 1 : $sayfa;
+    $sayfaBoyutu = 50;
+    $sayfaSayisi = max(1, (int) ceil($kurToplam / $sayfaBoyutu));
+    $sayfa = min($sayfa, $sayfaSayisi);
+    $ofset = ($sayfa - 1) * $sayfaBoyutu;
+    $kurlar = $dbh->query("SELECT TARIH, PARA_BIRIMI, ALIS, SATIS FROM dbo.LM_KUR
+                           ORDER BY TARIH DESC, PARA_BIRIMI
+                           OFFSET {$ofset} ROWS FETCH NEXT {$sayfaBoyutu} ROWS ONLY")->fetchAll(PDO::FETCH_ASSOC);
+    $sayfaBaglantisi = static fn(int $hedef): string => '?' . http_build_query(['sekme' => 'kur', 'sayfa' => $hedef]); ?>
     <div class="kart kart-ic">
         <div class="kart-baslik" style="padding:0 0 12px"><i class="fa-solid fa-coins"></i>Kur gir</div>
         <form method="post" action="islem.php" class="izgara" style="align-items:end">
@@ -180,6 +193,16 @@ if ($sekme === 'firma'):
             <tr><td><?= bh(date('d.m.Y', (int) strtotime((string) $k['TARIH']))) ?></td><td class="koyu"><?= bh($k['PARA_BIRIMI']) ?></td>
                 <td class="sag"><?= bh(number_format((float) $k['ALIS'], 4, ',', '.')) ?></td><td class="sag"><?= bh(number_format((float) $k['SATIS'], 4, ',', '.')) ?></td></tr>
         <?php endforeach; ?>
-        </tbody></table></div>
+        </tbody></table>
+        <nav class="sayfalama" aria-label="Döviz kuru sayfaları">
+            <span class="soluk"><?= number_format($kurToplam, 0, ',', '.') ?> kayıt · Sayfa <?= $sayfa ?> / <?= $sayfaSayisi ?></span>
+            <?php if ($sayfaSayisi > 1): ?>
+                <div class="dugmeler">
+                    <?php if ($sayfa > 1): ?><a class="btn btn-ikincil" href="<?= bh($sayfaBaglantisi($sayfa - 1)) ?>">Önceki</a><?php endif; ?>
+                    <?php if ($sayfa < $sayfaSayisi): ?><a class="btn btn-ikincil" href="<?= bh($sayfaBaglantisi($sayfa + 1)) ?>">Sonraki</a><?php endif; ?>
+                </div>
+            <?php endif; ?>
+        </nav>
+    </div>
 <?php endif;
 belge_sayfa_bitir();

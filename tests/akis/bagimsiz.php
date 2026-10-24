@@ -1004,6 +1004,39 @@ akis('cari kartı: geçmiş sekmelerinde 50 sonrası açılır ve toplamlar doğ
     }
 });
 
+akis('döviz kuru geçmişi: 60 sonrası sayfalardan açılır', function () use ($yonetici, $pdo): void {
+    $once = (int) tek($pdo, 'SELECT COUNT(*) FROM LM_KUR');
+    $tarihler = [];
+    try {
+        $pdo->beginTransaction();
+        $ekle = $pdo->prepare("INSERT INTO LM_KUR (TARIH, PARA_BIRIMI, ALIS, SATIS) VALUES (:tarih, 'USD', 40, 41)");
+        $baslangic = new DateTimeImmutable('2099-01-01');
+        for ($i = 0; $i < 65; $i++) {
+            $tarih = $baslangic->modify("+{$i} days")->format('Y-m-d');
+            $ekle->execute([':tarih' => $tarih]);
+            $tarihler[] = $tarih;
+        }
+        $pdo->commit();
+
+        $ilk = $yonetici->istek('tanimlar/index.php?sekme=kur')['govde'];
+        $ikinci = $yonetici->istek('tanimlar/index.php?sekme=kur&sayfa=2')['govde'];
+        bekle(preg_match_all('/<tr><td>\\d{2}\\.\\d{2}\\.2099<\\/td><td class="koyu">USD<\\/td>/', $ilk) === 50,
+            'kur: ilk sayfada 50 yeni kayıt yok');
+        bekle(!str_contains($ilk, '01.01.2099') && str_contains($ikinci, '01.01.2099'), 'kur: eski kayıt ikinci sayfada yok');
+        bekle(str_contains($ilk, number_format($once + 65, 0, ',', '.') . ' kayıt · Sayfa 1 / 2'), 'kur: toplam ve sayfa sayısı yanlış');
+        bekle(str_contains($ilk, 'sekme=kur&amp;sayfa=2') && str_contains($ikinci, 'sekme=kur&amp;sayfa=1'),
+            'kur: sayfa bağlantıları yok');
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $sil = $pdo->prepare("DELETE FROM LM_KUR WHERE TARIH = :tarih AND PARA_BIRIMI = 'USD'");
+        foreach ($tarihler as $tarih) {
+            $sil->execute([':tarih' => $tarih]);
+        }
+    }
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

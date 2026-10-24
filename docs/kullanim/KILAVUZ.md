@@ -235,6 +235,7 @@ Listede her kullanıcının yanında "Düzenle", "Pasife al" / "Aktife al" ve "S
 1. "Tanımlar" → "Döviz kurları" sekmesine girin.
 2. En kolay yol "Bugünün kurlarını TCMB'den al" düğmesidir.
 3. Kuru elle girmek için "Kur gir" bölümünde "Tarih", "Para birimi", "Döviz alış" ve "Döviz satış" alanlarını doldurup "Kaydet" düğmesine basın.
+4. Kur geçmişi 50'şer kayıt halinde gösterilir; eski tarihlere "Önceki" ve "Sonraki" ile ulaşabilirsiniz.
 
 **Dikkat**
 
