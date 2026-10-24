@@ -2,6 +2,12 @@
 
 ## [Yayımlanmadı]
 
+### 🐛 Düzeltmeler
+
+- Kasa/banka fişi formu, `12abc` gibi geçersiz tutarları göndermeden uyarır.
+- Kasa/banka listesi fişleri sessizce ilk 300 kayıtla sınırlamak yerine 50'şer
+  sayfalar; tarih ve hesap süzgeçleri sayfa geçişlerinde korunur.
+
 ## [1.3.2] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
 ### 🐛 Düzeltmeler

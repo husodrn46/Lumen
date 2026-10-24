@@ -893,6 +893,35 @@ akis('raporlar: bugünkü fatura ve tahsilat günlük özet, aylık satış, ür
     }
 });
 
+akis('kasa/banka listesi: 300 fişten sonrası filtre korunarak açılır', function () use ($yonetici, $pdo): void {
+    $hesap = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'KASA.01'");
+    $tarih = date('Y-m-d');
+    $onek = 'PG' . strtoupper(bin2hex(random_bytes(4))) . '-';
+    try {
+        $pdo->beginTransaction();
+        $ekle = $pdo->prepare("INSERT INTO LM_FINANS_FIS (TUR, NO, TARIH, HESAP_ID, TUTAR, ACIKLAMA)
+                              VALUES (4, :no, :tarih, :hesap, 1, N'Sayfalama testi')");
+        for ($i = 1; $i <= 305; $i++) {
+            $ekle->execute([':no' => $onek . $i, ':tarih' => $tarih, ':hesap' => $hesap]);
+        }
+        $pdo->commit();
+
+        $filtre = http_build_query(['hesap' => $hesap, 'bas' => $tarih, 'bit' => $tarih]);
+        $ilk = $yonetici->istek('finans/index.php?' . $filtre)['govde'];
+        $yedinci = $yonetici->istek('finans/index.php?' . $filtre . '&sayfa=7')['govde'];
+        bekle(substr_count($ilk, $onek) === 50 && str_contains($ilk, 'sayfa=2'), 'ilk sayfa 50 fiş ve sonraki bağlantısını göstermiyor');
+        bekle(str_contains($yedinci, '>' . $onek . '1</a>') && str_contains($yedinci, 'sayfa=6'), 'yedinci sayfada 300 fişten eski kayıt veya önceki bağlantısı yok');
+        bekle(str_contains($yedinci, 'href="?hesap=' . $hesap . '&amp;bas=' . $tarih . '&amp;bit=' . $tarih . '&amp;sayfa=6"'),
+            'sayfa bağlantısı hesap ve tarih filtresini korumuyor');
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $sil = $pdo->prepare('DELETE FROM LM_FINANS_FIS WHERE NO LIKE :onek');
+        $sil->execute([':onek' => $onek . '%']);
+    }
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);

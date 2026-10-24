@@ -13,6 +13,10 @@ $turler = lumen_finans_turleri();
 $secHesap = (int) ($_GET['hesap'] ?? 0);
 $bas = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['bas'] ?? '')) ? (string) $_GET['bas'] : date('Y-m-01');
 $bit = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['bit'] ?? '')) ? (string) $_GET['bit'] : date('Y-m-d');
+$sayfaGirdisi = $_GET['sayfa'] ?? '1';
+$sayfa = is_string($sayfaGirdisi) ? filter_var($sayfaGirdisi, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) : false;
+$sayfa = $sayfa === false ? 1 : $sayfa;
+$sayfaBoyutu = 50;
 
 $kosul = 'F.TARIH BETWEEN :bas AND :bit';
 $p = [':bas' => $bas, ':bit' => $bit];
@@ -25,12 +29,21 @@ if ($ozel['sql'] !== '') {
     $kosul .= ' AND ' . $ozel['sql'];
     $p += $ozel['params'];
 }
-$st = $dbh->prepare("SELECT TOP 300 F.ID, F.TUR, F.NO, F.TARIH, F.TUTAR, F.DURUM, F.ACIKLAMA, H.AD AS HESAP, K.AD AS KARSI, C.KOD AS CARI_KOD, C.UNVAN
+$sayac = $dbh->prepare("SELECT COUNT(*) FROM dbo.LM_FINANS_FIS F WHERE {$kosul}");
+$sayac->execute($p);
+$fisSayisi = (int) $sayac->fetchColumn();
+$sayfaSayisi = max(1, (int) ceil($fisSayisi / $sayfaBoyutu));
+$sayfa = min($sayfa, $sayfaSayisi);
+$ofset = ($sayfa - 1) * $sayfaBoyutu;
+$sayfaBaglantisi = static fn(int $hedef): string => '?' . http_build_query(['hesap' => $secHesap, 'bas' => $bas, 'bit' => $bit, 'sayfa' => $hedef]);
+
+$st = $dbh->prepare("SELECT F.ID, F.TUR, F.NO, F.TARIH, F.TUTAR, F.DURUM, F.ACIKLAMA, H.AD AS HESAP, K.AD AS KARSI, C.KOD AS CARI_KOD, C.UNVAN
                      FROM dbo.LM_FINANS_FIS F
                      JOIN dbo.LM_FINANS_HESAP H ON H.ID = F.HESAP_ID
                      LEFT JOIN dbo.LM_FINANS_HESAP K ON K.ID = F.KARSI_HESAP_ID
                      LEFT JOIN dbo.LM_CARI C ON C.ID = F.CARI_ID
-                     WHERE {$kosul} ORDER BY F.TARIH DESC, F.ID DESC");
+                     WHERE {$kosul} ORDER BY F.TARIH DESC, F.ID DESC
+                     OFFSET {$ofset} ROWS FETCH NEXT {$sayfaBoyutu} ROWS ONLY");
 $st->execute($p);
 $fisler = $st->fetchAll(PDO::FETCH_ASSOC);
 $toplam = array_sum(array_map(static fn(array $h): float => (float) $h['BAKIYE'], $hesaplar));
@@ -45,6 +58,8 @@ belge_sayfa_basla('Kasa ve Banka', 'fa-building-columns', '../index.php',
     .hesap .tutar { font-size: 20px; font-weight: 700; margin-top: 6px; }
     .eksi { color: var(--red); }
     .hizli { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .sayfalama { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .sayfalama .dugmeler { display: flex; gap: 8px; }
 </style>
 <div class="hizli">
     <?php foreach ([1 => 'fa-arrow-down', 2 => 'fa-arrow-up', 3 => 'fa-right-left', 4 => 'fa-receipt'] as $t => $ikon): ?>
@@ -97,4 +112,13 @@ belge_sayfa_basla('Kasa ve Banka', 'fa-building-columns', '../index.php',
         </tbody>
     </table>
 </div>
+<nav class="sayfalama" aria-label="Fiş sayfaları">
+    <span class="soluk"><?= number_format($fisSayisi, 0, ',', '.') ?> fiş · Sayfa <?= $sayfa ?> / <?= $sayfaSayisi ?></span>
+    <?php if ($sayfaSayisi > 1): ?>
+        <div class="dugmeler">
+            <?php if ($sayfa > 1): ?><a class="btn btn-ikincil" href="<?= bh($sayfaBaglantisi($sayfa - 1)) ?>">Önceki</a><?php endif; ?>
+            <?php if ($sayfa < $sayfaSayisi): ?><a class="btn btn-ikincil" href="<?= bh($sayfaBaglantisi($sayfa + 1)) ?>">Sonraki</a><?php endif; ?>
+        </div>
+    <?php endif; ?>
+</nav>
 <?php belge_sayfa_bitir();
