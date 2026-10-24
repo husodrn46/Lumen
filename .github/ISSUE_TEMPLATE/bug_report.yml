@@ -1,0 +1,73 @@
+name: Hata bildirimi
+description: Tekrarlanabilir bir uygulama hatasını bildirin.
+title: "[Hata]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Teşekkürler. Gerçek müşteri verisi, parola, erişim anahtarı veya bağlantı bilgisi paylaşmayın.
+
+  - type: input
+    id: version
+    attributes:
+      label: Lumen sürümü
+      description: Sürüm numarası veya commit kimliği.
+      placeholder: v1.3.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Çalışma modu
+      options:
+        - LOGO Tiger bağlantılı
+        - Bağımsız Lumen
+        - Demo ortamı
+        - Bilmiyorum
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Ne oldu?
+      description: Beklenen ve gerçekleşen davranışı açıklayın.
+      placeholder: Beklediğim... Gerçekte...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Tekrarlama adımları
+      description: Hatayı yeniden oluşturmak için gereken en kısa adımlar.
+      placeholder: |
+        1. ... sayfasına gidin
+        2. ... alanını doldurun
+        3. ... düğmesine basın
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Ortam
+      description: PHP, web sunucusu, işletim sistemi ve tarayıcı sürümleri.
+      placeholder: PHP 8.2, Nginx, Windows 11, Chrome 140
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: İlgili günlük veya ekran görüntüsü
+      description: Hassas bilgileri temizleyerek ekleyin.
+      render: shell
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Gizlilik kontrolü
+      options:
+        - label: Paylaşımım gerçek müşteri verisi, parola veya erişim anahtarı içermiyor.
+          required: true

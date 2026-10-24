@@ -1,0 +1,50 @@
+name: Özellik önerisi
+description: Lumen için yeni bir özellik veya iyileştirme önerin.
+title: "[Öneri]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: İhtiyaç
+      description: Hangi kullanıcı problemini çözmek istiyorsunuz?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Önerilen çözüm
+      description: Beklediğiniz davranışı ve mümkünse örnek iş akışını açıklayın.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: İlgili alan
+      options:
+        - Sipariş ve satış
+        - Stok
+        - Cari ve finans
+        - Raporlama
+        - LOGO Tiger entegrasyonu
+        - Bağımsız Lumen
+        - Kurulum ve yönetim
+        - Diğer
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Mevcut alternatif
+      description: Şu anda kullandığınız geçici çözüm varsa belirtin.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Gizlilik kontrolü
+      options:
+        - label: Paylaşımım gerçek müşteri verisi, parola veya erişim anahtarı içermiyor.
+          required: true

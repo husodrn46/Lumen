@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Güvenlik açığını özel olarak bildir
+    url: https://github.com/husodrn46/Lumen/security/advisories/new
+    about: Güvenlik açıklarını herkese açık issue olarak paylaşmayın.
+  - name: Kurulum ve kullanım belgeleri
+    url: https://github.com/husodrn46/Lumen#readme
+    about: Issue açmadan önce mevcut belgeleri kontrol edin.
