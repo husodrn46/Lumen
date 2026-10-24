@@ -121,6 +121,25 @@ if (!function_exists('lumen_belge_satir_hesapla')) {
     }
 }
 
+if (!function_exists('lumen_belge_fiyat_tl')) {
+    /**
+     * Birim fiyat dönüşümlerinde tek kural: TL referans değer ve gösterilen döviz fiyatı
+     * altı ondalık hanede tutulur. Para birimi değişirken aynı TL referansı yeniden kullanılır.
+     */
+    function lumen_belge_fiyat_tl(float $fiyat, float $kur): float
+    {
+        return round(max(0.0, $fiyat) * max(0.0, $kur), 6);
+    }
+}
+
+if (!function_exists('lumen_belge_fiyat_para_biriminde')) {
+    /** TL referans fiyatını hedef para birimine çevirir; TRY için hedef kur 1'dir. */
+    function lumen_belge_fiyat_para_biriminde(float $tlFiyat, float $hedefKur): float
+    {
+        return $hedefKur > 0 ? round(max(0.0, $tlFiyat) / $hedefKur, 6) : 0.0;
+    }
+}
+
 if (!function_exists('lumen_belge_seri_no')) {
     /** Sayaçtan sıradaki belge numarası (ör. FTR000031). Transaction içinde çağrılmalıdır. */
     function lumen_belge_seri_no(PDO $dbh, string $seri): string
@@ -266,7 +285,7 @@ if (!function_exists('lumen_belge_kaydet')) {
                 }
                 $miktar = round((float) $s['miktar'], 6);
                 $dovizFiyat = $pb !== 'TRY' ? max(0.0, (float) ($s['fiyat'] ?? 0)) : null;
-                $fiyat = $dovizFiyat !== null ? round($dovizFiyat * $kur, 6) : max(0.0, (float) ($s['fiyat'] ?? 0));
+                $fiyat = $dovizFiyat !== null ? lumen_belge_fiyat_tl($dovizFiyat, $kur) : max(0.0, (float) ($s['fiyat'] ?? 0));
                 $isk = min(100.0, max(0.0, (float) ($s['iskonto'] ?? 0)));
                 $kdvOran = min(100.0, max(0.0, (float) ($s['kdv'] ?? 0)));
                 $kaynak = (int) ($s['kaynak_satir_id'] ?? 0);
