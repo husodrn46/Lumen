@@ -21,6 +21,8 @@
 ### 🎨 Arayüz ve bakım
 
 - Ekranlar ortak bordo tasarım diline ve daha tutarlı mobil yerleşime uyarlandı.
+- Müşteri yanında gizli mod düğmesi ortak başlığı olan sayfalarda başlığa taşındı;
+  başlıksız sayfalarda içerikle çakışmaması için alt boşluk bırakıldı.
 - Pull request şablonu ve katkı rehberi; dal, test, güvenlik ve sürüm akışını belgeledi.
 
 **Yükseltme (v1.3.0 → v1.3.1):** dosyaları güncelleyip `composer install` çalıştırın.
@@ -49,8 +51,8 @@ Bağımsız moda geçiş: `docs/mimari/bagimsiz-lumen.md` → "Kurulum ve LOGO'd
 Kullanım: `docs/kullanim/KILAVUZ.md`. Bilinen sınırlar: `docs/mimari/bagimsiz-lumen.md`.
 
 **Bilinen küçük konular** (sonraki bakım sürümü): belgede para birimi gidiş-dönüşünde fiyat
-kuruş kayması; Günlük İşlemler'de saat 00:00; telefonda yüzen göz düğmesi tabloların üstüne
-biniyor; sipariş ekranında kısmi teslim miktarı gösterilmiyor; aynı vergi no ikinci caride uyarı vermiyor.
+kuruş kayması; Günlük İşlemler'de saat 00:00; sipariş ekranında kısmi teslim miktarı
+gösterilmiyor; aynı vergi no ikinci caride uyarı vermiyor.
 
 ## [1.3.0-rc.3] — 2026-10-22 (SÜRÜM ADAYI)
 
