@@ -9,6 +9,8 @@
   sayfalar; tarih ve hesap süzgeçleri sayfa geçişlerinde korunur.
 - Faturalar ve Belgeler listesi de ilk 300 kayıtla sınırlı kalmaz; tür, tarih ve
   arama süzgeçleri korunarak 50'şer sayfalanır.
+- Cari kartındaki belge, tahsilat/ödeme ve çek geçmişi 50 kayıtla kesilmez;
+  sekme sayaçları toplamı gösterir ve eski kayıtlar sayfalardan açılır.
 
 ## [1.3.2] — 2026-10-24 (GÜVENLİK VE BAKIM)
 

@@ -955,6 +955,55 @@ akis('belge listesi: 300 belgeden sonrası ve depo yetkisi korunur', function ()
     }
 });
 
+akis('cari kartı: geçmiş sekmelerinde 50 sonrası açılır ve toplamlar doğru görünür', function () use ($yonetici, $pdo): void {
+    $cari = 2;
+    $hesap = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'KASA.01'");
+    $tarih = date('Y-m-d');
+    $onek = 'KG' . strtoupper(bin2hex(random_bytes(4))) . '-';
+    $once = [
+        'belge' => (int) tek($pdo, 'SELECT COUNT(*) FROM LM_BELGE WHERE CARI_ID = :id', [':id' => $cari]),
+        'fis' => (int) tek($pdo, 'SELECT COUNT(*) FROM LM_FINANS_FIS WHERE CARI_ID = :id', [':id' => $cari]),
+        'cek' => (int) tek($pdo, 'SELECT COUNT(*) FROM LM_CEK WHERE ALINAN_CARI_ID = :a OR VERILEN_CARI_ID = :b', [':a' => $cari, ':b' => $cari]),
+    ];
+    try {
+        $pdo->beginTransaction();
+        $belgeEkle = $pdo->prepare('INSERT INTO LM_BELGE (TUR, YON, NO, TARIH, CARI_ID, NET, DURUM)
+                                   VALUES (3, 1, :no, :tarih, :cari, 1, 1)');
+        $fisEkle = $pdo->prepare('INSERT INTO LM_FINANS_FIS (TUR, NO, TARIH, HESAP_ID, CARI_ID, TUTAR)
+                                 VALUES (1, :no, :tarih, :hesap, :cari, 1)');
+        $cekEkle = $pdo->prepare('INSERT INTO LM_CEK (TUR, PORTFOY_NO, VADE, TUTAR, ALINAN_CARI_ID)
+                                 VALUES (1, :no, :vade, 1, :cari)');
+        for ($i = 1; $i <= 55; $i++) {
+            $belgeEkle->execute([':no' => $onek . 'B' . $i, ':tarih' => $tarih, ':cari' => $cari]);
+            $fisEkle->execute([':no' => $onek . 'F' . $i, ':tarih' => $tarih, ':hesap' => $hesap, ':cari' => $cari]);
+            $cekEkle->execute([':no' => $onek . 'C' . $i, ':vade' => '2099-12-31', ':cari' => $cari]);
+        }
+        $pdo->commit();
+
+        $etiketler = ['belge' => 'Belgeler', 'fis' => 'Tahsilat / ödeme', 'cek' => 'Çek / senet'];
+        foreach (['belge' => 'B', 'fis' => 'F', 'cek' => 'C'] as $sekme => $isaret) {
+            $ilk = $yonetici->istek("kart/cari.php?id={$cari}&sekme={$sekme}")['govde'];
+            $ikinci = $yonetici->istek("kart/cari.php?id={$cari}&sekme={$sekme}&sayfa=2")['govde'];
+            $aranan = $onek . $isaret;
+            bekle(substr_count($ilk, $aranan) === 50 && str_contains($ilk, 'sayfa=2'), "{$sekme}: ilk sayfa 50 kayıt göstermiyor");
+            bekle(str_contains($ikinci, $aranan . '1') && str_contains($ikinci, "sekme={$sekme}&amp;sayfa=1"),
+                "{$sekme}: ikinci sayfa veya önceki bağlantısı yok");
+            $toplam = number_format($once[$sekme] + 55, 0, ',', '.');
+            bekle(str_contains($ilk, $etiketler[$sekme] . " ({$toplam})"), "{$sekme}: sekme toplamı yanlış");
+        }
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $sil = $pdo->prepare('DELETE FROM LM_CEK WHERE PORTFOY_NO LIKE :onek');
+        $sil->execute([':onek' => $onek . 'C%']);
+        $sil = $pdo->prepare('DELETE FROM LM_FINANS_FIS WHERE NO LIKE :onek');
+        $sil->execute([':onek' => $onek . 'F%']);
+        $sil = $pdo->prepare('DELETE FROM LM_BELGE WHERE NO LIKE :onek');
+        $sil->execute([':onek' => $onek . 'B%']);
+    }
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);
