@@ -211,6 +211,9 @@ Ayarlar → **Marka / Logo** ekranından kendi yatay logonuzu ve uygulama ikonun
 
 ## Güvenlik
 
+Bir güvenlik açığı bulduysanız ayrıntıları herkese açık issue olarak
+paylaşmayın. [Güvenlik politikası](SECURITY.md) üzerinden özel bildirim yapın.
+
 - Tüm korumalı sayfalarda oturum + yetki denetimi (`kontrol.php`)
 - Durum değiştiren isteklerde CSRF token
 - Parolalar `password_hash` (bcrypt) ile saklanır
@@ -259,8 +262,6 @@ fastcgi_hide_header X-Powered-By;
 Kurulumdan sonra `https://siteniz/.env` adresini tarayıcıda deneyin —
 **403/404 dönmeli**, dosya içeriği görünmemelidir.
 
-Güvenlik açığı bildirmek için lütfen bir **issue** açın (hassas konularda ayrıntıyı özel paylaşın).
-
 ## Katkıda Bulunma
 
 Katkılar memnuniyetle karşılanır. Değişiklikten önce:
@@ -278,6 +279,6 @@ Yeni PHP dosyalarında `declare(strict_types=1);` kullanın, mevcut kod stiline 
 
 ## Lisans
 
-[MIT](LICENSE) © husodrn46
+[MIT](LICENSE) © husodrn46 · [Marka bildirimi](NOTICE.md)
 
 > "LOGO" ve "Tiger", LOGO Yazılım'ın tescilli markalarıdır. Lumen bağımsız, üçüncü taraf bir açık kaynak projesidir ve LOGO Yazılım ile herhangi bir bağı yoktur.
