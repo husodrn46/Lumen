@@ -25,7 +25,7 @@ if (!function_exists('lumen_tablo')) {
      * Varlığın ortak kolon adlarıyla SQL tablo ifadesi (FROM/JOIN'de takma adla kullanılır).
      *
      * personel    : ID, KOD, AD, AKTIF (1/0), DEPO, YETKI_KODU
-     * cari        : ID, KOD, UNVAN, UNVAN2, TUR, VERGI_NO, VERGI_DAIRESI, IL, ILCE, SEMT, ADRES, ADRES2, ULKE, TELEFON, TELEFON2,
+     * cari        : ID, KOD, UNVAN, UNVAN2, TUR, VERGI_NO, TC_NO, VERGI_DAIRESI, IL, ILCE, SEMT, ADRES, ADRES2, ULKE, TELEFON, TELEFON2,
      *               EPOSTA, OZEL_KOD, AKTIF
      * cari_bakiye : CARI_ID, BORC, ALACAK, BAKIYE (+ borçlu)
      * firma       : NR, NAME (LOGO L_CAPIFIRM; bağımsızda tek firma)
@@ -38,7 +38,7 @@ if (!function_exists('lumen_tablo')) {
                 // DEPO: ambar numarası (LOGO: SPECODE) — LM_DEPO.NO; tanımsızsa 0 (merkez).
                 'personel' => '(SELECT P.ID, P.KOD, P.AD, CAST(P.AKTIF AS INT) AS AKTIF,'
                     . ' ISNULL((SELECT D.NO FROM dbo.LM_DEPO D WHERE D.ID = P.DEPO_ID), 0) AS DEPO, P.YETKI_KODU FROM dbo.LM_PERSONEL P)',
-                'cari' => '(SELECT ID, KOD, UNVAN, CAST(NULL AS NVARCHAR(200)) AS UNVAN2, TUR, VERGI_NO, VERGI_DAIRESI, IL, ILCE,'
+                'cari' => '(SELECT ID, KOD, UNVAN, CAST(NULL AS NVARCHAR(200)) AS UNVAN2, TUR, VERGI_NO, TC_NO, VERGI_DAIRESI, IL, ILCE,'
                     . ' CAST(NULL AS NVARCHAR(60)) AS SEMT, ADRES, CAST(NULL AS NVARCHAR(200)) AS ADRES2, CAST(NULL AS NVARCHAR(60)) AS ULKE,'
                     . ' TELEFON, CAST(NULL AS NVARCHAR(40)) AS TELEFON2, EPOSTA, OZEL_KOD,'
                     . ' CAST(AKTIF AS INT) AS AKTIF FROM dbo.LM_CARI)',
@@ -57,7 +57,7 @@ if (!function_exists('lumen_tablo')) {
             // LOGO'da ACTIVE = 0 etkin demektir.
             'personel' => "(SELECT LOGICALREF AS ID, CODE AS KOD, DEFINITION_ AS AD, CASE WHEN ACTIVE = 0 THEN 1 ELSE 0 END AS AKTIF,"
                 . " SPECODE AS DEPO, CYPHCODE AS YETKI_KODU FROM LG_SLSMAN WHERE FIRMNR = {$firmano})",
-            'cari' => "(SELECT LOGICALREF AS ID, CODE AS KOD, DEFINITION_ AS UNVAN, DEFINITION2 AS UNVAN2, CARDTYPE AS TUR, TAXNR AS VERGI_NO,"
+            'cari' => "(SELECT LOGICALREF AS ID, CODE AS KOD, DEFINITION_ AS UNVAN, DEFINITION2 AS UNVAN2, CARDTYPE AS TUR, TAXNR AS VERGI_NO, TCKNO AS TC_NO,"
                 . " TAXOFFICE AS VERGI_DAIRESI, CITY AS IL, TOWN AS ILCE, DISTRICT AS SEMT, ADDR1 AS ADRES, ADDR2 AS ADRES2, COUNTRY AS ULKE,"
                 . " TELNRS1 AS TELEFON, TELNRS2 AS TELEFON2, EMAILADDR AS EPOSTA,"
                 . " SPECODE AS OZEL_KOD, CASE WHEN ACTIVE = 0 THEN 1 ELSE 0 END AS AKTIF FROM {$firma}CLCARD)",
@@ -305,5 +305,36 @@ if (!function_exists('lumen_vergi_no_gecerli')) {
             return ((($tek * 7 - $cift) % 10) + 10) % 10 === $d[9] && array_sum(array_slice($d, 0, 10)) % 10 === $d[10];
         }
         return false;
+    }
+}
+
+if (!function_exists('lumen_vergi_no_normalize')) {
+    /** Karşılaştırma için vergi/T.C. kimlik numarasındaki ayraçları kaldırır. */
+    function lumen_vergi_no_normalize(string $no): string
+    {
+        return preg_replace('/[^0-9]+/u', '', trim($no)) ?? '';
+    }
+}
+
+if (!function_exists('lumen_cari_vergi_eslesmesi')) {
+    /** @return array{ID:int, KOD:string, UNVAN:string}|null */
+    function lumen_cari_vergi_eslesmesi(PDO $dbh, string $no, int $haricId = 0): ?array
+    {
+        $aranan = lumen_vergi_no_normalize($no);
+        if ($aranan === '') {
+            return null;
+        }
+        $cari = lumen_tablo('cari');
+        $st = $dbh->prepare("SELECT C.ID, C.KOD, C.UNVAN, C.VERGI_NO, C.TC_NO
+            FROM {$cari} C WHERE C.ID <> :id AND (C.VERGI_NO IS NOT NULL OR C.TC_NO IS NOT NULL)");
+        $st->execute([':id' => $haricId]);
+        while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
+            foreach ([$r['VERGI_NO'] ?? '', $r['TC_NO'] ?? ''] as $aday) {
+                if ($aday !== '' && lumen_vergi_no_normalize((string) $aday) === $aranan) {
+                    return ['ID' => (int) $r['ID'], 'KOD' => (string) $r['KOD'], 'UNVAN' => (string) $r['UNVAN']];
+                }
+            }
+        }
+        return null;
     }
 }

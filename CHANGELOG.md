@@ -6,6 +6,8 @@
 
 - Günlük İşlemler ekranı ve Excel çıktısı, satış ve kasa kayıtlarında yalnız tarih
   alanına düşmek yerine kaynak işlem saatini gösterir; saat kaynağı yoksa `--:--` kullanır.
+- Yeni cari ve cari düzenleme akışları mükerrer vergi no/TCKN eşleşmesini cari kodu ve
+  unvanıyla bildirir; bilinçli istisnalar onaylanabilir. Excel aktarımı mükerrer satırı reddeder.
 
 ## [1.3.1] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
@@ -58,8 +60,7 @@ Bağımsız moda geçiş: `docs/mimari/bagimsiz-lumen.md` → "Kurulum ve LOGO'd
 Kullanım: `docs/kullanim/KILAVUZ.md`. Bilinen sınırlar: `docs/mimari/bagimsiz-lumen.md`.
 
 **Bilinen küçük konular** (sonraki bakım sürümü): belgede para birimi gidiş-dönüşünde fiyat
-kuruş kayması; sipariş ekranında kısmi teslim miktarı gösterilmiyor; aynı vergi no ikinci
-caride uyarı vermiyor.
+kuruş kayması; sipariş ekranında kısmi teslim miktarı gösterilmiyor.
 
 ## [1.3.0-rc.3] — 2026-10-22 (SÜRÜM ADAYI)
 
