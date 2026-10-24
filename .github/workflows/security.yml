@@ -17,18 +17,14 @@ jobs:
     name: Nginx imaj güvenliği
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
       - name: Sabitlenmiş nginx imajını tara
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: nginx@sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417
-          format: table
-          exit-code: '1'
-          ignore-unfixed: true
-          severity: CRITICAL,HIGH
-          vuln-type: os
-          scanners: vuln
+        run: |
+          docker run --rm \
+            --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+            aquasec/trivy@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c \
+            image --db-repository ghcr.io/aquasecurity/trivy-db:2 \
+            --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL --scanners vuln \
+            nginx@sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417
 
   secret-scan:
     name: Sır taraması
