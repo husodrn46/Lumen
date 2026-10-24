@@ -13,6 +13,11 @@
 - Yeni belge ekranında para birimi değiştirilip geri alındığında satır fiyatı ve toplam,
   ara yuvarlamaya uğramadan aynı TL referans değerine döner.
 
+### 🔒 Güvenlik
+
+- API token özetleri tür işaretli biçimde saklanır; veritabanındaki özet artık Bearer
+  token olarak tekrar kullanılamaz. Kesin Bearer başlığı, JSON gövde sınırı ve API çıkışı eklendi.
+
 ## [1.3.1] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
 ### 🔒 Güvenlik
