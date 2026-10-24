@@ -63,7 +63,8 @@ belge_sayfa_basla('Yeni Kasa/Banka Fişi', 'fa-money-bill-transfer', 'index.php'
             <input type="text" id="cariAra" placeholder="Cari kodu veya unvan…" autocomplete="off" value="<?= bh($onCari['metin']) ?>">
             <input type="hidden" name="cari_id" id="cariId" value="<?= $onCari['id'] ?: '' ?>">
             <div id="cariSonuc" class="oneriler"></div></label>
-        <label class="alan">Tutar (₺) <input name="tutar" id="tutar" inputmode="decimal" required placeholder="0,00"></label>
+        <label class="alan">Tutar (₺) <input name="tutar" id="tutar" inputmode="decimal" required placeholder="0,00" aria-describedby="tutarHata">
+            <span id="tutarHata" class="alan-ipucu" style="color:var(--tehlike)" hidden>Geçerli ve sıfırdan büyük bir tutar girin.</span></label>
     </div>
     <div class="kart kart-ic"><label class="alan">Açıklama <textarea name="aciklama" rows="2" maxlength="400"></textarea></label></div>
     <div style="display:flex;justify-content:flex-end;gap:10px">
@@ -77,11 +78,26 @@ belge_sayfa_basla('Yeni Kasa/Banka Fişi', 'fa-money-bill-transfer', 'index.php'
     var kutu = document.getElementById('cariSonuc'), tutar = document.getElementById('tutar');
     var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
     var secili = function () { return tur.options[tur.selectedIndex].dataset; };
+    function tutarGecerliMi() {
+        var deger = String(tutar.value).replace(/[ \u00a0]/g, '');
+        if (deger.indexOf(',') !== -1) {
+            if (!/^(?:\d+|\d{1,3}(?:\.\d{3})+),\d+$/.test(deger)) return false;
+            deger = deger.replace(/\./g, '').replace(',', '.');
+        } else if (/^\d{1,3}(?:\.\d{3})+$/.test(deger)) {
+            deger = deger.replace(/\./g, '');
+        } else if (!/^\d+(?:\.\d+)?$/.test(deger)) {
+            return false;
+        }
+        var sayi = Number(deger);
+        return Number.isFinite(sayi) && Math.round(sayi * 100) > 0;
+    }
     function kontrol() {
-        var s = secili(), t = parseFloat(String(tutar.value).replace(/\./g, '').replace(',', '.'));
+        var s = secili(), tutarTamam = tutarGecerliMi();
         var cariTamam = s.cari !== '1' || cariId.value !== '';
         var karsiTamam = s.karsi !== '1' || document.getElementById('karsi').value !== document.getElementById('hesap').value;
-        document.getElementById('kaydet').disabled = !(t > 0 && cariTamam && karsiTamam);
+        document.getElementById('tutarHata').hidden = tutar.value.trim() === '' || tutarTamam;
+        document.getElementById('kaydet').disabled = !(tutarTamam && cariTamam && karsiTamam);
+        return tutarTamam && cariTamam && karsiTamam;
     }
     function gorunurluk() {
         var s = secili();
@@ -114,7 +130,10 @@ belge_sayfa_basla('Yeni Kasa/Banka Fişi', 'fa-money-bill-transfer', 'index.php'
     document.addEventListener('click', function (e) { if (!kutu.contains(e.target) && e.target !== cariAra) kutu.classList.remove('acik'); });
     ['change', 'input'].forEach(function (ev) { document.getElementById('fisForm').addEventListener(ev, kontrol); });
     tur.addEventListener('change', gorunurluk);
-    document.getElementById('fisForm').addEventListener('submit', function () { document.getElementById('kaydet').disabled = true; });
+    document.getElementById('fisForm').addEventListener('submit', function (e) {
+        if (!kontrol()) { e.preventDefault(); return; }
+        document.getElementById('kaydet').disabled = true;
+    });
     gorunurluk();
 })();
 </script>
