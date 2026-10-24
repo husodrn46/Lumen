@@ -102,7 +102,12 @@ if (function_exists('logGiris')) {
     logGiris($personel, $kullanici, true, 'Basarili giris (API)');
 }
 
-$token = api_token_olustur($dbh, $personel, $kullanici);
+try {
+    $token = api_token_olustur($dbh, $personel, $kullanici);
+} catch (Throwable $e) {
+    error_log('API giriş tokenı: ' . $e->getMessage());
+    api_json(['ok' => false, 'mesaj' => 'Oturum oluşturulamadı.'], 503);
+}
 
 api_json([
     'ok' => true,

@@ -208,6 +208,11 @@ akis('API: fiyat override SP1 ister; pasif kullanıcının belirteci geçersiz',
     $s = $tok('SATIS1');
     $o = $api($s, 'siparis_onizle.php', ['cari_id' => 4, 'kalemler' => [['stok_id' => 2, 'miktar' => 12, 'fiyat' => 0.01, 'kdv' => 0]]]);
     yakin(528.0, (float) ($o['ara_toplam'] ?? 0), 'SP1 olmadan liste fiyatı');
+    $saklanan = (string) tek($pdo, 'SELECT TOP 1 TOKEN FROM M_API_TOKEN WHERE PERSONEL = 2 AND AKTIF = 1 ORDER BY ID DESC');
+    bekle(str_starts_with($saklanan, 'sha256:') && $saklanan !== $s, 'API tokenı güvenli özet biçiminde saklanmadı');
+    bekle($api($saklanan, 'siparis_listesi.php')['_kod'] === 401, 'veritabanındaki token özeti Bearer olarak kullanılabildi');
+    bekle(($api($s, 'logout.php', [])['ok'] ?? false) === true, 'API çıkışı başarısız');
+    bekle($api($s, 'siparis_listesi.php')['_kod'] === 401, 'çıkış yapılan token çalışmaya devam etti');
     $d = $tok('DEPO1');
     bekle($api($d, 'rapor_kasa.php')['_kod'] === 403, 'DEPO1 kasa raporunu okudu');
     $pdo->exec("UPDATE LG_SLSMAN SET ACTIVE = 1 WHERE LOGICALREF = 3");
@@ -242,6 +247,8 @@ akis('entegrasyon hesabı: API okur, yazamaz, web\'e giremez', function () use (
     foreach (['siparis_olustur.php', 'stok_guncelle.php', 'kullanici_listesi.php'] as $uc) {
         bekle($kod($uc, true) === 403, "yazma/yönetim ucu açık: {$uc}");
     }
+    bekle($kod('logout.php', true) === 200, 'entegrasyon hesabı kendi API oturumunu kapatamadı');
+    bekle($kod($okuma, false) === 401, 'entegrasyon hesabının kapatılan tokenı çalışmaya devam etti');
     $web = (new Tarayici($URL));
     $web->istek('giris.php');
     $web->istek('giris.php', ['kullaniciadi' => 'ENTEGRASYON', 'kullanicisifre' => 'demo1234']);
