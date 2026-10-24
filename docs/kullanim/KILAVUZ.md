@@ -309,6 +309,7 @@ Ana menüden "Faturalar" kutucuğuna girin; "Faturalar ve Belgeler" listesi aç�
 1. "Tür", "Başlangıç", "Bitiş" alanlarını seçin; isterseniz "Ara" kutusuna belge no ya da cari yazın.
 2. "Listele" düğmesine basın.
 3. Belgeyi açmak için belge numarasına ya da göz simgesine tıklayın.
+4. Sonuçlar 50'şer gösterilir; alttaki "Önceki" ve "Sonraki" düğmeleri seçili süzgeçleri korur.
 
 İptal edilmiş belgeler listede "İptal" etiketiyle kalır.
 

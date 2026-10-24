@@ -922,6 +922,39 @@ akis('kasa/banka listesi: 300 fişten sonrası filtre korunarak açılır', func
     }
 });
 
+akis('belge listesi: 300 belgeden sonrası ve depo yetkisi korunur', function () use ($yonetici, $pdo, $URL): void {
+    $tarih = date('Y-m-d');
+    $onek = 'BG' . strtoupper(bin2hex(random_bytes(4))) . '-';
+    try {
+        $pdo->beginTransaction();
+        $ekle = $pdo->prepare('INSERT INTO LM_BELGE (TUR, YON, NO, TARIH, CARI_ID, NET, DURUM)
+                              VALUES (3, 1, :no, :tarih, 2, 1, 1)');
+        for ($i = 1; $i <= 305; $i++) {
+            $ekle->execute([':no' => $onek . $i, ':tarih' => $tarih]);
+        }
+        $pdo->commit();
+
+        $filtre = http_build_query(['tur' => 'satis_fatura', 'bas' => $tarih, 'bit' => $tarih, 'ara' => $onek]);
+        $ilk = $yonetici->istek('belge/index.php?' . $filtre)['govde'];
+        $yedinci = $yonetici->istek('belge/index.php?' . $filtre . '&sayfa=7')['govde'];
+        $belgeBaglantisi = '/>' . preg_quote($onek, '/') . '\d+<\/a>/';
+        bekle(preg_match_all($belgeBaglantisi, $ilk) === 50 && str_contains($ilk, 'sayfa=2'),
+            'ilk belge sayfası 50 kayıt ve sonraki bağlantısını göstermiyor');
+        bekle(str_contains($yedinci, '>' . $onek . '1</a>'), 'yedinci sayfada 300 belgeden eski kayıt yok');
+        bekle(str_contains($yedinci, 'href="?tur=satis_fatura&amp;bas=' . $tarih . '&amp;bit=' . $tarih . '&amp;ara=' . $onek . '&amp;sayfa=6"'),
+            'sayfa bağlantısı tür, tarih ve arama filtrelerini korumuyor');
+        $depo = (new Tarayici($URL))->giris('DEPO1');
+        bekle(preg_match($belgeBaglantisi, $depo->istek('belge/index.php?bas=' . $tarih . '&bit=' . $tarih . '&ara=' . $onek)['govde']) === 0,
+            'depo personeli satış faturalarını listede görüyor');
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $sil = $pdo->prepare('DELETE FROM LM_BELGE WHERE NO LIKE :onek');
+        $sil->execute([':onek' => $onek . '%']);
+    }
+});
+
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d akış, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz === 0 ? 0 : 1);
