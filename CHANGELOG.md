@@ -1,5 +1,12 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı]
+
+### 🐛 Düzeltmeler
+
+- Günlük İşlemler ekranı ve Excel çıktısı, satış ve kasa kayıtlarında yalnız tarih
+  alanına düşmek yerine kaynak işlem saatini gösterir; saat kaynağı yoksa `--:--` kullanır.
+
 ## [1.3.1] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
 ### 🔒 Güvenlik
@@ -51,8 +58,8 @@ Bağımsız moda geçiş: `docs/mimari/bagimsiz-lumen.md` → "Kurulum ve LOGO'd
 Kullanım: `docs/kullanim/KILAVUZ.md`. Bilinen sınırlar: `docs/mimari/bagimsiz-lumen.md`.
 
 **Bilinen küçük konular** (sonraki bakım sürümü): belgede para birimi gidiş-dönüşünde fiyat
-kuruş kayması; Günlük İşlemler'de saat 00:00; sipariş ekranında kısmi teslim miktarı
-gösterilmiyor; aynı vergi no ikinci caride uyarı vermiyor.
+kuruş kayması; sipariş ekranında kısmi teslim miktarı gösterilmiyor; aynı vergi no ikinci
+caride uyarı vermiyor.
 
 ## [1.3.0-rc.3] — 2026-10-22 (SÜRÜM ADAYI)
 

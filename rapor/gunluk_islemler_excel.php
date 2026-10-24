@@ -4,6 +4,7 @@ declare(strict_types=1);
 include_once(__DIR__ . "/../ayr.php");
 include_once(__DIR__ . "/../_baglanti_.inc");
 require_once __DIR__ . '/../kontrol.php';
+require_once __DIR__ . '/../includes/logo_zaman.php';
 
 // Yetki kontrolü - M13 günlük işlemler yetkisi
 if (m_p_yetki($terminalkullanici, 'M13') != 1) {
@@ -19,6 +20,7 @@ $tarihDogrulama = DateTime::createFromFormat('!Y-m-d', $selected_date);
 if ($tarihDogrulama === false || $tarihDogrulama->format('Y-m-d') !== $selected_date) {
     $selected_date = date('Y-m-d');
 }
+$bagimsizVeri = lumen_bagimsiz_mi();
 
 // Özel cari kısıtı: kısıtlı cariler detay listelerinde gösterilmez (her sorgu kendi önekini kullanır)
 $ozelCariSatis = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'C.CLIENTREF', 'ozel_cari_satis');
@@ -55,19 +57,32 @@ $stmt_sales->execute();
 $sales_summary = $stmt_sales->fetch(PDO::FETCH_ASSOC);
 
 // 2. SATIŞ DETAYLARI
+if ($bagimsizVeri) {
+    $satisSaatSelect = "CAST(DATEPART(HOUR, LB.SAAT) * 16777216
+        + DATEPART(MINUTE, LB.SAAT) * 65536
+        + DATEPART(SECOND, LB.SAAT) * 256 AS BIGINT) AS SAAT_KODU";
+    $satisSaatJoin = 'LEFT JOIN dbo.LM_BELGE LB ON LB.ID = C.SOURCEFREF AND C.MODULENR = 4';
+} else {
+    $satisSaatSelect = 'COALESCE(I.TIME_, NULLIF(C.FTIME, 0)) AS SAAT_KODU';
+    $satisSaatJoin = "LEFT JOIN " . $firmadonem . "INVOICE I WITH(NOLOCK)
+        ON I.LOGICALREF = C.SOURCEFREF AND C.MODULENR = 4";
+}
+
 $sql_sales_detail = "
     SELECT
         C.DATE_ AS TARIH,
+        " . $satisSaatSelect . ",
         CL.CODE AS CARI_KODU,
         CL.DEFINITION_ AS CARI_ADI,
         (1-C.SIGN)*C.AMOUNT AS TUTAR,
         C.REPORTRATE AS KUR
     FROM " . $firmadonem . "CLFLINE C WITH(NOLOCK)
     LEFT JOIN " . $firma . "CLCARD CL ON CL.LOGICALREF = C.CLIENTREF
+    " . $satisSaatJoin . "
     WHERE C.CANCELLED=0
         AND C.TRCODE=38
         AND CAST(C.DATE_ AS DATE) = :tarih" . $ozelCariSatisSql . "
-    ORDER BY C.DATE_ DESC
+    ORDER BY C.DATE_ DESC, SAAT_KODU DESC
 ";
 
 $stmt_sales_detail = $dbh->prepare($sql_sales_detail);
@@ -96,19 +111,37 @@ $stmt_cash_summary->execute();
 $cash_summary = $stmt_cash_summary->fetch(PDO::FETCH_ASSOC);
 
 // 4. KASA HAREKETLERİ DETAY
+if ($bagimsizVeri) {
+    $kasaSaatSelect = "CAST(DATEPART(HOUR, FF.OLUSTURMA) * 16777216
+        + DATEPART(MINUTE, FF.OLUSTURMA) * 65536
+        + DATEPART(SECOND, FF.OLUSTURMA) * 256 AS BIGINT) AS SAAT_KODU";
+    $kasaSaatJoin = "LEFT JOIN dbo.LM_FINANS_HAREKET FH ON FH.ID = l.LOGICALREF
+        LEFT JOIN dbo.LM_FINANS_FIS FF ON FF.ID = FH.FIS_ID";
+} else {
+    $kasaSaatSelect = 'KS_SAAT.FTIME AS SAAT_KODU';
+    $kasaSaatJoin = "OUTER APPLY (
+        SELECT TOP 1 CF.FTIME
+        FROM " . $firmadonem . "CLFLINE CF WITH(NOLOCK)
+        WHERE CF.SOURCEFREF = l.LOGICALREF AND CF.TRCODE IN (1, 2)
+        ORDER BY CF.LOGICALREF DESC
+    ) KS_SAAT";
+}
+
 $sql_cash_detail = "
     SELECT
         k.CODE AS KASA_KODU,
         k.NAME AS KASA_ADI,
         l.DATE_ AS TARIH,
+        " . $kasaSaatSelect . ",
         CASE WHEN l.SIGN = 0 THEN l.AMOUNT ELSE 0 END AS GIRIS,
         CASE WHEN l.SIGN = 1 THEN l.AMOUNT ELSE 0 END AS CIKIS,
         l.LINEEXP AS ACIKLAMA
     FROM " . $firma . "KSCARD k WITH(NOLOCK)
     LEFT JOIN " . $firmadonem . "KSLINES l ON l.CARDREF = k.LOGICALREF
+    " . $kasaSaatJoin . "
     WHERE k.ACTIVE = 0
         AND CAST(l.DATE_ AS DATE) = :tarih
-    ORDER BY l.DATE_ DESC
+    ORDER BY l.DATE_ DESC, SAAT_KODU DESC
 ";
 
 $stmt_cash_detail = $dbh->prepare($sql_cash_detail);
@@ -277,7 +310,7 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
                 $total_sales += $sale['TUTAR'];
             ?>
             <tr>
-                <td><?php echo date('d.m.Y', strtotime((string) $sale['TARIH'])); ?></td>
+                <td><?php echo lumen_logo_tarih_saat_goster((string) $sale['TARIH'], $sale['SAAT_KODU'] ?? null); ?></td>
                 <td><?php echo $sale['CARI_KODU']; ?></td>
                 <td><?php echo $sale['CARI_ADI']; ?></td>
                 <td class="text-right"><?php echo number_format((float) $sale['TUTAR'], 2, ',', '.'); ?></td>
@@ -318,7 +351,7 @@ $cash_summary['NET'] = $cash_summary['NET'] ?: 0;
                 $total_cikis += $cash['CIKIS'];
             ?>
             <tr>
-                <td><?php echo date('d.m.Y', strtotime((string) $cash['TARIH'])); ?></td>
+                <td><?php echo lumen_logo_tarih_saat_goster((string) $cash['TARIH'], $cash['SAAT_KODU'] ?? null); ?></td>
                 <td><?php echo $cash['KASA_KODU']; ?></td>
                 <td><?php echo $cash['KASA_ADI']; ?></td>
                 <td><?php echo $cash['ACIKLAMA']; ?></td>
