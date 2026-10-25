@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/depo.php';
 require_once __DIR__ . '/okuyucu.php';
+require_once __DIR__ . '/../../api/_idempotency.inc';
 
 function et_ice_aktar(PDO $db, int $kanal, string $ham, string $tur, string $ad, int $kullanici): array
 {
@@ -27,7 +28,7 @@ function et_ice_aktar(PDO $db, int $kanal, string $ham, string $tur, string $ad,
                 [':k'=>$kanal,':i'=>$id,':n'=>$no]);
             if ($onceki) {
                 $ayni = $onceki['HARICI_ID'] === $id && $onceki['HARICI_NO'] === $no
-                    && et_json(json_decode($onceki['HAM'],true,64,JSON_THROW_ON_ERROR)) === et_json($raw);
+                    && siparis_idempotency_parmakizi(json_decode($onceki['HAM'],true,64,JSON_THROW_ON_ERROR)) === siparis_idempotency_parmakizi($raw);
                 $sonuc[$ayni ? 'mukerrer' : 'cakisma']++;
                 et_olay($db,$kanal,(int) $onceki['ID'],$kullanici,$ayni ? 'tekrar' : 'cakisma',
                     $ayni ? 'Aynı sipariş yeniden alındı.' : 'Değişmiş içerik bekletildi; mevcut kayıt değiştirilmedi.', ['aktarim_id'=>$batch,'ham'=>$raw]);

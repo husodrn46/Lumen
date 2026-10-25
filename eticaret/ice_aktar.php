@@ -43,6 +43,6 @@ if ($hata) { echo '<p class="bildirim hata">'.bh($hata).'</p>'; }
 <label class="alan">UTF-8 dosya (en fazla 1 MB)<input type="file" name="dosya" accept=".csv,.json" required></label><button class="btn btn-birincil">Önizle</button>
 </form>
 <?php if ($onizleme): ?>
-<div class="kart kart-ic"><h2>Önizleme</h2><ul><?php foreach ($onizleme as $r): ?><li><?= bh(is_array($r['ham']) ? ($r['ham']['numara'] ?? 'Numarasız kayıt') : 'Geçersiz kayıt') ?> — <?= bh($r['hata'] ?? 'Kutuya alınabilir') ?></li><?php endforeach; ?></ul>
+<div class="kart kart-ic"><h2>Önizleme</h2><ul><?php foreach ($onizleme as $r): ?><li><?= bh(is_array($r['ham']) && is_scalar($r['ham']['numara'] ?? null) ? $r['ham']['numara'] : 'Numarasız/geçersiz kayıt') ?> — <?= bh($r['hata'] ?? 'Kutuya alınabilir') ?></li><?php endforeach; ?></ul>
 <form method="post"><?= csrf_field() ?><input type="hidden" name="islem" value="kaydet"><input type="hidden" name="anahtar" value="<?= bh($_SESSION['et_onizleme']['anahtar']) ?>"><button class="btn btn-birincil">Sipariş kutusuna al</button></form></div>
 <?php endif; if ($sonuc): ?><div class="bildirim ok">Yeni: <?= (int) $sonuc['yeni'] ?> · Mükerrer: <?= (int) $sonuc['mukerrer'] ?> · Değişmiş içerik: <?= (int) $sonuc['cakisma'] ?> · Hatalı: <?= (int) $sonuc['hatali'] ?>. <a href="index.php">Kutuyu aç</a></div><?php endif; belge_sayfa_bitir();

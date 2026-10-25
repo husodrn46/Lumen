@@ -121,6 +121,9 @@ jobs:
       - name: Akış testleri (sipariş, iskonto, yazdırma, çek, döviz, ayarlar, yetki, API)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
 
+      - name: E-ticaret kutusu akışları (LOGO demo)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/eticaret.php
+
       - name: Yedekleme gidiş-dönüş (LOGO modu, Lumen tabloları)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/yedek/yedek_test.php
 
@@ -135,6 +138,9 @@ jobs:
 
       - name: Bağımsız mod akış testleri (Lumen'e özgü akışlar)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/bagimsiz.php
+
+      - name: E-ticaret kutusu akışları (bağımsız demo)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/eticaret.php
 
       - name: Bağımsız mod güvenlik regresyonları (denetimde bulunan açıklar)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/guvenlik.php

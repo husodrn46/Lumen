@@ -91,6 +91,8 @@ function et_kanal_kaydet(PDO $db, array $v, int $kullanici): int
             $id = lumen_insert_kimlik($db, 'INSERT INTO dbo.M_ET_KANAL (FIRMA,AD,TUR,AKTIF,CARI_ID,DEPO_NO,PERSONEL_ID,OLUSTURAN,GUNCELLEYEN)
                 VALUES (:f,:ad,:t,:a,:c,:d,:p,:u,:g)', $param + [':g' => $kullanici], 'ID');
         }
+        $s=$db->prepare("UPDATE dbo.M_ET_SIPARIS SET DURUM='esleme',ONAY_GOVDE=NULL,ONAY_OZET=NULL WHERE KANAL_ID=:k AND DURUM='hazir'");
+        $s->execute([':k'=>$id]); $s->closeCursor();
         et_olay($db, $id, null, $kullanici, 'kanal', 'Kanal tanımı kaydedildi.');
         $db->commit();
         return $id;
