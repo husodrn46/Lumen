@@ -55,6 +55,7 @@ if (!function_exists('yetki_gruplari')) {
                     'M27' => ['name' => 'İthalat Modülü',              'icon' => 'fa-ship',           'color' => 'sky',     'desc' => 'İthalat takip modülü',                                    'aktif' => true],
                     'M30' => ['name' => 'Çek İşlemleri',               'icon' => 'fa-money-check-dollar', 'color' => 'emerald', 'desc' => 'Çek giriş/çıkış: portföy, ciro, kendi çekimiz (bakiye ekranından)', 'aktif' => true],
                     'M31' => ['name' => 'Faturalama',                  'icon' => 'fa-file-invoice-dollar', 'color' => 'amber', 'desc' => 'Fatura, irsaliye, iade kesme. LOGO modunda: siparişi LOGO faturasına çevirme (BETA, KDV\'siz); bağımsız modda: Lumen\'in KDV\'li belge modülü', 'aktif' => true],
+                    'M33' => ['name' => 'E-ticaret Sipariş Kutusu', 'icon' => 'fa-inbox', 'color' => 'red', 'desc' => 'Kutu, içe aktarma ve eşleme; aktarım ayrıca M1, fiyat/KDV değişimi SP1 gerektirir', 'aktif' => true],
                     'M32' => ['name' => 'Kasa ve Banka İşlemleri',     'icon' => 'fa-cash-register',       'color' => 'emerald', 'desc' => 'Bağımsız modda tahsilat, ödeme, virman ve masraf fişi', 'aktif' => true],
                 ],
             ],
