@@ -47,6 +47,21 @@ akis('e-ticaret: önizleme, kutuya alma, tekrar ve değişmiş içerik', functio
     bekle((int) tek($pdo,'SELECT COUNT(*) FROM M_ET_SIPARIS WHERE KANAL_ID=:k',[':k'=>$etKanal])===1,'kutu çoğaldı');
     bekle((int) tek($pdo,'SELECT COUNT(*) FROM LG_001_02_ORFICHE')===$once,'onaysız satış siparişi oluştu');
 });
+akis('e-ticaret: eksik ürün engeli, kayıtlı eşleme ve hazır kontrolü', function () use ($pdo,$yonetici,&$etKanal,&$etSiparis): void {
+    $g=$yonetici->istek('eticaret/detay.php?id='.$etSiparis)['govde'];
+    bekle(str_contains($g,'Ürün eşlemesi eksik'),'eksik eşleme görünmüyor');
+    $kod=(string) tek($pdo,'SELECT CODE FROM LG_001_ITEMS WHERE LOGICALREF=2');
+    $r=$yonetici->istek('eticaret/eslemeler.php',['csrf_token'=>$yonetici->belirtec('eticaret/eslemeler.php?kanal='.$etKanal),
+        'kanal'=>$etKanal,'tur'=>'sku','deger'=>'DEMO-SKU-1','stok_kod'=>$kod,'birim'=>'ADET']);
+    bekle($r['kod']===303,'eşleme kaydı başarısız: '.strip_tags($r['govde']));
+    $g=$yonetici->istek('eticaret/detay.php?id='.$etSiparis)['govde'];
+    preg_match('/name="surum" value="([^"]+)"/',$g,$m);
+    $r=$yonetici->istek('eticaret/detay.php',['csrf_token'=>$yonetici->belirtec('eticaret/detay.php?id='.$etSiparis),
+        'id'=>$etSiparis,'surum'=>$m[1] ?? '', 'islem'=>'kontrol','cari'=>4,'depo'=>0,'personel'=>1]);
+    bekle($r['kod']===303,'kontrol başarısız: '.strip_tags($r['govde']));
+    bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$etSiparis])==='hazir',
+        'hazır olmadı: '.tek($pdo,'SELECT SON_HATA FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$etSiparis]));
+});
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d e-ticaret akışı, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz ? 1 : 0);
