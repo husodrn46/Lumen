@@ -30,7 +30,7 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 
 Lumen, LOGO Tiger için bir yardımcı arayüzdür; v1.3.0'dan itibaren LOGO olmadan, kendi veritabanıyla ön muhasebe programı olarak da çalışır (**Bağımsız mod**). **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
 
-**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.3.1](https://github.com/husodrn46/Lumen/releases/tag/v1.3.1) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.3.1.zip)
+**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.3.2](https://github.com/husodrn46/Lumen/releases/tag/v1.3.2) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.3.2.zip)
 
 **Bağımsız mod (v1.3.0):** LOGO'suz, kendi veritabanıyla ön muhasebe — mimari ve LOGO'dan geçiş: [docs/mimari/bagimsiz-lumen.md](docs/mimari/bagimsiz-lumen.md).
 
@@ -225,6 +225,7 @@ paylaşmayın. [Güvenlik politikası](SECURITY.md) üzerinden özel bildirim ya
 - Zorla çıkış / parola değişikliği / pasifleştirme tüm oturumları, "Beni hatırla" ve API belirteçlerini iptal eder
 - "Beni hatırla" belirteci her kullanımda yenilenir; kopyalanan çerez tespit edilip iptal edilir
 - API belirteçleri veritabanında özet olarak saklanır, hesap başına tek canlı belirteç
+- API siparişlerinde [`Idempotency-Key`](docs/api/SIPARIS_IDEMPOTENCY.md) ile ağ tekrarlarına karşı tek sipariş garantisi
 - Giriş denemesi sınırı (IP ve hesap bazlı), saldırı modu (yalnız yerel ağ; API dahil)
 - Ayarlar ekranı PHP dosyasına yazmaz (doğrulanmış JSON); ayar değişiklikleri denetim loguna düşer
 - Excel çıktılarında formül enjeksiyonu engellenir; içerik güvenlik politikası (CSP) ve güvenlik başlıkları

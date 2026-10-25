@@ -60,6 +60,12 @@ test('ortak tablolar: aynı kolon adları; LOGO öneki doğrulanır', function (
     });
 });
 
+test('vergi no: ayraçlar karşılaştırma için kaldırılır', function (): void {
+    esit('1234567890', lumen_vergi_no_normalize(' 123.456-78/90 '));
+    esit('10000000146', lumen_vergi_no_normalize('100 000 001 46'));
+    esit('', lumen_vergi_no_normalize(' - / '));
+});
+
 test('modül koruması büyük/küçük harf ve çift eğik çizgiye duyarsız (Windows/IIS)', function (): void {
     esit('cari_belge', lumen_yolun_modulu('CARI/LG_NAKIT.php'));
     esit('cari_belge', lumen_yolun_modulu('cari//lg_nakit.php'));

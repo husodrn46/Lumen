@@ -10,6 +10,19 @@ test('belge satırı: tutar, iskonto, net, KDV (2 hane, net üzerinden KDV)', fu
     esit(['tutar' => 0.0, 'iskonto' => 0.0, 'net' => 0.0, 'kdv' => 0.0], lumen_belge_satir_hesapla(5, 0, 50, 20));
 });
 
+test('belge para birimi: gidiş-dönüş aynı TL referansını ve toplamı korur', function (): void {
+    $tlFiyat = lumen_belge_fiyat_tl(10, 1);
+    $usdFiyat = lumen_belge_fiyat_para_biriminde($tlFiyat, 41.10);
+
+    esit(0.243309, $usdFiyat);
+    esit(10.0, lumen_belge_fiyat_para_biriminde($tlFiyat, 1));
+    esit(1000.0, lumen_belge_satir_hesapla(100, lumen_belge_fiyat_para_biriminde($tlFiyat, 1), 0, 0)['net']);
+
+    $eskiGidisDonus = round(round(10 / 41.10, 4) * 41.10, 4);
+    esit(9.9996, $eskiGidisDonus, 'eski dört haneli ara yuvarlama yeniden üretilmedi');
+    esit(999.96, lumen_belge_satir_hesapla(100, $eskiGidisDonus, 0, 0)['net'], 'eski toplam farkı yeniden üretilmedi');
+});
+
 test('belge türleri: TUR/YON eşlemesi tek anlamlı, stok/cari yönleri tutarlı', function (): void {
     foreach (lumen_belge_turleri() as $kod => $t) {
         esit($kod, lumen_belge_tur_kodu($t['tur'], $t['yon']) === $kod || $t['tur'] === 6 ? $kod : 'çakışma', $kod);

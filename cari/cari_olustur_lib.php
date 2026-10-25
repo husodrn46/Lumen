@@ -71,17 +71,27 @@ if (!function_exists('cari_olustur_yeni')) {
         string $telefon = '',
         string $sehir = '',
         string $ilce = '',
-        string $onek = ''
+        string $onek = '',
+        string $vergiNo = '',
+        bool $mukerrerOnay = false
     ): array {
         $onek = $onek !== '' ? cariyeni_onek_temizle($onek) : cariyeni_varsayilan_onek();
-        $hata = static fn(string $m): array => ['ok' => false, 'cariid' => 0, 'kod' => '', 'ad' => '', 'mesaj' => $m];
+        $hata = static fn(string $m, bool $mukerrer = false): array => ['ok' => false, 'cariid' => 0, 'kod' => '', 'ad' => '', 'mesaj' => $m, 'mukerrer' => $mukerrer];
 
         $unvan = mb_substr(trim($unvan), 0, 200);
         $telefon = mb_substr(trim($telefon), 0, 30);
         $sehir = mb_substr(trim($sehir), 0, 30);
         $ilce = mb_substr(trim($ilce), 0, 30);
+        $vergiNo = lumen_vergi_no_normalize($vergiNo);
         if ($unvan === '') {
             return $hata('Cari unvani zorunludur.');
+        }
+        if ($vergiNo !== '' && !lumen_vergi_no_gecerli($vergiNo)) {
+            return $hata('Vergi no (10 hane) / TCKN (11 hane) gecersiz; numarayi kontrol edin.');
+        }
+        $eslesen = $vergiNo !== '' ? lumen_cari_vergi_eslesmesi($dbh, $vergiNo) : null;
+        if ($eslesen !== null && !$mukerrerOnay) {
+            return $hata("Bu numara [{$eslesen['KOD']}] {$eslesen['UNVAN']} carisinde kullaniliyor. Bilincli bir istisnaysa 'Yine de olustur'u secin.", true);
         }
 
         $denendi = 0;
@@ -92,8 +102,9 @@ if (!function_exists('cari_olustur_yeni')) {
                 if (lumen_bagimsiz_mi()) {
                     // Bağımsız mod: Lumen'in kendi cari tablosu; şablon kopyalamaya gerek yok.
                     $cariid = lumen_insert_kimlik($dbh,
-                        'INSERT INTO LM_CARI (KOD, UNVAN, TELEFON, IL, ILCE) VALUES (:k, :u, :t, :i, :c)',
-                        [':k' => $yeniKod, ':u' => $unvan, ':t' => $telefon, ':i' => $sehir, ':c' => $ilce], 'ID');
+                        'INSERT INTO LM_CARI (KOD, UNVAN, TELEFON, IL, ILCE, VERGI_NO, TC_NO) VALUES (:k, :u, :t, :i, :c, :v, :tc)',
+                        [':k' => $yeniKod, ':u' => $unvan, ':t' => $telefon, ':i' => $sehir, ':c' => $ilce,
+                         ':v' => strlen($vergiNo) === 10 ? $vergiNo : null, ':tc' => strlen($vergiNo) === 11 ? $vergiNo : null], 'ID');
                     if (function_exists('logGenel')) {
                         @logGenel('cari_olustur', "Yeni cari: [{$yeniKod}] {$unvan}", $kullanici);
                     }
@@ -122,10 +133,10 @@ if (!function_exists('cari_olustur_yeni')) {
                 $ref['ADDR1'] = '';
                 $ref['ADDR2'] = '';
                 $ref['EMAILADDR'] = '';
-                $ref['TAXNR'] = '';
+                $ref['TAXNR'] = strlen($vergiNo) === 10 ? $vergiNo : '';
                 $ref['TAXOFFICE'] = '';
                 if (array_key_exists('TCKNO', $ref)) {
-                    $ref['TCKNO'] = '';
+                    $ref['TCKNO'] = strlen($vergiNo) === 11 ? $vergiNo : '';
                 }
                 $ref['SPECODE'] = '';
                 $ref['CYPHCODE'] = '';

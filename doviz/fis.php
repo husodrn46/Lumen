@@ -10,6 +10,7 @@ include_once(__DIR__ . "/../ayr.php");
 include(__DIR__ . "/../kontrol.php");
 include_once(__DIR__ . "/../log_ip.php");
 require_once __DIR__ . '/doviz_guard.php';
+require_once __DIR__ . '/../includes/siparis_teslimat.php';
 
 doviz_require_m21($terminalkullanici);
 
@@ -257,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sil'])) {
 $stmtSatirlar = $dbh->prepare("
     SELECT
         L.LOGICALREF, L.LINENO_, L.STOCKREF,
-        L.AMOUNT, L.PRICE, L.PRPRICE, L.TOTAL, L.LINENET,
+        L.AMOUNT, L.SHIPPEDAMOUNT, L.PRICE, L.PRPRICE, L.TOTAL, L.LINENET,
         L.VAT, L.VATAMNT, L.LINEEXP,
         I.CODE AS STOK_KOD, I.NAME AS STOK_ADI,
         U.CODE AS BIRIM
@@ -1058,7 +1059,9 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
                             <tr>
                                 <th>#</th>
                                 <th>Ürün</th>
-                                <th class="right">Miktar</th>
+                                <th class="right">Toplam Miktar</th>
+                                <th class="right">Teslim Edilen</th>
+                                <th class="right">Kalan</th>
                                 <th class="right"><?php echo $doviz['sembol']; ?> Fiyat</th>
                                 <th class="right">₺ Fiyat</th>
                                 <th class="right"><?php echo $doviz['sembol']; ?> Toplam</th>
@@ -1071,6 +1074,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
                                 // Döviz birim fiyatı = TL fiyat / fiş kuru (PRPRICE kur değişince eskir)
                                 $dovizFiyat = $trrate > 0 ? (float)$satir['PRICE'] / $trrate : (float)$satir['PRPRICE'];
                                 $dovizToplam = $dovizFiyat * (float)$satir['AMOUNT'];
+                                $teslimat = lumen_siparis_teslimat_miktarlari($satir['AMOUNT'], $satir['SHIPPEDAMOUNT']);
                             ?>
                             <tr>
                                 <td><span class="row-num"><?php echo (int)$satir['LINENO_']; ?></span></td>
@@ -1082,9 +1086,11 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
                                     <?php endif; ?>
                                 </td>
                                 <td class="num">
-                                    <b><?php echo number_format((float)$satir['AMOUNT'], 0, ',', '.'); ?></b>
+                                    <b><?php echo kusuratadet($teslimat['toplam']); ?></b>
                                     <span class="unit-suffix"><?php echo htmlspecialchars((string)($satir['BIRIM'] ?? '')); ?></span>
                                 </td>
+                                <td class="num" data-teslimat-durum="<?php echo $teslimat['durum']; ?>" style="color:var(--emerald-600);font-weight:700;"><?php echo kusuratadet($teslimat['teslim_edilen']); ?></td>
+                                <td class="num" style="color:<?php echo $teslimat['kalan'] > 0 ? '#c2410c' : '#64748b'; ?>;font-weight:700;"><?php echo kusuratadet($teslimat['kalan']); ?></td>
                                 <td class="num price-doviz"><?php echo formatDoviz($dovizFiyat, $doviz['sembol']); ?></td>
                                 <td class="num price-tl"><?php echo formatTL($satir['PRICE']); ?></td>
                                 <td class="num total-doviz"><?php echo formatDoviz($dovizToplam, $doviz['sembol']); ?></td>
@@ -1110,6 +1116,7 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
                     <?php foreach ($satirlar as $satir):
                         $dovizFiyat = $trrate > 0 ? (float)$satir['PRICE'] / $trrate : (float)$satir['PRPRICE'];
                         $dovizToplam = $dovizFiyat * (float)$satir['AMOUNT'];
+                        $teslimat = lumen_siparis_teslimat_miktarlari($satir['AMOUNT'], $satir['SHIPPEDAMOUNT']);
                     ?>
                     <div class="line-card">
                         <div class="lc-head">
@@ -1131,8 +1138,16 @@ $dovizNet = $trrate > 0 ? $netToplam / $trrate : 0;
                         </div>
                         <div class="lc-grid">
                             <div class="lc-cell">
-                                <div class="l">Miktar</div>
-                                <div class="v"><?php echo number_format((float)$satir['AMOUNT'], 0, ',', '.'); ?> <?php echo htmlspecialchars((string)($satir['BIRIM'] ?? '')); ?></div>
+                                <div class="l">Toplam Miktar</div>
+                                <div class="v"><?php echo kusuratadet($teslimat['toplam']); ?> <?php echo htmlspecialchars((string)($satir['BIRIM'] ?? '')); ?></div>
+                            </div>
+                            <div class="lc-cell emerald" data-teslimat-durum="<?php echo $teslimat['durum']; ?>">
+                                <div class="l">Teslim Edilen</div>
+                                <div class="v"><?php echo kusuratadet($teslimat['teslim_edilen']); ?> <?php echo htmlspecialchars((string)($satir['BIRIM'] ?? '')); ?></div>
+                            </div>
+                            <div class="lc-cell">
+                                <div class="l">Kalan</div>
+                                <div class="v" style="color:<?php echo $teslimat['kalan'] > 0 ? '#c2410c' : '#64748b'; ?>;"><?php echo kusuratadet($teslimat['kalan']); ?> <?php echo htmlspecialchars((string)($satir['BIRIM'] ?? '')); ?></div>
                             </div>
                             <div class="lc-cell emerald">
                                 <div class="l"><?php echo $doviz['sembol']; ?> Fiyat</div>
