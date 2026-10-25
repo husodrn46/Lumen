@@ -10,13 +10,14 @@ declare(strict_types=1);
  * LOGO'ya YAZAR (tek transaction): ORFICHE başlık + ORFLINE satırlar + ORFICHE toplam.
  * Yazma sözleşmesi mevcut akıştan birebir alınmıştır (ai_beta_order_header,
  * ../siparis/hareketeklecoklu.php, ../siparis/lg_fis.php toplam güncelleme). Mevcut akışla aynı şekilde
- * satırlar KDV=0, iskontosuz açılır. Herhangi bir adım hata verirse tüm işlem geri alınır.
+ * satır KDV ve genel iskontoları ortak hesaplarla yazılır. Herhangi bir adım hata verirse tüm işlem geri alınır.
  */
 
 include_once(__DIR__ . '/../ayr.php');
 include_once(__DIR__ . '/_api.inc');
 include_once(__DIR__ . '/_siparis.inc');
 include_once(__DIR__ . '/_idempotency.inc');
+require_once __DIR__ . '/../includes/siparis/olustur.php';
 
 global $dbh, $firmano, $firma, $firmadonem, $firmadonemx, $sipno, $depo, $kayitsaat, $saat, $dakika, $saniye, $reserve, $terminalkullanici;
 
@@ -117,148 +118,13 @@ try {
         ], 422);
     }
 
-    // ---- ORFICHE başlık (ai_beta_order_header sözleşmesi) ----
-    $stmtMax = $dbh->prepare("SELECT MAX(LOGICALREF) AS SONID FROM {$firmadonem}ORFICHE");
-    $stmtMax->execute();
-    $maxRow = $stmtMax->fetch(PDO::FETCH_ASSOC);
-    $yeniId = intcevir($maxRow['SONID'] ?? 0) + 1;
-    // INSERT için tahmini fiş no. LOGICALREF IDENTITY olduğundan gerçek id
-    // INSERT sonrası alınır ve FICHENO toplam UPDATE'inde gerçek id'ye göre
-    // kesinleştirilir (silme/boşluk veya eşzamanlı kayıtta tutarsızlığı önler).
-    $fisno  = (string) $sipno . str_pad((string) $yeniId, 6, '0', STR_PAD_LEFT);
-    $ficheGuid = guid();
-
-    $sqlFiche = ("INSERT INTO {$firmadonem}ORFICHE (
-TRCODE,FICHENO,DATE_,TIME_,DOCODE,SPECODE,CYPHCODE,CLIENTREF,RECVREF,ACCOUNTREF,CENTERREF,SOURCEINDEX,SOURCECOSTGRP,UPDCURR,ADDDISCOUNTS,TOTALDISCOUNTS,TOTALDISCOUNTED,ADDEXPENSES,TOTALEXPENSES,TOTALPROMOTIONS,TOTALVAT,GROSSTOTAL,NETTOTAL,REPORTRATE,REPORTNET,GENEXP1,GENEXP2,GENEXP3,GENEXP4,EXTENREF,PAYDEFREF,PRINTCNT,BRANCH,DEPARTMENT,STATUS,CAPIBLOCK_CREATEDBY,CAPIBLOCK_CREADEDDATE,CAPIBLOCK_CREATEDHOUR,CAPIBLOCK_CREATEDMIN,CAPIBLOCK_CREATEDSEC,CAPIBLOCK_MODIFIEDBY,CAPIBLOCK_MODIFIEDDATE,CAPIBLOCK_MODIFIEDHOUR,CAPIBLOCK_MODIFIEDMIN,CAPIBLOCK_MODIFIEDSEC,SALESMANREF,SHPTYPCOD,SHPAGNCOD,GENEXCTYP,LINEEXCTYP,TRADINGGRP,TEXTINC,SITEID,RECSTATUS,ORGLOGICREF,FACTORYNR,WFSTATUS,SHIPINFOREF,CUSTORDNO,SENDCNT,DLVCLIENT,DOCTRACKINGNR,CANCELLED,ORGLOGOID,OFFERREF,OFFALTREF,TYP,ALTNR,ADVANCEPAYM,TRCURR,TRRATE,TRNET,PAYMENTTYPE,ONLYONEPAYLINE,OPSTAT,WITHPAYTRANS,PROJECTREF,WFLOWCRDREF,UPDTRCURR,AFFECTCOLLATRL,POFFERBEGDT,POFFERENDDT,REVISNR,LASTREVISION,CHECKAMOUNT,SLSOPPRREF,SLSACTREF,SLSCUSTREF,AFFECTRISK,TOTALADDTAX,TOTALEXADDTAX,APPROVE,APPROVEDATE,CHECKPRICE,GUID,EINVOICE
-) VALUES (
-:siparisdurum,:fisno,DATEADD(day,0,datediff(day,0,GETDATE())),:kayitsaat,'MASA-API','','',:cariid,0,0,0,:depo,0,0,0,0,0,0,0,0,0,0,0,1,0,'Masaustu siparis','','','',0,0,0,0,0,:status,1,DATEADD(day,0,datediff(day,0,GETDATE())),:saat,:dakika,:saniye,0,NULL,0,0,0,:terminalkullanici,'','',2,0,'',0,0,1,0,0,0,0,'',0,0,'',0,'',0,0,0,0,0,:doviz,:dovizkuru,0,0,0,0,0,0,0,0,0,NULL,NULL,'',0,0,0,0,0,1,0,0,0,NULL,0,:guid,0
-)");
-    // Yeni fişin gerçek LOGICALREF'i (OUTPUT INSERTED; MAX(LOGICALREF) eşzamanlı
-    // kayıtta başka fişi döndürüp satırları ona ekleyebiliyordu).
-    $fisId = lumen_insert_kimlik($dbh, $sqlFiche, [
-        ':siparisdurum'      => 1,
-        ':fisno'             => $fisno,
-        ':kayitsaat'         => $kayitsaatI,
-        ':cariid'            => $cariId,
-        ':depo'              => $depoI,
-        ':status'            => 4,
-        ':saat'              => $saatI,
-        ':dakika'            => $dakikaI,
-        ':saniye'            => $saniyeI,
-        ':terminalkullanici' => $personel,
-        ':doviz'             => 0,
-        ':dovizkuru'         => 0.0,
-        ':guid'              => (string) $ficheGuid,
-    ]);
-    // FICHENO'yu gerçek LOGICALREF'e göre kesinleştir (aşağıdaki toplam UPDATE'inde yazılır).
-    $fisno = (string) $sipno . str_pad((string) $fisId, 6, '0', STR_PAD_LEFT);
-
-    // ---- ORFLINE satırlar (../siparis/hareketeklecoklu.php sözleşmesi) ----
-    $stmtLine = $dbh->prepare("INSERT INTO {$firmadonem}ORFLINE (
-STOCKREF,ORDFICHEREF,CLIENTREF,LINETYPE,PREVLINEREF,PREVLINENO,DETLINE,LINENO_,TRCODE,DATE_,TIME_,GLOBTRANS,CALCTYPE,CENTERREF,ACCOUNTREF,VATACCREF,VATCENTERREF,PRACCREF,PRCENTERREF,PRVATACCREF,PRVATCENREF,PROMREF,SPECODE,DELVRYCODE,AMOUNT,PRICE,TOTAL,SHIPPEDAMOUNT,DISCPER,DISTCOST,DISTDISC,DISTEXP,DISTPROM,VAT,VATAMNT,VATMATRAH,LINEEXP,UOMREF,USREF,UINFO1,UINFO2,UINFO3,UINFO4,UINFO5,UINFO6,UINFO7,UINFO8,VATINC,CLOSED,INUSE,DUEDATE,PRCURR,PRPRICE,REPORTRATE,BILLEDITEM,PAYDEFREF,EXTENREF,CPSTFLAG,SOURCEINDEX,SOURCECOSTGRP,BRANCH,DEPARTMENT,LINENET,SALESMANREF,STATUS,DREF,TRGFLAG,SITEID,RECSTATUS,ORGLOGICREF,FACTORYNR,WFSTATUS,NETDISCFLAG,NETDISCPERC,NETDISCAMNT,CONDITIONREF,DISTRESERVED,ONVEHICLE,CAMPAIGNREFS1,CAMPAIGNREFS2,CAMPAIGNREFS3,CAMPAIGNREFS4,CAMPAIGNREFS5,POINTCAMPREF,CAMPPOINT,PROMCLASITEMREF,REASONFORNOTSHP,CMPGLINEREF,PRRATE,GROSSUINFO1,GROSSUINFO2,CANCELLED,DEMPEGGEDAMNT,TEXTINC,OFFERREF,ORDERPARAM,ITEMASGREF,EXIMAMOUNT,OFFTRANSREF,ORDEREDAMOUNT,ORGLOGOID,TRCURR,TRRATE,WITHPAYTRANS,PROJECTREF,POINTCAMPREFS1,POINTCAMPREFS2,POINTCAMPREFS3,POINTCAMPREFS4,CAMPPOINTS1,CAMPPOINTS2,CAMPPOINTS3,CAMPPOINTS4,CMPGLINEREFS1,CMPGLINEREFS2,CMPGLINEREFS3,CMPGLINEREFS4,PRCLISTREF,AFFECTCOLLATRL,FCTYP,PURCHOFFNR,DEMFICHEREF,DEMTRANSREF,ALTPROMFLAG,VARIANTREF,REFLVATACCREF,REFLVATOTHACCREF,PRIORITY,AFFECTRISK,BOMREF,BOMREVREF,ROUTINGREF,OPERATIONREF,WSREF,ADDTAXRATE,ADDTAXCONVFACT,ADDTAXAMOUNT,ADDTAXACCREF,ADDTAXCENTERREF,ADDTAXAMNTISUPD,ADDTAXDISCAMOUNT,EXADDTAXRATE,EXADDTAXCONVF,EXADDTAXAMNT,EUVATSTATUS,ADDTAXVATMATRAH,CAMPPAYDEFREF,RPRICE,ORGDUEDATE,ORGAMOUNT,ORGPRICE,SPECODE2,CANDEDUCT,UNDERDEDUCTLIMIT,GLOBALID,DEDUCTIONPART1,DEDUCTIONPART2,PARENTLNREF,GUID,DORESERVE,RESERVEDATE,RESERVEAMOUNT
-) VALUES (
-:stokid,:stokhareket,:cariid,0,0,0,0,:sonsirano,:siparisdurum,DATEADD(day,0,datediff(day,0,GETDATE())),:kayitsaat,0,0,0,0,0,0,0,0,0,0,0,'','',:stokmiktar,:stokfiyat,:stoktoplam,0,0,0,0,0,0,:stokkdv,:stoktoplamkdv,:stoktoplam_vatmatrah,:stokaciklama,:uomref,:stokbirim,1,1,0,0,0,0,0,0,0,0,0,DATEADD(day,0,datediff(day,0,GETDATE())),0,0,1,0,0,0,0,:depo,0,0,0,:stoktoplam_linenet,:terminalkullanici,4,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,'',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,DATEADD(day,0,datediff(day,0,GETDATE())),:stokmiktar_org,:stokfiyat_org,'',0,0,'',0,0,0,:guid,:reservex,:reservetarih,:reservemiktar
-)");
-
-    $sira = 0;
-    foreach ($ready as $r) {
-        $sira++;
-        $anaMiktar = (float) $r['ana_miktar'];   // miktar × birim çarpanı (AMOUNT)
-        $fiyat  = (float) $r['fiyat'];
-        $toplam = (float) $r['toplam'];          // ana_miktar × fiyat (brüt)
-        $kdv    = (float) $r['kdv'];
-        $kdvTut = (float) $r['kdv_tutar'];
-        $satirGuid = guid();
-        if ($reserveOn) {
-            $rx = 1;
-            $rm = $anaMiktar;
-            $rt = date('Y-m-d');
-        } else {
-            $rx = 0;
-            $rm = 0.0;
-            $rt = '';
-        }
-
-        $stmtLine->execute([
-            ':stokid'               => (int) $r['stok_id'],
-            ':stokhareket'          => $fisId,
-            ':cariid'               => $cariId,
-            ':sonsirano'            => $sira,
-            ':siparisdurum'         => 1,
-            ':kayitsaat'            => $kayitsaatI,
-            ':stokmiktar'           => $anaMiktar,
-            ':stokfiyat'            => $fiyat,
-            ':stoktoplam'           => $toplam,
-            ':stokkdv'              => $kdv,
-            ':stoktoplamkdv'        => $kdvTut,
-            ':stoktoplam_vatmatrah' => $toplam,
-            ':stokaciklama'         => '',
-            ':uomref'               => (int) $r['uomref'],
-            ':stokbirim'            => (int) $r['unitsetref'],
-            ':depo'                 => $depoI,
-            ':stoktoplam_linenet'   => $toplam,
-            ':terminalkullanici'    => $personel,
-            ':stokmiktar_org'       => $anaMiktar,
-            ':stokfiyat_org'        => $fiyat,
-            ':guid'                 => (string) $satirGuid,
-            ':reservex'             => $rx,
-            ':reservetarih'         => $rt,
-            ':reservemiktar'        => $rm,
-        ]);
-    }
-
-    // ---- Genel iskonto (varsa) — ../siparis/iskonto.php sözleşmesi: LINETYPE=2 satır + dağıtım ----
-    // İki kademe sıralı uygulanır (önce iskonto1, kalan üzerine iskonto2).
-    if ($iskonto1 > 0.0) {
-        siparis_iskonto_uygula($dbh, $firmadonem, $fisId, $cariId, $iskonto1, $kayitsaatI);
-    }
-    if ($iskonto2 > 0.0) {
-        siparis_iskonto_uygula($dbh, $firmadonem, $fisId, $cariId, $iskonto2, $kayitsaatI);
-    }
-
-    // ---- ORFICHE toplamları (../siparis/lg_fis.php satır sonrası güncelleme sözleşmesi) ----
-    $stmtSum = $dbh->prepare("
-        SELECT SUM(VATAMNT) AS KDVTUTAR, SUM(TOTAL) AS TUTAR, SUM(DISTDISC) AS ISK
-        FROM {$firmadonem}ORFLINE WHERE ORDFICHEREF = :ref AND LINETYPE = 0
-    ");
-    $stmtSum->execute([':ref' => $fisId]);
-    $t    = $stmtSum->fetch(PDO::FETCH_ASSOC) ?: [];
-    $kdvT = round((float) ($t['KDVTUTAR'] ?? 0), 2);
-    $brut = round((float) ($t['TUTAR'] ?? 0), 2);
-    $isk  = round((float) ($t['ISK'] ?? 0), 2);
-    $net  = round($brut - $isk, 2);
-    $netKdv = round($net + $kdvT, 2);
-
-    $stmtUpd = $dbh->prepare("
-        UPDATE {$firmadonem}ORFICHE
-        SET ADDDISCOUNTS=:a, TOTALDISCOUNTS=:td, TOTALDISCOUNTED=:tded,
-            TOTALVAT=:tv, GROSSTOTAL=:gt, NETTOTAL=:nt, REPORTNET=:rn, TRNET=:tn,
-            FICHENO=:fisno
-        WHERE LOGICALREF=:ref
-    ");
-    $stmtUpd->execute([
-        ':a' => $isk, ':td' => $isk, ':tded' => $brut, ':tv' => $kdvT,
-        ':gt' => $brut, ':nt' => $netKdv, ':rn' => $netKdv, ':tn' => $netKdv,
-        ':fisno' => $fisno, ':ref' => $fisId,
-    ]);
-
-    // Sipariş ve tekrar gönderimde dönülecek sonuç aynı transaction içinde tamamlanır.
-    $yanit = [
-        'ok'  => true,
-        'fis' => ['id' => $fisId, 'fisno' => $fisno],
-        'cari' => $cari,
-        'satir_sayisi'         => count($ready),
-        'ara_toplam'           => $brut,
-        'ara_toplam_metin'     => api_money($brut),
-        'iskonto_toplam'       => $isk,
-        'iskonto_toplam_metin' => api_money($isk),
-        'kdv_toplam'           => $kdvT,
-        'kdv_toplam_metin'     => api_money($kdvT),
-        'genel_toplam'         => $netKdv,
-        'genel_toplam_metin'   => api_money($netKdv),
-        'atlanan'              => $h['skipped'],
-        'mesaj'                => $fisno . ' numaralı sipariş oluşturuldu.',
-    ];
+    $yanit = siparis_servis_yaz($dbh, $ready, $cari, [
+        'firmadonem' => $firmadonem, 'sipno' => $sipno, 'personel' => $personel,
+        'kayitsaat' => $kayitsaatI, 'saat' => $saatI, 'dakika' => $dakikaI,
+        'saniye' => $saniyeI, 'depo' => $depoI, 'reserve' => $reserveOn,
+    ], $iskonto1, $iskonto2, $h['skipped']);
+    $fisId = $yanit['fis']['id'];
+    $fisno = $yanit['fis']['fisno'];
     if ($idempotencyKey !== null) {
         siparis_idempotency_tamamla(
             $dbh,
