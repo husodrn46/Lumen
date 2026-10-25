@@ -118,7 +118,7 @@ function et_test_form(Tarayici $t, int $id, string $islem): array
 akis('e-ticaret: tutar farkı ve eşleme değişimi aktarımı durdurur; iptal korunur', function () use ($pdo,$yonetici,&$etKanal): void {
     $id=et_test_yeni($yonetici,$etKanal,['genel_toplam'=>119]);
     $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'kontrol'));
-    bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='hatali','tutar farkı geçildi');
+    bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='hatali','tutar farkı kontrolü: '.(string) tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id]));
     $id=et_test_yeni($yonetici,$etKanal);
     $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'kontrol'));
     $eski=et_test_form($yonetici,$id,'aktar');
@@ -174,6 +174,28 @@ akis('e-ticaret: aynı ürünün toplam stok talebi ve çelişkili barkod engell
     $id=et_test_yeni($yonetici,$etKanal,['kalemler'=>[$k]]);
     $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'kontrol'));
     bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='esleme','çelişkili barkod geçildi');
+});
+akis('e-ticaret: aynı siparişin ayrı paketleri aktarılır; aynı kalem ikinci pakette aktarılmaz', function () use ($pdo,$yonetici,&$etKanal): void {
+    $no='PAKET-'.bin2hex(random_bytes(5));
+    $temel=['sku'=>'DEMO-SKU-1','barkod'=>'','ad'=>'Sentetik paket kalemi','birim'=>'ADET','miktar'=>2,'fiyat'=>50,'kdv'=>20,'kdv_dahil'=>false];
+    $ids=[];
+    foreach (['A','B','C'] as $paket) {
+        $k=$temel+['harici_kimlik'=>$paket==='C' ? $no.'-SATIR-A' : $no.'-SATIR-'.$paket];
+        $id=et_test_yeni($yonetici,$etKanal,['kimlik'=>$no.'-'.$paket,'numara'=>$no,'paket_kimligi'=>$paket,'kalemler'=>[$k]]);
+        // Aynı numaranın birden çok paketi var; kimlik üzerinden seçim gerekir.
+        $id=(int) tek($pdo,'SELECT ID FROM M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_ID=:i',[':k'=>$etKanal,':i'=>$no.'-'.$paket]);
+        bekle($id>0,'paket kaydı yok');$ids[]=$id;
+        $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'kontrol'));
+        if ($paket==='C') {
+            bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='hatali','aynı kalem ikinci pakette hazır oldu');
+        } else {
+            $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'aktar'));
+            bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='aktarildi','ayrı paket aktarılamadı');
+        }
+    }
+    bekle((int) tek($pdo,"SELECT COUNT(*) FROM M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_NO=:n AND DURUM='aktarildi'",[':k'=>$etKanal,':n'=>$no])===2,'paket aktarım sayısı yanlış');
+    et_test_yeni($yonetici,$etKanal,['kimlik'=>$no.'-TUMU','numara'=>$no]);
+    bekle((int) tek($pdo,'SELECT COUNT(*) FROM M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_NO=:n',[':k'=>$etKanal,':n'=>$no])===3,'paketli sipariş yeniden paketsiz alındı');
 });
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d e-ticaret akışı, %d başarısız\n", count($sonuclar), $basarisiz);

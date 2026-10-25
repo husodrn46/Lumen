@@ -81,9 +81,9 @@ function et_kanal_kaydet(PDO $db, array $v, int $kullanici): int
         if ($id > 0) {
             et_kanal($db, $id);
             $s = $db->prepare('UPDATE dbo.M_ET_KANAL SET AD=:ad,TUR=:t,AKTIF=:a,CARI_ID=:c,DEPO_NO=:d,PERSONEL_ID=:p,
-                GUNCELLEYEN=:u,GUNCELLEME=SYSDATETIME() WHERE ID=:id AND FIRMA=:f AND CONVERT(VARCHAR(18),SURUM,1)=:surum');
+                GUNCELLEYEN=:u,GUNCELLEME=SYSDATETIME() OUTPUT INSERTED.ID WHERE ID=:id AND FIRMA=:f AND CONVERT(VARCHAR(18),SURUM,1)=:surum');
             $s->execute($param + [':id' => $id, ':surum' => (string) ($v['surum'] ?? '')]);
-            if ($s->rowCount() !== 1) {
+            if ($s->fetchColumn() === false) {
                 throw new DomainException('Kanal değişmiş; sayfayı yenileyin.');
             }
             $s->closeCursor();

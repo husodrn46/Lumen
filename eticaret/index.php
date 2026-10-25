@@ -19,7 +19,7 @@ if ($ozel['sql']!=='') { $kosul.=' AND '.$ozel['sql']; $p+=$ozel['params']; }
 $from="FROM dbo.M_ET_SIPARIS S JOIN dbo.M_ET_KANAL K ON K.ID=S.KANAL_ID WHERE {$kosul}";
 $toplam=(int) (et_tek($dbh,"SELECT COUNT(*) AS N {$from}",$p)['N'] ?? 0);
 $sayfa=min($sayfa,max(1,(int) ceil($toplam/50))); $ofset=($sayfa-1)*50;
-$s=$dbh->prepare("SELECT S.ID,S.HARICI_NO,S.DURUM,S.ALINMA,S.SON_HATA,S.NORMAL,K.AD {$from} ORDER BY S.ID DESC OFFSET {$ofset} ROWS FETCH NEXT 50 ROWS ONLY");
+$s=$dbh->prepare("SELECT S.ID,S.HARICI_NO,S.PAKET_KIMLIGI,S.KAYNAK_DURUMU,S.DURUM,S.ALINMA,S.SON_HATA,S.NORMAL,K.AD {$from} ORDER BY S.ID DESC OFFSET {$ofset} ROWS FETCH NEXT 50 ROWS ONLY");
 $s->execute($p); $satirlar=$s->fetchAll(PDO::FETCH_ASSOC);
 et_basla('E-ticaret Sipariş Kutusu');
 ?>
@@ -31,7 +31,7 @@ et_basla('E-ticaret Sipariş Kutusu');
 <label class="alan">Alınma bitişi <input type="date" name="bit" value="<?= bh($_GET['bit'] ?? '') ?>"></label><button class="btn btn-birincil">Süz</button>
 </form>
 <div class="kart tablo-sar"><table class="liste"><thead><tr><th>Sipariş</th><th>Kanal</th><th>Müşteri</th><th>Durum</th><th>Toplam</th><th>Alınma</th></tr></thead><tbody>
-<?php foreach ($satirlar as $r): $n=json_decode($r['NORMAL'],true); ?><tr><td><a href="detay.php?id=<?= (int) $r['ID'] ?>"><?= bh($r['HARICI_NO']) ?></a></td><td><?= bh($r['AD']) ?></td><td><?= bh(is_scalar($n['musteri']['ad'] ?? '') ? ($n['musteri']['ad'] ?? '') : '') ?></td><td><span class="rozet"><?= bh(et_durumlar()[$r['DURUM']]) ?></span><?php if ($r['SON_HATA']): ?><div class="soluk"><?= bh($r['SON_HATA']) ?></div><?php endif; ?></td><td><?= isset($n['genel_toplam']) ? btl($n['genel_toplam']) : '—' ?></td><td><?= bh(et_tarih($r['ALINMA'])) ?></td></tr><?php endforeach; ?>
+<?php foreach ($satirlar as $r): $n=json_decode($r['NORMAL'],true); ?><tr><td><a href="detay.php?id=<?= (int) $r['ID'] ?>"><?= bh($r['HARICI_NO']) ?></a><?php if ($r['PAKET_KIMLIGI'] !== ''): ?><div class="soluk">Paket <?= bh($r['PAKET_KIMLIGI']) ?></div><?php endif; ?></td><td><?= bh($r['AD']) ?></td><td><?= bh(is_scalar($n['musteri']['ad'] ?? '') ? ($n['musteri']['ad'] ?? '') : '') ?></td><td><span class="rozet"><?= bh(et_durumlar()[$r['DURUM']]) ?></span><?php if ($r['KAYNAK_DURUMU']): ?><div class="soluk">Kaynak: <?= bh($r['KAYNAK_DURUMU']) ?></div><?php endif; ?><?php if ($r['SON_HATA']): ?><div class="soluk"><?= bh($r['SON_HATA']) ?></div><?php endif; ?></td><td><?= isset($n['genel_toplam']) ? btl($n['genel_toplam']) : '—' ?></td><td><?= bh(et_tarih($r['ALINMA'])) ?></td></tr><?php endforeach; ?>
 <?php if (!$satirlar): ?><tr><td colspan="6">Sipariş yok. CSV/JSON içe aktararak başlayın.</td></tr><?php endif; ?>
 </tbody></table></div><nav class="kart kart-ic" aria-label="Kutu sayfaları"><?= $toplam ?> kayıt · Sayfa <?= $sayfa ?>
 <?php foreach ([$sayfa-1=>'Önceki',$sayfa+1=>'Sonraki'] as $n=>$ad): if ($n>=1 && $n<=max(1,ceil($toplam/50))): ?><a class="btn btn-ikincil" href="?<?= bh(http_build_query(array_replace($_GET,['sayfa'=>$n]))) ?>"><?= bh($ad) ?></a><?php endif; endforeach; ?></nav>

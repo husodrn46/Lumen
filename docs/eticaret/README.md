@@ -60,8 +60,12 @@ Ekrandaki örnek indirme bağlantıları aynı dosyaları verir.
 Yeni → Eşleme bekliyor / Hatalı → Hazır → Aktarıldı. Aktarım öncesi kayıt iptal
 edilebilir. Kutu iptali satış siparişini iptal etmez; aktarılmış kayıt tekrar açılamaz.
 
-Aynı kanal/harici kimlik ve kanal/numara veritabanında benzersizdir; büyük/küçük harf
-ve baştaki sıfırlar korunur. Aynı içerik tekrarında mevcut kayıt tutulur. Değişmiş
+Aynı kanal/harici kimlik ve kanal/numara/paket kimliği veritabanında benzersizdir; büyük/küçük harf
+ve baştaki sıfırlar korunur. Paket kimliği olmayan eski dosyalar aynı şekilde çalışır.
+Genel JSON'da `paket_kimligi` isteğe bağlıdır; paketli siparişlerde her kalemin
+`harici_kimlik` değeri paketler arasında kalıcı olmalıdır. Ayrı paketlerde aynı
+sipariş numarası kullanılabilir; daha önce aktarılmış harici kalem ikinci kez
+aktarılamaz. Paketli ve paketsiz alım aynı sipariş için karıştırılamaz. Aynı içerik tekrarında mevcut kayıt tutulur. Değişmiş
 kaynak, mevcut siparişi ezmeden denetim olayında ve kaynak dosyada saklanır. Kaynak
 revizyonunu mevcut siparişe uygulama bu MVP'de yoktur. Değişmiş içerik hazır onayı
 düşürür; denetim izini inceleyip orijinal kayıtla devam kutusunu açıkça onaylamadan

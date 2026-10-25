@@ -59,8 +59,10 @@ function et_esleme_kaydet(PDO $db, array $v, int $kullanici): void
 function et_kontrol(PDO $db, array $r, int $kullanici): array
 {
     $hatalar=[]; $gorunum=[]; $kalemler=[]; $eslemeEksik=false;
+    if ($r['KAYNAK_ENGELI'] ?? '') { $hatalar[]='Pazaryeri aktarım engeli: '.$r['KAYNAK_ENGELI']; }
     $normal=json_decode($r['NORMAL'],true,64,JSON_THROW_ON_ERROR);
     if (!$normal) { return ['hatalar'=>[$r['SON_HATA'] ?: 'Kaynak veri geçersiz.'],'satirlar'=>[],'govde'=>null,'durum'=>'hatali']; }
+    $hatalar=array_merge($hatalar,et_paket_kontrol($db,$r,$normal));
     if ($r['CAKISMA'] ?? false) { $hatalar[]='Kaynak içerik çakışması var; denetim izini inceleyip orijinal kayıtla devam kararını verin.'; }
     $kanal=et_kanal($db,(int) $r['KANAL_ID']);
     if (!$kanal['AKTIF']) { $hatalar[]='Kanal pasif.'; }
@@ -114,7 +116,8 @@ function et_kontrol(PDO $db, array $r, int $kullanici): array
     if (count($h['ready']) !== count($normal['kalemler'])) { $hatalar[]='Bütün kalemler doğrulanmalı; kısmi aktarım yapılamaz.'; }
     if (abs($toplam['genel_toplam']-$normal['genel_toplam'])>0.005) { $hatalar[]='Kaynak toplamı ile Lumen toplamı uyuşmuyor.'; }
     $govde=['cari_id'=>(int) $r['CARI_ID'],'depo'=>(int) ($r['DEPO_NO'] ?? -1),'personel'=>(int) $r['PERSONEL_ID'],
-        'kalemler'=>$kalemler,'hazir'=>$h['ready'],'gorunum'=>$gorunum,'toplam'=>$toplam['genel_toplam'],
+        'paket_kimligi'=>$r['PAKET_KIMLIGI'] ?? '',
+        'kaynak_satirlar'=>array_column($normal['kalemler'],'harici_kimlik'),'kalemler'=>$kalemler,'hazir'=>$h['ready'],'gorunum'=>$gorunum,'toplam'=>$toplam['genel_toplam'],
         'mod'=>lumen_bagimsiz_mi() ? 'lumen' : 'logo','donem'=>lumen_bagimsiz_mi() ? 'LUMEN' : $GLOBALS['firmadonem']];
     return ['hatalar'=>array_values(array_unique($hatalar)),'satirlar'=>$gorunum,'govde'=>$govde,
         'durum'=>$hatalar ? ($eslemeEksik ? 'esleme' : 'hatali') : 'hazir','toplam'=>$toplam];
@@ -143,4 +146,28 @@ function et_hazirla(PDO $db, int $id, int $kullanici, string $surum, array $hede
         if ($cakismaOnay) { et_olay($db,(int) $r['KANAL_ID'],$id,$kullanici,'orijinal_onay','Kaynak revizyonu incelendi; orijinal kutu içeriğiyle devam onaylandı.'); }
         $db->commit(); return $v;
     } catch (Throwable $e) { if ($db->inTransaction()) { $db->rollBack(); } throw $e; }
+}
+
+/** Paket yenilenmesi/bölünmesi daha önce aktarılmış kalemleri tekrar satışa dönüştürmez. */
+function et_paket_kontrol(PDO $db, array $r, array $normal): array
+{
+    $s=$db->prepare("SELECT ID,PAKET_KIMLIGI,NORMAL FROM dbo.M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_NO=:n AND ID<>:i AND DURUM='aktarildi'");
+    $s->execute([':k'=>$r['KANAL_ID'],':n'=>$r['HARICI_NO'],':i'=>$r['ID']]);
+    $digerleri=$s->fetchAll(PDO::FETCH_ASSOC);
+    $satirlar=array_column($normal['kalemler'],'harici_kimlik');
+    foreach ($digerleri as $d) {
+        if (($r['PAKET_KIMLIGI'] ?? '') === '' || $d['PAKET_KIMLIGI'] === '') {
+            return ['Bu sipariş paketli veya paketsiz olarak daha önce aktarılmış.'];
+        }
+        $onceki=json_decode($d['NORMAL'],true,64,JSON_THROW_ON_ERROR);
+        $eskiSatirlar=array_column($onceki['kalemler'] ?? [],'harici_kimlik');
+        if (!$satirlar || in_array('', $satirlar,true) || !$eskiSatirlar || in_array('', $eskiSatirlar,true)) {
+            return ['Aynı siparişin diğer paketi aktarılmış; tekrar kontrolü için tüm kalemlerin harici kimlikleri gerekiyor.'];
+        }
+        if (array_intersect($satirlar,$eskiSatirlar)) { return ['Bu paketin bir veya daha fazla kalemi aynı siparişin başka paketinde aktarılmış.']; }
+        if (in_array($d['PAKET_KIMLIGI'],$normal['kaynak_bilgileri']['eski_paketler'] ?? [],true)) {
+            return ['Bu paket daha önce aktarılmış bir paketin yenilenmiş sürümü; manuel inceleme gerekiyor.'];
+        }
+    }
+    return [];
 }
