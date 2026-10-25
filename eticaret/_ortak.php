@@ -22,5 +22,5 @@ function et_hata(Throwable $e): string
 function et_basla(string $baslik): void
 {
     belge_sayfa_basla($baslik, 'fa-inbox');
-    echo '<nav class="kart kart-ic" style="display:flex;gap:12px;flex-wrap:wrap"><a href="index.php">Sipariş kutusu</a><a href="kanallar.php">Satış kanalları</a></nav>';
+    echo '<nav class="kart kart-ic" style="display:flex;gap:12px;flex-wrap:wrap"><a href="index.php">Sipariş kutusu</a><a href="ice_aktar.php">CSV / JSON içe aktar</a><a href="kanallar.php">Satış kanalları</a></nav>';
 }
