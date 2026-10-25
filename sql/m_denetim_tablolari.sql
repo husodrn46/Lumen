@@ -240,6 +240,26 @@ BEGIN
 END
 GO
 
+-- Türü işaretlenmemiş 64 haneli değerler v1.3.1'de yazılan SHA-256 özetleridir.
+-- "sha256:" öneki, veritabanındaki özetin Bearer token olarak tekrar kullanılmasını
+-- engeller. Daha eski düz tokenlar ayırt edilemediği için güvenli biçimde oturum dışı
+-- kalır; kullanıcı yeniden giriş yaptığında yeni biçimde token oluşturulur.
+IF EXISTS (
+    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'M_API_TOKEN' AND COLUMN_NAME = 'TOKEN'
+      AND CHARACTER_MAXIMUM_LENGTH <> -1 AND CHARACTER_MAXIMUM_LENGTH < 71
+)
+    ALTER TABLE dbo.M_API_TOKEN ALTER COLUMN TOKEN VARCHAR(128) NOT NULL;
+GO
+UPDATE dbo.M_API_TOKEN
+SET TOKEN = 'sha256:' + LOWER(TOKEN)
+WHERE TOKEN NOT LIKE 'sha256:%'
+  AND LEN(TOKEN) = 64
+  AND TOKEN NOT LIKE '%[^0-9A-Fa-f]%';
+GO
+UPDATE dbo.M_API_TOKEN SET AKTIF = 0 WHERE TOKEN NOT LIKE 'sha256:%' AND AKTIF = 1;
+GO
+
 -- M_ONAYLANMIS_IP: Saldırı modunda yerel ağ dışından erişimine izin verilen IP'ler
 -- (loglar.php ile aynı yapı).
 IF OBJECT_ID('dbo.M_ONAYLANMIS_IP', 'U') IS NULL

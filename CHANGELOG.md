@@ -1,5 +1,57 @@
 # Değişiklik Günlüğü
 
+## [Yayımlanmadı]
+
+### 🐛 Düzeltmeler
+
+- Kasa/banka fişi formu, `12abc` gibi geçersiz tutarları göndermeden uyarır.
+- Kasa/banka listesi fişleri sessizce ilk 300 kayıtla sınırlamak yerine 50'şer
+  sayfalar; tarih ve hesap süzgeçleri sayfa geçişlerinde korunur.
+- Faturalar ve Belgeler listesi de ilk 300 kayıtla sınırlı kalmaz; tür, tarih ve
+  arama süzgeçleri korunarak 50'şer sayfalanır.
+- Cari kartındaki belge, tahsilat/ödeme ve çek geçmişi 50 kayıtla kesilmez;
+  sekme sayaçları toplamı gösterir ve eski kayıtlar sayfalardan açılır.
+- Tanımlar'daki döviz kuru geçmişi 60 kayıtla kesilmez; toplam sayı ve eski
+  tarihler sayfalardan görülebilir.
+- Stok kartı hareketleri son 100 kayıtla sınırlı kalmaz; eski hareketler
+  yürüyen bakiyeleri korunarak sayfalardan açılır.
+
+## [1.3.2] — 2026-10-24 (GÜVENLİK VE BAKIM)
+
+### 🐛 Düzeltmeler
+
+- Günlük İşlemler ekranı ve Excel çıktısı, satış ve kasa kayıtlarında yalnız tarih
+  alanına düşmek yerine kaynak işlem saatini gösterir; saat kaynağı yoksa `--:--` kullanır.
+- Yeni cari ve cari düzenleme akışları mükerrer vergi no/TCKN eşleşmesini cari kodu ve
+  unvanıyla bildirir; bilinçli istisnalar onaylanabilir. Excel aktarımı mükerrer satırı reddeder.
+- TL ve dövizli sipariş ekranları her satırda toplam, teslim edilen ve kalan miktarı ayrı
+  gösterir; hiç teslim edilmemiş, kısmi ve tam teslim durumları testlerle doğrulanır.
+- Yeni belge ekranında para birimi değiştirilip geri alındığında satır fiyatı ve toplam,
+  ara yuvarlamaya uğramadan aynı TL referans değerine döner.
+
+### 🔒 Güvenlik
+
+- API token özetleri tür işaretli biçimde saklanır; veritabanındaki özet artık Bearer
+  token olarak tekrar kullanılamaz. Kesin Bearer başlığı, JSON gövde sınırı ve API çıkışı eklendi.
+- API sipariş oluşturma ucu `Idempotency-Key` ile aynı veya eşzamanlı tekrarları tek
+  siparişe indirir; farklı içerikle anahtar tekrarını reddeder ve sonucu siparişle aynı
+  transaction içinde saklar.
+
+### 🔧 Bakım
+
+- PHP bağımlılıkları ve GitHub Actions bileşenleri güncellendi; issue/PR şablonları
+  ve otomatik etiketleme eklendi.
+- Yönetici ana sayfası eksik `M_API_IDEMPOTENCY` tablosunu şema uyarısında gösterir.
+
+**Yükseltme (v1.3.1 → v1.3.2):** uygulama ve veritabanı yedeğini doğrulayın; sürüm
+dosyalarını güncelleyip `composer install` çalıştırın. Ardından doğru veritabanına
+bağlı sunucuda `php scripts/sema_guncelle.php` komutunu bir kez çalıştırın ve
+hatasız tamamlandığını doğrulayın. Betik `M_API_IDEMPOTENCY` tablosunu oluşturur;
+ayrıca bütün Lumen şema betiklerini yeniden uygular. Eski biçimdeki API tokenları
+geçersiz kalabilir; etkilenen istemciler yeniden giriş yapmalıdır. LOGO tablolarına
+dokunulmaz.
+
+
 ## [1.3.1] — 2026-10-24 (GÜVENLİK VE BAKIM)
 
 ### 🔒 Güvenlik
@@ -21,6 +73,8 @@
 ### 🎨 Arayüz ve bakım
 
 - Ekranlar ortak bordo tasarım diline ve daha tutarlı mobil yerleşime uyarlandı.
+- Müşteri yanında gizli mod düğmesi ortak başlığı olan sayfalarda başlığa taşındı;
+  başlıksız sayfalarda içerikle çakışmaması için alt boşluk bırakıldı.
 - Pull request şablonu ve katkı rehberi; dal, test, güvenlik ve sürüm akışını belgeledi.
 
 **Yükseltme (v1.3.0 → v1.3.1):** dosyaları güncelleyip `composer install` çalıştırın.
@@ -47,10 +101,6 @@ varsayılan `logo`).
 kez `php scripts/sema_guncelle.php`. LOGO tablolarına dokunulmaz; davranış değişmez.
 Bağımsız moda geçiş: `docs/mimari/bagimsiz-lumen.md` → "Kurulum ve LOGO'dan geçiş".
 Kullanım: `docs/kullanim/KILAVUZ.md`. Bilinen sınırlar: `docs/mimari/bagimsiz-lumen.md`.
-
-**Bilinen küçük konular** (sonraki bakım sürümü): belgede para birimi gidiş-dönüşünde fiyat
-kuruş kayması; Günlük İşlemler'de saat 00:00; telefonda yüzen göz düğmesi tabloların üstüne
-biniyor; sipariş ekranında kısmi teslim miktarı gösterilmiyor; aynı vergi no ikinci caride uyarı vermiyor.
 
 ## [1.3.0-rc.3] — 2026-10-22 (SÜRÜM ADAYI)
 

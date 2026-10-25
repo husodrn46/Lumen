@@ -121,17 +121,26 @@ akis('ekstre PDF ve Excel bağımsız modda üretilir', function () use ($yoneti
     }
 });
 
-akis('yeni cari: LM_CARI\'ye önekli kodla yazılır ve aramada çıkar', function () use ($yonetici, $pdo): void {
+akis('yeni cari: LM_CARI\'ye önekli kodla yazılır, mükerrer vergi no uyarılır', function () use ($yonetici, $pdo): void {
     $unvan = 'Akış Testi Cari ' . strtoupper(bin2hex(random_bytes(2)));
     $t = $yonetici->belirtec('cari/cariyeni.php');
     $yonetici->istek('cari/cariyeni.php', ['csrf_token' => $t, 'cari_ekle' => 1, 'unvan' => $unvan, 'telefon' => '0 555 000 00 00',
-        'sehir' => 'Eskişehir', 'ilce' => 'Odunpazarı']);
+        'sehir' => 'Eskişehir', 'ilce' => 'Odunpazarı', 'vergi_no' => '2000000002']);
     $r = $pdo->prepare("SELECT ID, KOD FROM LM_CARI WHERE UNVAN = :u");
     $r->execute([':u' => $unvan]);
     $c = $r->fetch(PDO::FETCH_ASSOC);
     bekle($c !== false, 'cari LM_CARI\'ye yazılmadı');
     bekle(preg_match('/^[A-Za-z0-9._-]+\d{4}$/', (string) $c['KOD']) === 1, 'kod önek + 4 hane değil: ' . $c['KOD']);
     bekle(str_contains($yonetici->istek('cari/cari.php?cari=' . rawurlencode($unvan))['govde'], $unvan), 'yeni cari aramada yok');
+    $ikinci = 'Mükerrer Cari ' . strtoupper(bin2hex(random_bytes(2)));
+    $r2 = $yonetici->istek('cari/cariyeni.php', ['csrf_token' => $yonetici->belirtec('cari/cariyeni.php'), 'cari_ekle' => 1,
+        'unvan' => $ikinci, 'vergi_no' => '200.000.000-2']);
+    bekle(str_contains($r2['govde'], (string) $c['KOD']) && str_contains($r2['govde'], $unvan) && str_contains($r2['govde'], 'mukerrer_onay'),
+        'mükerrer vergi no eşleşmesi cari kodu/unvanıyla gösterilmedi');
+    bekle((int) tek($pdo, 'SELECT COUNT(*) FROM LM_CARI WHERE UNVAN = N\'' . str_replace("'", "''", $ikinci) . '\'') === 0, 'mükerrer cari onaysız yazıldı');
+    $yonetici->istek('cari/cariyeni.php', ['csrf_token' => $yonetici->belirtec('cari/cariyeni.php'), 'cari_ekle' => 1,
+        'unvan' => $ikinci, 'vergi_no' => '2000000002', 'mukerrer_onay' => 1]);
+    bekle((int) tek($pdo, 'SELECT COUNT(*) FROM LM_CARI WHERE UNVAN = N\'' . str_replace("'", "''", $ikinci) . '\'') === 1, 'bilinçli mükerrer istisnası yazılmadı');
 });
 
 akis('özel cari kısıtı: gizlenen cari liste, otomatik tamamlama ve ekstrede görünmez', function () use ($URL, $pdo): void {
@@ -240,6 +249,11 @@ akis('siparişten kısmi satış faturası: stok çıkar, cari borçlanır, sipa
     yakin($bakiyeOnce + $genel, (float) tek($pdo, "SELECT BAKIYE FROM LMV_CARI_BAKIYE WHERE CARI_ID = {$cari}"), 'cari bakiye');
     yakin($stokOnce - $yarim * (float) $satir['CARPAN'], (float) tek($pdo, "SELECT ISNULL(SUM(MIKTAR), 0) FROM LMV_STOK_MIKTAR WHERE STOK_ID = :s", [':s' => $satir['STOK_ID']]), 'stok');
     yakin($yarim, (float) tek($pdo, "SELECT TESLIM_MIKTAR FROM LM_BELGE_SATIR WHERE ID = :i", [':i' => $satir['ID']]), 'teslim miktarı');
+    $siparisEkrani = $yonetici->istek("siparis/lg_fis.php?stokhareket={$sip}")['govde'];
+    bekle(str_contains($siparisEkrani, 'Toplam Miktar'), 'sipariş ekranında toplam miktar başlığı yok');
+    bekle(str_contains($siparisEkrani, 'Teslim Edilen'), 'sipariş ekranında teslim edilen miktar başlığı yok');
+    bekle(str_contains($siparisEkrani, 'Kalan'), 'sipariş ekranında kalan miktar başlığı yok');
+    bekle(str_contains($siparisEkrani, 'data-teslimat-durum="kismi"'), 'kısmi teslim durumu sipariş ekranında görünmüyor');
     // LOGO uyumlu görünüm: sipariş ekranlarının "faturalandı mı" kontrolü
     bekle((int) tek($pdo, "SELECT COUNT(*) FROM LMV_STLINE WHERE ORDFICHEREF = :s AND INVOICEREF = :f", [':s' => $sip, ':f' => $r['id']]) === 1, 'LMV_STLINE siparişi bağlamıyor');
     $g = $yonetici->istek("belge/goster.php?id={$r['id']}")['govde'];
@@ -412,13 +426,14 @@ akis('Excel\'den aktar: şablon, önizleme ve satır hataları, onay; açılış
     $sablon = $yonetici->istek('tanimlar/ice_aktar.php?sablon=stok');
     bekle($sablon['kod'] === 200 && str_starts_with($sablon['govde'], 'PK'), 'şablon indirilemedi');
     $ek = (string) random_int(1000, 9999);
-    // Cari dosyası: 2 geçerli, 1 hatalı (vergi no), 1 dosya içi tekrar, 1 mevcut (atlanır)
+    // Cari dosyası: 2 geçerli, 1 hatalı no, 1 mükerrer no, 1 kod tekrarı, 1 mevcut (atlanır)
     $x = new PhpOffice\PhpSpreadsheet\Spreadsheet();
     $x->getActiveSheet()->fromArray([
         ['Kod *', 'Unvan *', 'Tür', 'Vergi dairesi', 'Vergi no / TCKN', 'İl', 'İlçe', 'Adres', 'Telefon', 'E-posta', 'Vade (gün)', 'Açılış bakiyesi'],
         ["XL{$ek}A", 'Excel Cari A', 'Alıcı', 'Kadıköy', '1234567890', 'İstanbul', '', '', '', 'a@ornek.test', 30, '1.250,50'],
         ["XL{$ek}B", 'Excel Cari B', 'Satıcı', '', '', 'Ankara', '', '', '', '', '', -400],
         ["XL{$ek}C", 'Hatalı Cari', '', '', '12', '', '', '', '', '', '', ''],
+        ["XL{$ek}D", 'Mükerrer Vergi', '', '', '123 456 7890', '', '', '', '', '', '', ''],
         ["XL{$ek}A", 'Tekrar', '', '', '', '', '', '', '', '', '', ''],
         ['120.DM.001', 'Mevcut', '', '', '', '', '', '', '', '', '', ''],
     ], null, 'A1', true);
@@ -427,7 +442,8 @@ akis('Excel\'den aktar: şablon, önizleme ve satır hataları, onay; açılış
     $once = (float) tek($pdo, 'SELECT ISNULL(SUM(BAKIYE), 0) FROM LMV_CARI_BAKIYE');
     $g = $yonetici->istekDosya('tanimlar/ice_aktar.php', ['csrf_token' => $yonetici->belirtec('tanimlar/ice_aktar.php'), 'islem' => 'yukle',
         'tur' => 'cari', 'tarih' => date('Y-m-d')], 'dosya', $dosya, 'cariler.xlsx')['govde'];
-    bekle(str_contains($g, 'Önizleme') && str_contains($g, 'Vergi no 10') && str_contains($g, 'dosyada 2. satırda'), 'önizleme/satır hataları görünmüyor');
+    bekle(str_contains($g, 'Önizleme') && str_contains($g, 'Vergi no 10') && str_contains($g, 'dosyada 2. satırda')
+        && str_contains($g, "XL{$ek}A") && str_contains($g, 'Excel Cari A'), 'önizleme/mükerrer vergi no hataları görünmüyor');
     preg_match('/name="anahtar" value="([a-f0-9]+)"/', $g, $m);
     bekle(isset($m[1]), 'önizleme anahtarı yok');
     $t = $yonetici->belirtec('tanimlar/ice_aktar.php');
@@ -751,6 +767,10 @@ akis('cari kartı düzenle: adres, vergi, vade, risk; geçersiz vergi no reddedi
     yakin(50000.0, (float) $c['RISK_LIMITI'], 'risk limiti');
     $h = $gonder(['vergi_no' => '4829103751'] + $alan);
     bekle($h['kod'] === 200 && str_contains($h['govde'], 'geçersiz'), 'kontrol basamağı tutmayan vergi no kabul edildi');
+    $pdo->exec("INSERT INTO LM_CARI (KOD, UNVAN, VERGI_NO) VALUES ('MUK.TEST', N'Mükerrer Kaynak', '1234567890')");
+    $m = $gonder(['vergi_no' => '123 456 7890'] + $alan);
+    bekle($m['kod'] === 200 && str_contains($m['govde'], 'Bu numara [') && str_contains($m['govde'], 'carisinde kullanılıyor')
+        && str_contains($m['govde'], 'mukerrer_onay'), 'düzenlemede mükerrer vergi no cari kodu/unvanıyla gösterilmedi');
     $pasif = ['vergi_no' => '10000000146'] + $alan;
     unset($pasif['aktif']);   // işaretsiz kutu tarayıcıdan hiç gönderilmez
     $gonder($pasif);
@@ -869,6 +889,192 @@ akis('raporlar: bugünkü fatura ve tahsilat günlük özet, aylık satış, ür
     } finally {
         foreach ([['belge', $f['id']], ['finans', $t['id']]] as [$m, $id]) {
             $yonetici->istek("{$m}/islem.php", ['csrf_token' => $yonetici->belirtec("{$m}/goster.php?id={$id}"), 'islem' => 'iptal', 'id' => $id]);
+        }
+    }
+});
+
+akis('kasa/banka listesi: 300 fişten sonrası filtre korunarak açılır', function () use ($yonetici, $pdo): void {
+    $hesap = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'KASA.01'");
+    $tarih = date('Y-m-d');
+    $onek = 'PG' . strtoupper(bin2hex(random_bytes(4))) . '-';
+    try {
+        $pdo->beginTransaction();
+        $ekle = $pdo->prepare("INSERT INTO LM_FINANS_FIS (TUR, NO, TARIH, HESAP_ID, TUTAR, ACIKLAMA)
+                              VALUES (4, :no, :tarih, :hesap, 1, N'Sayfalama testi')");
+        for ($i = 1; $i <= 305; $i++) {
+            $ekle->execute([':no' => $onek . $i, ':tarih' => $tarih, ':hesap' => $hesap]);
+        }
+        $pdo->commit();
+
+        $filtre = http_build_query(['hesap' => $hesap, 'bas' => $tarih, 'bit' => $tarih]);
+        $ilk = $yonetici->istek('finans/index.php?' . $filtre)['govde'];
+        $yedinci = $yonetici->istek('finans/index.php?' . $filtre . '&sayfa=7')['govde'];
+        bekle(substr_count($ilk, $onek) === 50 && str_contains($ilk, 'sayfa=2'), 'ilk sayfa 50 fiş ve sonraki bağlantısını göstermiyor');
+        bekle(str_contains($yedinci, '>' . $onek . '1</a>') && str_contains($yedinci, 'sayfa=6'), 'yedinci sayfada 300 fişten eski kayıt veya önceki bağlantısı yok');
+        bekle(str_contains($yedinci, 'href="?hesap=' . $hesap . '&amp;bas=' . $tarih . '&amp;bit=' . $tarih . '&amp;sayfa=6"'),
+            'sayfa bağlantısı hesap ve tarih filtresini korumuyor');
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $sil = $pdo->prepare('DELETE FROM LM_FINANS_FIS WHERE NO LIKE :onek');
+        $sil->execute([':onek' => $onek . '%']);
+    }
+});
+
+akis('belge listesi: 300 belgeden sonrası ve depo yetkisi korunur', function () use ($yonetici, $pdo, $URL): void {
+    $tarih = date('Y-m-d');
+    $onek = 'BG' . strtoupper(bin2hex(random_bytes(4))) . '-';
+    try {
+        $pdo->beginTransaction();
+        $ekle = $pdo->prepare('INSERT INTO LM_BELGE (TUR, YON, NO, TARIH, CARI_ID, NET, DURUM)
+                              VALUES (3, 1, :no, :tarih, 2, 1, 1)');
+        for ($i = 1; $i <= 305; $i++) {
+            $ekle->execute([':no' => $onek . $i, ':tarih' => $tarih]);
+        }
+        $pdo->commit();
+
+        $filtre = http_build_query(['tur' => 'satis_fatura', 'bas' => $tarih, 'bit' => $tarih, 'ara' => $onek]);
+        $ilk = $yonetici->istek('belge/index.php?' . $filtre)['govde'];
+        $yedinci = $yonetici->istek('belge/index.php?' . $filtre . '&sayfa=7')['govde'];
+        $belgeBaglantisi = '/>' . preg_quote($onek, '/') . '\d+<\/a>/';
+        bekle(preg_match_all($belgeBaglantisi, $ilk) === 50 && str_contains($ilk, 'sayfa=2'),
+            'ilk belge sayfası 50 kayıt ve sonraki bağlantısını göstermiyor');
+        bekle(str_contains($yedinci, '>' . $onek . '1</a>'), 'yedinci sayfada 300 belgeden eski kayıt yok');
+        bekle(str_contains($yedinci, 'href="?tur=satis_fatura&amp;bas=' . $tarih . '&amp;bit=' . $tarih . '&amp;ara=' . $onek . '&amp;sayfa=6"'),
+            'sayfa bağlantısı tür, tarih ve arama filtrelerini korumuyor');
+        $depo = (new Tarayici($URL))->giris('DEPO1');
+        bekle(preg_match($belgeBaglantisi, $depo->istek('belge/index.php?bas=' . $tarih . '&bit=' . $tarih . '&ara=' . $onek)['govde']) === 0,
+            'depo personeli satış faturalarını listede görüyor');
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $sil = $pdo->prepare('DELETE FROM LM_BELGE WHERE NO LIKE :onek');
+        $sil->execute([':onek' => $onek . '%']);
+    }
+});
+
+akis('cari kartı: geçmiş sekmelerinde 50 sonrası açılır ve toplamlar doğru görünür', function () use ($yonetici, $pdo): void {
+    $cari = 2;
+    $hesap = (int) tek($pdo, "SELECT ID FROM LM_FINANS_HESAP WHERE KOD = 'KASA.01'");
+    $tarih = date('Y-m-d');
+    $onek = 'KG' . strtoupper(bin2hex(random_bytes(4))) . '-';
+    $once = [
+        'belge' => (int) tek($pdo, 'SELECT COUNT(*) FROM LM_BELGE WHERE CARI_ID = :id', [':id' => $cari]),
+        'fis' => (int) tek($pdo, 'SELECT COUNT(*) FROM LM_FINANS_FIS WHERE CARI_ID = :id', [':id' => $cari]),
+        'cek' => (int) tek($pdo, 'SELECT COUNT(*) FROM LM_CEK WHERE ALINAN_CARI_ID = :a OR VERILEN_CARI_ID = :b', [':a' => $cari, ':b' => $cari]),
+    ];
+    try {
+        $pdo->beginTransaction();
+        $belgeEkle = $pdo->prepare('INSERT INTO LM_BELGE (TUR, YON, NO, TARIH, CARI_ID, NET, DURUM)
+                                   VALUES (3, 1, :no, :tarih, :cari, 1, 1)');
+        $fisEkle = $pdo->prepare('INSERT INTO LM_FINANS_FIS (TUR, NO, TARIH, HESAP_ID, CARI_ID, TUTAR)
+                                 VALUES (1, :no, :tarih, :hesap, :cari, 1)');
+        $cekEkle = $pdo->prepare('INSERT INTO LM_CEK (TUR, PORTFOY_NO, VADE, TUTAR, ALINAN_CARI_ID)
+                                 VALUES (1, :no, :vade, 1, :cari)');
+        for ($i = 1; $i <= 55; $i++) {
+            $belgeEkle->execute([':no' => $onek . 'B' . $i, ':tarih' => $tarih, ':cari' => $cari]);
+            $fisEkle->execute([':no' => $onek . 'F' . $i, ':tarih' => $tarih, ':hesap' => $hesap, ':cari' => $cari]);
+            $cekEkle->execute([':no' => $onek . 'C' . $i, ':vade' => '2099-12-31', ':cari' => $cari]);
+        }
+        $pdo->commit();
+
+        $etiketler = ['belge' => 'Belgeler', 'fis' => 'Tahsilat / ödeme', 'cek' => 'Çek / senet'];
+        foreach (['belge' => 'B', 'fis' => 'F', 'cek' => 'C'] as $sekme => $isaret) {
+            $ilk = $yonetici->istek("kart/cari.php?id={$cari}&sekme={$sekme}")['govde'];
+            $ikinci = $yonetici->istek("kart/cari.php?id={$cari}&sekme={$sekme}&sayfa=2")['govde'];
+            $aranan = $onek . $isaret;
+            bekle(substr_count($ilk, $aranan) === 50 && str_contains($ilk, 'sayfa=2'), "{$sekme}: ilk sayfa 50 kayıt göstermiyor");
+            bekle(str_contains($ikinci, $aranan . '1') && str_contains($ikinci, "sekme={$sekme}&amp;sayfa=1"),
+                "{$sekme}: ikinci sayfa veya önceki bağlantısı yok");
+            $toplam = number_format($once[$sekme] + 55, 0, ',', '.');
+            bekle(str_contains($ilk, $etiketler[$sekme] . " ({$toplam})"), "{$sekme}: sekme toplamı yanlış");
+        }
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $sil = $pdo->prepare('DELETE FROM LM_CEK WHERE PORTFOY_NO LIKE :onek');
+        $sil->execute([':onek' => $onek . 'C%']);
+        $sil = $pdo->prepare('DELETE FROM LM_FINANS_FIS WHERE NO LIKE :onek');
+        $sil->execute([':onek' => $onek . 'F%']);
+        $sil = $pdo->prepare('DELETE FROM LM_BELGE WHERE NO LIKE :onek');
+        $sil->execute([':onek' => $onek . 'B%']);
+    }
+});
+
+akis('döviz kuru geçmişi: 60 sonrası sayfalardan açılır', function () use ($yonetici, $pdo): void {
+    $once = (int) tek($pdo, 'SELECT COUNT(*) FROM LM_KUR');
+    $tarihler = [];
+    try {
+        $pdo->beginTransaction();
+        $ekle = $pdo->prepare("INSERT INTO LM_KUR (TARIH, PARA_BIRIMI, ALIS, SATIS) VALUES (:tarih, 'USD', 40, 41)");
+        $baslangic = new DateTimeImmutable('2099-01-01');
+        for ($i = 0; $i < 65; $i++) {
+            $tarih = $baslangic->modify("+{$i} days")->format('Y-m-d');
+            $ekle->execute([':tarih' => $tarih]);
+            $tarihler[] = $tarih;
+        }
+        $pdo->commit();
+
+        $ilk = $yonetici->istek('tanimlar/index.php?sekme=kur')['govde'];
+        $ikinci = $yonetici->istek('tanimlar/index.php?sekme=kur&sayfa=2')['govde'];
+        bekle(preg_match_all('/<tr><td>\\d{2}\\.\\d{2}\\.2099<\\/td><td class="koyu">USD<\\/td>/', $ilk) === 50,
+            'kur: ilk sayfada 50 yeni kayıt yok');
+        bekle(!str_contains($ilk, '01.01.2099') && str_contains($ikinci, '01.01.2099'), 'kur: eski kayıt ikinci sayfada yok');
+        bekle(str_contains($ilk, number_format($once + 65, 0, ',', '.') . ' kayıt · Sayfa 1 / 2'), 'kur: toplam ve sayfa sayısı yanlış');
+        bekle(str_contains($ilk, 'sekme=kur&amp;sayfa=2') && str_contains($ikinci, 'sekme=kur&amp;sayfa=1'),
+            'kur: sayfa bağlantıları yok');
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $sil = $pdo->prepare("DELETE FROM LM_KUR WHERE TARIH = :tarih AND PARA_BIRIMI = 'USD'");
+        foreach ($tarihler as $tarih) {
+            $sil->execute([':tarih' => $tarih]);
+        }
+    }
+});
+
+akis('stok kartı: 100 hareketten sonrası açılır ve yürüyen bakiye korunur', function () use ($yonetici, $pdo): void {
+    $stok = 5;
+    $depo = (int) tek($pdo, 'SELECT ID FROM LM_DEPO WHERE NO = 0');
+    $once = (int) tek($pdo, 'SELECT COUNT(*) FROM LM_STOK_HAREKET WHERE STOK_ID = :id', [':id' => $stok]);
+    $no = 'SHG' . strtoupper(bin2hex(random_bytes(5)));
+    $belgeId = 0;
+    try {
+        $pdo->beginTransaction();
+        $ekle = $pdo->prepare('INSERT INTO LM_BELGE (TUR, YON, NO, TARIH, NET, DURUM) VALUES (3, 1, :no, :tarih, 0, 1)');
+        $ekle->execute([':no' => $no, ':tarih' => '2099-12-31']);
+        $belgeId = (int) tek($pdo, 'SELECT ID FROM LM_BELGE WHERE NO = :no', [':no' => $no]);
+        $ekle = $pdo->prepare('INSERT INTO LM_STOK_HAREKET (STOK_ID, DEPO_ID, TARIH, BELGE_ID, GIRIS)
+                               VALUES (:stok, :depo, :tarih, :belge, 1)');
+        for ($i = 0; $i < 105; $i++) {
+            $ekle->execute([':stok' => $stok, ':depo' => $depo, ':tarih' => '2099-12-31', ':belge' => $belgeId]);
+        }
+        $pdo->commit();
+
+        $ilk = $yonetici->istek("kart/stok.php?id={$stok}")['govde'];
+        $ikinci = $yonetici->istek("kart/stok.php?id={$stok}&sayfa=2")['govde'];
+        bekle(substr_count($ilk, $no) === 100 && substr_count($ikinci, $no) === 5,
+            'stok: hareketler iki sayfaya doğru dağılmadı');
+        bekle(str_contains($ilk, 'Hareketler (' . number_format($once + 105, 0, ',', '.') . ')'), 'stok: toplam hareket yanlış');
+        bekle(str_contains($ilk, "id={$stok}&amp;sayfa=2") && str_contains($ikinci, "id={$stok}&amp;sayfa=1"),
+            'stok: sayfa bağlantıları yok');
+        $eldeki = (float) tek($pdo, 'SELECT SUM(MIKTAR) FROM LMV_STOK_MIKTAR WHERE STOK_ID = :id', [':id' => $stok]);
+        bekle(preg_match('/<td class="sag koyu">([0-9.,-]+)<\\/td>/', $ilk, $m) === 1
+            && abs((float) str_replace(['.', ','], ['', '.'], $m[1]) - $eldeki) < 0.0005,
+            'stok: sayfalama yürüyen bakiyeyi bozdu');
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        if ($belgeId > 0) {
+            $sil = $pdo->prepare('DELETE FROM LM_STOK_HAREKET WHERE BELGE_ID = :id');
+            $sil->execute([':id' => $belgeId]);
+            $sil = $pdo->prepare('DELETE FROM LM_BELGE WHERE ID = :id');
+            $sil->execute([':id' => $belgeId]);
         }
     }
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 include_once(__DIR__ . "/../ayr.php");
 include(__DIR__ . "/../kontrol.php");
 include_once(__DIR__ . "/../log_ip.php");
+require_once __DIR__ . '/../includes/siparis_teslimat.php';
 
 $resmiKdvZorunlu = defined('RESMI_FORCE_KDV');
 $resmiKdvOrani = $resmiKdvZorunlu ? (float) RESMI_FORCE_KDV : 0.0;
@@ -861,6 +862,8 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                <col style="width:130px" />
                <col style="width:130px" />
                <col style="width:130px" />
+               <col style="width:130px" />
+               <col style="width:130px" />
                <col style="width:150px" />
                <?php if ($dovizAktif): ?>
                <col style="width:130px" />
@@ -871,7 +874,9 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                   <th class="text-center">No</th>
                   <th>Kodu</th>
                   <th>Adı</th>
-                  <th class="text-right">Miktar</th>
+                  <th class="text-right">Toplam Miktar</th>
+                  <th class="text-right">Teslim Edilen</th>
+                  <th class="text-right">Kalan</th>
                   <th class="text-right">Fiyat</th>
                   <th class="text-right">Net Fiyat</th>
                   <th class="text-right">
@@ -907,6 +912,7 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
           HRKT.LINENO_,
           HRKT.PRICE,
           HRKT.AMOUNT,
+          HRKT.SHIPPEDAMOUNT,
           HRKT.VATMATRAH,
           HRKT.TOTAL,
           HRKT.STOCKREF,
@@ -1018,6 +1024,9 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
                   }
                   // Net fiyat hesapla
                   $netFiyat = netFiyatHesapla($liste['PRICE'], $indirimOrani);
+                  $teslimat = lumen_siparis_teslimat_miktarlari($liste['AMOUNT'], $liste['SHIPPEDAMOUNT']);
+                  $miktarYetkili = m_p_yetki($terminalkullanici, 'ST1') == 1;
+                  $miktarKilitli = '<i class="fa fa-lock" style="color:var(--text-3);"></i> ***';
                   echo '
       <tr>
         <td class="text-center">
@@ -1041,9 +1050,11 @@ function netFiyatHesapla(float|int|string $fiyat, float|int|string $indirimOrani
           ' . ($liste['LINEEXP'] ? '<div style="margin-top:3px;"><small style="font-size:10.5px;color:var(--text-3);"><i class="fa fa-comment mr-1"></i>' . e_tr($liste['LINEEXP']) . '</small></div>' : '') . '
         </td>
         <td class="text-right num">
-          <div style="font-weight:700;font-size:13.5px;">' . (m_p_yetki($terminalkullanici, 'ST1') == 1 ? kusuratsifir($liste['AMOUNT']) : '<i class="fa fa-lock" style="color:var(--text-3);"></i> ***') . '</div>
+          <div style="font-weight:700;font-size:13.5px;">' . ($miktarYetkili ? kusuratsifir($teslimat['toplam']) : $miktarKilitli) . '</div>
           <span class="unit-badge">' . e_tr($liste['BIRIM']) . '</span>
         </td>
+        <td class="text-right num" data-teslimat-durum="' . $teslimat['durum'] . '" style="font-weight:700;color:#059669;">' . ($miktarYetkili ? kusuratsifir($teslimat['teslim_edilen']) : $miktarKilitli) . '</td>
+        <td class="text-right num" style="font-weight:700;color:' . ($teslimat['kalan'] > 0 ? '#c2410c' : '#64748b') . ';">' . ($miktarYetkili ? kusuratsifir($teslimat['kalan']) : $miktarKilitli) . '</td>
         <td class="text-right num" style="font-weight:600;">' . (m_p_yetki($terminalkullanici, 'ST2') == 1 ? paraformat_lg_fis($liste['PRICE']) : '<i class="fa fa-lock" style="color:var(--text-3);"></i> ***') . '</td>
         <td class="text-right num" style="color:#059669;font-weight:600;">' . (m_p_yetki($terminalkullanici, 'ST2') == 1 ? paraformat_lg_fis($netFiyat) : '<i class="fa fa-lock" style="color:var(--text-3);"></i> ***') . '</td>
         <td class="text-right num" style="font-size:14px;font-weight:700;color:#166534;">' . (m_p_yetki($terminalkullanici, 'ST2') == 1 ? paraformat_lg_fis($liste['TOTAL']) : '<i class="fa fa-lock" style="color:var(--text-3);"></i> ***') . '</td>';

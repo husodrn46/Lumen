@@ -24,12 +24,44 @@ function api_json($payload, int $code = 200): void
 /** İstek gövdesini JSON olarak oku (boşsa boş dizi). */
 function api_body(): array
 {
-    $raw = file_get_contents('php://input');
-    if ($raw === false || $raw === '') {
+    $raw = file_get_contents('php://input', false, null, 0, 1048577);
+    if ($raw === false) {
+        api_json(['ok' => false, 'mesaj' => 'İstek gövdesi okunamadı.'], 400);
+    }
+    if (strlen($raw) > 1048576) {
+        api_json(['ok' => false, 'mesaj' => 'İstek gövdesi çok büyük.'], 413);
+    }
+    try {
+        return api_json_govde_coz($raw);
+    } catch (InvalidArgumentException $e) {
+        api_json(['ok' => false, 'mesaj' => 'Geçerli bir JSON nesnesi gönderiniz.'], 400);
+    }
+}
+
+/** JSON gövdesi nesne olmalı; bozuk, liste veya skaler girdi sessizce boş sayılmaz. */
+function api_json_govde_coz(string $raw): array
+{
+    if (trim($raw) === '') {
         return [];
     }
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
+    try {
+        $data = json_decode($raw, false, 64, JSON_THROW_ON_ERROR);
+    } catch (JsonException $e) {
+        throw new InvalidArgumentException('Geçersiz JSON.', 0, $e);
+    }
+    if (!$data instanceof stdClass) {
+        throw new InvalidArgumentException('JSON nesnesi gerekli.');
+    }
+    return json_decode($raw, true, 64, JSON_THROW_ON_ERROR);
+}
+
+/** Veritabanında tekrar Bearer olarak kullanılamayan, türü işaretli token özeti. */
+function api_token_saklama_degeri(string $token): string
+{
+    if (preg_match('/\A[a-f0-9]{64}\z/', $token) !== 1) {
+        throw new InvalidArgumentException('Geçersiz token biçimi.');
+    }
+    return 'sha256:' . hash('sha256', $token);
 }
 
 /** İstekteki Bearer token'ı al (Apache + IIS uyumlu). */
@@ -44,7 +76,7 @@ function api_bearer_token(): string
             }
         }
     }
-    if (preg_match('/Bearer\s+([a-f0-9]{64})/i', $hdr, $m)) {
+    if (preg_match('/\ABearer[ \t]+([a-f0-9]{64})\z/i', trim($hdr), $m)) {
         return strtolower($m[1]);
     }
     return '';
@@ -58,14 +90,22 @@ function api_ensure_token_table(PDO $dbh): void
     if ($checked) {
         return;
     }
-    $checked = true;
     try {
-        $stmt = $dbh->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = :t");
+        $stmt = $dbh->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = :t");
         $stmt->execute([':t' => 'M_API_TOKEN']);
         if ($stmt->fetchColumn()) {
+            $kolon = $dbh->query("SELECT DATA_TYPE, CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS
+                                  WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'M_API_TOKEN' AND COLUMN_NAME = 'TOKEN'")
+                         ->fetch(PDO::FETCH_ASSOC);
+            $uzunluk = (int) ($kolon['CHARACTER_MAXIMUM_LENGTH'] ?? 0);
+            if (!in_array(strtolower((string) ($kolon['DATA_TYPE'] ?? '')), ['varchar', 'nvarchar'], true)
+                || ($uzunluk !== -1 && $uzunluk < 71)) {
+                throw new RuntimeException('M_API_TOKEN.TOKEN için şema güncellemesi gerekli.');
+            }
+            $checked = true;
             return;
         }
-        $dbh->exec("CREATE TABLE M_API_TOKEN (
+        $dbh->exec("CREATE TABLE dbo.M_API_TOKEN (
             ID INT IDENTITY(1,1) PRIMARY KEY,
             TOKEN VARCHAR(128) NOT NULL,
             PERSONEL INT NOT NULL,
@@ -75,9 +115,11 @@ function api_ensure_token_table(PDO $dbh): void
             AKTIF SMALLINT NOT NULL DEFAULT 1,
             IP VARCHAR(64) NULL
         )");
-        $dbh->exec("CREATE INDEX IX_M_API_TOKEN_TOKEN ON M_API_TOKEN (TOKEN)");
+        $dbh->exec("CREATE INDEX IX_M_API_TOKEN_TOKEN ON dbo.M_API_TOKEN (TOKEN)");
+        $checked = true;
     } catch (Throwable $e) {
         error_log('M_API_TOKEN olusturma: ' . $e->getMessage());
+        throw new RuntimeException('Token altyapısı hazır değil.', 0, $e);
     }
 }
 
@@ -102,7 +144,7 @@ function api_token_olustur(PDO $dbh, int $personel, string $kullaniciAdi): strin
     $stmt = $dbh->prepare("INSERT INTO M_API_TOKEN (TOKEN, PERSONEL, KULLANICI_ADI, IP, OLUSTURMA, AKTIF)
                            VALUES (:t, :p, :k, :ip, GETDATE(), 1)");
     $stmt->execute([
-        ':t' => hash('sha256', $token),
+        ':t' => api_token_saklama_degeri($token),
         ':p' => $personel,
         ':k' => $kullaniciAdi,
         ':ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
@@ -117,8 +159,8 @@ function api_token_olustur(PDO $dbh, int $personel, string $kullaniciAdi): strin
  * Belirteç her istekte kullanıcının GÜNCEL durumuna göre doğrulanır: pasif
  * yapılan, müşteri yetkisine düşürülen veya oturumları yönetici tarafından
  * kapatılan kullanıcının belirteci artık 30 gün boyunca çalışmaya devam etmez.
- * Özetli saklamadan önce oluşturulmuş düz metin belirteçler süreleri dolana dek
- * kabul edilir.
+ * Veritabanında yalnız "sha256:" işaretli özet kabul edilir; özetin kendisi
+ * Bearer olarak tekrar kullanılamaz.
  */
 function api_token_dogrula(PDO $dbh): ?array
 {
@@ -133,9 +175,9 @@ function api_token_dogrula(PDO $dbh): ?array
                            FROM M_API_TOKEN T
                            INNER JOIN {$GLOBALS['LUMEN_SLSMAN']} S ON S.LOGICALREF = T.PERSONEL AND S.ACTIVE = 0
                            INNER JOIN M_P_YETKI Y ON Y.PERSONEL = T.PERSONEL AND Y.YETKI IN (0, 1, 3)
-                           WHERE T.TOKEN IN (:ozet, :duz) AND T.AKTIF = 1
+                           WHERE T.TOKEN = :ozet AND T.AKTIF = 1
                              AND T.OLUSTURMA > DATEADD(DAY, -30, GETDATE())");
-    $stmt->execute([':ozet' => hash('sha256', $token), ':duz' => $token]);
+    $stmt->execute([':ozet' => api_token_saklama_degeri($token)]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
         return null;
@@ -156,6 +198,13 @@ function api_token_dogrula(PDO $dbh): ?array
             'salt_okunur' => (int) $row['YETKI'] === LUMEN_YETKI_ENTEGRASYON];
 }
 
+/** Geçerli tokenı yalnız kendi kullanıcısı kapsamında iptal eder. */
+function api_token_iptal(PDO $dbh, string $token, int $personel): void
+{
+    $stmt = $dbh->prepare('UPDATE dbo.M_API_TOKEN SET AKTIF = 0 WHERE PERSONEL = :p AND TOKEN = :t');
+    $stmt->execute([':p' => $personel, ':t' => api_token_saklama_degeri($token)]);
+}
+
 /**
  * Entegrasyon (salt okunur) hesabının çağırabildiği uçlar. Liste "izin verilen"
  * mantığıyla tutulur: buraya eklenmeyen her uç — sonradan eklenenler dahil —
@@ -166,6 +215,7 @@ function api_token_dogrula(PDO $dbh): ?array
 function api_okuma_uclari(): array
 {
     return [
+        'logout.php',
         'bekleyen_siparis.php', 'cari_ara.php', 'cari_detay.php', 'cari_hareket.php', 'cari_hareket_detay.php',
         'cek_listesi.php', 'fatura_listesi.php', 'fiyat_listesi.php',
         'rapor_borc_alacak.php', 'rapor_cek_vade.php', 'rapor_karsilastirmali.php', 'rapor_kasa.php',

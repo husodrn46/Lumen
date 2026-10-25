@@ -235,6 +235,7 @@ Listede her kullanıcının yanında "Düzenle", "Pasife al" / "Aktife al" ve "S
 1. "Tanımlar" → "Döviz kurları" sekmesine girin.
 2. En kolay yol "Bugünün kurlarını TCMB'den al" düğmesidir.
 3. Kuru elle girmek için "Kur gir" bölümünde "Tarih", "Para birimi", "Döviz alış" ve "Döviz satış" alanlarını doldurup "Kaydet" düğmesine basın.
+4. Kur geçmişi 50'şer kayıt halinde gösterilir; eski tarihlere "Önceki" ve "Sonraki" ile ulaşabilirsiniz.
 
 **Dikkat**
 
@@ -309,6 +310,7 @@ Ana menüden "Faturalar" kutucuğuna girin; "Faturalar ve Belgeler" listesi aç�
 1. "Tür", "Başlangıç", "Bitiş" alanlarını seçin; isterseniz "Ara" kutusuna belge no ya da cari yazın.
 2. "Listele" düğmesine basın.
 3. Belgeyi açmak için belge numarasına ya da göz simgesine tıklayın.
+4. Sonuçlar 50'şer gösterilir; alttaki "Önceki" ve "Sonraki" düğmeleri seçili süzgeçleri korur.
 
 İptal edilmiş belgeler listede "İptal" etiketiyle kalır.
 
@@ -439,6 +441,7 @@ Ekranda şunlar görünür:
 
 - Her kasa ve banka hesabının bakiyesi ve "Toplam".
 - Tarih ve hesaba göre süzülebilen fiş listesi. Bir hesabın kutusuna tıklarsanız yalnız o hesabın fişleri listelenir.
+- Fişler 50'şer gösterilir; alttaki "Önceki" ve "Sonraki" düğmeleri seçili tarih ve hesabı korur.
 
 ### Tahsilat (müşteriden para almak)
 
@@ -572,6 +575,8 @@ Kartta şunlar vardır:
 - "Toplam borç", "Toplam alacak" ve "Bakiye". Bakiyenin altında "Cari bize borçlu", "Biz cariye borçluyuz" ya da "Kapalı" yazar.
 - Hızlı düğmeler: "Ekstre", "Fatura kes", "Tahsilat", "Ödeme". Her biri yetkiniz varsa görünür.
 - Sekmeler: "Belgeler", "Tahsilat / ödeme", "Çek / senet".
+- Sekme başlıkları toplam kayıt sayısını gösterir. Her sekmede geçmiş 50'şer açılır;
+  "Önceki" ve "Sonraki" ile eski kayıtlara ulaşabilirsiniz.
 
 ---
 
@@ -598,7 +603,7 @@ Kartta şunlar vardır:
 - "Eldeki (tüm depolar)", "Bekleyen satış siparişi", "Bekleyen alış siparişi" ve "Kullanılabilir" miktarlar.
 - Birimler ve çarpanları, barkodlar, KDV oranı.
 - "Fiyatlar ve depolar": satış ve alış fiyatları, depo başına miktar.
-- "Hareketler (son 100)": giriş, çıkış ve yürüyen bakiye. "Birim maliyet" sütunu yalnız "Faturalama" yetkisi olana görünür.
+- "Hareketler": giriş, çıkış ve yürüyen bakiye. Kayıtlar 100'er gösterilir; "Önceki" ve "Sonraki" ile daha eski hareketlere ulaşabilirsiniz. "Birim maliyet" sütunu yalnız "Faturalama" yetkisi olana görünür.
 
 ### Üretim ve sayım
 

@@ -196,6 +196,17 @@ if (!function_exists('lumen_excel_dogrula')) {
         $tablo = $tur === 'cari' ? 'LM_CARI' : 'LM_STOK';
         $mevcut = array_change_key_case($dbh->query("SELECT KOD, ID FROM dbo.{$tablo}")->fetchAll(PDO::FETCH_KEY_PAIR), CASE_UPPER);
         $barkodlar = $tur === 'stok' ? array_flip($dbh->query('SELECT BARKOD FROM dbo.LM_BARKOD')->fetchAll(PDO::FETCH_COLUMN)) : [];
+        $vergiNolar = [];
+        if ($tur === 'cari') {
+            foreach ($dbh->query('SELECT ID, KOD, UNVAN, VERGI_NO, TC_NO FROM dbo.LM_CARI')->fetchAll(PDO::FETCH_ASSOC) as $cari) {
+                foreach ([$cari['VERGI_NO'] ?? '', $cari['TC_NO'] ?? ''] as $no) {
+                    $normal = lumen_vergi_no_normalize((string) $no);
+                    if ($normal !== '') {
+                        $vergiNolar[$normal] = ['id' => (int) $cari['ID'], 'kod' => (string) $cari['KOD'], 'unvan' => (string) $cari['UNVAN']];
+                    }
+                }
+            }
+        }
         $yeni = [];
         $guncel = [];
         $hatalar = [];
@@ -234,7 +245,7 @@ if (!function_exists('lumen_excel_dogrula')) {
                     str_starts_with($turAd, 'satıcı') || str_starts_with($turAd, 'satici') || $turAd === 'tedarikçi' => 2,
                     default => 0,
                 };
-                $vno = preg_replace('/\s+/', '', (string) ($v['vergi_no'] ?? ''));
+                $vno = lumen_vergi_no_normalize((string) ($v['vergi_no'] ?? ''));
                 $eposta = trim($v['eposta'] ?? '');
                 $bakiye = $sayi((string) ($v['bakiye'] ?? ''));
                 $vade = $sayi((string) ($v['vade_gun'] ?? ''));
@@ -248,6 +259,12 @@ if (!function_exists('lumen_excel_dogrula')) {
                 }
                 if ($vno !== '' && !lumen_vergi_no_gecerli($vno)) {
                     $hata("Vergi no / TCKN geçersiz ({$vno}: kontrol basamağı tutmuyor).");
+                    continue;
+                }
+                $mevcutId = $var ? (int) $mevcut[$kod] : 0;
+                if ($vno !== '' && isset($vergiNolar[$vno]) && $vergiNolar[$vno]['id'] !== $mevcutId) {
+                    $es = $vergiNolar[$vno];
+                    $hata("Vergi no / TCKN [{$es['kod']}] {$es['unvan']} carisinde kullanılıyor.");
                     continue;
                 }
                 if ($eposta !== '' && filter_var($eposta, FILTER_VALIDATE_EMAIL) === false) {
@@ -264,6 +281,9 @@ if (!function_exists('lumen_excel_dogrula')) {
                     'il' => mb_substr(trim($v['il'] ?? ''), 0, 60) ?: null, 'ilce' => mb_substr(trim($v['ilce'] ?? ''), 0, 60) ?: null,
                     'adres' => mb_substr(trim($v['adres'] ?? ''), 0, 400) ?: null, 'telefon' => mb_substr(trim($v['telefon'] ?? ''), 0, 40) ?: null,
                     'eposta' => $eposta ?: null, 'vade_gun' => (int) ($vade ?? 0), 'bakiye' => round((float) ($bakiye ?? 0), 2)];
+                if ($vno !== '') {
+                    $vergiNolar[$vno] = ['id' => $mevcutId > 0 ? $mevcutId : -$no, 'kod' => $kod, 'unvan' => $kayit['unvan']];
+                }
             } else {
                 $kdv = $sayi((string) ($v['kdv'] ?? ''));
                 $sf = $sayi((string) ($v['satis_fiyati'] ?? ''));

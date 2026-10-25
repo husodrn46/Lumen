@@ -44,15 +44,27 @@ $fiyatlar = $sorgu("SELECT F.TUR, F.FIYAT, F.PARA_BIRIMI, F.BASLANGIC, B.KOD FRO
 $depolar = $sorgu('SELECT D.AD, D.NO, M.MIKTAR FROM dbo.LMV_STOK_MIKTAR M JOIN dbo.LM_DEPO D ON D.ID = M.DEPO_ID
                    WHERE M.STOK_ID = :id AND ABS(M.MIKTAR) > 0.000001 ORDER BY D.NO', [':id' => $id]);
 $toplam = array_sum(array_map(static fn($d) => (float) $d['MIKTAR'], $depolar));
-// Hareketler: en yeni 100; yürüyen bakiye en eski hareketten hesaplanır.
+// Yürüyen bakiye tüm hareketlerden hesaplanır; sayfalama yalnız görünen satırları sınırlar.
 // Özel cari kısıtı: kullanıcının göremediği carinin adı gösterilmez (hareket ve miktar kalır).
+$sayac = $dbh->prepare('SELECT COUNT(*) FROM dbo.LM_STOK_HAREKET WHERE STOK_ID = :id');
+$sayac->execute([':id' => $id]);
+$hareketToplam = (int) $sayac->fetchColumn();
+$sayfaGirdisi = $_GET['sayfa'] ?? '1';
+$sayfa = is_string($sayfaGirdisi) ? filter_var($sayfaGirdisi, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) : false;
+$sayfa = $sayfa === false ? 1 : $sayfa;
+$sayfaBoyutu = 100;
+$sayfaSayisi = max(1, (int) ceil($hareketToplam / $sayfaBoyutu));
+$sayfa = min($sayfa, $sayfaSayisi);
+$ofset = ($sayfa - 1) * $sayfaBoyutu;
+$sayfaBaglantisi = static fn(int $hedef): string => '?' . http_build_query(['id' => $id, 'sayfa' => $hedef]);
 $ozel = m_p_ozel_cari_sql_filtresi($terminalkullanici, 'ISNULL(B.CARI_ID, 0)', 'stok_kart_gizli');
 $unvanSql = $ozel['sql'] !== '' ? "CASE WHEN {$ozel['sql']} THEN C.UNVAN ELSE N'(gizli cari)' END" : 'C.UNVAN';
-$hareketler = $sorgu('SELECT TOP 100 H.ID, H.TARIH, H.GIRIS, H.CIKIS, H.BIRIM_MALIYET, D.AD AS DEPO, B.ID AS BELGE_ID, B.TUR, B.YON, B.NO, B.DURUM,
+$hareketler = $sorgu('SELECT H.ID, H.TARIH, H.GIRIS, H.CIKIS, H.BIRIM_MALIYET, D.AD AS DEPO, B.ID AS BELGE_ID, B.TUR, B.YON, B.NO, B.DURUM,
                              ' . $unvanSql . ' AS UNVAN, SUM(H.GIRIS - H.CIKIS) OVER (ORDER BY H.TARIH, H.ID ROWS UNBOUNDED PRECEDING) AS BAKIYE
                       FROM dbo.LM_STOK_HAREKET H JOIN dbo.LM_DEPO D ON D.ID = H.DEPO_ID JOIN dbo.LM_BELGE B ON B.ID = H.BELGE_ID
                       LEFT JOIN dbo.LM_CARI C ON C.ID = B.CARI_ID
-                      WHERE H.STOK_ID = :id ORDER BY H.TARIH DESC, H.ID DESC', [':id' => $id] + $ozel['params']);
+                      WHERE H.STOK_ID = :id ORDER BY H.TARIH DESC, H.ID DESC
+                      OFFSET ' . $ofset . ' ROWS FETCH NEXT ' . $sayfaBoyutu . ' ROWS ONLY', [':id' => $id] + $ozel['params']);
 $bekleyen = $sorgu('SELECT ISNULL(SUM(CASE WHEN B.YON = 1 THEN (S.MIKTAR - S.TESLIM_MIKTAR) * S.CARPAN END), 0) AS SATIS,
                            ISNULL(SUM(CASE WHEN B.YON = 2 THEN (S.MIKTAR - S.TESLIM_MIKTAR) * S.CARPAN END), 0) AS ALIS
                     FROM dbo.LM_BELGE_SATIR S JOIN dbo.LM_BELGE B ON B.ID = S.BELGE_ID
@@ -71,6 +83,8 @@ belge_sayfa_basla($s['KOD'] . ' · ' . $s['AD'], 'fa-box', '../index.php', $duze
     .ikili { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
     .ikili .kart { margin: 0; }
     .eksi { color: var(--red); } .arti { color: var(--emerald); }
+    .sayfalama { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--border); }
+    .sayfalama .dugmeler { display: flex; gap: 8px; }
 </style>
 <div class="ozet">
     <div class="kart"><span class="soluk">Eldeki (tüm depolar)</span><b id="eldeki" class="<?= $toplam < 0 ? 'eksi' : '' ?>"><?= bmiktar($toplam) ?> <?= bh($s['ANA_BIRIM']) ?></b></div>
@@ -103,12 +117,12 @@ belge_sayfa_basla($s['KOD'] . ' · ' . $s['AD'], 'fa-box', '../index.php', $duze
     </div>
 </div>
 <div class="kart tablo-sar">
-    <div class="kart-baslik"><i class="fa-solid fa-clock-rotate-left"></i>Hareketler (son 100)</div>
+    <div class="kart-baslik"><i class="fa-solid fa-clock-rotate-left"></i>Hareketler (<?= number_format($hareketToplam, 0, ',', '.') ?>)</div>
     <table class="liste kartla">
         <thead><tr><th>Tarih</th><th>Belge</th><th>Cari</th><th>Depo</th><th class="sag">Giriş</th><th class="sag">Çıkış</th><th class="sag">Bakiye</th>
             <?php if ($maliyetGorur): ?><th class="sag">Birim maliyet</th><?php endif; ?></tr></thead>
         <tbody>
-        <?php if ($hareketler === []): ?><tr><td colspan="8" class="soluk" style="text-align:center;padding:22px">Hareket yok.</td></tr><?php endif; ?>
+        <?php if ($hareketler === []): ?><tr><td colspan="<?= $maliyetGorur ? 8 : 7 ?>" class="soluk" style="text-align:center;padding:22px">Hareket yok.</td></tr><?php endif; ?>
         <?php foreach ($hareketler as $h):
             $tk = lumen_belge_tur_kodu((int) $h['TUR'], (int) $h['YON']); ?>
             <tr>
@@ -124,5 +138,14 @@ belge_sayfa_basla($s['KOD'] . ' · ' . $s['AD'], 'fa-box', '../index.php', $duze
         <?php endforeach; ?>
         </tbody>
     </table>
+    <nav class="sayfalama" aria-label="Stok hareketi sayfaları">
+        <span class="soluk"><?= number_format($hareketToplam, 0, ',', '.') ?> kayıt · Sayfa <?= $sayfa ?> / <?= $sayfaSayisi ?></span>
+        <?php if ($sayfaSayisi > 1): ?>
+            <div class="dugmeler">
+                <?php if ($sayfa > 1): ?><a class="btn btn-ikincil" href="<?= bh($sayfaBaglantisi($sayfa - 1)) ?>">Önceki</a><?php endif; ?>
+                <?php if ($sayfa < $sayfaSayisi): ?><a class="btn btn-ikincil" href="<?= bh($sayfaBaglantisi($sayfa + 1)) ?>">Sonraki</a><?php endif; ?>
+            </div>
+        <?php endif; ?>
+    </nav>
 </div>
 <?php belge_sayfa_bitir();
