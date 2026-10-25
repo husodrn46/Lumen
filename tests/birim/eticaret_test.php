@@ -20,3 +20,11 @@ test('e-ticaret: geçersiz sayı, tarih, para birimi ve eksik kalem atlanmaz', f
         dogru(et_dosya_oku(json_encode($x),'json')[0]['hata'] !== null,$alan);
     }
 });
+
+test('e-ticaret: adaptör zarfı veri hatasında kimlik ve ham veriyi korur', function (): void {
+    $ham=['paket'=>'SENTETIK-1'];
+    $r=et_kayit_hazirla($ham,['kimlik'=>'paket-1','numara'=>'siparis-1','paket_kimligi'=>'P1'],
+        ['sistem'=>'trendyol','durum'=>'Awaiting','engel'=>'Ödeme bekliyor']);
+    esit('paket-1',$r['kimlik']);esit($ham,$r['ham']);esit(null,$r['normal']);
+    esit('Ödeme bekliyor',$r['kaynak_engeli']);dogru($r['hata']!==null);
+});

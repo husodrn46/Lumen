@@ -47,14 +47,15 @@ function et_normalize(array $r): array
         if (round(et_sayi($k['kdv'] ?? '',0,100),2) !== et_sayi($k['kdv'] ?? '',0,100)) { throw new InvalidArgumentException('KDV en fazla iki ondalık haneli olmalı.'); }
         $out[] = ['sku'=>$sku,'barkod'=>$barkod,'ad'=>et_metin($k['ad'] ?? '',200),'birim'=>$birim,
             'miktar'=>et_sayi($k['miktar'] ?? '',0.000001,1000000), 'fiyat'=>et_sayi($k['fiyat'] ?? '',0.000001,100000000),
-            'kdv'=>et_sayi($k['kdv'] ?? '',0,100),'kdv_dahil'=>$k['kdv_dahil']];
+            'kdv'=>et_sayi($k['kdv'] ?? '',0,100),'kdv_dahil'=>$k['kdv_dahil'],
+            'harici_kimlik'=>et_metin($k['harici_kimlik'] ?? '')];
     }
     $adresler = [];
     foreach (['musteri','fatura','teslimat'] as $a) {
         if (!isset($r[$a]) || !is_array($r[$a]) || array_is_list($r[$a])) { throw new InvalidArgumentException('Müşteri, fatura ve teslimat nesneleri gerekiyor.'); }
         $adresler[$a] = $r[$a]; // Alanlar kırpılmaz; ham kayıtla birlikte eksiksiz korunur.
     }
-    return ['kimlik'=>$id,'numara'=>$no,'tarih'=>$tarih,'para_birimi'=>'TRY', 'genel_toplam'=>et_sayi($r['genel_toplam'] ?? '',0.01,100000000000),
+    return ['kimlik'=>$id,'numara'=>$no,'paket_kimligi'=>et_metin($r['paket_kimligi'] ?? '',100),'tarih'=>$tarih,'para_birimi'=>'TRY', 'genel_toplam'=>et_sayi($r['genel_toplam'] ?? '',0.01,100000000000),
         'kalemler'=>$out] + $adresler;
 }
 function et_dosya_oku(string $ham, string $tur): array
@@ -94,15 +95,23 @@ function et_dosya_oku(string $ham, string $tur): array
         } finally { fclose($f); }
     } else { throw new InvalidArgumentException('Yalnız CSV ve JSON desteklenir.'); }
     if (count($kayitlar) < 1 || count($kayitlar) > 100) { throw new InvalidArgumentException('Dosya 1–100 sipariş içermeli.'); }
-    $sonuc = [];
-    foreach ($kayitlar as $r) {
-        try {
-            if (!is_array($r)) { throw new InvalidArgumentException('Sipariş nesnesi gerekiyor.'); }
-            $n = et_normalize($r);
-            $sonuc[] = ['ham'=>$r,'normal'=>$n,'hata'=>null];
-        } catch (InvalidArgumentException $e) {
-            $sonuc[] = ['ham'=>$r,'normal'=>null,'hata'=>$e->getMessage()];
-        }
-    }
-    return $sonuc;
+    return array_map(static fn($r) => et_kayit_hazirla($r, $r), $kayitlar);
+}
+
+/** Adaptörler aynı zarfı üretir. Kaynak durumu yalnız adaptör bağlamından alınır. */
+function et_kayit_hazirla(mixed $ham, mixed $aday, array $kaynak = [], ?string $hata = null): array
+{
+    $id = ''; $no = ''; $paket = ''; $normal = null;
+    try {
+        if (!is_array($aday)) { throw new InvalidArgumentException('Sipariş nesnesi gerekiyor.'); }
+        $no = et_metin($aday['numara'] ?? '');
+        $id = et_metin($aday['kimlik'] ?? $no);
+        $paket = et_metin($aday['paket_kimligi'] ?? '', 100);
+        if ($id === '' || $no === '') { throw new InvalidArgumentException('Sipariş kimliği ve numarası gerekiyor.'); }
+        if ($hata !== null) { throw new InvalidArgumentException($hata); }
+        $normal = et_normalize($aday);
+    } catch (InvalidArgumentException $e) { $hata = $e->getMessage(); }
+    return ['ham'=>$ham,'normal'=>$normal,'hata'=>$hata,'kimlik'=>$id,'numara'=>$no,'paket_kimligi'=>$paket,
+        'kaynak'=>$kaynak['sistem'] ?? 'lumen','kaynak_durumu'=>$kaynak['durum'] ?? null,
+        'kaynak_engeli'=>$kaynak['engel'] ?? null];
 }
