@@ -19,7 +19,7 @@ function et_tek(PDO $db, string $sql, array $p = []): ?array
 
 function et_kanal(PDO $db, int $id): array
 {
-    $r = et_tek($db, 'SELECT *, CONVERT(VARCHAR(18),SURUM,1) AS SURUM_KOD FROM dbo.M_ET_KANAL WHERE ID=:id AND FIRMA=:f',
+    $r = et_tek($db, 'SELECT *, CONVERT(VARCHAR(18),CAST(SURUM AS VARBINARY(8)),1) AS SURUM_KOD FROM dbo.M_ET_KANAL WHERE ID=:id AND FIRMA=:f',
         [':id' => $id, ':f' => (int) $GLOBALS['firmano']]);
     if (!$r) {
         throw new DomainException('Kanal bulunamadı.');
@@ -81,7 +81,7 @@ function et_kanal_kaydet(PDO $db, array $v, int $kullanici): int
         if ($id > 0) {
             et_kanal($db, $id);
             $s = $db->prepare('UPDATE dbo.M_ET_KANAL SET AD=:ad,TUR=:t,AKTIF=:a,CARI_ID=:c,DEPO_NO=:d,PERSONEL_ID=:p,
-                GUNCELLEYEN=:u,GUNCELLEME=SYSDATETIME() OUTPUT INSERTED.ID WHERE ID=:id AND FIRMA=:f AND CONVERT(VARCHAR(18),SURUM,1)=:surum');
+                GUNCELLEYEN=:u,GUNCELLEME=SYSDATETIME() OUTPUT INSERTED.ID WHERE ID=:id AND FIRMA=:f AND CONVERT(VARCHAR(18),CAST(SURUM AS VARBINARY(8)),1)=:surum');
             $s->execute($param + [':id' => $id, ':surum' => (string) ($v['surum'] ?? '')]);
             if ($s->fetchColumn() === false) {
                 throw new DomainException('Kanal değişmiş; sayfayı yenileyin.');

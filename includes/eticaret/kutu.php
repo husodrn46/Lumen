@@ -11,7 +11,7 @@ function et_durumlar(): array
 function et_siparis(PDO $db, int $id, int $kullanici, bool $kilit = false): array
 {
     $hint=$kilit ? 'WITH (UPDLOCK,HOLDLOCK)' : '';
-    $r=et_tek($db,"SELECT S.*,K.AD AS KANAL_AD,CONVERT(VARCHAR(18),S.SURUM,1) AS SURUM_KOD FROM dbo.M_ET_SIPARIS S {$hint}
+    $r=et_tek($db,"SELECT S.*,K.AD AS KANAL_AD,CONVERT(VARCHAR(18),CAST(S.SURUM AS VARBINARY(8)),1) AS SURUM_KOD FROM dbo.M_ET_SIPARIS S {$hint}
         JOIN dbo.M_ET_KANAL K ON K.ID=S.KANAL_ID WHERE S.ID=:i AND K.FIRMA=:f",[':i'=>$id,':f'=>(int) $GLOBALS['firmano']]);
     if (!$r || ((int) $r['CARI_ID'] > 0 && !m_p_cariid_goruntulebilir_mi($db,$GLOBALS['firma'],$kullanici,(int) $r['CARI_ID']))) {
         throw new DomainException('Sipariş bulunamadı.');
@@ -151,11 +151,16 @@ function et_hazirla(PDO $db, int $id, int $kullanici, string $surum, array $hede
 /** Paket yenilenmesi/bölünmesi daha önce aktarılmış kalemleri tekrar satışa dönüştürmez. */
 function et_paket_kontrol(PDO $db, array $r, array $normal): array
 {
-    $s=$db->prepare("SELECT ID,PAKET_KIMLIGI,NORMAL FROM dbo.M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_NO=:n AND ID<>:i AND DURUM='aktarildi'");
+    $s=$db->prepare("SELECT ID,PAKET_KIMLIGI,NORMAL,DURUM FROM dbo.M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_NO=:n AND ID<>:i");
     $s->execute([':k'=>$r['KANAL_ID'],':n'=>$r['HARICI_NO'],':i'=>$r['ID']]);
     $digerleri=$s->fetchAll(PDO::FETCH_ASSOC);
     $satirlar=array_column($normal['kalemler'],'harici_kimlik');
     foreach ($digerleri as $d) {
+        $onceki=json_decode($d['NORMAL'],true,64,JSON_THROW_ON_ERROR);
+        if (in_array($r['PAKET_KIMLIGI'] ?? '',$onceki['kaynak_bilgileri']['eski_paketler'] ?? [],true)) {
+            return ['Bu paket pazaryerinde bölünmüş/yenilenmiş; yeni paket kaydı incelenmeli.'];
+        }
+        if ($d['DURUM']!=='aktarildi') { continue; }
         if (($r['PAKET_KIMLIGI'] ?? '') === '' || $d['PAKET_KIMLIGI'] === '') {
             return ['Bu sipariş paketli veya paketsiz olarak daha önce aktarılmış.'];
         }

@@ -111,7 +111,15 @@ function et_test_yeni(Tarayici $t, int $kanal, array $degisiklik = []): int
 }
 function et_test_form(Tarayici $t, int $id, string $islem): array
 {
-    $g=$t->istek('eticaret/detay.php?id='.$id)['govde']; preg_match('/name="surum" value="([^"]+)"/',$g,$m);
+    $yanit=$t->istek('eticaret/detay.php?id='.$id); $g=$yanit['govde'];
+    bekle($yanit['kod']===200,'Detay okunamadı: HTTP '.$yanit['kod']);
+    preg_match('/name="surum" value="([^"]+)"/',$g,$m);
+    if (isset($m[1])) {
+        bekle(preg_match('/\A0x[0-9A-Fa-f]{16}\z/',$m[1])===1,'Sürüm kodu ASCII hex değil.');
+        global $pdo;
+        $beklenen=(string) tek($pdo,'SELECT CONVERT(VARCHAR(18),CAST(SURUM AS VARBINARY(8)),1) FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id]);
+        bekle($m[1]===$beklenen,'Detay sürümü eski: '.$m[1].' / '.$beklenen);
+    } elseif ($islem!=='aktar') { throw new RuntimeException('Detayda sürüm alanı yok: '.$id); }
     return ['csrf_token'=>$t->belirtec('eticaret/ice_aktar.php'),'id'=>$id,'surum'=>$m[1] ?? '',
         'islem'=>$islem,'cari'=>4,'depo'=>0,'personel'=>1];
 }
@@ -196,6 +204,100 @@ akis('e-ticaret: aynı siparişin ayrı paketleri aktarılır; aynı kalem ikinc
     bekle((int) tek($pdo,"SELECT COUNT(*) FROM M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_NO=:n AND DURUM='aktarildi'",[':k'=>$etKanal,':n'=>$no])===2,'paket aktarım sayısı yanlış');
     et_test_yeni($yonetici,$etKanal,['kimlik'=>$no.'-TUMU','numara'=>$no]);
     bekle((int) tek($pdo,'SELECT COUNT(*) FROM M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_NO=:n',[':k'=>$etKanal,':n'=>$no])===3,'paketli sipariş yeniden paketsiz alındı');
+});
+function et_test_api_al(Tarayici $t,int $kanal,string $bicim,array $v): string
+{
+    $yol=tempnam(sys_get_temp_dir(),'et_api_');
+    try {
+        file_put_contents($yol,json_encode($v));
+        $g=$t->istekDosya('eticaret/ice_aktar.php',['csrf_token'=>$t->belirtec('eticaret/ice_aktar.php'),
+            'islem'=>'yukle','kanal'=>$kanal,'bicim'=>$bicim],'dosya',$yol,'sentetik-api.json')['govde'];
+        preg_match('/name="anahtar" value="([a-f0-9]+)"/',$g,$m);
+        bekle(isset($m[1]),'API önizlemesi yok: '.mb_substr(strip_tags(preg_replace('#<style.*?</style>#s','',$g)),0,700));
+        return $t->istek('eticaret/ice_aktar.php',['csrf_token'=>$t->belirtec('eticaret/ice_aktar.php'),'islem'=>'kaydet','anahtar'=>$m[1]])['govde'];
+    } finally { unlink($yol); }
+}
+foreach (['trendyol_v2'=>'trendyol','hepsiburada_paket'=>'hepsiburada'] as $bicim=>$tur) {
+    akis($tur.': API yanıtı, indirim/KDV, aktarım ve sonradan iptal izi', function () use ($pdo,$yonetici,$bicim,$tur): void {
+        $ad='API '.$tur.' '.bin2hex(random_bytes(4));
+        $yonetici->istek('eticaret/kanallar.php',['csrf_token'=>$yonetici->belirtec('eticaret/kanallar.php'),
+            'ad'=>$ad,'tur'=>$tur,'aktif'=>1,'cari'=>4,'depo'=>0,'personel'=>1]);
+        $kanal=(int) tek($pdo,'SELECT ID FROM M_ET_KANAL WHERE AD=:a',[':a'=>$ad]);
+        $ornek=json_decode(file_get_contents(dirname(__DIR__,2).'/docs/eticaret/'.$bicim.'.json'),true);
+        bekle(str_contains(et_test_api_al($yonetici,$kanal,$bicim,$ornek),'Yeni: 1'),'API alımı başarısız');
+        bekle(str_contains(et_test_api_al($yonetici,$kanal,$bicim,$ornek),'Mükerrer: 1'),'API tekrarı çoğaldı');
+        $id=(int) tek($pdo,'SELECT ID FROM M_ET_SIPARIS WHERE KANAL_ID=:k',[':k'=>$kanal]);
+        $kod=(string) tek($pdo,'SELECT CODE FROM LG_001_ITEMS WHERE LOGICALREF=2');
+        $yonetici->istek('eticaret/eslemeler.php',['csrf_token'=>$yonetici->belirtec('eticaret/eslemeler.php?kanal='.$kanal),
+            'kanal'=>$kanal,'tur'=>'sku','deger'=>'DEMO-SKU-1','stok_kod'=>$kod,'birim'=>'ADET']);
+        $kontrol=$yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'kontrol'));
+        preg_match('#<p class="bildirim hata">(.*?)</p>#s',$kontrol['govde'],$kontrolHatasi);
+        bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='hazir',
+            'API hazırlığı başarısız: HTTP '.$kontrol['kod'].' '.strip_tags($kontrolHatasi[1] ?? '').' '.tek($pdo,'SELECT SON_HATA FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id]));
+        $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'aktar'));
+        $fis=(int) tek($pdo,'SELECT FIS_ID FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id]);
+        bekle($fis>0,'API kaydı aktarılamadı: '.tek($pdo,'SELECT SON_HATA FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id]));
+        yakin(120,(float) tek($pdo,'SELECT NETTOTAL FROM LG_001_02_ORFICHE WHERE LOGICALREF=:i',[':i'=>$fis]),'API toplamı / indirim ikinci kez uygulanmadı');
+        $iptal=$ornek;
+        if ($tur==='trendyol') {
+            $iptal['content'][0]['shipmentPackageStatus']='Cancelled';$iptal['content'][0]['status']='Cancelled';
+            $iptal['content'][0]['lastModifiedDate']+=1000;
+        } else { $iptal[0]['status']='CancelledByCustomer';$iptal[0]['lastStatusUpdateDate']='2026-10-25T13:01:01'; }
+        et_test_api_al($yonetici,$kanal,$bicim,$iptal);
+        bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='aktarildi','kaynak iptali Lumen durumunu değiştirdi');
+        bekle((string) tek($pdo,'SELECT KAYNAK_ENGELI FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])!=='','iptal izi saklanmadı');
+        $g=$yonetici->istek('eticaret/detay.php?id='.$id)['govde'];
+        bekle(str_contains($g,'Lumen siparişi otomatik değiştirilmedi'),'sonradan iptal uyarısı görünmüyor');
+        bekle(str_contains(et_test_api_al($yonetici,$kanal,$bicim,$ornek),'Eski kaynak: 1'),'eski yanıt ayıklanmadı');
+        bekle((string) tek($pdo,'SELECT KAYNAK_ENGELI FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])!=='','eski yanıt iptal engelini kaldırdı');
+        // Yeni sipariş: iptal güncellemesi daha önceki Hazır onayla aşılamaz.
+        $v=$ornek;
+        if ($tur==='trendyol') { $v['content'][0]['shipmentPackageId']='9000000002';$v['content'][0]['orderNumber']='TY-DEMO-0002'; }
+        else { $v[0]['packageNumber']='HB-DEMO-PAKET-0002';$v[0]['items'][0]['orderNumber']='HB-DEMO-0002'; }
+        et_test_api_al($yonetici,$kanal,$bicim,$v);
+        $id=(int) tek($pdo,'SELECT MAX(ID) FROM M_ET_SIPARIS WHERE KANAL_ID=:k',[':k'=>$kanal]);
+        $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'kontrol'));
+        $eskiOnay=et_test_form($yonetici,$id,'aktar');
+        if ($tur==='trendyol') { $v['content'][0]['shipmentPackageStatus']='Cancelled';$v['content'][0]['status']='Cancelled';$v['content'][0]['lastModifiedDate']+=1000; }
+        else { $v[0]['status']='CancelledByCustomer';$v[0]['lastStatusUpdateDate']='2026-10-25T13:01:01'; }
+        et_test_api_al($yonetici,$kanal,$bicim,$v);
+        $f=et_test_form($yonetici,$id,'kontrol');$f['cakisma_onay']='1';$yonetici->istek('eticaret/detay.php',$f);
+        $yonetici->istek('eticaret/detay.php',$eskiOnay);
+        bekle(tek($pdo,'SELECT FIS_ID FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])===null,'iptal engeli orijinal onayla aşıldı');
+    });
+}
+akis('Trendyol: ödeme sonrası yeni zamanlı yanıt açılır; yenilenen eski paket engellenir', function () use ($pdo,$yonetici): void {
+    $kanal=(int) tek($pdo,"SELECT TOP 1 ID FROM M_ET_KANAL WHERE TUR='trendyol' ORDER BY ID DESC");
+    $j=json_decode(file_get_contents(dirname(__DIR__,2).'/docs/eticaret/trendyol_v2.json'),true);
+    $j['content'][0]['shipmentPackageId']='9000000003';$j['content'][0]['orderNumber']='TY-DEMO-0003';
+    $j['content'][0]['status']='Awaiting';$j['content'][0]['shipmentPackageStatus']='Awaiting';
+    et_test_api_al($yonetici,$kanal,'trendyol_v2',$j);
+    $id=(int) tek($pdo,'SELECT ID FROM M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_ID=:i',[':k'=>$kanal,':i'=>'TY:9000000003']);
+    bekle((string) tek($pdo,'SELECT KAYNAK_ENGELI FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])!=='','ödeme bekleyen hazır kabul edildi');
+    $j['content'][0]['status']='Created';$j['content'][0]['shipmentPackageStatus']='Created';$j['content'][0]['lastModifiedDate']+=2000;
+    et_test_api_al($yonetici,$kanal,'trendyol_v2',$j);
+    $f=et_test_form($yonetici,$id,'kontrol');$f['cakisma_onay']='1';$yonetici->istek('eticaret/detay.php',$f);
+    bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='hazir','ödemesi tamamlanan kayıt hazırlanamadı');
+    $j['content'][0]['shipmentPackageId']='9000000004';$j['content'][0]['originPackageIds']=['9000000003'];
+    $j['content'][0]['lines'][0]['lineId']='TY-YENI-KALEM';$j['content'][0]['lastModifiedDate']+=1000;
+    et_test_api_al($yonetici,$kanal,'trendyol_v2',$j);
+    $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'aktar'));
+    bekle(tek($pdo,'SELECT FIS_ID FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])===null,'yenilenen eski paket aktarıldı');
+});
+akis('e-ticaret: yanlış kanal önizlemesi önceki dosya onayını kullanamaz', function () use ($pdo,$yonetici,&$etKanal): void {
+    $yol=tempnam(sys_get_temp_dir(),'et_oniz_');
+    try {
+        copy(dirname(__DIR__,2).'/docs/eticaret/ornek.json',$yol);
+        $g=$yonetici->istekDosya('eticaret/ice_aktar.php',['csrf_token'=>$yonetici->belirtec('eticaret/ice_aktar.php'),'islem'=>'yukle','kanal'=>$etKanal],
+            'dosya',$yol,'genel.json')['govde'];
+        preg_match('/name="anahtar" value="([a-f0-9]+)"/',$g,$m);bekle(isset($m[1]),'ilk önizleme eksik');
+        copy(dirname(__DIR__,2).'/docs/eticaret/trendyol_v2.json',$yol);
+        $g=$yonetici->istekDosya('eticaret/ice_aktar.php',['csrf_token'=>$yonetici->belirtec('eticaret/ice_aktar.php'),'islem'=>'yukle','kanal'=>$etKanal,'bicim'=>'trendyol_v2'],
+            'dosya',$yol,'api.json')['govde'];
+        bekle(str_contains($g,'kanal türüyle uyuşmuyor') && !str_contains($g,'name="anahtar"'),'yanlış kanal onaylanabilir kaldı');
+        $g=$yonetici->istek('eticaret/ice_aktar.php',['csrf_token'=>$yonetici->belirtec('eticaret/ice_aktar.php'),'islem'=>'kaydet','anahtar'=>$m[1]])['govde'];
+        bekle(str_contains($g,'Önizleme süresi doldu'),'eski dosya onayı geçerli kaldı');
+    } finally { unlink($yol); }
 });
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d e-ticaret akışı, %d başarısız\n", count($sonuclar), $basarisiz);
