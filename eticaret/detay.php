@@ -30,9 +30,11 @@ if ($hata) { echo '<p class="bildirim hata">'.bh($hata).'</p>'; }
 ?>
 <div class="kart kart-ic"><span class="rozet"><?= bh(et_durumlar()[$r['DURUM']]) ?></span> <?= bh($r['KANAL_AD']) ?> · <?= bh($n['tarih'] ?? '') ?> · Kaynak toplamı: <?= btl($n['genel_toplam'] ?? 0) ?>
 <?php if ($r['PAKET_KIMLIGI'] ?? ''): ?><p>Paket: <?= bh($r['PAKET_KIMLIGI']) ?></p><?php endif; ?>
+<?php if ($r['KAYNAK_GUNCELLEME'] ?? ''): ?><p>Kaynak güncellemesi (UTC): <?= bh($r['KAYNAK_GUNCELLEME']) ?></p><?php endif; ?>
 <?php if ($r['KAYNAK_DURUMU'] ?? ''): ?><p>Pazaryeri durumu: <?= bh($r['KAYNAK_DURUMU']) ?></p><?php endif; ?>
 <?php if ($r['KAYNAK_ENGELI'] ?? ''): ?><p class="bildirim hata"><?= bh($r['KAYNAK_ENGELI']) ?><?= $r['DURUM']==='aktarildi' ? ' Lumen siparişi otomatik değiştirilmedi; ayrıca incelenmeli.' : '' ?></p><?php endif; ?>
 <p><a href="eslemeler.php?kanal=<?= (int) $r['KANAL_ID'] ?>">Kanalın ürün eşlemeleri</a></p></div>
+<?php if (isset($n['kaynak_bilgileri']['finans'])): ?><section class="kart kart-ic"><h2>Pazaryeri tutar bileşenleri</h2><p>İndirimli fiyat aktarılır; indirim tekrar uygulanmaz. Komisyon ve kargo mutabakatı ayrıca yapılır.</p><dl><?php foreach ($n['kaynak_bilgileri']['finans'] as $ad=>$tutar): ?><dt class="soluk"><?= bh($ad) ?></dt><dd><?= btl($tutar) ?></dd><?php endforeach; ?></dl></section><?php endif; ?>
 <div class="et-adresler"><?php foreach (['musteri'=>'Müşteri','fatura'=>'Fatura bilgileri','teslimat'=>'Teslimat bilgileri'] as $k=>$ad): ?><section class="kart kart-ic"><h2><?= bh($ad) ?></h2><?php et_adres_goster($n[$k] ?? []); ?></section><?php endforeach; ?></div>
 <?php if ($v['hatalar'] && !in_array($r['DURUM'],['aktarildi','iptal'],true)): ?><div class="bildirim hata"><ul><?php foreach ($v['hatalar'] as $e): ?><li><?= bh($e) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
 <div class="kart tablo-sar"><table class="liste"><thead><tr><th>Harici ürün</th><th>Lumen stok</th><th>Miktar / birim</th><th>Kanal fiyatı</th><th>Lumen fiyatı / KDV</th><th>Depo stoku</th><th>Kontrol</th></tr></thead><tbody>

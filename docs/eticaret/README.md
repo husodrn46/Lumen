@@ -2,7 +2,9 @@
 
 LOGO ve bağımsız Lumen modlarında aynı akış kullanılır. İlk sürüm dosyadan veri alır;
 Trendyol, Hepsiburada, WooCommerce, Shopify ve site türleri yalnız kanal tanımıdır.
-Gerçek pazaryeri bağlantısı, anahtar veya otomatik veri çekme yoktur.
+Trendyol ve Hepsiburada için resmî API yanıtı JSON adaptörleri de vardır:
+[desteklenen alanlar ve kurallar](PAZARYERI_API.md). Gerçek pazaryeri bağlantısı,
+anahtar veya otomatik veri çekme yoktur.
 
 ## Kurulum ve kullanım
 

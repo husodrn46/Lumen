@@ -4,6 +4,12 @@
 
 ### Yeni özellikler (beta)
 
+- Trendyol v2 ve Hepsiburada paket API yanıtları JSON dosyası olarak alınabilir.
+  Sipariş/paket/kalem kimlikleri ayrılır; kaynak iptal ve ödeme durumu kontrol edilir.
+  Eski zamanlı yanıt güncel engeli kaldıramaz. Trendyol indirimli fiyatları ve
+  Hepsiburada KDV tutarı/oranı ayrı doğrulanır. Sentetik örnekler ve API incelemesi eklendi.
+  Gerçek ağ bağlantısı veya kimlik bilgisi istenmez.
+
 - E-ticaret Sipariş Kutusu: CSV/JSON önizleme ve alım, satış kanalları, SKU/barkod
   eşlemeleri, fiyat/KDV/depo kontrolleri, kullanıcı onaylı satış siparişi aktarımı.
   LOGO ve bağımsız modda aynı akış; mükerrer aktarım koruması ve denetim izi.

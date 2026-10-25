@@ -15,6 +15,7 @@ function et_post(): void
 }
 function et_hata(Throwable $e): string
 {
+    if ($e instanceof JsonException) { return 'JSON dosyası geçersiz; dosya biçimini kontrol edin.'; }
     if ($e instanceof DomainException || $e instanceof InvalidArgumentException) { return $e->getMessage(); }
     error_log('eticaret: ' . $e->getMessage());
     return 'İşlem tamamlanamadı. Sayfayı yenileyip tekrar kontrol edin.';

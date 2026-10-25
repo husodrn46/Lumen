@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__.'/adaptorler.php';
+
 /** CSV/JSON adaptörleri yalnız ortak modele çevirir; veritabanı ve pazaryeri API bağımlılığı yoktur. */
 function et_metin(mixed $v, int $sinir = 150): string
 {
@@ -58,10 +60,15 @@ function et_normalize(array $r): array
     return ['kimlik'=>$id,'numara'=>$no,'paket_kimligi'=>et_metin($r['paket_kimligi'] ?? '',100),'tarih'=>$tarih,'para_birimi'=>'TRY', 'genel_toplam'=>et_sayi($r['genel_toplam'] ?? '',0.01,100000000000),
         'kalemler'=>$out] + $adresler;
 }
-function et_dosya_oku(string $ham, string $tur): array
+function et_dosya_oku(string $ham, string $tur, string $bicim = 'lumen'): array
 {
     if (strlen($ham) > 1048576 || !mb_check_encoding($ham,'UTF-8')) { throw new InvalidArgumentException('Dosya en fazla 1 MB ve UTF-8 olmalı.'); }
     $ham = preg_replace('/^\xEF\xBB\xBF/', '', $ham);
+    if (!isset(et_bicimler()[$bicim])) { throw new InvalidArgumentException('İçe aktarma biçimi tanınmadı.'); }
+    if ($bicim!=='lumen') {
+        if ($tur!=='json') { throw new InvalidArgumentException('Pazaryeri API yanıtı JSON dosyası olmalı.'); }
+        return et_adaptor_oku($ham,$bicim);
+    }
     if ($tur === 'json') {
         $j = json_decode($ham, true, 64, JSON_THROW_ON_ERROR);
         if (!is_array($j) || ($j['surum'] ?? null) !== 1 || !is_array($j['siparisler'] ?? null) || !array_is_list($j['siparisler'])) {
@@ -110,8 +117,9 @@ function et_kayit_hazirla(mixed $ham, mixed $aday, array $kaynak = [], ?string $
         if ($id === '' || $no === '') { throw new InvalidArgumentException('Sipariş kimliği ve numarası gerekiyor.'); }
         if ($hata !== null) { throw new InvalidArgumentException($hata); }
         $normal = et_normalize($aday);
+        if (($kaynak['sistem'] ?? 'lumen')!=='lumen') { $normal['kaynak_bilgileri']=$kaynak; }
     } catch (InvalidArgumentException $e) { $hata = $e->getMessage(); }
     return ['ham'=>$ham,'normal'=>$normal,'hata'=>$hata,'kimlik'=>$id,'numara'=>$no,'paket_kimligi'=>$paket,
         'kaynak'=>$kaynak['sistem'] ?? 'lumen','kaynak_durumu'=>$kaynak['durum'] ?? null,
-        'kaynak_engeli'=>$kaynak['engel'] ?? null];
+        'kaynak_engeli'=>$kaynak['engel'] ?? null,'kaynak_guncelleme'=>$kaynak['guncelleme'] ?? null];
 }

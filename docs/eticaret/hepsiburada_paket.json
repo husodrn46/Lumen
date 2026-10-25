@@ -1,0 +1,44 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "packageNumber": "HB-DEMO-PAKET-0001",
+    "status": "Packaged",
+    "orderDate": "2026-10-25T13:00:00",
+    "lastStatusUpdateDate": "2026-10-25T13:01:00",
+    "totalPrice": {
+      "amount": 120,
+      "currency": "TRY"
+    },
+    "recipientName": "Sentetik Müşteri",
+    "customerName": "Sentetik Müşteri",
+    "companyName": "Sentetik Müşteri",
+    "billingAddress": "Örnek Fatura Mahallesi",
+    "billingCity": "İstanbul",
+    "billingTown": "Örnek",
+    "shippingAddressDetail": "Örnek Teslimat Mahallesi",
+    "shippingCity": "Ankara",
+    "shippingTown": "Örnek",
+    "shippingCountryCode": "TR",
+    "email": "demo@example.test",
+    "items": [
+      {
+        "lineItemId": "00000000-0000-4000-8000-000000000002",
+        "orderNumber": "HB-DEMO-0001",
+        "merchantSku": "DEMO-SKU-1",
+        "productBarcode": "",
+        "productName": "Sentetik ürün",
+        "quantity": 2,
+        "price": {
+          "amount": 60,
+          "currency": "TRY"
+        },
+        "totalPrice": {
+          "amount": 120,
+          "currency": "TRY"
+        },
+        "vatRate": 20,
+        "vat": 20
+      }
+    ]
+  }
+]
