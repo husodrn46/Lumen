@@ -222,7 +222,10 @@ foreach (['trendyol_v2'=>'trendyol','hepsiburada_paket'=>'hepsiburada'] as $bici
         $kod=(string) tek($pdo,'SELECT CODE FROM LG_001_ITEMS WHERE LOGICALREF=2');
         $yonetici->istek('eticaret/eslemeler.php',['csrf_token'=>$yonetici->belirtec('eticaret/eslemeler.php?kanal='.$kanal),
             'kanal'=>$kanal,'tur'=>'sku','deger'=>'DEMO-SKU-1','stok_kod'=>$kod,'birim'=>'ADET']);
-        $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'kontrol'));
+        $kontrol=$yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'kontrol'));
+        preg_match('#<p class="bildirim hata">(.*?)</p>#s',$kontrol['govde'],$kontrolHatasi);
+        bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='hazir',
+            'API hazırlığı başarısız: HTTP '.$kontrol['kod'].' '.strip_tags($kontrolHatasi[1] ?? '').' '.tek($pdo,'SELECT SON_HATA FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id]));
         $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'aktar'));
         $fis=(int) tek($pdo,'SELECT FIS_ID FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id]);
         bekle($fis>0,'API kaydı aktarılamadı: '.tek($pdo,'SELECT SON_HATA FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id]));
