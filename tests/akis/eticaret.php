@@ -111,7 +111,15 @@ function et_test_yeni(Tarayici $t, int $kanal, array $degisiklik = []): int
 }
 function et_test_form(Tarayici $t, int $id, string $islem): array
 {
-    $g=$t->istek('eticaret/detay.php?id='.$id)['govde']; preg_match('/name="surum" value="([^"]+)"/',$g,$m);
+    $yanit=$t->istek('eticaret/detay.php?id='.$id); $g=$yanit['govde'];
+    bekle($yanit['kod']===200,'Detay okunamadı: HTTP '.$yanit['kod']);
+    preg_match('/name="surum" value="([^"]+)"/',$g,$m);
+    if (isset($m[1])) {
+        bekle(preg_match('/\A0x[0-9A-Fa-f]{16}\z/',$m[1])===1,'Sürüm kodu ASCII hex değil.');
+        global $pdo;
+        $beklenen=(string) tek($pdo,'SELECT CONVERT(VARCHAR(18),CAST(SURUM AS VARBINARY(8)),1) FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id]);
+        bekle($m[1]===$beklenen,'Detay sürümü eski: '.$m[1].' / '.$beklenen);
+    } elseif ($islem!=='aktar') { throw new RuntimeException('Detayda sürüm alanı yok: '.$id); }
     return ['csrf_token'=>$t->belirtec('eticaret/ice_aktar.php'),'id'=>$id,'surum'=>$m[1] ?? '',
         'islem'=>$islem,'cari'=>4,'depo'=>0,'personel'=>1];
 }
@@ -258,6 +266,39 @@ foreach (['trendyol_v2'=>'trendyol','hepsiburada_paket'=>'hepsiburada'] as $bici
         bekle(tek($pdo,'SELECT FIS_ID FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])===null,'iptal engeli orijinal onayla aşıldı');
     });
 }
+akis('Trendyol: ödeme sonrası yeni zamanlı yanıt açılır; yenilenen eski paket engellenir', function () use ($pdo,$yonetici): void {
+    $kanal=(int) tek($pdo,"SELECT TOP 1 ID FROM M_ET_KANAL WHERE TUR='trendyol' ORDER BY ID DESC");
+    $j=json_decode(file_get_contents(dirname(__DIR__,2).'/docs/eticaret/trendyol_v2.json'),true);
+    $j['content'][0]['shipmentPackageId']='9000000003';$j['content'][0]['orderNumber']='TY-DEMO-0003';
+    $j['content'][0]['status']='Awaiting';$j['content'][0]['shipmentPackageStatus']='Awaiting';
+    et_test_api_al($yonetici,$kanal,'trendyol_v2',$j);
+    $id=(int) tek($pdo,'SELECT ID FROM M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_ID=:i',[':k'=>$kanal,':i'=>'TY:9000000003']);
+    bekle((string) tek($pdo,'SELECT KAYNAK_ENGELI FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])!=='','ödeme bekleyen hazır kabul edildi');
+    $j['content'][0]['status']='Created';$j['content'][0]['shipmentPackageStatus']='Created';$j['content'][0]['lastModifiedDate']+=2000;
+    et_test_api_al($yonetici,$kanal,'trendyol_v2',$j);
+    $f=et_test_form($yonetici,$id,'kontrol');$f['cakisma_onay']='1';$yonetici->istek('eticaret/detay.php',$f);
+    bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='hazir','ödemesi tamamlanan kayıt hazırlanamadı');
+    $j['content'][0]['shipmentPackageId']='9000000004';$j['content'][0]['originPackageIds']=['9000000003'];
+    $j['content'][0]['lines'][0]['lineId']='TY-YENI-KALEM';$j['content'][0]['lastModifiedDate']+=1000;
+    et_test_api_al($yonetici,$kanal,'trendyol_v2',$j);
+    $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'aktar'));
+    bekle(tek($pdo,'SELECT FIS_ID FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])===null,'yenilenen eski paket aktarıldı');
+});
+akis('e-ticaret: yanlış kanal önizlemesi önceki dosya onayını kullanamaz', function () use ($pdo,$yonetici,&$etKanal): void {
+    $yol=tempnam(sys_get_temp_dir(),'et_oniz_');
+    try {
+        copy(dirname(__DIR__,2).'/docs/eticaret/ornek.json',$yol);
+        $g=$yonetici->istekDosya('eticaret/ice_aktar.php',['csrf_token'=>$yonetici->belirtec('eticaret/ice_aktar.php'),'islem'=>'yukle','kanal'=>$etKanal],
+            'dosya',$yol,'genel.json')['govde'];
+        preg_match('/name="anahtar" value="([a-f0-9]+)"/',$g,$m);bekle(isset($m[1]),'ilk önizleme eksik');
+        copy(dirname(__DIR__,2).'/docs/eticaret/trendyol_v2.json',$yol);
+        $g=$yonetici->istekDosya('eticaret/ice_aktar.php',['csrf_token'=>$yonetici->belirtec('eticaret/ice_aktar.php'),'islem'=>'yukle','kanal'=>$etKanal,'bicim'=>'trendyol_v2'],
+            'dosya',$yol,'api.json')['govde'];
+        bekle(str_contains($g,'kanal türüyle uyuşmuyor') && !str_contains($g,'name="anahtar"'),'yanlış kanal onaylanabilir kaldı');
+        $g=$yonetici->istek('eticaret/ice_aktar.php',['csrf_token'=>$yonetici->belirtec('eticaret/ice_aktar.php'),'islem'=>'kaydet','anahtar'=>$m[1]])['govde'];
+        bekle(str_contains($g,'Önizleme süresi doldu'),'eski dosya onayı geçerli kaldı');
+    } finally { unlink($yol); }
+});
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d e-ticaret akışı, %d başarısız\n", count($sonuclar), $basarisiz);
 exit($basarisiz ? 1 : 0);

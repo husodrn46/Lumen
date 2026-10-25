@@ -11,7 +11,7 @@ function et_durumlar(): array
 function et_siparis(PDO $db, int $id, int $kullanici, bool $kilit = false): array
 {
     $hint=$kilit ? 'WITH (UPDLOCK,HOLDLOCK)' : '';
-    $r=et_tek($db,"SELECT S.*,K.AD AS KANAL_AD,CONVERT(VARCHAR(18),S.SURUM,1) AS SURUM_KOD FROM dbo.M_ET_SIPARIS S {$hint}
+    $r=et_tek($db,"SELECT S.*,K.AD AS KANAL_AD,CONVERT(VARCHAR(18),CAST(S.SURUM AS VARBINARY(8)),1) AS SURUM_KOD FROM dbo.M_ET_SIPARIS S {$hint}
         JOIN dbo.M_ET_KANAL K ON K.ID=S.KANAL_ID WHERE S.ID=:i AND K.FIRMA=:f",[':i'=>$id,':f'=>(int) $GLOBALS['firmano']]);
     if (!$r || ((int) $r['CARI_ID'] > 0 && !m_p_cariid_goruntulebilir_mi($db,$GLOBALS['firma'],$kullanici,(int) $r['CARI_ID']))) {
         throw new DomainException('Sipariş bulunamadı.');
