@@ -91,6 +91,8 @@ function et_kanal_kaydet(PDO $db, array $v, int $kullanici): int
             $id = lumen_insert_kimlik($db, 'INSERT INTO dbo.M_ET_KANAL (FIRMA,AD,TUR,AKTIF,CARI_ID,DEPO_NO,PERSONEL_ID,OLUSTURAN,GUNCELLEYEN)
                 VALUES (:f,:ad,:t,:a,:c,:d,:p,:u,:g)', $param + [':g' => $kullanici], 'ID');
         }
+        $s=$db->prepare("UPDATE dbo.M_ET_SIPARIS SET DURUM='esleme',ONAY_GOVDE=NULL,ONAY_OZET=NULL WHERE KANAL_ID=:k AND DURUM='hazir'");
+        $s->execute([':k'=>$id]); $s->closeCursor();
         et_olay($db, $id, null, $kullanici, 'kanal', 'Kanal tanımı kaydedildi.');
         $db->commit();
         return $id;
@@ -98,4 +100,17 @@ function et_kanal_kaydet(PDO $db, array $v, int $kullanici): int
         if ($db->inTransaction()) { $db->rollBack(); }
         throw $e;
     }
+}
+
+/** Kaynak birimi ana birime çevirir. MVP birden küçük çarpanları kabul etmez. */
+function et_birimler(PDO $db, string $firma, int $stok): array
+{
+    $s=$db->prepare("SELECT U.CODE AS kod,IA.CONVFACT1,IA.CONVFACT2 FROM {$firma}ITMUNITA IA
+        JOIN {$firma}UNITSETL U ON U.LOGICALREF=IA.UNITLINEREF WHERE IA.ITEMREF=:s ORDER BY IA.LINENR,IA.LOGICALREF");
+    $s->execute([':s'=>$stok]);$out=[];
+    foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $c=(float) $r['CONVFACT1']>0 ? (float) $r['CONVFACT2']/(float) $r['CONVFACT1'] : 0;
+        if ($c>=1 && $c<=100000) { $out[]=['kod'=>trim((string) $r['kod']),'carpan'=>round($c,6)]; }
+    }
+    return $out;
 }

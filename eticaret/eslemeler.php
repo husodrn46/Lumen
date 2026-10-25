@@ -21,7 +21,7 @@ $terim='%'.str_replace(['[','%','_'],['[[]','[%]','[_]'],$q).'%'; $s->execute(['
 ?>
 <div class="kart kart-ic"><strong><?= bh($k['AD']) ?></strong><p>Eşlemeler yalnız bu kanala uygulanır. Birim, kaynak siparişteki birimle aynı olmalıdır.</p>
 <form method="get"><input type="hidden" name="kanal" value="<?= $kanal ?>"><label class="alan">Stok kodu veya adı ara <input name="q" value="<?= bh($q) ?>"></label><button class="btn btn-ikincil">Ara</button></form></div>
-<div class="kart tablo-sar"><table class="liste"><thead><tr><th>Stok kodu</th><th>Ad</th><th>Birimler</th></tr></thead><tbody><?php foreach ($stoklar as $st): ?><tr><td><?= bh($st['CODE']) ?></td><td><?= bh($st['NAME']) ?></td><td><?= bh(implode(', ',array_map(static fn($b)=>$b['kod'].' ×'.$b['carpan'],siparis_stok_birimleri($dbh,$firma,(int) $st['LOGICALREF'])))) ?></td></tr><?php endforeach; ?></tbody></table></div>
+<div class="kart tablo-sar"><table class="liste"><thead><tr><th>Stok kodu</th><th>Ad</th><th>Birimler</th></tr></thead><tbody><?php foreach ($stoklar as $st): ?><tr><td><?= bh($st['CODE']) ?></td><td><?= bh($st['NAME']) ?></td><td><?= bh(implode(', ',array_map(static fn($b)=>$b['kod'].' ×'.$b['carpan'],et_birimler($dbh,$firma,(int) $st['LOGICALREF'])))) ?></td></tr><?php endforeach; ?></tbody></table></div>
 <form method="post" class="kart kart-ic izgara"><?= csrf_field() ?><input type="hidden" name="kanal" value="<?= $kanal ?>">
 <label class="alan">Tür <select name="tur"><option value="sku">SKU</option><option value="barkod" <?= ($_GET['tur'] ?? '')==='barkod' ? 'selected' : '' ?>>Barkod</option></select></label>
 <label class="alan">Harici değer <input name="deger" required maxlength="150" value="<?= bh($_GET['deger'] ?? '') ?>"></label>

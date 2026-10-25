@@ -44,6 +44,7 @@ function et_normalize(array $r): array
         $birim = et_metin($k['birim'] ?? '', 30);
         if ($birim === '') { throw new InvalidArgumentException('Kalem birimi gerekiyor.'); }
         if (!isset($k['kdv_dahil']) || !is_bool($k['kdv_dahil'])) { throw new InvalidArgumentException('kdv_dahil true veya false olmalı.'); }
+        if (round(et_sayi($k['kdv'] ?? '',0,100),2) !== et_sayi($k['kdv'] ?? '',0,100)) { throw new InvalidArgumentException('KDV en fazla iki ondalık haneli olmalı.'); }
         $out[] = ['sku'=>$sku,'barkod'=>$barkod,'ad'=>et_metin($k['ad'] ?? '',200),'birim'=>$birim,
             'miktar'=>et_sayi($k['miktar'] ?? '',0.000001,1000000), 'fiyat'=>et_sayi($k['fiyat'] ?? '',0.000001,100000000),
             'kdv'=>et_sayi($k['kdv'] ?? '',0,100),'kdv_dahil'=>$k['kdv_dahil']];
