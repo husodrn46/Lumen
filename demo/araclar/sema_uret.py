@@ -61,6 +61,11 @@ def kolon_tipi(tablo, kolon):
 
 
 def main():
+    if '--yalniz-ambar' in sys.argv:
+        hedef = os.path.join(KOK, 'demo', 'sql', '01_logo_sema.sql')
+        with open(hedef, 'a', encoding='utf-8') as f:
+            f.write("\nIF OBJECT_ID('dbo.L_CAPIWHOUSE', 'U') IS NULL\nCREATE TABLE dbo.L_CAPIWHOUSE (NR SMALLINT NOT NULL, FIRMNR SMALLINT NOT NULL, NAME NVARCHAR(80), PRIMARY KEY(FIRMNR,NR));\nGO\n")
+        return
     kolonlar = json.loads(subprocess.check_output([sys.executable, os.path.join(BURASI, 'kolon_cikar.py'), '--json']))
     satirlar = ['-- ÜRETİLMİŞ DOSYA — elle düzenlemeyin: python3 demo/araclar/sema_uret.py',
                 '-- Lumen demo veritabanı için asgari LOGO Tiger şeması (firma 001; dönem 02 güncel, 01 önceki/boş).',
