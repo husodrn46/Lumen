@@ -2,6 +2,14 @@
 
 ## [Yayımlanmadı]
 
+### Yeni özellikler (beta)
+
+- E-ticaret Sipariş Kutusu: CSV/JSON önizleme ve alım, satış kanalları, SKU/barkod
+  eşlemeleri, fiyat/KDV/depo kontrolleri, kullanıcı onaylı satış siparişi aktarımı.
+  LOGO ve bağımsız modda aynı akış; mükerrer aktarım koruması ve denetim izi.
+  Kurulum: `php scripts/sema_guncelle.php`; personele M33 yetkisi verilir.
+  Kullanım ve sentetik örnekler: `docs/eticaret/README.md`.
+
 ### 🐛 Düzeltmeler
 
 - Kasa/banka fişi formu, `12abc` gibi geçersiz tutarları göndermeden uyarır.

@@ -30,7 +30,7 @@ function et_esleme_kaydet(PDO $db, array $v, int $kullanici): void
     $kod=et_metin($v['stok_kod'] ?? ''); $birim=et_metin($v['birim'] ?? '',30); $firma=$GLOBALS['firma'];
     $stok=et_tek($db,"SELECT LOGICALREF FROM {$firma}ITEMS WHERE CODE=:k AND ACTIVE=0",[':k'=>$kod]);
     $id=(int) ($stok['LOGICALREF'] ?? 0); $carpan=null;
-    foreach (siparis_stok_birimleri($db,$firma,$id) as $b) {
+    foreach (et_birimler($db,$firma,$id) as $b) {
         if (mb_strtoupper($b['kod']) === mb_strtoupper($birim)) { $carpan=$b['carpan']; $birim=$b['kod']; break; }
     }
     if ($id <= 0 || $carpan === null) { throw new DomainException('Geçerli stok kodu ve bu stoğa ait birim kodunu seçin.'); }
@@ -61,6 +61,7 @@ function et_kontrol(PDO $db, array $r, int $kullanici): array
     $hatalar=[]; $gorunum=[]; $kalemler=[]; $eslemeEksik=false;
     $normal=json_decode($r['NORMAL'],true,64,JSON_THROW_ON_ERROR);
     if (!$normal) { return ['hatalar'=>[$r['SON_HATA'] ?: 'Kaynak veri geçersiz.'],'satirlar'=>[],'govde'=>null,'durum'=>'hatali']; }
+    if ($r['CAKISMA'] ?? false) { $hatalar[]='Kaynak içerik çakışması var; denetim izini inceleyip orijinal kayıtla devam kararını verin.'; }
     $kanal=et_kanal($db,(int) $r['KANAL_ID']);
     if (!$kanal['AKTIF']) { $hatalar[]='Kanal pasif.'; }
     try { et_hedef_dogrula($db,(int) $r['CARI_ID'],(int) ($r['DEPO_NO'] ?? -1),(int) $r['PERSONEL_ID'],$kullanici); }
@@ -83,7 +84,7 @@ function et_kontrol(PDO $db, array $r, int $kullanici): array
             $g['engel']='Kaynak birimi ile eşleme birimi farklı.'; $eslemeEksik=true;
         } else {
             $stok=siparis_stok_getir($db,$GLOBALS['firma'],$GLOBALS['firmadonemx'],(int) $e['STOK_ID']);
-            $birimler=siparis_stok_birimleri($db,$GLOBALS['firma'],(int) $e['STOK_ID']);
+            $birimler=et_birimler($db,$GLOBALS['firma'],(int) $e['STOK_ID']);
             $uygun=array_filter($birimler,static fn($b)=>$b['kod']===$e['BIRIM'] && abs($b['carpan']-(float) $e['CARPAN'])<0.000001);
             if (!$stok || !$uygun) { $g['engel']='Stok/birim değişmiş veya pasif.'; $eslemeEksik=true; }
             else {
@@ -113,7 +114,7 @@ function et_kontrol(PDO $db, array $r, int $kullanici): array
     if (count($h['ready']) !== count($normal['kalemler'])) { $hatalar[]='Bütün kalemler doğrulanmalı; kısmi aktarım yapılamaz.'; }
     if (abs($toplam['genel_toplam']-$normal['genel_toplam'])>0.005) { $hatalar[]='Kaynak toplamı ile Lumen toplamı uyuşmuyor.'; }
     $govde=['cari_id'=>(int) $r['CARI_ID'],'depo'=>(int) ($r['DEPO_NO'] ?? -1),'personel'=>(int) $r['PERSONEL_ID'],
-        'kalemler'=>$kalemler,'hazir'=>$h['ready'],'toplam'=>$toplam['genel_toplam'],
+        'kalemler'=>$kalemler,'hazir'=>$h['ready'],'gorunum'=>$gorunum,'toplam'=>$toplam['genel_toplam'],
         'mod'=>lumen_bagimsiz_mi() ? 'lumen' : 'logo','donem'=>lumen_bagimsiz_mi() ? 'LUMEN' : $GLOBALS['firmadonem']];
     return ['hatalar'=>array_values(array_unique($hatalar)),'satirlar'=>$gorunum,'govde'=>$govde,
         'durum'=>$hatalar ? ($eslemeEksik ? 'esleme' : 'hatali') : 'hazir','toplam'=>$toplam];
@@ -128,12 +129,18 @@ function et_hazirla(PDO $db, int $id, int $kullanici, string $surum, array $hede
         if (in_array($r['DURUM'],['aktarildi','iptal'],true) || $r['SURUM_KOD'] !== $surum) { throw new DomainException('Kayıt değişmiş veya kapalı; sayfayı yenileyin.'); }
         $r['CARI_ID']=(int) ($hedef['cari'] ?? 0); $r['DEPO_NO']=(int) ($hedef['depo'] ?? -1); $r['PERSONEL_ID']=(int) ($hedef['personel'] ?? 0);
         et_hedef_dogrula($db,$r['CARI_ID'],$r['DEPO_NO'],$r['PERSONEL_ID'],$kullanici);
+        $cakismaOnay=false;
+        if ($r['CAKISMA'] ?? false) {
+            if (($hedef['cakisma_onay'] ?? '') !== '1') { throw new DomainException('Değişmiş kaynak için orijinal kayıtla devam onayı gerekiyor.'); }
+            $r['CAKISMA']=0; $cakismaOnay=true;
+        }
         $v=et_kontrol($db,$r,$kullanici); $hazir=!$v['hatalar'];
-        $s=$db->prepare('UPDATE dbo.M_ET_SIPARIS SET DURUM=:d,CARI_ID=:c,DEPO_NO=:depo,PERSONEL_ID=:p,ONAY_GOVDE=:g,ONAY_OZET=:o,SON_HATA=:e WHERE ID=:i');
+        $s=$db->prepare('UPDATE dbo.M_ET_SIPARIS SET CAKISMA=0,DURUM=:d,CARI_ID=:c,DEPO_NO=:depo,PERSONEL_ID=:p,ONAY_GOVDE=:g,ONAY_OZET=:o,SON_HATA=:e WHERE ID=:i');
         $s->execute([':d'=>$v['durum'],':c'=>$r['CARI_ID'],':depo'=>$r['DEPO_NO'],':p'=>$r['PERSONEL_ID'],
             ':g'=>$hazir ? et_json($v['govde']) : null,':o'=>$hazir ? siparis_idempotency_parmakizi($v['govde']) : null,
             ':e'=>$v['hatalar'] ? mb_substr(implode(' ',$v['hatalar']),0,500) : null,':i'=>$id]); $s->closeCursor();
         et_olay($db,(int) $r['KANAL_ID'],$id,$kullanici,'kontrol',$hazir ? 'Kontroller tamamlandı; aktarım onayı bekleniyor.' : implode(' ',$v['hatalar']));
+        if ($cakismaOnay) { et_olay($db,(int) $r['KANAL_ID'],$id,$kullanici,'orijinal_onay','Kaynak revizyonu incelendi; orijinal kutu içeriğiyle devam onaylandı.'); }
         $db->commit(); return $v;
     } catch (Throwable $e) { if ($db->inTransaction()) { $db->rollBack(); } throw $e; }
 }

@@ -74,7 +74,7 @@ function et_iptal(PDO $db, int $id, int $kullanici, string $surum): void
     try {
         et_kanal_kilitle($db,(int) $r['KANAL_ID']); $r=et_siparis($db,$id,$kullanici,true);
         if ($r['DURUM']==='aktarildi' || $r['SURUM_KOD']!==$surum) { throw new DomainException('Aktarılmış veya değişmiş kayıt iptal edilemez.'); }
-        $s=$db->prepare("UPDATE dbo.M_ET_SIPARIS SET DURUM='iptal',ONAY_GOVDE=NULL,ONAY_OZET=NULL WHERE ID=:i");
+        $s=$db->prepare("UPDATE dbo.M_ET_SIPARIS SET DURUM='iptal',SON_HATA=NULL,ONAY_GOVDE=NULL,ONAY_OZET=NULL WHERE ID=:i");
         $s->execute([':i'=>$id]); $s->closeCursor();
         et_olay($db,(int) $r['KANAL_ID'],$id,$kullanici,'iptal','Kutu kaydı kullanıcı tarafından iptal edildi.');
         $db->commit();

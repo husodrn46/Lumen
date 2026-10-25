@@ -17,7 +17,7 @@ akis('e-ticaret: kanal kaydı, pasiflik ve CSRF/yetki', function () use ($pdo,$y
     preg_match('/name="surum" value="([^"]+)"/', $g, $m);
     $r = $yonetici->istek('eticaret/kanallar.php', ['csrf_token' => $yonetici->belirtec('eticaret/kanallar.php'),
         'id'=>$id,'surum'=>$m[1] ?? '', 'ad'=>$ad,'tur'=>'site','cari'=>4,'depo'=>0,'personel'=>1]);
-    bekle($r['kod'] === 303 && (int) tek($pdo, 'SELECT AKTIF FROM M_ET_KANAL WHERE ID=:i', [':i'=>$id]) === 0, 'pasiflik kaydedilemedi');
+    bekle($r['kod'] === 303 && (int) tek($pdo, 'SELECT AKTIF FROM M_ET_KANAL WHERE ID=:i', [':i'=>$id]) === 0, 'pasiflik kaydedilemedi: HTTP '.$r['kod'].' '.strip_tags($r['govde']));
 });
 $etKanal=0; $etSiparis=0;
 akis('e-ticaret: önizleme, kutuya alma, tekrar ve değişmiş içerik', function () use ($pdo,$yonetici,&$etKanal,&$etSiparis): void {
@@ -57,7 +57,7 @@ akis('e-ticaret: eksik ürün engeli, kayıtlı eşleme ve hazır kontrolü', fu
     $g=$yonetici->istek('eticaret/detay.php?id='.$etSiparis)['govde'];
     preg_match('/name="surum" value="([^"]+)"/',$g,$m);
     $r=$yonetici->istek('eticaret/detay.php',['csrf_token'=>$yonetici->belirtec('eticaret/detay.php?id='.$etSiparis),
-        'id'=>$etSiparis,'surum'=>$m[1] ?? '', 'islem'=>'kontrol','cari'=>4,'depo'=>0,'personel'=>1]);
+        'id'=>$etSiparis,'surum'=>$m[1] ?? '', 'cakisma_onay'=>'1','islem'=>'kontrol','cari'=>4,'depo'=>0,'personel'=>1]);
     bekle($r['kod']===303,'kontrol başarısız: '.strip_tags($r['govde']));
     bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$etSiparis])==='hazir',
         'hazır olmadı: '.tek($pdo,'SELECT SON_HATA FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$etSiparis]));
@@ -159,6 +159,21 @@ akis('e-ticaret: paralel iki kullanıcı tek sipariş oluşturur; SP1 farkı eng
         $s=$pdo->prepare('UPDATE M_P_YETKI SET M33=:m,M1=:a,SP1=:p WHERE PERSONEL=:i');
         $s->execute([':m'=>$eski['M33'],':a'=>$eski['M1'],':p'=>$eski['SP1'],':i'=>$satisId]);
     }
+});
+akis('e-ticaret: aynı ürünün toplam stok talebi ve çelişkili barkod engellenir', function () use ($pdo,$yonetici,&$etKanal): void {
+    $stok=(float) tek($pdo,'SELECT SUM(ONHAND) FROM LV_001_02_STINVTOT WHERE STOCKREF=2 AND INVENNO=0');
+    $miktar=floor(max(0,$stok)/2)+1;
+    $k=['sku'=>'DEMO-SKU-1','barkod'=>'','ad'=>'Sentetik','birim'=>'ADET','miktar'=>$miktar,'fiyat'=>50,'kdv'=>20,'kdv_dahil'=>false];
+    $id=et_test_yeni($yonetici,$etKanal,['kalemler'=>[$k,$k],'genel_toplam'=>$miktar*120]);
+    $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'kontrol'));
+    bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='hatali','toplam stok talebi geçildi');
+    $kod=(string) tek($pdo,'SELECT CODE FROM LG_001_ITEMS WHERE LOGICALREF=3');
+    $yonetici->istek('eticaret/eslemeler.php',['csrf_token'=>$yonetici->belirtec('eticaret/eslemeler.php?kanal='.$etKanal),
+        'kanal'=>$etKanal,'tur'=>'barkod','deger'=>'SENTETIK-BARKOD','stok_kod'=>$kod,'birim'=>'ADET']);
+    $k['miktar']=2;$k['barkod']='SENTETIK-BARKOD';
+    $id=et_test_yeni($yonetici,$etKanal,['kalemler'=>[$k]]);
+    $yonetici->istek('eticaret/detay.php',et_test_form($yonetici,$id,'kontrol'));
+    bekle(tek($pdo,'SELECT DURUM FROM M_ET_SIPARIS WHERE ID=:i',[':i'=>$id])==='esleme','çelişkili barkod geçildi');
 });
 $basarisiz = count(array_filter($sonuclar, static fn($r) => !$r[0]));
 printf("%d e-ticaret akışı, %d başarısız\n", count($sonuclar), $basarisiz);

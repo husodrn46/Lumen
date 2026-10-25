@@ -2,6 +2,8 @@
 
 <img src="logo.png" alt="Lumen" height="76">
 
+**Yeni beta modülü:** [E-ticaret Sipariş Kutusu](docs/eticaret/README.md) — CSV/JSON alımı, ürün eşleme ve kullanıcı onaylı satış siparişi aktarımı.
+
 ### LOGO Tiger için modern, mobil uyumlu sipariş & stok yönetim ön yüzü
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6F1022.svg)](LICENSE)

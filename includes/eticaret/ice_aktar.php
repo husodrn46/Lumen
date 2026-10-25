@@ -30,6 +30,13 @@ function et_ice_aktar(PDO $db, int $kanal, string $ham, string $tur, string $ad,
                 $ayni = $onceki['HARICI_ID'] === $id && $onceki['HARICI_NO'] === $no
                     && siparis_idempotency_parmakizi(json_decode($onceki['HAM'],true,64,JSON_THROW_ON_ERROR)) === siparis_idempotency_parmakizi($raw);
                 $sonuc[$ayni ? 'mukerrer' : 'cakisma']++;
+                if (!$ayni) {
+                    $s=$db->prepare("UPDATE dbo.M_ET_SIPARIS SET CAKISMA=1,DURUM='hatali',ONAY_GOVDE=NULL,ONAY_OZET=NULL,
+                        SON_HATA=N'Kaynak içerik değişmiş; orijinal kayıtla devam kararı gerekiyor.'
+                        WHERE KANAL_ID=:k AND (HARICI_ID=:h OR HARICI_NO=:n) AND DURUM NOT IN ('aktarildi','iptal')");
+                    $s->execute([':k'=>$kanal,':h'=>$id,':n'=>$no]); $s->closeCursor();
+                }
+
                 et_olay($db,$kanal,(int) $onceki['ID'],$kullanici,$ayni ? 'tekrar' : 'cakisma',
                     $ayni ? 'Aynı sipariş yeniden alındı.' : 'Değişmiş içerik bekletildi; mevcut kayıt değiştirilmedi.', ['aktarim_id'=>$batch,'ham'=>$raw]);
                 continue;

@@ -22,7 +22,8 @@ function et_hata(Throwable $e): string
 function et_basla(string $baslik): void
 {
     belge_sayfa_basla($baslik, 'fa-inbox');
-    echo '<nav class="kart kart-ic" style="display:flex;gap:12px;flex-wrap:wrap"><a href="index.php">Sipariş kutusu</a><a href="ice_aktar.php">CSV / JSON içe aktar</a><a href="kanallar.php">Satış kanalları</a></nav>';
+    echo '<style>.sayfa h2{font-size:16px;margin:0 0 10px}.sayfa pre{font-size:13px;line-height:1.6}.sayfa table a{color:var(--red)}.sayfa .tablo-sar{max-width:100%;overflow:auto}.sayfa .et-adresler{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.et-adresler .kart{min-width:0}@media(max-width:650px){.sayfa .et-adresler{grid-template-columns:1fr}}</style>';
+    echo '<nav class="kart kart-ic" style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn btn-ikincil" href="index.php">Sipariş kutusu</a><a class="btn btn-ikincil" href="ice_aktar.php">CSV / JSON içe aktar</a><a class="btn btn-ikincil" href="kanallar.php">Satış kanalları</a></nav>';
 }
 
 /** Cari araması erişim filtresini kullanır; formlar kimlik yerine kod/unvan gösterir. */
@@ -52,4 +53,21 @@ function et_hedef_alanlari(PDO $db, array $r): void
 function et_cari_ara_formu(int $id): void
 {
     ?><form method="get" class="kart kart-ic"><input type="hidden" name="id" value="<?= $id ?>"><label class="alan">Cari kodu veya unvanı ara <input name="cari_ara" value="<?= bh($_GET['cari_ara'] ?? '') ?>" maxlength="100"></label><button class="btn btn-ikincil">Cari seçeneklerini süz</button></form><?php
+}
+
+function et_tarih(?string $v): string
+{
+    return $v ? (new DateTimeImmutable($v))->format('d.m.Y H:i:s') : '—';
+}
+
+function et_adres_goster(array $v): void
+{
+    $adlar=['ad'=>'Ad','unvan'=>'Unvan','adres'=>'Adres','il'=>'İl','ilce'=>'İlçe','telefon'=>'Telefon','eposta'=>'E-posta','vergi_no'=>'Vergi no','tc_no'=>'TCKN','posta_kodu'=>'Posta kodu','ulke'=>'Ülke'];
+    echo '<dl>';
+    foreach ($v as $k=>$deger) {
+        echo '<dt class="soluk">'.bh($adlar[$k] ?? str_replace('_',' ',(string) $k)).'</dt><dd style="margin:0 0 8px;overflow-wrap:anywhere">';
+        if (is_array($deger)) { et_adres_goster($deger); } else { echo bh(is_bool($deger) ? ($deger ? 'Evet' : 'Hayır') : $deger); }
+        echo '</dd>';
+    }
+    echo '</dl>';
 }
