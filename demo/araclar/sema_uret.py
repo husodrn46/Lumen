@@ -83,6 +83,8 @@ def main():
     satirlar.append(',\n'.join(['    [LOGICALREF] INT IDENTITY(1,1) PRIMARY KEY']
                                + [f'    [{c}] {kolon_tipi("LG_SLSMAN", c)}' for c in sk]))
     satirlar.append(');\nGO\n')
+    # Ortak veri katmanının LOGO ambar okuması için sistem tablosu.
+    satirlar.append("IF OBJECT_ID('dbo.L_CAPIWHOUSE', 'U') IS NULL\nCREATE TABLE dbo.L_CAPIWHOUSE (NR SMALLINT NOT NULL, FIRMNR SMALLINT NOT NULL, NAME NVARCHAR(80), PRIMARY KEY(FIRMNR,NR));\nGO\n")
     hedef = os.path.join(KOK, 'demo', 'sql', '01_logo_sema.sql')
     open(hedef, 'w', encoding='utf-8').write('\n'.join(satirlar))
     print('yazıldı:', os.path.relpath(hedef, KOK))

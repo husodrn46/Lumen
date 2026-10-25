@@ -10,6 +10,9 @@
 --   ENTEGRASYON — entegrasyon/bot (YETKI=3): yalnız API, yalnız okuma
 -- ============================================================================
 SET NOCOUNT ON;
+DELETE FROM dbo.L_CAPIWHOUSE;
+INSERT INTO dbo.L_CAPIWHOUSE (NR,FIRMNR,NAME) VALUES (0,1,N'Merkez Demo Depo');
+
 SET DATEFORMAT ymd;
 
 DELETE FROM M_P_YETKI;
