@@ -84,6 +84,8 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
 - 🔔 **Bildirim kutusu** — görev atama/tamamlama/yorum, vadesi yaklaşan görev ve çekler, güvenlik ve ayar olayları
 - 📱 **Mobil uyumlu + PWA** — telefona kısayol olarak eklenebilir
 - 🎨 **Kişiselleştirme** — kullanıcı bazlı vurgu rengi, yazı boyutu, "müşteri yanında" gizli mod
+- 📈 **Ekonomik Göstergeler (beta)** — kişisel EVDS API anahtarıyla seri grafikleri,
+  gözlem tablosu ve CSV; LOGO ve bağımsız modda ortak. [Kullanım](docs/evds/README.md)
 - 🔐 **Rol bazlı yetki** — yönetici / personel / müşteri / entegrasyon (salt okunur API hesabı); kod bazlı ekran izinleri
 - 🧙 **Kurulum sihirbazı** — tarayıcıdan DB bağlantısı + ilk yönetici
 - 🖼️ **Kendi logonuz** — ayarlardan yükleyin

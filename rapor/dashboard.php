@@ -34,6 +34,10 @@ $report_groups = [
         ['href' => 'rapor_urun_top20.php', 'title' => 'En İyi 20 Ürün', 'desc' => 'Son 30 günün ciro şampiyonu 20 ürün.', 'icon' => 'fa-trophy', 'tone' => 'amber'],
     ]],
 ];
+if ((int) m_p_yetki($terminalkullanici,'M34')===1) {
+    $report_groups[0]['reports'][]=['href'=>'../ekonomi/index.php','title'=>'Ekonomik Göstergeler',
+        'desc'=>'Kişisel EVDS bağlantısıyla ekonomik zaman serileri, grafik ve CSV.', 'icon'=>'fa-chart-area','tone'=>'red'];
+}
 // Bağımsız mod: vade takibi (Lumen'in kendi cari hareketleri üzerinden)
 if (lumen_bagimsiz_mi()) {
     array_unshift($report_groups[0]['reports'], ['href' => 'vade_takibi.php', 'title' => 'Vade Takibi',
