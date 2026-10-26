@@ -2,7 +2,7 @@
 
 <img src="logo.png" alt="Lumen" height="76">
 
-**Yeni beta modülü:** [E-ticaret Sipariş Kutusu](docs/eticaret/README.md) — CSV/JSON alımı, ürün eşleme ve kullanıcı onaylı satış siparişi aktarımı.
+**v1.5.0-beta.1:** [Trendyol sipariş bağlantısı](docs/eticaret/TRENDYOL_BAGLANTI.md) ve [Hepsiburada paket bağlantısı](docs/eticaret/HEPSIBURADA_BAGLANTI.md) — kullanıcıya ait API bilgileriyle kontrol kutusuna alım ve onaylı satış siparişi aktarımı.
 
 ### LOGO Tiger için modern, mobil uyumlu sipariş & stok yönetim ön yüzü
 
@@ -32,7 +32,14 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 
 Lumen, LOGO Tiger için bir yardımcı arayüzdür; v1.3.0'dan itibaren LOGO olmadan, kendi veritabanıyla ön muhasebe programı olarak da çalışır (**Bağımsız mod**). **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
 
-**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.3.2](https://github.com/husodrn46/Lumen/releases/tag/v1.3.2) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.3.2.zip)
+**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.4.0](https://github.com/husodrn46/Lumen/releases/tag/v1.4.0) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.4.0.zip)
+
+**Yeni ön sürüm:** [v1.5.0-beta.1](https://github.com/husodrn46/Lumen/releases/tag/v1.5.0-beta.1).
+Trendyol ve Hepsiburada bağlantıları beta kapsamındadır; yalnız sentetik demo ve
+taşıyıcılarla doğrulanmıştır. Gerçek pazaryeri hesabıyla pilot kabul yapılmamıştır.
+Hepsiburada yalnız hazırlanmış açık paketleri alır; paketlenmemiş siparişler ve
+ayrı iptal/iade servisleri dahil değildir. Alım ekran açıkken ilerler;
+zamanlanmış işçi içermez. Yükseltme ve anahtar yedeği: [CHANGELOG.md](CHANGELOG.md).
 
 **Bağımsız mod (v1.3.0):** LOGO'suz, kendi veritabanıyla ön muhasebe — mimari ve LOGO'dan geçiş: [docs/mimari/bagimsiz-lumen.md](docs/mimari/bagimsiz-lumen.md).
 
