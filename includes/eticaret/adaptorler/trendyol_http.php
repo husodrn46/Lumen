@@ -1,12 +1,9 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http.php';
 
 /** Bu adaptör yalnız sipariş okur. Gövde/başlıklar hata mesajlarına taşınmaz. */
-final class EtTrendyolHatasi extends DomainException
-{
-    public function __construct(string $mesaj, public readonly bool $tekrar = false, public readonly int $bekleme = 60)
-    { parent::__construct($mesaj); }
-}
+final class EtTrendyolHatasi extends EtApiHatasi {}
 
 function et_ty_kimlik(string $satici, string $anahtar, string $gizli): array
 {
@@ -43,23 +40,10 @@ function et_ty_istek(array $bag, array $sir, array $filtre, ?string $imlec): arr
 /** Taşıyıcı sözleşmesi: ['kod'=>int,'govde'=>string,'bekleme'=>int]. URL yalnız sabit iki API hostundan üretilir. */
 function et_ty_http(array $istek): array
 {
-    $url=$istek['url'];
-    if (!preg_match('~\Ahttps://(?:stageapigw|apigw)\.trendyol\.com/integration/order/sellers/[1-9][0-9]*/orders/stream\?~D',$url)) { throw new DomainException('Trendyol servis adresi geçersiz.'); }
-    $govde='';$buyuk=false;$bekleme=60;$ch=curl_init($url);
-    curl_setopt_array($ch,[CURLOPT_HTTPGET=>true,CURLOPT_HTTPHEADER=>$istek['basliklar'],CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>20,
-        CURLOPT_FOLLOWLOCATION=>false,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,
-        CURLOPT_HEADERFUNCTION=>static function ($ch,string $s) use (&$bekleme): int {
-            if (preg_match('/^Retry-After:\s*([0-9]+)\s*$/i',trim($s),$m)) { $bekleme=max(5,min(3600,(int) $m[1])); }return strlen($s);
-        },CURLOPT_WRITEFUNCTION=>static function ($ch,string $s) use (&$govde,&$buyuk): int {
-            if (strlen($govde)+strlen($s)>1048576) { $buyuk=true;return 0; }$govde.=$s;return strlen($s);
-        }]);
-    $ok=curl_exec($ch);$kod=(int) curl_getinfo($ch,CURLINFO_RESPONSE_CODE);curl_close($ch);
-    if ($buyuk) { throw new EtTrendyolHatasi('Yanıt 1 MB sınırını aştı. Tarih aralığını daraltın.'); }
-    if ($ok===false) { throw new EtTrendyolHatasi('Trendyol bağlantısı tamamlanamadı. Kaldığı sayfa yeniden denenecek.',true); }
-    return ['kod'=>$kod,'govde'=>$govde,'bekleme'=>$bekleme];
+    return et_api_http($istek,'~\Ahttps://(?:stageapigw|apigw)\.trendyol\.com/integration/order/sellers/[1-9][0-9]*/orders/stream\?~D','Trendyol');
 }
 
-function et_ty_yanit(array $r, string $satici): array
+function et_ty_yanit(array $r, string $satici, array $filtre = [], ?string $imlec = null): array
 {
     $kod=$r['kod'] ?? 0;
     if (in_array($kod,[401,403],true)) { throw new EtTrendyolHatasi('Trendyol erişimi doğrulanamadı. Ortamı, satıcı numarasını ve API bilgilerini kontrol edin.'); }

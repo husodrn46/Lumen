@@ -23,6 +23,7 @@
     "items": [
       {
         "lineItemId": "00000000-0000-4000-8000-000000000002",
+        "merchantId": "00000000-0000-4000-8000-000000000123",
         "orderNumber": "HB-DEMO-0001",
         "merchantSku": "DEMO-SKU-1",
         "productBarcode": "",
