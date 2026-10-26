@@ -38,17 +38,30 @@ try {
     }
 } catch (Throwable $e) { $hata=et_hata($e); }
 et_basla('Sipariş dosyası içe aktar');
-if ($hata) { echo '<p class="bildirim hata">'.bh($hata).'</p>'; }
+et_giris('Siparişleri içe aktar', 'Dosyanı önizle, ardından sipariş kutusuna al. Eşleme ve onay tamamlandığında satış siparişine dönüştür.');
+if ($hata) { echo '<div class="bildirim hata" role="alert"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><span>'.bh($hata).'</span></div>'; }
+$aktifKanallar=array_filter(et_kanallar($dbh),static fn(array $k): bool => (bool) $k['AKTIF']);
+$seciliKanal=(int) ($_POST['kanal'] ?? $_SESSION['et_onizleme']['kanal'] ?? 0);
+$seciliBicim=(string) ($_POST['bicim'] ?? $_SESSION['et_onizleme']['bicim'] ?? 'lumen');
+$adim=$sonuc ? 3 : (is_array($onizleme) ? 2 : 1);
 ?>
-<div class="kart kart-ic"><p>Dosya yalnız sipariş kutusuna alınır. Satış siparişi, eşleme ve kontrollerden sonra ayrıca onaylanır.</p>
-<a href="?ornek=csv">Genel CSV</a> · <a href="?ornek=json">Genel JSON</a> · <a href="?ornek=trendyol_v2">Sentetik Trendyol API yanıtı</a> · <a href="?ornek=hepsiburada_paket">Sentetik Hepsiburada API yanıtı</a></div>
-<form method="post" enctype="multipart/form-data" class="kart kart-ic izgara">
+<ol class="et-adimlar" aria-label="İçe aktarma adımları"><?php foreach ([1=>'Dosya seç',2=>'Önizle',3=>'Kutuya al'] as $sira=>$ad): ?><li <?= $adim===$sira ? 'aria-current="step"' : '' ?>><span aria-hidden="true"><?= $sira ?></span><?= bh($ad) ?></li><?php endforeach; ?></ol>
+<?php if ($sonuc): ?><section class="kart et-bolum" role="status"><div class="et-baslik-grup"><span class="et-ikon"><i class="fa-solid fa-check" aria-hidden="true"></i></span><h2>Dosya işlendi</h2></div><div class="et-sonuclar"><span>Yeni: <?= (int) $sonuc['yeni'] ?></span><span>Mükerrer: <?= (int) $sonuc['mukerrer'] ?></span><span>Değişmiş içerik: <?= (int) $sonuc['cakisma'] ?></span><span>Hatalı: <?= (int) $sonuc['hatali'] ?></span><span>Eski kaynak: <?= (int) $sonuc['eski'] ?></span></div><a class="btn btn-birincil" href="index.php"><i class="fa-solid fa-inbox" aria-hidden="true"></i>Kutuyu aç</a></section><?php endif; ?>
+<div class="et-iki-sutun"><div>
+<form method="post" enctype="multipart/form-data" class="kart et-bolum">
+<div class="et-bolum-baslik"><div class="et-baslik-grup"><span class="et-ikon"><i class="fa-solid fa-file-import" aria-hidden="true"></i></span><div><h2>Sipariş dosyası</h2><p class="et-kucuk">Dosyanın geldiği kanalı ve biçimi seç.</p></div></div></div>
 <?= csrf_field() ?><input type="hidden" name="islem" value="yukle">
-<label class="alan">Kanal <select name="kanal" required><?php foreach (et_kanallar($dbh) as $k): if (!$k['AKTIF']) { continue; } ?><option value="<?= (int) $k['ID'] ?>"><?= bh($k['AD']) ?></option><?php endforeach; ?></select></label>
-<label class="alan">Dosya biçimi <select name="bicim"><?php foreach (et_bicimler() as $kod=>$b): ?><option value="<?= bh($kod) ?>"><?= bh($b['ad']) ?></option><?php endforeach; ?></select></label>
-<label class="alan">UTF-8 dosya (en fazla 1 MB)<input type="file" name="dosya" accept=".csv,.json" required></label><button class="btn btn-birincil">Önizle</button>
+<?php if (!$aktifKanallar): ?><div class="bildirim uyari"><span>Önce bir aktif satış kanalı tanımla.</span><a class="btn btn-ikincil" href="kanallar.php">Kanal tanımla</a></div><?php endif; ?>
+<div class="et-form-grid"><label class="alan">Kanal <select name="kanal" required><?php foreach ($aktifKanallar as $k): ?><option value="<?= (int) $k['ID'] ?>" <?= $seciliKanal===(int) $k['ID'] ? 'selected' : '' ?>><?= bh($k['AD']) ?></option><?php endforeach; ?></select></label>
+<label class="alan">Dosya biçimi <select name="bicim"><?php foreach (et_bicimler() as $kod=>$b): ?><option value="<?= bh($kod) ?>" <?= $seciliBicim===$kod ? 'selected' : '' ?>><?= bh(['lumen'=>'Genel CSV / JSON','trendyol_v2'=>'Trendyol v2 · JSON','hepsiburada_paket'=>'Hepsiburada · JSON'][$kod] ?? $b['ad']) ?></option><?php endforeach; ?></select></label></div>
+<div class="et-dosya"><label class="alan">İçe aktarılacak dosya<input type="file" name="dosya" accept=".csv,.json" required aria-describedby="et-dosya-ipucu"></label><p class="et-kucuk" id="et-dosya-ipucu">CSV veya JSON · UTF-8 · En fazla 1 MB ve 100 sipariş paketi</p></div>
+<div class="et-form-son"><span class="et-kucuk">Önizleme satış siparişi oluşturmaz.</span><button class="btn btn-birincil" <?= !$aktifKanallar ? 'disabled' : '' ?>><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>Önizle</button></div>
 </form>
 <?php if (is_array($onizleme)): ?>
-<div class="kart kart-ic"><h2>Önizleme</h2><?php if (!$onizleme): ?><p>API yanıtında paket yok; boş dosya kaydı saklanabilir.</p><?php endif; ?><ul><?php foreach ($onizleme as $r): ?><li><?= bh($r['numara'] ?: 'Numarasız/geçersiz kayıt') ?><?php if ($r['paket_kimligi']): ?> · Paket <?= bh($r['paket_kimligi']) ?><?php endif; ?> — <?= bh($r['hata'] ?? $r['kaynak_engeli'] ?? 'Kutuya alınabilir') ?></li><?php endforeach; ?></ul>
-<form method="post"><?= csrf_field() ?><input type="hidden" name="islem" value="kaydet"><input type="hidden" name="anahtar" value="<?= bh($_SESSION['et_onizleme']['anahtar']) ?>"><button class="btn btn-birincil">Sipariş kutusuna al</button></form></div>
-<?php endif; if ($sonuc): ?><div class="bildirim ok">Yeni: <?= (int) $sonuc['yeni'] ?> · Mükerrer: <?= (int) $sonuc['mukerrer'] ?> · Değişmiş içerik: <?= (int) $sonuc['cakisma'] ?> · Hatalı: <?= (int) $sonuc['hatali'] ?> · Eski kaynak: <?= (int) $sonuc['eski'] ?>. <a href="index.php">Kutuyu aç</a></div><?php endif; belge_sayfa_bitir();
+<section class="kart"><div class="et-tablo-baslik"><h2>Dosya önizlemesi</h2><span class="et-sayi"><?= count($onizleme) ?> paket</span></div>
+<?php if (!$onizleme): ?><div class="et-bolum et-metin">API yanıtında paket yok; boş dosya kaydı saklanabilir.</div><?php else: ?><div class="tablo-sar"><table class="liste kartla"><thead><tr><th>Sipariş / paket</th><th>İçe aktarma kontrolü</th></tr></thead><tbody><?php foreach ($onizleme as $r): $uyari=$r['hata'] ?? $r['kaynak_engeli'] ?? ''; ?><tr><td><div><strong><?= bh($r['numara'] ?: 'Numarasız/geçersiz kayıt') ?></strong><?php if ($r['paket_kimligi']): ?><span class="et-satir-alt">Paket <?= bh($r['paket_kimligi']) ?></span><?php endif; ?></div></td><td><span class="<?= $uyari ? 'eksi' : 'arti' ?>"><?= bh($uyari ?: 'Kutuya alınabilir') ?></span></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?>
+<form method="post" class="et-bolum"><?= csrf_field() ?><input type="hidden" name="islem" value="kaydet"><input type="hidden" name="anahtar" value="<?= bh($_SESSION['et_onizleme']['anahtar']) ?>"><p class="et-kucuk">Uyarılı kayıtlar da inceleme için kutuda saklanır. Aktarım ayrıca onaylanır.</p><div class="et-form-son"><span class="et-kucuk"><?= bh($_SESSION['et_onizleme']['ad']) ?></span><button class="btn btn-birincil"><i class="fa-solid fa-inbox" aria-hidden="true"></i>Sipariş kutusuna al</button></div></form></section>
+<?php endif; ?></div>
+<aside class="et-ornekler" aria-label="Örnek dosyalar"><h2>Örnek dosyalar</h2><p class="et-kucuk">Biçimi görmek için bir örnek indir.</p><div class="et-ornek-liste">
+<?php foreach (['trendyol_v2'=>['Trendyol','JSON · Sipariş paketleri v2','fa-file-code'],'hepsiburada_paket'=>['Hepsiburada','JSON · Paket listesi','fa-file-code'],'csv'=>['Genel CSV','CSV · Kendi siten için','fa-file-csv'],'json'=>['Genel JSON','JSON · Ortak sipariş biçimi','fa-file-code']] as $kod=>[$ad,$aciklama,$ikon]): ?><a class="et-ornek" href="?ornek=<?= bh($kod) ?>" download aria-label="<?= bh($ad) ?> sentetik örneğini indir"><i class="fa-solid <?= bh($ikon) ?>" aria-hidden="true"></i><span><strong><?= bh($ad) ?></strong><small><?= bh($aciklama) ?></small></span><i class="fa-solid fa-download" aria-hidden="true"></i></a><?php endforeach; ?></div><div class="et-not"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Örneklerin tamamı sentetiktir. Gerçek müşteri veya pazaryeri verisi içermez.</span></div></aside></div>
+<?php et_bitir();
