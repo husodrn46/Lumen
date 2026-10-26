@@ -50,6 +50,7 @@ Hazır USD döviz satış ve EUR döviz alış serileri güncel kılavuzdaki kod
 En fazla 1.000 günlük bir aralık seçilir. **CSV indir**, gösterilen sonucun tamamını
 kaynak/dönem bilgisiyle verir; ekrana 25'er satır gelir. **Sentetik örneği göster**
 anahtar ve ağ bağlantısı gerektirmez; hem ekranda hem CSV'de gerçek veri olmadığı belirtilir.
+CSV Türkçe Excel için UTF-8 BOM, noktalı virgül sütun ayracı ve ondalık virgül kullanır.
 
 Seri adı/sıklığı EVDS kataloğundan gelir. Özel seri kodu katalogda doğrulanmadan
 gözlem isteği yapılmaz. Eksik değerler `null` kalır; sıfır veya tahmini değerle doldurulmaz.

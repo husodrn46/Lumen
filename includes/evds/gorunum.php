@@ -57,7 +57,7 @@ function evds_csv_yaz($akis, array $sonuc): void
     $v=$sonuc['veri'];
     fputcsv($akis,['Dönem',evds_csv_hucre($v['meta']['ad']),'Seri kodu','Kaynak','Alınma zamanı'],';', '"','');
     foreach ($v['satirlar'] as $r) {
-        fputcsv($akis,[$r['donem'],$r['deger']===null ? '' : json_encode($r['deger'],JSON_PRESERVE_ZERO_FRACTION|JSON_THROW_ON_ERROR),
+        fputcsv($akis,[$r['donem'],$r['deger']===null ? '' : str_replace('.',',',json_encode($r['deger'],JSON_PRESERVE_ZERO_FRACTION|JSON_THROW_ON_ERROR)),
             $v['meta']['kod'],evds_csv_hucre(!empty($sonuc['ornek']) ? 'Lumen sentetik örneği; TCMB verisi değildir' : 'TCMB EVDS / '.$v['meta']['kaynak']),$sonuc['alinma'] ?? 'Sentetik örnek'],';', '"','');
     }
 }

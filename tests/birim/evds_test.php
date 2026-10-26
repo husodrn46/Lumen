@@ -62,5 +62,6 @@ test('EVDS grafik ve CSV: eksik veri çizgiyi böler, formül başlığı çalı
     $v['veri']['meta']['ad']='=1+1';$fp=fopen('php://temp','w+');evds_csv_yaz($fp,$v);rewind($fp);$csv=stream_get_contents($fp);fclose($fp);
     dogru(str_contains($csv,"'=1+1"));dogru(str_contains($csv,'TCMB verisi değildir'));
     dogru(str_contains($csv,'2024-03;;'),'eksik gözlem CSV içinde sıfır oldu');
+    dogru(str_contains($csv,'2024-02;102,5;'),'Türkçe Excel için ondalık virgül korunmadı');
     esit('—',evds_sayi(null));esit('0',evds_sayi(0));
 });
