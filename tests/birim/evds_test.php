@@ -29,6 +29,26 @@ test('EVDS: anahtar GCM ile rastgele şifrelenir, kişi ve firma bağlamından a
     evds_test_reddet(static fn()=>evds_sifre_coz($a,random_bytes(32),'1:2'));
     evds_test_reddet(static fn()=>evds_sifre_coz('v1:AAAA',$master,'1:2'));
 });
+test('EVDS: ana anahtar dosyası ilk yazımdan önce kısıtlı izinle oluşturulur',function (): void {
+    $dizin=sys_get_temp_dir().'/lumen-evds-test-'.bin2hex(random_bytes(8));
+    if (!mkdir($dizin,0700)) { throw new RuntimeException('EVDS test dizini oluşturulamadı.'); }
+    $yol=$dizin.'/master.key';
+    $eski=getenv('LUMEN_EVDS_ANAHTAR_DOSYASI');
+    putenv('LUMEN_EVDS_ANAHTAR_DOSYASI='.$yol);
+    try {
+        $anahtar=evds_ana_anahtar();
+        esit(32,strlen($anahtar));
+        esit($anahtar,evds_ana_anahtar());
+        if (PHP_OS_FAMILY!=='Windows') {
+            clearstatcache(true,$yol);
+            esit(0600,fileperms($yol)&0777);
+        }
+    } finally {
+        if ($eski===false) { putenv('LUMEN_EVDS_ANAHTAR_DOSYASI'); }
+        else { putenv('LUMEN_EVDS_ANAHTAR_DOSYASI='.$eski); }
+        @unlink($yol);@unlink($yol.'.lock');@rmdir($dizin);
+    }
+});
 test('EVDS: orijinal aylık sıklık, eksik gözlem ve sayısal sıfır ayrılır',function (): void {
     $o=evds_ornek();esit(true,$o['ornek']);esit(5,$o['veri']['ozet']['adet']);esit(1,$o['veri']['ozet']['eksik']);
     esit(null,$o['veri']['satirlar'][2]['deger']);esit(12.5,$o['veri']['ozet']['degisim']);

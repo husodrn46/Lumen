@@ -13,7 +13,18 @@ function evds_ana_anahtar(): string
     try {
         if (!is_file($yol)) {
             $gecici=$yol.'.yeni-'.bin2hex(random_bytes(8));
-            if (file_put_contents($gecici,random_bytes(32),LOCK_EX)!==32 || !chmod($gecici,0600) || !rename($gecici,$yol)) {
+            $dosya=@fopen($gecici,'x+b');
+            if (!$dosya) { throw new RuntimeException('EVDS ana anahtarı kaydedilemedi.'); }
+            try {
+                // Anahtar baytları yazılmadan önce dosyanın erişimini kısıtla.
+                if (!chmod($gecici,0600) || fwrite($dosya,random_bytes(32))!==32 || !fflush($dosya)) {
+                    throw new RuntimeException('EVDS ana anahtarı kaydedilemedi.');
+                }
+            } catch (Throwable $e) {
+                fclose($dosya);@unlink($gecici);throw $e;
+            }
+            fclose($dosya);
+            if (!rename($gecici,$yol)) {
                 @unlink($gecici);throw new RuntimeException('EVDS ana anahtarı kaydedilemedi.');
             }
         }
