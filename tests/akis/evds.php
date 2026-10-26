@@ -45,5 +45,50 @@ try {
     putenv($eskiDosya===false ? 'LUMEN_EVDS_ANAHTAR_DOSYASI' : 'LUMEN_EVDS_ANAHTAR_DOSYASI='.$eskiDosya);
     foreach (glob($evdsDizin.'/*') ?: [] as $dosya) { unlink($dosya); }rmdir($evdsDizin);
 }
+$yonetici=(new Tarayici($URL))->giris('YONETICI');
+$satisId=(int) tek($pdo,"SELECT LOGICALREF FROM LG_SLSMAN WHERE CODE='SATIS1'");
+$yoneticiId=(int) tek($pdo,"SELECT LOGICALREF FROM LG_SLSMAN WHERE CODE='YONETICI'");
+$eskiYetki=tek($pdo,'SELECT M34 FROM M_P_YETKI WHERE PERSONEL=:u',[':u'=>$satisId]);
+$yedek=[];
+foreach ([$yoneticiId,$satisId] as $id) {
+    foreach (['M_EVDS_BAGLANTI','M_EVDS_ONBELLEK'] as $tablo) {
+        $s=$pdo->prepare("SELECT * FROM {$tablo} WHERE FIRMA=1 AND KULLANICI=:u");$s->execute([':u'=>$id]);$yedek[$id][$tablo]=$s->fetchAll(PDO::FETCH_ASSOC);$s->closeCursor();
+        $pdo->prepare("DELETE FROM {$tablo} WHERE FIRMA=1 AND KULLANICI=:u")->execute([':u'=>$id]);
+    }
+}
+try {
+    akis('EVDS ekranı: M34, CSRF ve girişsiz erişim korunur',function () use ($pdo,$yonetici,$satisId,$URL): void {
+        $pdo->prepare('UPDATE M_P_YETKI SET M34=0 WHERE PERSONEL=:u')->execute([':u'=>$satisId]);
+        $t=(new Tarayici($URL))->giris('SATIS1');
+        bekle($t->istek('ekonomi/index.php')['kod']===403,'M34 olmadan panel açıldı');
+        bekle($t->istek('ekonomi/baglanti.php',['islem'=>'kaydet','evds_api_key'=>str_repeat('b',32)])['kod']===403,'yetkisiz anahtar kaydı');
+        bekle($yonetici->istek('ekonomi/baglanti.php',['islem'=>'kaydet','evds_api_key'=>str_repeat('b',32)])['kod']===403,'CSRF atlandı');
+        $anonim=(new Tarayici($URL))->istek('ekonomi/index.php');bekle($anonim['kod']===303 && str_contains($anonim['yer'],'giris.php'),'oturumsuz panel açıldı');
+        bekle(in_array($t->istek('database/evds-master.key')['kod'],[403,404],true),'ana anahtar web erişimine açık');
+    });
+    akis('EVDS ekranı: anahtar boş forma döner, diğer kullanıcıya yazılamaz',function () use ($pdo,$yonetici,$yoneticiId,$satisId,$URL): void {
+        $fake='yalniz-sentetik-web-anahtari-123456';
+        $r=$yonetici->istek('ekonomi/baglanti.php',['csrf_token'=>$yonetici->belirtec('ekonomi/baglanti.php'),'islem'=>'kaydet','evds_api_key'=>$fake,'kullanici'=>$satisId]);
+        bekle($r['kod']===303,'anahtar kaydedilemedi');
+        $g=$yonetici->istek('ekonomi/baglanti.php')['govde'];bekle(!str_contains($g,$fake),'anahtar forma basıldı');
+        bekle(evds_baglanti($pdo,1,$yoneticiId)!==null && evds_baglanti($pdo,1,$satisId)===null,'POST kullanıcı kimliği dikkate alındı');
+        $pdo->prepare('UPDATE M_P_YETKI SET M34=1 WHERE PERSONEL=:u')->execute([':u'=>$satisId]);$t=(new Tarayici($URL))->giris('SATIS1');
+        $g=$t->istek('ekonomi/baglanti.php')['govde'];bekle(str_contains($g,'Anahtar tanımlanmadı'),'diğer kullanıcı aynı bağlantıyı gördü');
+        $r=$yonetici->istek('ekonomi/baglanti.php',['csrf_token'=>$yonetici->belirtec('ekonomi/baglanti.php'),'islem'=>'kaldir']);bekle($r['kod']===303,'anahtar kaldırılamadı');
+    });
+    akis('EVDS ekranı: anahtarsız sentetik örnek, erişilebilir grafik ve CSV',function () use ($yonetici): void {
+        $r=$yonetici->istek('ekonomi/index.php',['csrf_token'=>$yonetici->belirtec('ekonomi/index.php'),'islem'=>'ornek']);bekle($r['kod']===303,'örnek açılmadı');
+        $g=$yonetici->istek('ekonomi/index.php')['govde'];bekle(str_contains($g,'Bu değerler TCMB verisi değildir.'),'demo verisi gerçek gibi göründü');
+        bekle(str_contains($g,'role="img"') && str_contains($g,'Eksik gözlem'),'grafik veya eksik gözlem açıklaması yok');
+        $r=$yonetici->istek('ekonomi/index.php',['csrf_token'=>$yonetici->belirtec('ekonomi/index.php'),'islem'=>'csv']);
+        bekle($r['kod']===200 && str_contains($r['govde'],'2024-03;;') && str_contains($r['govde'],'TCMB verisi değildir'),'CSV eksik veya kaynak bilgisi yok');
+    });
+} finally {
+    $pdo->prepare('UPDATE M_P_YETKI SET M34=:m WHERE PERSONEL=:u')->execute([':m'=>$eskiYetki,':u'=>$satisId]);
+    foreach ($yedek as $id=>$tablolar) { foreach ($tablolar as $tablo=>$satirlar) {
+        $pdo->prepare("DELETE FROM {$tablo} WHERE FIRMA=1 AND KULLANICI=:u")->execute([':u'=>$id]);
+        foreach ($satirlar as $r) { $kolonlar=array_keys($r);$sql="INSERT INTO {$tablo} (".implode(',',$kolonlar).') VALUES ('.implode(',',array_fill(0,count($kolonlar),'?')).')';$pdo->prepare($sql)->execute(array_values($r)); }
+    } }
+}
 $basarisiz=count(array_filter($sonuclar,static fn($r)=>!$r[0]));
 printf("%d EVDS akışı, %d başarısız\n",count($sonuclar),$basarisiz);exit($basarisiz ? 1 : 0);

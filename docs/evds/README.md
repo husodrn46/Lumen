@@ -39,6 +39,18 @@ paneli MCP bağlantısı kurulmuş gibi gösterilmez.
 
 ## Veri ve doğrulama
 
+Ana sayfadaki **Ekonomik Göstergeler** veya yetkiniz varsa Raporlar bağlantısından
+modülü açın. **Kişisel bağlantı** bölümüne kendi EVDS anahtarınızı girin. Kaydetme
+anahtarın geçerliliğini doğrulamaz; **Veriyi getir** erişimi sınar. GET ile sayfa açmak
+veya gözlem sayfası değiştirmek dış istek göndermez.
+
+Hazır USD döviz satış ve EUR döviz alış serileri güncel kılavuzdaki kodlardır.
+**Diğer EVDS serisi** seçeneğinde, enflasyon/faiz gibi bir serinin kodunu resmî EVDS
+**Tüm Seriler** sayfasından alın. Kod, seri adı ve sıklığı sorgu sırasında doğrulanır.
+En fazla 1.000 günlük bir aralık seçilir. **CSV indir**, gösterilen sonucun tamamını
+kaynak/dönem bilgisiyle verir; ekrana 25'er satır gelir. **Sentetik örneği göster**
+anahtar ve ağ bağlantısı gerektirmez; hem ekranda hem CSV'de gerçek veri olmadığı belirtilir.
+
 Seri adı/sıklığı EVDS kataloğundan gelir. Özel seri kodu katalogda doğrulanmadan
 gözlem isteği yapılmaz. Eksik değerler `null` kalır; sıfır veya tahmini değerle doldurulmaz.
 Günlük, aylık, yıllık ve `YYYY-Qn` dönemleri desteklenir; diğer biçimler açık hata verir.

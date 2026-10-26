@@ -6,6 +6,8 @@
 
 - EVDS 3 veri katmanı: kullanıcıya özel şifreli API anahtarı, doğrulanmış seri kodu,
   günlük önbellek ve eksik gözlemleri koruyan ekonomik zaman serisi okuyucusu.
+- Ekonomik Göstergeler: kişisel bağlantı ekranı, hazır kur veya özel EVDS serisi,
+  grafik/tablo, CSV ve anahtarsız sentetik örnek. İki modda M34 yetkisiyle kullanılır.
 - E-ticaret ekranları Lumen'in ortak görünümüyle yenilendi: simgeli örnek dosya
   indirmeleri, adımlı önizleme, etkin gezinme, durum rozetleri ve mobil kart listeleri.
   Sipariş kontrolü, aktarım onayı, adresler ve denetim izi ayrı bölümlerde gösterilir.
