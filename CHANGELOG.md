@@ -25,6 +25,11 @@
   Kurulum: `php scripts/sema_guncelle.php`; personele M33 yetkisi verilir.
   Kullanım ve sentetik örnekler: `docs/eticaret/README.md`.
 
+### 🔒 Güvenlik
+
+- EVDS ana anahtar dosyasının erişimi, ilk anahtar baytı yazılmadan önce 0600 ile
+  sınırlandırılır. Sunucu denetimi bu dosyanın web üzerinden indirilemediğini kontrol eder.
+
 ### 🐛 Düzeltmeler
 
 - Kasa/banka fişi formu, `12abc` gibi geçersiz tutarları göndermeden uyarır.
