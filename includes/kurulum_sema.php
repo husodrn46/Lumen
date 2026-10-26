@@ -200,8 +200,11 @@ if (!function_exists('lumen_sema_eksikleri')) {
     function lumen_sema_eksikleri(PDO $dbh): array
     {
         $beklenen = [
-            'M_P_YETKI' => null, 'M_GIRIS_LOG' => null, 'M_REMEMBER_TOKEN' => 'PREV_HASH', 'M_API_TOKEN' => null,
+            'M_P_YETKI' => 'M34', 'M_GIRIS_LOG' => null, 'M_REMEMBER_TOKEN' => 'PREV_HASH', 'M_API_TOKEN' => null,
+            'M_EVDS_BAGLANTI' => null, 'M_EVDS_ONBELLEK' => null,
             'M_API_IDEMPOTENCY' => null,
+            'M_ET_KANAL' => null, 'M_ET_SIPARIS' => null, 'M_ET_SIPARIS_SATIR' => null,
+            'M_ET_ICE_AKTARIM' => null, 'M_ET_URUN_ESLEME' => null, 'M_ET_OLAY' => null,
             'M_BILDIRIM' => null, 'M_USER_SETTINGS' => null, 'M_FIS_LOG' => null, 'M_CEK_EK' => 'FIRMADONEM',
             'M_OTURUM_KAPAT' => null, 'M_SATIR_DEGISIKLIK_LOG' => null,
         ];

@@ -1,0 +1,107 @@
+/* TCMB serileri: Lumen'in bordo, ölçülü ve okunaklı çalışma alanı. */
+:where(.ek-modul a) { color: inherit; text-decoration: none; }
+.ek-modul { min-width: 0; }
+.ek-modul h1 { margin: 0; font-size: 26px; line-height: 1.25; letter-spacing: -.04em; }
+.ek-modul h2 { margin: 0; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.ek-modul h3 { margin: 0; font-size: 13px; }
+.ek-modul p { margin: 8px 0 0; font-size: 13px; color: var(--text-2); line-height: 1.7; }
+.ek-modul .kart { box-shadow: none; }
+.ek-modul .ek-kucuk { font-size: 11px; color: var(--text-3); line-height: 1.65; }
+.ek-modul [hidden] { display: none !important; }
+.ek-nav { display: flex; gap: 6px; border-bottom: 1px solid var(--border); margin-bottom: 26px; overflow-x: auto; }
+.ek-nav a { display: flex; align-items: center; gap: 8px; padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--text-2); border-bottom: 3px solid transparent; white-space: nowrap; }
+.ek-nav a[aria-current=page] { color: var(--red); border-bottom-color: var(--red); }
+.ek-nav a:hover { background: var(--red-soft); color: var(--red); }
+.ek-giris { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.ek-giris > div { min-width: 0; }
+.ek-giris p { max-width: 65ch; }
+.ek-giris > .btn { flex: 0 0 auto; }
+.ek-durum { display: inline-flex; gap: 8px; align-items: center; border: 1px solid var(--border); background: var(--card); color: var(--text-2); font-size: 12px; padding: 8px 12px; border-radius: var(--r-sm); white-space: nowrap; }
+.ek-durum i { color: var(--red); }
+.ek-calisma { display: grid; grid-template-columns: 270px minmax(0,1fr); gap: 22px; align-items: start; }
+.ek-calisma > *, .ek-baglanti-duzen > * { min-width: 0; }
+.ek-bolum { padding: 22px; }
+.ek-bolum-baslik { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.ek-ikon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; border-radius: var(--r-md); color: var(--red); background: var(--red-soft); font-size: 18px; }
+.ek-baglanti-duzen { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); gap: 30px; align-items: start; }
+.ek-form-son { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--border); padding-top: 20px; margin-top: 24px; }
+.ek-modul .alan { gap: 8px; font-size: 12px; }
+.ek-modul .alan input, .ek-modul .alan select { width: 100%; min-height: 42px; }
+.ek-filtre > summary { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 20px 22px; list-style: none; cursor: pointer; font-size: 15px; font-weight: 700; }
+.ek-filtre > summary::-webkit-details-marker { display: none; }
+.ek-filtre > summary i { font-size: 11px; color: var(--text-3); }
+.ek-filtre[open] > summary { border-bottom: 1px solid var(--border); }
+.ek-filtre[open] > summary i { transform: rotate(180deg); }
+.ek-sorgu { display: grid; gap: 18px; }
+.ek-sorgu > .btn { width: 100%; }
+.ek-sorgu > .ek-kucuk { margin: -6px 0 0; }
+.ek-eylemler { display: flex; flex-wrap: wrap; gap: 8px; }
+.ek-kaldir { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px; font-size: 12px; }
+.ek-kaldir p { margin-top: 4px; }
+.ek-rehber { padding-top: 8px; }
+.ek-rehber ol { padding-left: 20px; margin: 20px 0; color: var(--text-2); font-size: 13px; line-height: 1.8; }
+.ek-rehber li { margin-bottom: 12px; padding-left: 4px; }
+.ek-rehber > .ek-kucuk { margin-top: 20px; }
+.ek-yardim { padding: 18px 22px 10px; border-top: 1px solid var(--border); }
+.ek-yardim form { margin-top: 14px; }
+.ek-baglanti { display: inline-flex; align-items: center; gap: 8px; padding: 12px 0; margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--red); }
+.ek-baglanti:hover { color: var(--text-1); }
+.ek-ilk-durum { min-height: 410px; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 40px; text-align: center; }
+.ek-ilk-durum .ek-ikon { width: 60px; height: 60px; font-size: 24px; margin-bottom: 22px; }
+.ek-ilk-durum h2 { font-size: 20px; }
+.ek-ilk-durum > p { max-width: 47ch; }
+.ek-ilk-alt { display: flex; align-items: start; gap: 8px; max-width: 47ch; border-top: 1px solid var(--border); margin-top: 28px; padding-top: 20px; font-size: 11px; line-height: 1.7; color: var(--text-3); }
+.ek-ilk-alt i { margin-top: 4px; color: var(--red); }
+.ek-sonuc-baslik { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px; border-bottom: 1px solid var(--border); }
+.ek-sonuc-baslik > div { min-width: 0; }
+.ek-sonuc-baslik form { flex: 0 0 auto; }
+.ek-sonuc-baslik p { margin-top: 5px; overflow-wrap: anywhere; }
+.ek-olcumler { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 0; padding: 24px 22px 8px; gap: 18px; }
+.ek-olcumler dt { font-size: 11px; color: var(--text-3); margin-bottom: 8px; }
+.ek-olcumler dd { margin: 0 0 6px; font-size: 24px; line-height: 1.25; font-weight: 700; letter-spacing: -.04em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ek-olcumler small { color: var(--text-3); font-size: 10px; }
+.ek-grafik-sar { padding: 20px 8px 8px; }
+.ek-grafik { display: block; width: 100%; height: auto; }
+.ek-grafik text { font: 11px var(--font); fill: var(--text-3); }
+.ek-grafik-izgara { stroke: var(--border); stroke-width: 1; }
+.ek-grafik-cizgi { stroke: var(--red); stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.ek-grafik-nokta { fill: var(--red); stroke: var(--card); stroke-width: 1.5; }
+.ek-kaynak { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 18px; border-top: 1px solid var(--border); padding: 14px 22px; font-size: 10px; line-height: 1.7; color: var(--text-3); }
+.ek-modul .ek-aciklama { font-size: 11px; line-height: 1.7; margin: 0 2px 20px; }
+.ek-tablo-baslik { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; border-bottom: 1px solid var(--border); }
+.ek-tablo-baslik h2 { font-size: 14px; }
+.ek-modul table.liste th { text-transform: none; letter-spacing: 0; font-size: 11px; }
+.ek-modul table.liste th, .ek-modul table.liste td { padding: 12px 22px; }
+.ek-modul table.liste td { font-size: 12px; }
+.ek-sayfalama { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--text-3); font-size: 12px; }
+.ek-bos { padding: 35px 20px; text-align: center; color: var(--text-3); font-size: 13px; }
+.ek-modul .bildirim { font-size: 12px; font-weight: 500; align-items: flex-start; line-height: 1.6; }
+.ek-modul .bildirim > i { margin-top: 4px; }
+@media (max-width:1000px) {
+    .ek-calisma { grid-template-columns: 240px minmax(0,1fr); gap: 16px; }
+    .ek-olcumler { gap: 12px; }
+    .ek-olcumler dd { font-size: 21px; }
+    .ek-baglanti-duzen { grid-template-columns: 1fr; gap: 8px; }
+    .ek-sonuc-baslik { align-items: flex-start; flex-wrap: wrap; }
+}
+@media (max-width:767px) {
+    .ek-modul h1 { font-size: 22px; }
+    .ek-nav { margin-bottom: 20px; }
+    .ek-giris { align-items: stretch; flex-direction: column; gap: 14px; }
+    .ek-giris > .btn { align-self: flex-start; }
+    .ek-calisma { grid-template-columns: 1fr; gap: 8px; }
+    .ek-bolum { padding: 18px; }
+    .ek-yardim { padding: 18px; }
+    .ek-form-son > * { width: 100%; }
+    .ek-ilk-durum { min-height: 330px; padding: 28px 20px; }
+    .ek-sonuc-baslik { padding: 18px; }
+    .ek-olcumler { grid-template-columns: repeat(2,minmax(0,1fr)); padding: 18px; gap: 18px; }
+    .ek-olcumler dd { font-size: 23px; }
+    .ek-olcumler > div:last-child { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 16px; }
+    .ek-olcumler > div:last-child dd { display: inline-block; margin-right: 10px; }
+    .ek-grafik-sar { overflow-x: auto; padding-bottom: 12px; }
+    .ek-grafik { min-width: 600px; }
+    .ek-grafik text { font-size: 16px; }
+    .ek-kaynak { padding: 12px 18px; }
+    .ek-modul table.liste th, .ek-modul table.liste td { padding: 12px 16px; }
+}

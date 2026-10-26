@@ -2,6 +2,8 @@
 
 <img src="logo.png" alt="Lumen" height="76">
 
+**Yeni modüller (beta):** [E-ticaret Sipariş Kutusu](docs/eticaret/README.md) ve [Ekonomik Göstergeler](docs/evds/README.md).
+
 ### LOGO Tiger için modern, mobil uyumlu sipariş & stok yönetim ön yüzü
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6F1022.svg)](LICENSE)
@@ -30,7 +32,7 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 
 Lumen, LOGO Tiger için bir yardımcı arayüzdür; v1.3.0'dan itibaren LOGO olmadan, kendi veritabanıyla ön muhasebe programı olarak da çalışır (**Bağımsız mod**). **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
 
-**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.3.2](https://github.com/husodrn46/Lumen/releases/tag/v1.3.2) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.3.2.zip)
+**[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.4.0](https://github.com/husodrn46/Lumen/releases/tag/v1.4.0) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.4.0.zip)
 
 **Bağımsız mod (v1.3.0):** LOGO'suz, kendi veritabanıyla ön muhasebe — mimari ve LOGO'dan geçiş: [docs/mimari/bagimsiz-lumen.md](docs/mimari/bagimsiz-lumen.md).
 
@@ -82,6 +84,8 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
 - 🔔 **Bildirim kutusu** — görev atama/tamamlama/yorum, vadesi yaklaşan görev ve çekler, güvenlik ve ayar olayları
 - 📱 **Mobil uyumlu + PWA** — telefona kısayol olarak eklenebilir
 - 🎨 **Kişiselleştirme** — kullanıcı bazlı vurgu rengi, yazı boyutu, "müşteri yanında" gizli mod
+- 📈 **Ekonomik Göstergeler (beta)** — kişisel EVDS API anahtarıyla seri grafikleri,
+  gözlem tablosu ve CSV; LOGO ve bağımsız modda ortak. [Kullanım](docs/evds/README.md)
 - 🔐 **Rol bazlı yetki** — yönetici / personel / müşteri / entegrasyon (salt okunur API hesabı); kod bazlı ekran izinleri
 - 🧙 **Kurulum sihirbazı** — tarayıcıdan DB bağlantısı + ilk yönetici
 - 🖼️ **Kendi logonuz** — ayarlardan yükleyin

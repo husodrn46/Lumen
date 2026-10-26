@@ -2,6 +2,48 @@
 
 ## [Yayımlanmadı]
 
+## [1.4.0] — 2026-10-26 (KARARLI)
+
+v1.4.0-beta.1–beta.3 kapsamı ve EVDS ana anahtar dosyası güvenlik düzeltmesi
+bu sürümdedir. E-ticaret dosya alımı ve ekonomik göstergeler kendi belgelerindeki
+sınırlarla sunulur; canlı pazaryeri bağlantısı ve gerçek EVDS anahtarıyla kabul
+bu sürümün doğrulama kapsamına girmez.
+
+**Yükseltme (v1.3.2 → v1.4.0):** uygulama ve veritabanı yedeğini doğrulayın;
+dosyaları ve üretim bağımlılıklarını güncelleyin, ardından
+`php scripts/sema_guncelle.php` çalıştırın. E-ticaret için M33, ekonomik göstergeler
+için M34 yetkisini yalnız ilgili personele verin. EVDS ana anahtar dosyasını SQL
+yedeğinden ayrı ve güvenli biçimde yedekleyin. Ayrıntı ve kullanım sınırları:
+`docs/eticaret/README.md` ve `docs/evds/README.md`.
+
+### Yeni özellikler (beta)
+
+- EVDS 3 veri katmanı: kullanıcıya özel şifreli API anahtarı, doğrulanmış seri kodu,
+  günlük önbellek ve eksik gözlemleri koruyan ekonomik zaman serisi okuyucusu.
+- Ekonomik Göstergeler: kişisel bağlantı ekranı, hazır kur veya özel EVDS serisi,
+  grafik/tablo, CSV ve anahtarsız sentetik örnek. İki modda M34 yetkisiyle kullanılır.
+- E-ticaret ekranları Lumen'in ortak görünümüyle yenilendi: simgeli örnek dosya
+  indirmeleri, adımlı önizleme, etkin gezinme, durum rozetleri ve mobil kart listeleri.
+  Sipariş kontrolü, aktarım onayı, adresler ve denetim izi ayrı bölümlerde gösterilir.
+- Trendyol v2 ve Hepsiburada paket API yanıtları JSON dosyası olarak alınabilir.
+  Sipariş/paket/kalem kimlikleri ayrılır; kaynak iptal ve ödeme durumu kontrol edilir.
+  Eski zamanlı yanıt güncel engeli kaldıramaz. Trendyol indirimli fiyatları ve
+  Hepsiburada KDV tutarı/oranı ayrı doğrulanır. Sentetik örnekler ve API incelemesi eklendi.
+  Gerçek ağ bağlantısı veya kimlik bilgisi istenmez.
+- Sipariş/kanal formlarının sürüm değeri açık VARBINARY → hex dönüşümüyle taşınır;
+  bazı ikili değerlerde oluşan aralıklı sürüm uyuşmazlığı giderildi.
+
+- E-ticaret Sipariş Kutusu: CSV/JSON önizleme ve alım, satış kanalları, SKU/barkod
+  eşlemeleri, fiyat/KDV/depo kontrolleri, kullanıcı onaylı satış siparişi aktarımı.
+  LOGO ve bağımsız modda aynı akış; mükerrer aktarım koruması ve denetim izi.
+  Kurulum: `php scripts/sema_guncelle.php`; personele M33 yetkisi verilir.
+  Kullanım ve sentetik örnekler: `docs/eticaret/README.md`.
+
+### 🔒 Güvenlik
+
+- EVDS ana anahtar dosyasının erişimi, ilk anahtar baytı yazılmadan önce 0600 ile
+  sınırlandırılır. Sunucu denetimi bu dosyanın web üzerinden indirilemediğini kontrol eder.
+
 ### 🐛 Düzeltmeler
 
 - Kasa/banka fişi formu, `12abc` gibi geçersiz tutarları göndermeden uyarır.

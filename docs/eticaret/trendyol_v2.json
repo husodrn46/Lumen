@@ -1,0 +1,62 @@
+{
+  "totalElements": 1,
+  "totalPages": 1,
+  "page": 0,
+  "size": 1,
+  "content": [
+    {
+      "shipmentPackageId": "9000000001",
+      "orderNumber": "TY-DEMO-0001",
+      "orderDate": 1792922400000,
+      "lastModifiedDate": 1792922460000,
+      "status": "Created",
+      "shipmentPackageStatus": "Created",
+      "currencyCode": "TRY",
+      "orderCountryCode": "TR",
+      "micro": false,
+      "commercial": false,
+      "packageGrossAmount": 144,
+      "packageSellerDiscount": 24,
+      "packageTyDiscount": 0,
+      "packageTotalDiscount": 24,
+      "packageTotalPrice": 120,
+      "customerFirstName": "Sentetik",
+      "customerLastName": "Müşteri",
+      "customerEmail": "demo@example.test",
+      "invoiceAddress": {
+        "firstName": "Sentetik",
+        "lastName": "Müşteri",
+        "address1": "Örnek Fatura Mahallesi",
+        "address2": "",
+        "city": "İstanbul",
+        "district": "Örnek",
+        "countryCode": "TR"
+      },
+      "shipmentAddress": {
+        "fullName": "Sentetik Müşteri",
+        "fullAddress": "Örnek Teslimat Mahallesi",
+        "city": "Ankara",
+        "district": "Örnek",
+        "countryCode": "TR"
+      },
+      "lines": [
+        {
+          "lineId": "TY-LINE-001",
+          "stockCode": "DEMO-SKU-1",
+          "barcode": "",
+          "productName": "Sentetik ürün",
+          "quantity": 2,
+          "currencyCode": "TRY",
+          "vatRate": 20,
+          "lineGrossAmount": 72,
+          "lineSellerDiscount": 12,
+          "lineTyDiscount": 0,
+          "lineTotalDiscount": 12,
+          "lineUnitPrice": 60,
+          "orderLineItemStatusName": "Created"
+        }
+      ],
+      "originPackageIds": null
+    }
+  ]
+}

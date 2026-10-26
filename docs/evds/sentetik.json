@@ -1,0 +1,11 @@
+{
+  "meta": [{"SERIE_CODE":"TP.LUMEN.DEMO","SERIE_NAME":"Sentetik gösterge (Lumen örneği, endeks)","FREQUENCY_STR":"Aylık","DATASOURCE":"Lumen sentetik demo; TCMB verisi değildir"}],
+  "veri": {"items":[
+    {"Tarih":"2024-01","TP_LUMEN_DEMO":"100.00"},
+    {"Tarih":"2024-02","TP_LUMEN_DEMO":"102.50"},
+    {"Tarih":"2024-03","TP_LUMEN_DEMO":null},
+    {"Tarih":"2024-04","TP_LUMEN_DEMO":"105.00"},
+    {"Tarih":"2024-05","TP_LUMEN_DEMO":"108.00"},
+    {"Tarih":"2024-06","TP_LUMEN_DEMO":"112.50"}
+  ]}
+}

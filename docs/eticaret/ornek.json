@@ -1,0 +1,34 @@
+{
+  "surum": 1,
+  "siparisler": [
+    {
+      "kimlik": "DEMO-0001",
+      "numara": "WEB-0001",
+      "tarih": "2026-10-25",
+      "para_birimi": "TRY",
+      "musteri": {
+        "ad": "Sentetik Demo Müşterisi",
+        "eposta": "demo@example.test"
+      },
+      "fatura": {
+        "adres": "Örnek Mahallesi 1, İstanbul"
+      },
+      "teslimat": {
+        "adres": "Örnek Mahallesi 2, Ankara"
+      },
+      "genel_toplam": 120,
+      "kalemler": [
+        {
+          "sku": "DEMO-SKU-1",
+          "barkod": "",
+          "ad": "Sentetik ürün",
+          "birim": "ADET",
+          "miktar": 2,
+          "fiyat": 50,
+          "kdv": 20,
+          "kdv_dahil": false
+        }
+      ]
+    }
+  ]
+}
