@@ -1,9 +1,9 @@
 # E-ticaret Sipariş Kutusu (beta)
 
 LOGO ve bağımsız Lumen modlarında aynı akış kullanılır. CSV/JSON dosyalarıyla alıma
-ek olarak Trendyol için kullanıcı anahtarlı, salt okunur sipariş bağlantısı vardır:
-[bağlantı ve kurtarma rehberi](TRENDYOL_BAGLANTI.md). Hepsiburada için resmî API
-yanıtı JSON adaptörü kullanılır; diğer kanal türleri genel CSV/JSON ile çalışır.
+ek olarak Trendyol için [kullanıcı anahtarlı sipariş bağlantısı](TRENDYOL_BAGLANTI.md)
+ve Hepsiburada için [hazırlanmış açık paket bağlantısı](HEPSIBURADA_BAGLANTI.md) vardır.
+İkisi de salt okunurdur. Diğer kanal türleri genel CSV/JSON ile çalışır.
 [Desteklenen alanlar ve kurallar](PAZARYERI_API.md).
 
 ## Kurulum ve kullanım
@@ -21,6 +21,9 @@ satış siparişine aktarım M1, liste değerinden farklı fiyat/KDV kullanımı
    Trendyol için alternatif: Satış kanalları → **Bağlantı** ile kendi API bilgilerinizi
    kaydedin; **Siparişleri al** ekranında tarih aralığını seçip başlatın. Alınan
    sayfalar otomatik kutuya gelir; ekranı kapatırsanız aynı alımı sürdürebilirsiniz.
+   Hepsiburada için **Bağlantı** ekranında Merchant ID, API kullanıcı adı, servis
+   anahtarı ve tanımlı User-Agent bilgisini girin; **Paketleri al** ile en fazla
+   24 saat seçin. Paketlenmemiş ve ayrı iptal/iade servisleri bu alımda bulunmaz.
 3. **Sipariş kutusuna al** yalnız ara tablolara yazar; satış siparişi oluşturmaz.
 4. Kutudaki siparişi açın. SKU/barkod için stok kodu ve kaynak birimine uygun birim
    seçerek kanalın ürün eşlemesini kaydedin. Stok araması kod/ad ile yapılır.

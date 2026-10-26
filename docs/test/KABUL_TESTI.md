@@ -41,6 +41,7 @@ Betik sırasıyla şunları yapar ve her adımı rapora işler:
 | Akış testleri | Sipariş, iskonto, yazdırma, çek, döviz, ayarlar, yetki, API |
 | E-ticaret ve EVDS | İki modda sipariş kutusu, mükerrer aktarım, kaynak değişikliği, kişisel anahtar, önbellek ve panel |
 | Trendyol alımı | İki modda sentetik sayfalama, tekrar/bekleme, iptal, eşzamanlı alım, atomik kayıt ve bağlantı ekranları |
+| Hepsiburada alımı | İki modda 24 saat sınırı, offset/başlık doğrulama, değişen/tekrarlanan sayfa, geri alma ve bağlantı ekranları |
 | Eklenti yaşam döngüsü | Beta.1 şemasından yükseltme; dolu kurulumda tekrar şema; kutu, aktarım kimliği, eşleme ve şifreli EVDS bağlantısının yedekten dönüşü |
 | Yedekleme | Yedek al → veriyi boz → geri yükle → her şey yerinde |
 | LOGO'dan içe aktarma | Bakiyeler, stoklar, kimlikler ve parolalar birebir taşınır |

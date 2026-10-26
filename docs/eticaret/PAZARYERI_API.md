@@ -2,8 +2,9 @@
 
 İnceleme tarihi: **25 Ekim 2026**. Yalnız resmî geliştirici belgeleri kullanıldı.
 Bu dosya JSON adaptörlerinin sözleşmesini açıklar. Trendyol'un kullanıcı anahtarlı,
-salt okunur ağ bağlantısı ayrıca [bağlantı rehberinde](TRENDYOL_BAGLANTI.md) açıklanır.
-Hepsiburada ağ bağlantısı, test siparişi oluşturma veya pazaryerine yazma yoktur.
+salt okunur ağ bağlantısı [Trendyol rehberinde](TRENDYOL_BAGLANTI.md), Hepsiburada'nın
+paket bağlantısı [Hepsiburada rehberinde](HEPSIBURADA_BAGLANTI.md) açıklanır.
+Test siparişi oluşturma veya pazaryerine yazma yoktur.
 
 ## Desteklenen girişler
 
@@ -49,7 +50,7 @@ Resmî kaynaklar: [Sipariş entegrasyonu açıklamaları](https://developers.hep
 - Yalnız `Open` ve `Packaged` desteklenir. Birden fazla sipariş içeren paket,
   satıcı/müşteri tutar farkı veya ayrı indirim faturası gerektiren kayıt bekletilir.
 
-Gelecek bağlantı için: portal test uçları `-sit` içerir; test ve canlı ortamlar
+Hepsiburada bağlantısında portal test uçları `-sit` içerir; test ve canlı ortamlar
 ayrıdır. Paket hizmeti Basic Auth ve User-Agent tanımlar, limit/offset ile okunur.
 Bu aşamada hiçbirine istek gönderilmez. Ödeme bekleyen sipariş yanıtı bu paket
 adaptörüne verilmemeli; ayrı bir adaptör gerektirir.
@@ -64,6 +65,6 @@ adaptörüne verilmemeli; ayrı bir adaptör gerektirir.
   mevcut durumu geri almaz. Engel ancak daha yeni doğrulanmış zamanla kalkar;
   güncelleme zamanı yoksa kendiliğinden kaldırılmaz.
 - Aktarımdan sonra gelen iptal uyarılır; Lumen siparişi otomatik iptal edilmez.
-- Hepsiburada API bağlantısı, webhook, zamanlanmış arka plan işçisi, iade,
+- Hepsiburada paketlenmemiş siparişleri ve ayrı iptal/iade servisleri, webhook, zamanlanmış arka plan işçisi,
   kargo/komisyon mutabakatı ve Hepsiburada indirim/fatura farklarının otomasyonu
   bu adımda yoktur. TRY, ADET ve mevcut 1 MB/100 paket sınırları geçerlidir.
