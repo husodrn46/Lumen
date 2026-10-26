@@ -98,6 +98,37 @@ try {
         $s=$pdo->prepare('SELECT MESAJ,VERI FROM M_ET_OLAY WHERE KANAL_ID=:k');$s->execute([':k'=>$kanal]);$iz=et_json($s->fetchAll(PDO::FETCH_ASSOC));
         bekle(!str_contains($iz,$bag['gizli']) && !str_contains($iz,base64_encode($bag['anahtar'].':'.$bag['gizli'])),'sırlar denetim izine yazıldı');
     });
+    $web=(new Tarayici($URL))->giris('YONETICI');
+    akis('Hepsiburada ekranı: giriş/yetki/CSRF korunur ve sırlar forma geri dönmez',function () use ($pdo,$web,$kanal,$bag,$URL): void {
+        $yol='eticaret/baglanti.php?kanal='.$kanal;$al='eticaret/al.php?kanal='.$kanal;
+        bekle((new Tarayici($URL))->istek($yol)['kod']===303,'oturumsuz bağlantı açıldı');
+        $depo=(new Tarayici($URL))->giris('DEPO1');bekle($depo->istek($yol)['kod']===403 && $depo->istek($al)['kod']===403,'yetkisiz HB erişimi');
+        bekle($web->istek($yol,['islem'=>'kaldir'])['kod']===403 && $web->istek($al,['islem'=>'adim'])['kod']===403,'CSRF atlandı');
+        $r=$web->istek($yol,['csrf_token'=>$web->belirtec($yol),'islem'=>'kaydet']+$bag);bekle($r['kod']===303,'HB formu kaydedilemedi');
+        $g=$web->istek($yol)['govde'];bekle(str_contains($g,'Merchant ID') && str_contains($g,'User-Agent / entegratör adı'),'HB alanları yok');
+        bekle(!str_contains($g,$bag['anahtar']) && !str_contains($g,$bag['gizli']),'giriş bilgileri forma basıldı');
+        $b=et_baglanti($pdo,$kanal);$r=$web->istek($yol,['csrf_token'=>$web->belirtec($yol),'islem'=>'kaydet','ortam'=>'stage','satici'=>$bag['satici'],'istemci'=>$bag['istemci'],'anahtar'=>'','gizli'=>'']);
+        bekle($r['kod']===303 && et_baglanti($pdo,$kanal)['SIFRELI']===$b['SIFRELI'],'iki boş gizli alan mevcut bağlantıyı korumadı');
+    });
+    akis('Hepsiburada ekranı: 24 saat sınırı ve kapsam açık; GET dış istek başlatmaz',function () use ($pdo,$web,$kanal): void {
+        $yol='eticaret/al.php?kanal='.$kanal;$once=et_baglanti($pdo,$kanal)['SON_ISTEK'];$g=$web->istek($yol)['govde'];
+        bekle(str_contains($g,'Hepsiburada paketlerini al') && str_contains($g,'En fazla 24 saat') && str_contains($g,'Paketlenmemiş siparişler'),'kapsam veya aralık yanlış gösterildi');
+        bekle(!str_contains($g,'<script src="../assets/js/eticaret-al.js'),'GET otomatik alım başlattı');
+        $n=new DateTimeImmutable('now',new DateTimeZone('Europe/Istanbul'));$r=$web->istek($yol,['csrf_token'=>$web->belirtec($yol),'islem'=>'baslat','bas'=>$n->modify('-2 days')->format('Y-m-d\TH:i'),'bit'=>$n->format('Y-m-d\TH:i')]);
+        bekle($r['kod']===200 && str_contains($r['govde'],'en fazla 24 saatlik'),'uzun aralık açıkça reddedilmedi');
+        bekle(et_baglanti($pdo,$kanal)['SON_ISTEK']===$once,'GET veya geçersiz başlatma dış istek yaptı');
+        $s=(int) tek($pdo,"SELECT TOP 1 ID FROM M_ET_SIPARIS WHERE KANAL_ID=:k AND DURUM<>'iptal'",[':k'=>$kanal]);
+        $g=$web->istek('eticaret/detay.php?id='.$s)['govde'];bekle(str_contains($g,'Hepsiburada panelinde paketin güncelliğini kontrol et'),'aktarımı yapacak kullanıcı kapsamı göremiyor');
+    });
+    akis('Hepsiburada ekranı: başlat/sürdür açık POST ister; tarih özeti ve durdurma çalışır',function () use ($pdo,$web,$kanal): void {
+        $yol='eticaret/al.php?kanal='.$kanal;$n=new DateTimeImmutable('now',new DateTimeZone('Europe/Istanbul'));$once=et_baglanti($pdo,$kanal)['SON_ISTEK'];
+        $r=$web->istek($yol,['csrf_token'=>$web->belirtec($yol),'islem'=>'baslat','bas'=>$n->modify('-1 day')->format('Y-m-d\TH:i'),'bit'=>$n->format('Y-m-d\TH:i')]);bekle($r['kod']===303,'HB alımı başlatılamadı');$i=(int) et_cekimi_oku($pdo,$kanal)['ID'];
+        // HTTP test istemcisi JavaScript çalıştırmaz; gerçek Hepsiburada isteği yapılmaz.
+        $g=$web->istek($yol)['govde'];bekle(str_contains($g,'<script src="../assets/js/eticaret-al.js') && str_contains($g,$n->format('d.m.Y H:i')),'yönlendirmede alım hakkı veya HB tarihi yanlış');
+        $g=$web->istek($yol)['govde'];bekle(!str_contains($g,'<script src="../assets/js/eticaret-al.js'),'sıradan GET otomatik alımı yineledi');
+        $r=$web->istek($yol,['csrf_token'=>$web->belirtec($yol),'islem'=>'durdur','cekim'=>$i]);bekle($r['kod']===303 && et_cekimi_oku($pdo,$kanal,$i)['DURUM']==='durduruldu','alım durdurulamadı');
+        bekle(et_baglanti($pdo,$kanal)['SON_ISTEK']===$once,'başlatma dış API çağırdı');
+    });
 } finally {
     if ($kanal) {
         $pdo->prepare('DELETE FROM M_ET_CEKIM_SAYFA WHERE CEKIM_ID IN (SELECT ID FROM M_ET_CEKIM WHERE KANAL_ID=:k)')->execute([':k'=>$kanal]);

@@ -4,6 +4,13 @@
 
 ### Yeni özellikler (beta)
 
+- Hepsiburada hazırlanmış paket bağlantısı: Merchant ID ve kullanıcıya ait API
+  bilgileriyle test/üretim ayarı, 24 saatlik tarih aralığı, sayfa alımı ve devam
+  etme. Paketler ortak kontrol kutusunda bekler; kullanıcı onayıyla satış siparişine
+  aktarılır. Paketlenmemiş ve ayrı iptal/iade servisleri bu sürümde izlenmez.
+- API alım motoru kanal adaptörlerine ayrıldı; eski Trendyol bağlantıları korunur.
+  Hepsiburada sayfalama/tekrar ve iki kanalın yükseltme/yedek testleri eklendi.
+
 - Trendyol sipariş bağlantısı: kullanıcı anahtarlı test/üretim ayarı, tarih aralığı,
   kaldığı yerden devam eden otomatik sayfa alımı, kalıcı bekleme/yeniden deneme ve
   alım özeti. Siparişler yalnız kontrol kutusuna gelir; muhasebeye aktarım kullanıcı
