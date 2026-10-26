@@ -27,7 +27,7 @@ function et_basla(string $baslik): void
     echo '<div class="et-modul"><nav class="et-nav" aria-label="E-ticaret">';
     $sayfa=basename($_SERVER['SCRIPT_NAME']);
     foreach (['index.php'=>['Sipariş kutusu','fa-inbox'],'ice_aktar.php'=>['Dosya içe aktar','fa-file-import'],'kanallar.php'=>['Satış kanalları','fa-store']] as $yol=>[$ad,$ikon]) {
-        $aktif=$sayfa===$yol || ($yol==='index.php' && in_array($sayfa,['detay.php','eslemeler.php'],true));
+        $aktif=$sayfa===$yol || ($yol==='index.php' && in_array($sayfa,['detay.php','eslemeler.php'],true)) || ($yol==='kanallar.php' && in_array($sayfa,['baglanti.php','al.php'],true));
         echo '<a href="'.$yol.'"'.($aktif ? ' aria-current="page"' : '').'><i class="fa-solid '.$ikon.'" aria-hidden="true"></i>'.bh($ad).'</a>';
     }
     echo '</nav>';

@@ -1,10 +1,10 @@
 # E-ticaret Sipariş Kutusu (beta)
 
-LOGO ve bağımsız Lumen modlarında aynı akış kullanılır. İlk sürüm dosyadan veri alır;
-Trendyol, Hepsiburada, WooCommerce, Shopify ve site türleri yalnız kanal tanımıdır.
-Trendyol ve Hepsiburada için resmî API yanıtı JSON adaptörleri de vardır:
-[desteklenen alanlar ve kurallar](PAZARYERI_API.md). Gerçek pazaryeri bağlantısı,
-anahtar veya otomatik veri çekme yoktur.
+LOGO ve bağımsız Lumen modlarında aynı akış kullanılır. CSV/JSON dosyalarıyla alıma
+ek olarak Trendyol için kullanıcı anahtarlı, salt okunur sipariş bağlantısı vardır:
+[bağlantı ve kurtarma rehberi](TRENDYOL_BAGLANTI.md). Hepsiburada için resmî API
+yanıtı JSON adaptörü kullanılır; diğer kanal türleri genel CSV/JSON ile çalışır.
+[Desteklenen alanlar ve kurallar](PAZARYERI_API.md).
 
 ## Kurulum ve kullanım
 
@@ -18,6 +18,9 @@ satış siparişine aktarım M1, liste değerinden farklı fiyat/KDV kullanımı
    İsterseniz mevcut ortak “E-ticaret müşterileri” carisini seçin. Cari/depo/personel
    varsayılanlarını birlikte seçin veya boş bırakıp sipariş detayında tamamlayın.
 2. CSV / JSON içe aktar ekranında kanalı ve dosyayı seçip **Önizle** deyin.
+   Trendyol için alternatif: Satış kanalları → **Bağlantı** ile kendi API bilgilerinizi
+   kaydedin; **Siparişleri al** ekranında tarih aralığını seçip başlatın. Alınan
+   sayfalar otomatik kutuya gelir; ekranı kapatırsanız aynı alımı sürdürebilirsiniz.
 3. **Sipariş kutusuna al** yalnız ara tablolara yazar; satış siparişi oluşturmaz.
 4. Kutudaki siparişi açın. SKU/barkod için stok kodu ve kaynak birimine uygun birim
    seçerek kanalın ürün eşlemesini kaydedin. Stok araması kod/ad ile yapılır.

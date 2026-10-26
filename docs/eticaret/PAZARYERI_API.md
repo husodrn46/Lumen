@@ -1,8 +1,9 @@
 # Trendyol ve Hepsiburada adaptörleri
 
 İnceleme tarihi: **25 Ekim 2026**. Yalnız resmî geliştirici belgeleri kullanıldı.
-Bu sürüm ağdan sipariş çekmez; belgelenmiş API yanıtını JSON dosyası olarak okur.
-Gerçek hesap, erişim anahtarı, test siparişi oluşturma veya pazaryerine yazma yoktur.
+Bu dosya JSON adaptörlerinin sözleşmesini açıklar. Trendyol'un kullanıcı anahtarlı,
+salt okunur ağ bağlantısı ayrıca [bağlantı rehberinde](TRENDYOL_BAGLANTI.md) açıklanır.
+Hepsiburada ağ bağlantısı, test siparişi oluşturma veya pazaryerine yazma yoktur.
 
 ## Desteklenen girişler
 
@@ -32,10 +33,9 @@ Resmî kaynaklar: [Sipariş paketleri](https://developers.trendyol.com/v2.0/docs
 - `originPackageIds` eski/yeni paket ilişkisini korur. Aktarılmış kalem tekrar
   satılamaz. İhracat/aracılık modeli bekletilir.
 
-Gelecek ağ adaptörü için: 15 Ekim 2026 sonrasında belirtilen `/v2/orders` ucu
-kullanılmalı; eski `/orders` yoluna dayanılmamalı. Stream sayfalama `nextCursor`
-ve `hasMore` kullanır. Zaman aralığı/sayfalama ve limitler canlı bağlantı
-uygulamasından önce aynı resmî belgelerden tekrar doğrulanmalıdır.
+Sayfalı servis `/v2/orders` yolundadır; eski `/orders` yoluna dayanılmamalı.
+Lumen'in ağ adaptörü `/orders/stream` yolunu, `nextCursor` ve `hasMore` ile
+kullanır. Tarih, sınır ve yeniden deneme kuralları [bağlantı rehberindedir](TRENDYOL_BAGLANTI.md).
 
 ## Hepsiburada
 
@@ -64,6 +64,6 @@ adaptörüne verilmemeli; ayrı bir adaptör gerektirir.
   mevcut durumu geri almaz. Engel ancak daha yeni doğrulanmış zamanla kalkar;
   güncelleme zamanı yoksa kendiliğinden kaldırılmaz.
 - Aktarımdan sonra gelen iptal uyarılır; Lumen siparişi otomatik iptal edilmez.
-- Gerçek API bağlantısı, kimlik bilgisi saklama, webhook, zamanlama, iade,
+- Hepsiburada API bağlantısı, webhook, zamanlanmış arka plan işçisi, iade,
   kargo/komisyon mutabakatı ve Hepsiburada indirim/fatura farklarının otomasyonu
   bu adımda yoktur. TRY, ADET ve mevcut 1 MB/100 paket sınırları geçerlidir.
