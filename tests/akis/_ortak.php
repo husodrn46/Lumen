@@ -75,6 +75,15 @@ final class Tarayici
         return $this->istek($yol, null, ['Content-Type: application/json'], (string) json_encode($govde));
     }
 
+    /** Paralel akış testi için oturumlu POST tanıtıcısı; cookie dosyasını dışarı açmaz. */
+    public function postHazirla(string $yol, array $alanlar): CurlHandle
+    {
+        $ch=curl_init($this->url . '/' . ltrim($yol,'/'));
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>30,CURLOPT_POST=>true,
+            CURLOPT_POSTFIELDS=>http_build_query($alanlar),CURLOPT_COOKIEFILE=>$this->cerez]);
+        return $ch;
+    }
+
     /** Dosya yükleyen form (multipart). */
     public function istekDosya(string $yol, array $alanlar, string $dosyaAlani, string $dosyaYolu, string $dosyaAdi): array
     {

@@ -52,6 +52,8 @@ if (!function_exists('lumen_moduller')) {
             'uretim' => ['ad' => 'Üretim fişleri', 'bagimsiz' => false, 'yollar' => [
                 'stok/index.php', 'stok/uretim_giris.php', 'stok/uretim_miktar_onar.php',
             ]],
+            'eticaret' => ['ad' => 'E-ticaret', 'bagimsiz' => true, 'yollar' => ['eticaret/']],
+            'ekonomi' => ['ad' => 'Ekonomik göstergeler', 'bagimsiz' => true, 'yollar' => ['ekonomi/']],
             'siparis' => ['ad' => 'Sipariş', 'bagimsiz' => true, 'yollar' => ['siparis/', 'yazdir/']],
             'doviz' => ['ad' => 'Dövizli sipariş', 'bagimsiz' => true, 'yollar' => ['doviz/']],
             'cek' => ['ad' => 'Çek / senet', 'bagimsiz' => true, 'yollar' => ['cek/']],

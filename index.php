@@ -135,6 +135,8 @@ if ($kasa_ozet_yetki && $magaza_cari > 0) {
 
 $menu_items = [
     ['M1', 'Yeni Sipariş', 'fa-cart-plus', 'cari/cari.php', 'theme-red'],
+    ['M33', 'E-ticaret', 'fa-inbox', 'eticaret/index.php', 'theme-red'],
+    ['M34', 'Ekonomik Göstergeler', 'fa-chart-area', 'ekonomi/index.php', 'theme-red'],
     ['M2', 'Siparişler', 'fa-list-check', 'siparis/lg_essiparis.php', 'theme-red'],
     ['M21', 'Döviz İşlemleri', 'fa-dollar-sign', 'doviz/index.php', 'theme-emerald'],
     ['M3', 'Mağaza Satış', 'fa-store', 'siparis/fisekle.php?cariid=' . $magaza_cari . '&stokhareket=0', 'theme-red'],

@@ -1,0 +1,2 @@
+numara;tarih;para_birimi;genel_toplam;musteri_adi;fatura_adres;teslimat_adres;sku;barkod;ad;birim;miktar;fiyat;kdv;kdv_dahil
+WEB-CSV-0001;2026-10-25;TRY;120;Sentetik Demo Müşterisi;Örnek Mahallesi 1, İstanbul;Örnek Mahallesi 2, Ankara;DEMO-SKU-1;;Sentetik ürün;ADET;2;50;20;0
