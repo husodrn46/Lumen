@@ -205,6 +205,7 @@ if (!function_exists('lumen_sema_eksikleri')) {
             'M_API_IDEMPOTENCY' => null,
             'M_ET_KANAL' => null, 'M_ET_SIPARIS' => null, 'M_ET_SIPARIS_SATIR' => null,
             'M_ET_ICE_AKTARIM' => null, 'M_ET_URUN_ESLEME' => null, 'M_ET_OLAY' => null,
+            'M_ET_BAGLANTI' => null, 'M_ET_CEKIM' => null, 'M_ET_CEKIM_SAYFA' => null,
             'M_BILDIRIM' => null, 'M_USER_SETTINGS' => null, 'M_FIS_LOG' => null, 'M_CEK_EK' => 'FIRMADONEM',
             'M_OTURUM_KAPAT' => null, 'M_SATIR_DEGISIKLIK_LOG' => null,
         ];

@@ -5,6 +5,7 @@ declare(strict_types=1);
 require dirname(__DIR__).'/akis/_ortak.php';
 require_once dirname(__DIR__,2).'/includes/kurulum_sema.php';
 require_once dirname(__DIR__,2).'/includes/eticaret/ice_aktar.php';
+require_once dirname(__DIR__,2).'/includes/eticaret/anahtar.php';
 require_once dirname(__DIR__,2).'/includes/evds/depo.php';
 require_once dirname(__DIR__,2).'/includes/yedek/yedek_lib.php';
 if (!in_array($DB,['LUMEN_DEMO','LUMEN_BAGIMSIZ'],true)) {
@@ -13,6 +14,7 @@ if (!in_array($DB,['LUMEN_DEMO','LUMEN_BAGIMSIZ'],true)) {
 $kok=dirname(__DIR__,2);$firmano=1;
 $gecici=sys_get_temp_dir().'/lumen-yasam-'.bin2hex(random_bytes(8));mkdir($gecici,0700);
 $oncekiAnahtar=getenv('LUMEN_EVDS_ANAHTAR_DOSYASI');putenv('LUMEN_EVDS_ANAHTAR_DOSYASI='.$gecici.'/master');
+$oncekiEtAnahtar=getenv('LUMEN_ETICARET_ANAHTAR_DOSYASI');putenv('LUMEN_ETICARET_ANAHTAR_DOSYASI='.$gecici.'/et-master');
 
 function yasam_sema(PDO $db, array $dosyalar): void
 {
@@ -25,9 +27,10 @@ function yasam_sema(PDO $db, array $dosyalar): void
 function yasam_kutu_ozeti(PDO $db): array
 {
     $ozet=[];
-    foreach (['M_ET_KANAL','M_ET_ICE_AKTARIM','M_ET_SIPARIS','M_ET_SIPARIS_SATIR','M_ET_URUN_ESLEME','M_ET_OLAY'] as $tablo) {
-        $satirlar=$db->query("SELECT * FROM dbo.{$tablo} ORDER BY ID")->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($satirlar as &$r) { unset($r['SURUM']); }unset($r);
+    foreach (['M_ET_KANAL','M_ET_ICE_AKTARIM','M_ET_SIPARIS','M_ET_SIPARIS_SATIR','M_ET_URUN_ESLEME','M_ET_OLAY','M_ET_BAGLANTI','M_ET_CEKIM','M_ET_CEKIM_SAYFA'] as $tablo) {
+        $sira=$tablo==='M_ET_BAGLANTI' ? 'KANAL_ID' : 'ID';
+        $satirlar=$db->query("SELECT * FROM dbo.{$tablo} ORDER BY {$sira}")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($satirlar as &$r) { if (in_array($tablo,['M_ET_KANAL','M_ET_SIPARIS'],true)) { unset($r['SURUM']); } }unset($r);
         $ozet[$tablo]=hash('sha256',json_encode($satirlar,JSON_THROW_ON_ERROR));
     }
     return $ozet;
@@ -69,7 +72,11 @@ try {
         $kanal=0;$u=random_int(1000000,2000000000);$yol=null;$onceki=null;$bozuldu=false;$dondu=false;
         try {
             $kanal=lumen_insert_kimlik($pdo,"INSERT INTO M_ET_KANAL (FIRMA,AD,TUR,OLUSTURAN,GUNCELLEYEN) VALUES (1,N'Sentetik yaşam döngüsü','trendyol',1,1)",[],'ID');
-            et_ice_aktar($pdo,$kanal,(string) file_get_contents($kok.'/docs/eticaret/trendyol_v2.json'),'json','sentetik.json',1,'trendyol_v2');
+            $alim=et_ice_aktar($pdo,$kanal,(string) file_get_contents($kok.'/docs/eticaret/trendyol_v2.json'),'json','sentetik.json',1,'trendyol_v2');
+            $sir=['anahtar'=>str_repeat('g',16),'gizli'=>str_repeat('h',16)];
+            $pdo->prepare("INSERT INTO M_ET_BAGLANTI (KANAL_ID,ORTAM,SATICI_ID,SIFRELI,SURUM,GUNCELLEYEN) VALUES (:k,'stage','123',:s,:v,1)")->execute([':k'=>$kanal,':s'=>et_sir_sifrele($sir,1,$kanal),':v'=>str_repeat('a',32)]);
+            $cekim=lumen_insert_kimlik($pdo,"INSERT INTO M_ET_CEKIM (KANAL_ID,BAG_SURUM,FILTRE,IMLEC,SAYFA,KULLANICI,SON_KULLANICI) VALUES (:k,:v,N'{}',N'opaque+/= sentetik',1,1,1)",[':k'=>$kanal,':v'=>str_repeat('a',32)],'ID');
+            $pdo->prepare('INSERT INTO M_ET_CEKIM_SAYFA (CEKIM_ID,SIRA,ISTEK_OZET,AKTARIM_ID) VALUES (:i,1,:h,:a)')->execute([':i'=>$cekim,':h'=>hash('sha256',''),':a'=>$alim['aktarim_id']]);
             // Gerçek sipariş üretimi eticaret.php akışında sınanır; burada aktarım bağlantısının kalıcılığı sınanır.
             $pdo->prepare("UPDATE M_ET_SIPARIS SET DURUM='aktarildi',FIS_ID=987654,FIS_NO='SENTETIK-AKTARIM',AKTARILMA=SYSDATETIME(),AKTARAN=1 WHERE KANAL_ID=:k")->execute([':k'=>$kanal]);
             $pdo->prepare("INSERT INTO M_ET_URUN_ESLEME (KANAL_ID,TUR,DEGER,STOK_ID,BIRIM,CARPAN,KULLANICI) VALUES (:k,'sku','SENTETIK-YASAM',123,'ADET',1,1)")->execute([':k'=>$kanal]);
@@ -77,18 +84,23 @@ try {
             $ornek=json_decode((string) file_get_contents($kok.'/docs/evds/sentetik.json'),true,32,JSON_THROW_ON_ERROR);
             $q=['seri'=>'TP.LUMEN.DEMO','bas'=>'2024-01-01','bit'=>'2024-06-30'];
             evds_getir($pdo,1,$u,$q,static fn(string $url): string=>json_encode(str_contains($url,'serieList/') ? $ornek['meta'] : $ornek['veri'],JSON_THROW_ON_ERROR));
-            $ozet=yasam_kutu_ozeti($pdo);$master=evds_ana_anahtar();
+            $ozet=yasam_kutu_ozeti($pdo);$master=evds_ana_anahtar();$etMaster=et_ana_anahtar();
             for ($i=0;$i<2;$i++) { $r=kurulum_sema_uygula($pdo,$kok.'/sql');bekle($r['hatalar']===[],'dolu kurulumda şema hatası'); }
             bekle(yasam_kutu_ozeti($pdo)===$ozet,'tekrar şema kutu verisini değiştirdi');
             $y=lumen_yedek_al($pdo,'elle');bekle($y['ok'],$y['mesaj']);$yol=lumen_yedek_klasoru().'/'.$y['ad'];
             $icerik=gzdecode((string) file_get_contents($yol));bekle(is_string($icerik) && !str_contains($icerik,$api) && !str_contains($icerik,base64_encode($master)),'SQL yedeğine düz anahtar yazıldı');
+            bekle(!str_contains($icerik,$sir['gizli']) && !str_contains($icerik,base64_encode($etMaster)),'SQL yedeğine e-ticaret sırrı yazıldı');
             $bozuldu=true;
             $pdo->prepare("UPDATE M_ET_SIPARIS SET HAM=N'{}',NORMAL=N'{}',FIS_NO='SENTETIK-BOZUK' WHERE KANAL_ID=:k")->execute([':k'=>$kanal]);
             $pdo->prepare("UPDATE M_EVDS_BAGLANTI SET SIFRELI_ANAHTAR='bozuk' WHERE FIRMA=1 AND KULLANICI=:u")->execute([':u'=>$u]);
             $pdo->prepare('DELETE FROM M_EVDS_ONBELLEK WHERE FIRMA=1 AND KULLANICI=:u')->execute([':u'=>$u]);
+            $pdo->prepare("UPDATE M_ET_BAGLANTI SET SIFRELI='bozuk' WHERE KANAL_ID=:k")->execute([':k'=>$kanal]);
+            $pdo->prepare('UPDATE M_ET_CEKIM SET IMLEC=NULL,SAYFA=0 WHERE ID=:i')->execute([':i'=>$cekim]);
             $g=lumen_yedek_geri_yukle($pdo,$yol);$onceki=$g['onceki'] ?? null;bekle($g['ok'],$g['mesaj']);$dondu=true;
             bekle(yasam_kutu_ozeti($pdo)===$ozet,'kutu verisi veya aktarım kimliği geri dönmedi');
             bekle(evds_ana_anahtar()===$master,'SQL geri yükleme ana anahtarı değiştirdi');
+            bekle(et_ana_anahtar()===$etMaster,'SQL geri yükleme e-ticaret ana anahtarını değiştirdi');
+            bekle(et_sir_coz((string) tek($pdo,'SELECT SIFRELI FROM M_ET_BAGLANTI WHERE KANAL_ID=:k',[':k'=>$kanal]),1,$kanal)===$sir,'e-ticaret bağlantısı geri dönmedi');
             $sifre=evds_baglanti($pdo,1,$u)['SIFRELI_ANAHTAR'];
             bekle(evds_sifre_coz($sifre,$master,'1:'.$u)===$api,'şifreli bağlantı geri dönmedi');
             bekle(evds_onbellek($pdo,1,$u,evds_sorgu_ozeti($q))!==null,'EVDS önbelleği kayboldu');
@@ -97,7 +109,8 @@ try {
         } finally {
             if ($bozuldu && !$dondu && $yol) { $g=lumen_yedek_geri_yukle($pdo,$yol);$onceki=$g['onceki'] ?? $onceki; }
             if ($kanal) {
-                foreach (['M_ET_OLAY','M_ET_URUN_ESLEME','M_ET_SIPARIS_SATIR','M_ET_SIPARIS','M_ET_ICE_AKTARIM','M_ET_KANAL'] as $tablo) {
+                $pdo->prepare('DELETE FROM M_ET_CEKIM_SAYFA WHERE CEKIM_ID IN (SELECT ID FROM M_ET_CEKIM WHERE KANAL_ID=:k)')->execute([':k'=>$kanal]);
+                foreach (['M_ET_CEKIM','M_ET_BAGLANTI','M_ET_OLAY','M_ET_URUN_ESLEME','M_ET_SIPARIS_SATIR','M_ET_SIPARIS','M_ET_ICE_AKTARIM','M_ET_KANAL'] as $tablo) {
                     $kosul=$tablo==='M_ET_KANAL' ? 'ID=:k' : ($tablo==='M_ET_SIPARIS_SATIR' ? 'SIPARIS_ID IN (SELECT ID FROM M_ET_SIPARIS WHERE KANAL_ID=:k)' : 'KANAL_ID=:k');
                     $pdo->prepare("DELETE FROM {$tablo} WHERE {$kosul}")->execute([':k'=>$kanal]);
                 }
@@ -108,6 +121,7 @@ try {
     });
 } finally {
     putenv($oncekiAnahtar===false ? 'LUMEN_EVDS_ANAHTAR_DOSYASI' : 'LUMEN_EVDS_ANAHTAR_DOSYASI='.$oncekiAnahtar);
+    putenv($oncekiEtAnahtar===false ? 'LUMEN_ETICARET_ANAHTAR_DOSYASI' : 'LUMEN_ETICARET_ANAHTAR_DOSYASI='.$oncekiEtAnahtar);
     foreach (glob($gecici.'/*') ?: [] as $f) { unlink($f); }rmdir($gecici);
 }
 $hata=count(array_filter($sonuclar,static fn(array $r): bool=>!$r[0]));

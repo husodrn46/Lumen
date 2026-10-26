@@ -8,7 +8,8 @@ function et_ice_aktar(PDO $db, int $kanal, string $ham, string $tur, string $ad,
 {
     $kayitlar = et_dosya_oku($ham,$tur,$bicim);
     $sonuc = ['yeni'=>0,'mukerrer'=>0,'cakisma'=>0,'hatali'=>0,'eski'=>0];
-    $db->beginTransaction();
+    $kendiIslemi=!$db->inTransaction();
+    if ($kendiIslemi) { $db->beginTransaction(); }
     try {
         $k = et_kanal($db,$kanal);
         // Aynı kanaldaki dosya alımları kilitlenir; benzersiz anahtarlar son savunmadır.
@@ -64,8 +65,8 @@ function et_ice_aktar(PDO $db, int $kanal, string $ham, string $tur, string $ad,
         }
         $s=$db->prepare('UPDATE dbo.M_ET_ICE_AKTARIM SET SONUC=:s WHERE ID=:i');
         $s->execute([':s'=>et_json($sonuc),':i'=>$batch]);
-        $db->commit(); return $sonuc;
-    } catch (Throwable $e) { if ($db->inTransaction()) { $db->rollBack(); } throw $e; }
+        if ($kendiIslemi) { $db->commit(); }return $sonuc+['aktarim_id'=>$batch];
+    } catch (Throwable $e) { if ($kendiIslemi && $db->inTransaction()) { $db->rollBack(); } throw $e; }
 }
 
 /** true: daha eski yanıt. İptal/ödeme engeli yalnız daha yeni, doğrulanmış zamanla kalkar. */

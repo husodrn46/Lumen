@@ -130,6 +130,9 @@ jobs:
       - name: Eklenti yükseltme ve yedekten dönüş (LOGO modu)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/kabul/eklenti_yasam.php
 
+      - name: Trendyol sipariş alımı (LOGO demo, sentetik taşıyıcı)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/trendyol.php
+
       - name: Genel yedekleme gidiş-dönüş (LOGO modu)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/yedek/yedek_test.php
 
@@ -159,6 +162,9 @@ jobs:
 
       - name: Eklenti yükseltme ve yedekten dönüş (bağımsız mod)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/kabul/eklenti_yasam.php
+
+      - name: Trendyol sipariş alımı (bağımsız demo, sentetik taşıyıcı)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/trendyol.php
 
       - name: Genel yedekleme gidiş-dönüş (bağımsız mod)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/yedek/yedek_test.php
