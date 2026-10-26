@@ -39,6 +39,8 @@ Betik sırasıyla şunları yapar ve her adımı rapora işler:
 | Birim testleri | Hesaplama kuralları (KDV, yuvarlama, tutar okuma, IBAN, kur…) |
 | Duman testi | Bütün sayfalar 3 farklı kullanıcıyla açılır; hata, sızıntı, yetkisiz erişim yok |
 | Akış testleri | Sipariş, iskonto, yazdırma, çek, döviz, ayarlar, yetki, API |
+| E-ticaret ve EVDS | İki modda sipariş kutusu, mükerrer aktarım, kaynak değişikliği, kişisel anahtar, önbellek ve panel |
+| Eklenti yaşam döngüsü | Beta.1 şemasından yükseltme; dolu kurulumda tekrar şema; kutu, aktarım kimliği, eşleme ve şifreli EVDS bağlantısının yedekten dönüşü |
 | Yedekleme | Yedek al → veriyi boz → geri yükle → her şey yerinde |
 | LOGO'dan içe aktarma | Bakiyeler, stoklar, kimlikler ve parolalar birebir taşınır |
 | Bağımsız mod (beta) | Aynı testler + fatura, kasa/banka, tanımlar, Excel, kartlar |
@@ -51,6 +53,12 @@ Rapor `kabul-raporu.md` dosyasındadır. Başarısız adımların son günlük s
 içindedir. Demo, betik bitince `http://localhost:8088` adresinde açık kalır
 (kullanıcılar `YONETICI`, `SATIS1`, `DEPO1`; parola `demo1234`) — keşif denemesi için kullanın.
 Kapatmak için: `bash demo/kur.sh --kapat`.
+
+Eklenti testleri dış API çağrısı yapmaz; sentetik taşıyıcı ve demo kayıtları kullanır.
+SQL yedeği EVDS ana anahtar dosyasını içermez. Başka sunucuya dönüşte
+`database/evds-master.key` (özel yol ayarlandıysa o dosya) ayrıca güvenli biçimde
+geri yüklenmelidir; dosya kaybolduysa kullanıcılar API anahtarlarını yeniden girer.
+Bu testler gerçek LOGO/SQL Server kurulumu veya kişisel API ile pilot kabulün yerini tutmaz.
 
 ## Yol B — GitHub üzerinde (Docker yoksa)
 

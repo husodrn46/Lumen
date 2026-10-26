@@ -127,7 +127,10 @@ jobs:
       - name: EVDS bağlantı ve önbellek akışları (LOGO demo, sentetik taşıyıcı)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/evds.php
 
-      - name: Yedekleme gidiş-dönüş (LOGO modu, Lumen tabloları)
+      - name: Eklenti yükseltme ve yedekten dönüş (LOGO modu)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/kabul/eklenti_yasam.php
+
+      - name: Genel yedekleme gidiş-dönüş (LOGO modu)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/yedek/yedek_test.php
 
       - name: LOGO'dan bağımsız Lumen'e içe aktarma (toplamlar, kimlikler, parolalar)
@@ -154,7 +157,10 @@ jobs:
       - name: Bağımsız modda LOGO akışları (aynı akışlar LMV_ görünümleri üzerinden)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/akislar.php
 
-      - name: Yedekleme gidiş-dönüş (bağımsız mod, tüm veritabanı)
+      - name: Eklenti yükseltme ve yedekten dönüş (bağımsız mod)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/kabul/eklenti_yasam.php
+
+      - name: Genel yedekleme gidiş-dönüş (bağımsız mod)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/yedek/yedek_test.php
 
       - name: Kurulum sihirbazı uçtan uca (bağımsız mod, boş veritabanı)

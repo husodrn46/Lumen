@@ -65,6 +65,9 @@ adim "LOGO modu: şema güncelleme iki kez (mevcut kurulum)" bash -c 'docker com
 adim "LOGO modu: birim testleri" uyg php tests/birim/calistir.php
 adim "LOGO modu: duman testi (tüm sayfalar × 3 kullanıcı)" uyg php tests/duman/tara.php
 adim "LOGO modu: akış testleri" uyg php tests/akis/akislar.php
+adim "LOGO modu: e-ticaret kutusu ve aktarım akışları" uyg php tests/akis/eticaret.php
+adim "LOGO modu: kişisel EVDS bağlantısı ve panel akışları" uyg php tests/akis/evds.php
+adim "LOGO modu: eklenti yükseltme ve yedekten dönüş" uyg php tests/kabul/eklenti_yasam.php
 adim "LOGO modu: yedekleme gidiş-dönüş" uyg php tests/yedek/yedek_test.php
 adim "LOGO'dan bağımsız Lumen'e içe aktarma" uyg php tests/aktarim/logo_aktar_test.php
 
@@ -75,6 +78,9 @@ if [ -d belge ] && [ -f tests/akis/bagimsiz.php ]; then
   adim "Bağımsız mod: akış testleri" uyg php tests/akis/bagimsiz.php
   [ -f tests/akis/guvenlik.php ] && adim "Bağımsız mod: güvenlik regresyonları" uyg php tests/akis/guvenlik.php
   adim "Bağımsız mod: LOGO akışları görünümler üzerinden" uyg php tests/akis/akislar.php
+  adim "Bağımsız mod: e-ticaret kutusu ve aktarım akışları" uyg php tests/akis/eticaret.php
+  adim "Bağımsız mod: kişisel EVDS bağlantısı ve panel akışları" uyg php tests/akis/evds.php
+  adim "Bağımsız mod: eklenti yükseltme ve yedekten dönüş" uyg php tests/kabul/eklenti_yasam.php
   adim "Bağımsız mod: yedekleme gidiş-dönüş" uyg php tests/yedek/yedek_test.php
   adim "Kurulum sihirbazı uçtan uca (boş veritabanı)" uyg bash tests/kurulum/sihirbaz_bagimsiz.sh
   adim "İş günü senaryosu (ekranlar arası tutarlılık, yedekten dönüş)" uyg php tests/kabul/is_gunu.php
