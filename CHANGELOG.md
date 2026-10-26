@@ -4,6 +4,9 @@
 
 ### Yeni özellikler (beta)
 
+- E-ticaret ekranları Lumen'in ortak görünümüyle yenilendi: simgeli örnek dosya
+  indirmeleri, adımlı önizleme, etkin gezinme, durum rozetleri ve mobil kart listeleri.
+  Sipariş kontrolü, aktarım onayı, adresler ve denetim izi ayrı bölümlerde gösterilir.
 - Trendyol v2 ve Hepsiburada paket API yanıtları JSON dosyası olarak alınabilir.
   Sipariş/paket/kalem kimlikleri ayrılır; kaynak iptal ve ödeme durumu kontrol edilir.
   Eski zamanlı yanıt güncel engeli kaldıramaz. Trendyol indirimli fiyatları ve
