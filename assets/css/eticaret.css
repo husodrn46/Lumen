@@ -1,6 +1,18 @@
 /* E-ticaret çalışma alanı. Renk ve yazı ailesi Lumen'in ortak belirteçlerinden gelir. */
 :where(.et-modul a) { color: inherit; text-decoration: none; }
 .et-modul { min-width: 0; }
+.et-modul [hidden] { display: none !important; }
+.et-baglanti-duzen { display: grid; grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr); align-items: start; gap: 28px; }
+.et-baglanti-duzen > * { min-width: 0; }
+.et-baglanti-not { padding: 8px 0; font-size: 13px; line-height: 1.7; color: var(--text-2); }
+.et-baglanti-not h2 { color: var(--text-1); }
+.et-baglanti-not ol { padding-left: 20px; margin: 16px 0; }
+.et-baglanti-not li + li { margin-top: 8px; }
+.et-baglanti-not > .btn, .et-baglanti-kaldir { margin-top: 18px; }
+.et-al-sonuc { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding-top: 22px; margin-top: 22px; border-top: 1px solid var(--border); }
+.et-al-sonuc span { display: block; color: var(--text-3); font-size: 11px; line-height: 1.5; }
+.et-al-sonuc strong { display: block; font-size: 24px; font-variant-numeric: tabular-nums; margin-top: 6px; color: var(--text-1); }
+.et-modul #al-form { margin-top: 18px; }
 .et-modul h1 { margin: 0; font-size: 26px; line-height: 1.25; letter-spacing: -.04em; overflow-wrap: anywhere; }
 .et-modul h2 { margin: 0; font-size: 16px; line-height: 1.4; }
 .et-modul h3 { margin: 0; font-size: 14px; }
@@ -136,6 +148,8 @@
     .et-yonetim { grid-template-columns: 1fr; gap: 0; }
 }
 @media (max-width: 767px) {
+    .et-baglanti-duzen { grid-template-columns: minmax(0,1fr); gap: 20px; }
+    .et-al-sonuc { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
     .et-modul h1 { font-size: 22px; }
     .et-nav { margin-bottom: 20px; gap: 0; }
     .et-nav a { padding: 12px; font-size: 12px; min-height: 46px; }

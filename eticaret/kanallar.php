@@ -17,7 +17,7 @@ et_basla('Satış kanalları');
 et_giris('Satış kanalları', 'Siparişlerin geldiği kanalları ve aktarımda kullanılacak varsayılanları yönet.');
 if ($hata) { echo '<p class="bildirim hata">' . bh($hata) . '</p>'; }
 ?>
-<div class="et-yonetim"><section class="kart et-bolum"><div class="et-bolum-baslik"><div><h2><?= $e ? 'Kanalı düzenle' : 'Yeni satış kanalı' ?></h2><p class="et-kucuk">Bu aşamada erişim anahtarı gerekmez.</p></div><span class="et-ikon"><i class="fa-solid fa-store" aria-hidden="true"></i></span></div>
+<div class="et-yonetim"><section class="kart et-bolum"><div class="et-bolum-baslik"><div><h2><?= $e ? 'Kanalı düzenle' : 'Yeni satış kanalı' ?></h2><p class="et-kucuk">Dosya içe aktarmak için erişim anahtarı gerekmez. Trendyol API bağlantısını kanalı kaydettikten sonra tanımlayabilirsin.</p></div><span class="et-ikon"><i class="fa-solid fa-store" aria-hidden="true"></i></span></div>
 <?php et_cari_ara_formu($id); ?>
 <form method="post">
 <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) ($e['ID'] ?? 0) ?>"><input type="hidden" name="surum" value="<?= bh($e['SURUM_KOD'] ?? '') ?>">
@@ -31,5 +31,8 @@ if ($hata) { echo '<p class="bildirim hata">' . bh($hata) . '</p>'; }
 </form></section>
 <?php $kanallar=et_kanallar($dbh); ?><section class="kart"><div class="et-tablo-baslik"><h2>Tanımlı kanallar</h2><span class="et-sayi"><?= count($kanallar) ?> kanal</span></div>
 <?php if (!$kanallar): ?><div class="et-bos"><i class="fa-solid fa-store" aria-hidden="true"></i><h2>Henüz kanal tanımlanmadı</h2><p class="et-kucuk">İlk kanalını formdan ekleyebilirsin.</p></div><?php else: ?><div class="tablo-sar"><table class="liste kartla"><thead><tr><th>Kanal</th><th>Durum</th><th>İşlem</th></tr></thead><tbody>
-<?php foreach ($kanallar as $k): ?><tr><td><div><strong><?= bh($k['AD']) ?></strong><span class="et-satir-alt"><?= bh(et_kanal_turu($k['TUR'])) ?></span></div></td><td><span class="et-durum <?= $k['AKTIF'] ? 'et-durum-hazir' : '' ?>"><?= $k['AKTIF'] ? 'Aktif' : 'Pasif' ?></span></td><td><div class="et-eylemler"><a class="btn btn-ikincil" href="?id=<?= (int) $k['ID'] ?>" aria-label="<?= bh($k['AD']) ?> kanalını düzenle"><i class="fa-solid fa-pen" aria-hidden="true"></i>Düzenle</a><a class="btn btn-ikincil" href="eslemeler.php?kanal=<?= (int) $k['ID'] ?>" aria-label="<?= bh($k['AD']) ?> ürün eşlemeleri"><i class="fa-solid fa-link" aria-hidden="true"></i>Eşlemeler</a></div></td></tr><?php endforeach; ?>
+<?php foreach ($kanallar as $k): ?><tr><td><div><strong><?= bh($k['AD']) ?></strong><span class="et-satir-alt"><?= bh(et_kanal_turu($k['TUR'])) ?></span></div></td><td><span class="et-durum <?= $k['AKTIF'] ? 'et-durum-hazir' : '' ?>"><?= $k['AKTIF'] ? 'Aktif' : 'Pasif' ?></span></td><td><div class="et-eylemler">
+<a class="btn btn-ikincil" href="?id=<?= (int) $k['ID'] ?>" aria-label="<?= bh($k['AD']) ?> kanalını düzenle"><i class="fa-solid fa-pen" aria-hidden="true"></i>Düzenle</a><a class="btn btn-ikincil" href="eslemeler.php?kanal=<?= (int) $k['ID'] ?>" aria-label="<?= bh($k['AD']) ?> ürün eşlemeleri"><i class="fa-solid fa-link" aria-hidden="true"></i>Eşlemeler</a>
+<?php if ($k['TUR']==='trendyol'): ?><a class="btn btn-ikincil" href="baglanti.php?kanal=<?= (int) $k['ID'] ?>"><i class="fa-solid fa-plug" aria-hidden="true"></i>Bağlantı</a><a class="btn btn-birincil" href="al.php?kanal=<?= (int) $k['ID'] ?>"><i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i>Siparişleri al</a><?php endif; ?>
+</div></td></tr><?php endforeach; ?>
 </tbody></table></div><?php endif; ?></section></div><?php et_bitir();

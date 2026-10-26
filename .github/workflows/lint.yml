@@ -104,6 +104,9 @@ jobs:
       - name: Tekrar eden SQL parametresi taraması
         run: python3 demo/araclar/tekrar_parametre.py
 
+      - name: Otomatik alımın tarayıcı döngüsü (sentetik fetch)
+        run: node tests/arayuz/eticaret_al_test.cjs
+
       - name: Demo ortamını kur (SQL Server + sentetik LOGO verisi + sql/ şemaları)
         run: bash demo/kur.sh
 

@@ -4,6 +4,11 @@
 
 ### Yeni özellikler (beta)
 
+- Trendyol sipariş bağlantısı: kullanıcı anahtarlı test/üretim ayarı, tarih aralığı,
+  kaldığı yerden devam eden otomatik sayfa alımı, kalıcı bekleme/yeniden deneme ve
+  alım özeti. Siparişler yalnız kontrol kutusuna gelir; muhasebeye aktarım kullanıcı
+  onayında kalır. Şifreli kanal bağlantısı ve ilerleme yedekten dönüşte korunur.
+
 - EVDS 3 veri katmanı: kullanıcıya özel şifreli API anahtarı, doğrulanmış seri kodu,
   günlük önbellek ve eksik gözlemleri koruyan ekonomik zaman serisi okuyucusu.
 - Ekonomik Göstergeler: kişisel bağlantı ekranı, hazır kur veya özel EVDS serisi,

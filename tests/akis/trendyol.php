@@ -34,6 +34,14 @@ try {
         try { et_baglanti($pdo,$kanal); } catch (DomainException) { $red=true; } finally { $GLOBALS['firmano']=$eskiFirma; }bekle($red,'başka firma bağlantıyı okudu');
         $depo=(int) tek($pdo,"SELECT LOGICALREF FROM LG_SLSMAN WHERE CODE='DEPO1'");$red=false;
         try { et_baglanti_kaydet($pdo,$kanal,$depo,$bag); } catch (DomainException) { $red=true; }bekle($red,'yetkisiz kişi bağlantıyı değiştirdi');
+        $testKisi=random_int(1000000,2000000000);
+        try {
+            $pdo->prepare('INSERT INTO M_P_YETKI (PERSONEL,YETKI,M33,M16) VALUES (:u,1,0,1)')->execute([':u'=>$testKisi]);
+            foreach ([[0,1],[1,0]] as [$m33,$m16]) {
+                $pdo->prepare('UPDATE M_P_YETKI SET M33=:a,M16=:b WHERE PERSONEL=:u')->execute([':a'=>$m33,':b'=>$m16,':u'=>$testKisi]);m_p_yetki_cache_temizle($testKisi);$red=false;
+                try { et_baglanti_kaydet($pdo,$kanal,$testKisi,$bag); } catch (DomainException) { $red=true; }bekle($red,'tek yetki bağlantıya yetti');
+            }
+        } finally { $pdo->prepare('DELETE FROM M_P_YETKI WHERE PERSONEL=:u')->execute([':u'=>$testKisi]);m_p_yetki_cache_temizle($testKisi); }
     });
     akis('Trendyol: sayfalar kalıcı cursor ile sürer, erken/eşzamanlı istek çıkmaz, iptal kutuyu engeller',function () use ($pdo,$kanal,$paket): void {
         $id=ty_baslat($pdo,$kanal);$n=0;$imlec='opaque+/= %&İ';
@@ -80,6 +88,34 @@ try {
         bekle((int) tek($pdo,'SELECT COUNT(*) FROM M_ET_SIPARIS WHERE KANAL_ID=:k AND FIS_ID IS NOT NULL',[':k'=>$kanal])===0,'onaysız aktarım kimliği');
         $s=$pdo->prepare('SELECT MESAJ,VERI FROM M_ET_OLAY WHERE KANAL_ID=:k');$s->execute([':k'=>$kanal]);$iz=json_encode($s->fetchAll(PDO::FETCH_ASSOC));
         bekle(!str_contains($iz,$bag['gizli']) && !str_contains($iz,base64_encode($bag['anahtar'].':'.$bag['gizli'])),'sır denetim izine yazıldı');
+    });
+    $web=(new Tarayici($URL))->giris('YONETICI');
+    akis('Trendyol ekranı: giriş, yetki ve CSRF korunur',function () use ($web,$URL,$kanal): void {
+        $yol='eticaret/baglanti.php?kanal='.$kanal;
+        $anonim=(new Tarayici($URL))->istek($yol);bekle($anonim['kod']===303,'oturumsuz bağlantı açıldı');
+        $depo=(new Tarayici($URL))->giris('DEPO1');bekle($depo->istek($yol)['kod']===403,'yetkisiz bağlantı açıldı');
+        bekle($web->istek($yol,['islem'=>'kaldir'])['kod']===403,'bağlantıda CSRF atlandı');
+        bekle($web->istek('eticaret/al.php?kanal='.$kanal,['islem'=>'adim'])['kod']===403,'alımda CSRF atlandı');
+    });
+    akis('Trendyol ekranı: sırlar boş forma döner; kaydetmek/GET dış istek yapmaz',function () use ($pdo,$web,$kanal,$bag): void {
+        $yol='eticaret/baglanti.php?kanal='.$kanal;
+        $r=$web->istek($yol,['csrf_token'=>$web->belirtec($yol),'islem'=>'kaydet']+$bag);bekle($r['kod']===303,'bağlantı formu kaydedilemedi');
+        $once=et_baglanti($pdo,$kanal)['SON_ISTEK'];$g=$web->istek($yol)['govde'];
+        bekle(!str_contains($g,$bag['anahtar']) && !str_contains($g,$bag['gizli']),'anahtar forma döndü');
+        bekle(!preg_match('/name="(?:anahtar|gizli)"[^>]*value="[^"]+"/',$g),'dolu sır alanı');
+        $g=$web->istek('eticaret/al.php?kanal='.$kanal)['govde'];bekle(!str_contains($g,'<script src="../assets/js/eticaret-al.js'),'GET otomatik alım başlattı');
+        bekle(et_baglanti($pdo,$kanal)['SON_ISTEK']===$once,'kaydet/GET istek zamanını değiştirdi');
+    });
+    akis('Trendyol ekranı: açık POST başlatır, yönlendirmede tek kullanımlık otomatik alım ve durdurma',function () use ($pdo,$web,$kanal): void {
+        $yol='eticaret/al.php?kanal='.$kanal;$simdi=new DateTimeImmutable('now',new DateTimeZone('Europe/Istanbul'));
+        $once=et_baglanti($pdo,$kanal)['SON_ISTEK'];
+        $r=$web->istek($yol,['csrf_token'=>$web->belirtec($yol),'islem'=>'baslat','bas'=>$simdi->modify('-1 day')->format('Y-m-d\TH:i'),'bit'=>$simdi->format('Y-m-d\TH:i')]);bekle($r['kod']===303,'alım başlatılamadı');
+        $id=(int) et_cekimi_oku($pdo,$kanal)['ID'];
+        // Tarayici JavaScript çalıştırmaz. Bu GET/POST akışı hiçbir pazaryeri isteği göndermez.
+        $g=$web->istek($yol)['govde'];bekle(str_contains($g,'<script src="../assets/js/eticaret-al.js'),'açık POST otomatik alım hakkı vermedi');
+        $g=$web->istek($yol)['govde'];bekle(!str_contains($g,'<script src="../assets/js/eticaret-al.js'),'yeniden GET dış istek başlatabilir');
+        $r=$web->istek($yol,['csrf_token'=>$web->belirtec($yol),'islem'=>'durdur','cekim'=>$id]);bekle($r['kod']===303 && et_cekimi_oku($pdo,$kanal,$id)['DURUM']==='durduruldu','alım durdurulamadı');
+        bekle(et_baglanti($pdo,$kanal)['SON_ISTEK']===$once,'başlatma sayfa almadan dış istek yaptı');
     });
 } finally {
     if ($kanal) {
