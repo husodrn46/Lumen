@@ -6,7 +6,7 @@
 # Kritik açık CVE-2026-109618/109619 ("PHP2Shell", Ekim 2026) 8.2.35'te kapandı. Etiket
 # 8.2 dalını izler (kur.sh --pull ile her kurulumda en son yama); aşağıdaki denetim yamasız
 # bir taban imajla derlemeyi durdurur.
-FROM php:8.2-fpm-bookworm
+FROM php:8.5-fpm-bookworm
 RUN php -r 'if (version_compare(PHP_VERSION, "8.2.35", "<")) { fwrite(STDERR, "PHP " . PHP_VERSION . " yamasız (CVE-2026-109618/109619); en az 8.2.35 gerekir\n"); exit(1); }'
 
 RUN set -eux; \
