@@ -2,6 +2,12 @@
 
 ## [Yayımlanmadı]
 
+## [1.5.0-beta.1] — 2026-10-26 (ÖN SÜRÜM)
+
+v1.4.0 üzerine Trendyol sipariş akışı ve Hepsiburada hazırlanmış açık paket
+bağlantısı eklenir. Alınan kayıtlar kontrol kutusunda bekler; satış siparişine
+aktarım kullanıcı onayında kalır. LOGO ve bağımsız modda aynı akış kullanılır.
+
 ### Yeni özellikler (beta)
 
 - Hepsiburada hazırlanmış paket bağlantısı: Merchant ID ve kullanıcıya ait API
@@ -15,6 +21,50 @@
   kaldığı yerden devam eden otomatik sayfa alımı, kalıcı bekleme/yeniden deneme ve
   alım özeti. Siparişler yalnız kontrol kutusuna gelir; muhasebeye aktarım kullanıcı
   onayında kalır. Şifreli kanal bağlantısı ve ilerleme yedekten dönüşte korunur.
+
+### Doğrulama
+
+- E-ticaret ve EVDS akışları, iki modda yükseltme ve yedekten dönüş, Trendyol ve
+  Hepsiburada alımı kabul paketine eklendi. Eski Trendyol şifresi/cursor'ı ve yeni
+  Hepsiburada UUID/offset bilgisi korunur.
+- Özellik commitinin tam kabulünde 28 adım geçti; 71 birim testi, 9 Trendyol ve
+  11 Hepsiburada akışı ile 5 ağsız tarayıcı senaryosu doğrulandı. Ön sürüm etiketi
+  yayımlanmadan önce kendi kabul çalışmasıyla ayrıca doğrulanır.
+- Gerçek pazaryeri hesabı, API anahtarı veya müşteri verisi kullanılmadı. Canlı
+  pazaryeri ve gerçek LOGO/IIS kabulü bu doğrulamaya dahil değildir.
+
+### Yükseltme ve kapsam
+
+Uygulama/veritabanı yedeğini doğrulayın. Mevcut `database/evds-master.key` ve
+`database/eticaret-master.key` dosyaları varsa SQL yedeğinden ayrı saklayın;
+özelleştirilmiş anahtar yollarını koruyun. Dosyaları ve bağımlılıkları güncelledikten
+sonra doğru veritabanında `php scripts/sema_guncelle.php` çalıştırın. Mevcut
+`.env`, bağlantı/ayar dosyaları ve ana anahtar dosyalarını sürüm dosyalarıyla ezmeyin.
+Kanal bağlantısı ve alımı M33 + M16, muhasebeye aktarım M1, fiyat/KDV farkı SP1
+ister. Kullanıcı kendi bilgilerini uygulamada girer; bağlantıyı kaydetmek dış
+servise istek göndermez.
+
+Alım ekran açıkken ilerler; zamanlanmış arka plan işçisi yoktur. Hepsiburada'da
+paketlenmemiş siparişler ve ayrı iptal/iade servisleri izlenmez; aktarım öncesinde
+panelde güncellik kontrolü gerekir. Kullanım ve kurtarma:
+[Trendyol](docs/eticaret/TRENDYOL_BAGLANTI.md),
+[Hepsiburada](docs/eticaret/HEPSIBURADA_BAGLANTI.md).
+
+## [1.4.0] — 2026-10-26 (KARARLI)
+
+v1.4.0-beta.1–beta.3 kapsamı ve EVDS ana anahtar dosyası güvenlik düzeltmesi
+bu sürümdedir. E-ticaret dosya alımı ve ekonomik göstergeler kendi belgelerindeki
+sınırlarla sunulur; canlı pazaryeri bağlantısı ve gerçek EVDS anahtarıyla kabul
+bu sürümün doğrulama kapsamına girmez.
+
+**Yükseltme (v1.3.2 → v1.4.0):** uygulama ve veritabanı yedeğini doğrulayın;
+dosyaları ve üretim bağımlılıklarını güncelleyin, ardından
+`php scripts/sema_guncelle.php` çalıştırın. E-ticaret için M33, ekonomik göstergeler
+için M34 yetkisini yalnız ilgili personele verin. EVDS ana anahtar dosyasını SQL
+yedeğinden ayrı ve güvenli biçimde yedekleyin. Ayrıntı ve kullanım sınırları:
+`docs/eticaret/README.md` ve `docs/evds/README.md`.
+
+### Yeni özellikler (beta)
 
 - EVDS 3 veri katmanı: kullanıcıya özel şifreli API anahtarı, doğrulanmış seri kodu,
   günlük önbellek ve eksik gözlemleri koruyan ekonomik zaman serisi okuyucusu.
