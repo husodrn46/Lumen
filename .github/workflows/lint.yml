@@ -124,6 +124,9 @@ jobs:
       - name: E-ticaret kutusu akışları (LOGO demo)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/eticaret.php
 
+      - name: EVDS bağlantı ve önbellek akışları (LOGO demo, sentetik taşıyıcı)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/evds.php
+
       - name: Yedekleme gidiş-dönüş (LOGO modu, Lumen tabloları)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/yedek/yedek_test.php
 
@@ -141,6 +144,9 @@ jobs:
 
       - name: E-ticaret kutusu akışları (bağımsız demo)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/eticaret.php
+
+      - name: EVDS bağlantı ve önbellek akışları (bağımsız demo, sentetik taşıyıcı)
+        run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/evds.php
 
       - name: Bağımsız mod güvenlik regresyonları (denetimde bulunan açıklar)
         run: docker compose -f demo/docker-compose.yml exec -T app php tests/akis/guvenlik.php
