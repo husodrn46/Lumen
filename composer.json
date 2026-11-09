@@ -7,7 +7,7 @@
         "php": "^8.2",
         "dompdf/dompdf": "^3.1.6",
         "phpoffice/phpspreadsheet": "^5.10.0",
-        "maennchen/zipstream-php": "~3.1.2"
+        "maennchen/zipstream-php": "~3.2.2"
     },
     "config": {
         "optimize-autoloader": true,
