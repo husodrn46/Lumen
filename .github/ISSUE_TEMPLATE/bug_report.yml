@@ -55,7 +55,7 @@ body:
     attributes:
       label: Ortam
       description: PHP, web sunucusu, işletim sistemi ve tarayıcı sürümleri.
-      placeholder: PHP 8.2, Nginx, Windows 11, Chrome 140
+      placeholder: PHP 8.3, Nginx, Windows 11, Chrome 140
 
   - type: textarea
     id: logs

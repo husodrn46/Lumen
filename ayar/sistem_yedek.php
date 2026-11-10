@@ -163,7 +163,7 @@ $boyut = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576
         $phpSorunlari = lumen_php_guvenlik_sorunlari(); ?>
         <?php if ($phpSorunlari !== []): ?>
             <div class="mesaj error" role="alert"><i class="fa-solid fa-shield-halved"></i>
-                <span><b>Sunucu PHP'si güncellenmeli (kritik güvenlik açığı).</b> <?= $h(implode(' ', $phpSorunlari)) ?></span></div>
+                <span><b>Sunucu PHP'si güncellenmeli.</b> <?= $h(implode(' ', $phpSorunlari)) ?></span></div>
         <?php endif; ?>
         <section class="kart" id="calisma-modu">
             <h2><i class="fa-solid fa-database"></i> Çalışma modu</h2>

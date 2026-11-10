@@ -4,10 +4,9 @@
     "type": "project",
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
         "dompdf/dompdf": "^3.1.6",
-        "phpoffice/phpspreadsheet": "^5.10.0",
-        "maennchen/zipstream-php": "~3.1.2"
+        "phpoffice/phpspreadsheet": "^5.10.0"
     },
     "config": {
         "optimize-autoloader": true,

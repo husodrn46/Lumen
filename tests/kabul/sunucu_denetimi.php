@@ -116,6 +116,7 @@ if (preg_match('/PHP\/([0-9.]+)/i', $powered . ' ' . $sunucu, $m)) {
     $kaydet('UYARI', 'PHP sürümü yanıt başlığında görünüyor', "{$m[1]} — php.ini'de expose_php=Off yapın");
     $yamali = ['8.2' => '8.2.35', '8.3' => '8.3.36', '8.4' => '8.4.27', '8.5' => '8.5.12'];
     $dal = implode('.', array_slice(explode('.', $m[1]), 0, 2));
+    $kaydet(version_compare($dal, '8.3', '>=') ? 'TAMAM' : 'HATA', 'PHP sürümü destekleniyor (en az 8.3)', $m[1]);
     $durum = isset($yamali[$dal]) ? version_compare($m[1], $yamali[$dal], '>=') : version_compare($dal, '8.5', '>');
     $kaydet($durum ? 'TAMAM' : 'HATA', 'PHP kritik açıklara karşı yamalı (CVE-2026-109618/109619)', $m[1]);
 } else {
