@@ -84,6 +84,7 @@ $gizli = [
     '/.git/HEAD' => 'kaynak geçmişi', '/composer.json' => 'bağımlılık listesi', '/composer.lock' => 'bağımlılık sürümleri',
     '/database/ayarlar.json' => 'uygulama ayarları', '/database/yedek_ayar.json' => 'yedek ayarı',
     '/database/evds-master.key' => 'EVDS şifreleme ana anahtarı',
+    '/database/eticaret-master.key' => 'e-ticaret şifreleme ana anahtarı',
     '/database/yedekler/' => 'yedek klasörü (parola özetleri içerir)', '/database/enflasyon.db' => 'yerel veri',
     '/logs/app/app-error.log' => 'hata günlüğü', '/logs/php/php_errors.log' => 'PHP günlüğü',
     '/sql/m_p_yetki.sql' => 'şema betiği', '/vendor/autoload.php' => 'kütüphaneler', '/tests/akis/_ortak.php' => 'testler',

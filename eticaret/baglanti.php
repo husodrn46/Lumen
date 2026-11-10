@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/../ayr.php';
 require_once __DIR__.'/../kontrol.php';
 require_once __DIR__.'/_ortak.php';
-require_once __DIR__.'/../includes/eticaret/cekim.php';
+require_once __DIR__.'/../includes/eticaret/otomatik.php';
 if ((int) m_p_yetki($terminalkullanici,'M16')!==1) { lumen_hata_sayfasi('Yetkiniz yok','Kanal bağlantısı için M16 gerekiyor.',403); }
 $kanal=(int) ($_GET['kanal'] ?? 0);$hata='';
 try { $k=et_kanal($dbh,$kanal);$a=et_ag_adaptor($k['TUR']); }
@@ -33,11 +33,20 @@ if (isset($_GET['ok'])) { echo '<p class="bildirim basari" role="status">Bağlan
 <?php if ($hb): ?><label class="alan et-tam">User-Agent / entegratör adı <input name="istemci" required maxlength="100" value="<?= bh($b['ISTEMCI'] ?? '') ?>"><span class="et-kucuk">Hesabın için tanımlanan istemci adını aynen gir.</span></label><?php endif; ?>
 <label class="alan"><?= $hb ? 'API kullanıcı adı' : 'API anahtarı' ?> <input name="anahtar" type="password" autocomplete="new-password" maxlength="256" <?= $b ? '' : 'required' ?>></label>
 <label class="alan"><?= $hb ? 'Servis anahtarı / API şifresi' : 'API gizli anahtarı' ?> <input name="gizli" type="password" autocomplete="new-password" maxlength="256" <?= $b ? '' : 'required' ?>></label>
+<label class="alan kutu et-tam"><input name="otomatik" type="checkbox" value="1" <?= !empty($b['OTOMATIK']) ? 'checked' : '' ?>>Otomatik alım</label>
 </div>
+<p class="et-kucuk">Otomatik alım açıkken sunucudaki zamanlanmış görev yeni <?= $hb ? 'paketleri' : 'siparişleri' ?> düzenli aralıklarla kontrol kutusuna alır. Satış siparişine aktarım yine senin onayınla yapılır.</p>
 <p class="et-kucuk">Test ve üretim bilgileri farklıdır. Ortamı veya satıcıyı değiştirirken iki gizli alanı da yeniden gir.</p>
 <div class="et-form-son"><p class="et-kucuk">Kaydetmek pazaryerine istek göndermez. Yarım kalan alım varsa durdurulur.</p><button class="btn btn-birincil"><i class="fa-solid fa-check" aria-hidden="true"></i>Bağlantıyı kaydet</button></div>
 </form></section>
-<aside class="et-baglanti-not"><h2>Siparişler önce kutuya gelir</h2><ol><li>Bağlantı bilgilerini kaydet.</li><li>Tarih aralığı seçerek <?= $hb ? 'paketleri' : 'siparişleri' ?> al.</li><li>Kutuda eşlemeleri ve tutarları inceleyip aktar.</li></ol><p class="et-kucuk">Pazaryerindeki siparişler bu bağlantıyla değiştirilmez. Satış siparişini Lumen'de sen onaylarsın.</p>
+<aside class="et-baglanti-not"><h2>Siparişler önce kutuya gelir</h2><ol><li>Bağlantı bilgilerini kaydet.</li><li>Tarih aralığı seçerek <?= $hb ? 'paketleri' : 'siparişleri' ?> al ya da otomatik alımı aç.</li><li>Kutuda eşlemeleri ve tutarları inceleyip aktar.</li></ol><p class="et-kucuk">Pazaryerindeki siparişler bu bağlantıyla değiştirilmez. Satış siparişini Lumen'de sen onaylarsın.</p>
+<?php if ($b): $od=et_otomatik_durum($b); ?>
+<?php if (!$od['acik']): ?><p class="et-kucuk"><strong>Otomatik alım kapalı.</strong></p>
+<?php elseif ($od['hata']): ?><p class="bildirim hata" role="status"><strong>Otomatik alım durdu.</strong> <?= bh($od['hata']) ?></p>
+<?php elseif ($od['gecikti']): ?><p class="bildirim uyari" role="status"><strong><?= $od['kontrol'] ? 'Zamanlanmış görev en son '.bh($od['kontrol']->format('d.m.Y H:i')).' tarihinde çalıştı.' : 'Zamanlanmış görev bu bağlantıyı henüz çalıştırmadı.' ?></strong> Sunucuda <code>php scripts/eticaret_al.php</code> görevinin 15 dakikada bir çalıştığını kontrol et.</p>
+<?php else: ?><p class="et-kucuk" role="status"><strong>Otomatik alım açık.</strong> Son kontrol <?= bh($od['kontrol']->format('d.m.Y H:i')) ?>.<?= $od['son'] ? ' Kutu '.bh($od['son']->format('d.m.Y H:i')).' itibarıyla güncel.' : '' ?></p>
+<?php endif; ?>
+<?php endif; ?>
 <?php if ($hb): ?><p class="et-kucuk">Bu bağlantı hazırlanmış açık paketleri alır. Paketlenmemiş siparişler ve ayrı iptal/iade servisleri dahil değildir.</p><?php endif; ?>
 <?php if ($b): ?><a class="btn btn-birincil" href="al.php?kanal=<?= $kanal ?>"><i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i><?= bh($eylem) ?></a><form method="post" class="et-baglanti-kaldir"><?= csrf_field() ?><button class="btn btn-ikincil" name="islem" value="kaldir"><i class="fa-solid fa-link-slash" aria-hidden="true"></i>Bağlantıyı kaldır</button></form><?php endif; ?>
 </aside></div><?php et_bitir();

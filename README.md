@@ -205,13 +205,14 @@ Varsayılan olarak **kapalıdır**. Açmak için:
 
 ## Zamanlanmış Görevler
 
-İsteğe bağlı bakım betikleri (`scripts/`, web'den erişilemez). Windows Görev
-Zamanlayıcı veya cron ile günde bir kez çalıştırın:
+İsteğe bağlı betikler (`scripts/`, web'den erişilemez). Windows Görev Zamanlayıcı
+veya cron ile çalıştırın; aksi yazmadıkça günde bir kez yeterlidir:
 
 | Betik | Ne yapar |
 |---|---|
 | `php scripts/bos_taslak_temizle.php --uygula` | Lumen'de açılıp vazgeçilen, satırsız ve 3+ gündür dokunulmamış sipariş taslaklarını siler (yalnız Lumen'in açtıkları; LOGO'nun fişlerine dokunmaz). `--uygula` olmadan yalnız listeler. |
 | `php scripts/bildirim_hatirlatici.php` | Vadesi yarın/bugün olan veya geçen görevleri atanana, vadesi 3 gün içinde olan portföy çeklerini çek yetkililerine bildirim kutusuna yazar (her olay bir kez). |
+| `php scripts/eticaret_al.php` | **15 dakikada bir.** Bağlantı ekranında otomatik alımı açık Trendyol ve Hepsiburada kanallarında yeni siparişleri ve paketleri kontrol kutusuna alır; satış siparişine aktarım kullanıcı onayında kalır. Ayrıntı: [docs/eticaret/OTOMATIK_ALIM.md](docs/eticaret/OTOMATIK_ALIM.md). |
 | `php scripts/log_hijyeni.php` | 10 MB'ı aşan log dosyalarını sıkıştırıp döndürür, 90 günden eski arşivleri siler (`--mb`, `--gun`, `--kuru`). |
 
 Örnek (Windows): `php.exe C:\inetpub\lumen\scripts\log_hijyeni.php`
