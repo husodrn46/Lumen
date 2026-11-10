@@ -12,7 +12,7 @@
 # ============================================================================
 
 # --- PHP2Shell (CVE-2026-109618/109619) önlemleri ----------------------------
-#  Tam çözüm PHP'yi 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 ya da üstüne güncellemektir.
+#  Tam çözüm PHP'yi 8.3.36 / 8.4.27 / 8.5.12 ya da üstüne güncellemektir (Lumen en az 8.3 ister).
 #  İstek gövdesi 32 MB ile sınırlı (Lumen'in en büyük yüklemesi daha küçüktür).
 LimitRequestBody 33554432
 #  mod_php'de (en riskli kurulum) yükleme ilerlemesi kapalı; Lumen kullanmaz.

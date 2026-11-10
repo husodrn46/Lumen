@@ -26,7 +26,7 @@ Apple Silicon'da Rosetta/QEMU ile (Colima: `colima start --vm-type vz --vz-roset
 
 | Bileşen | Açıklama |
 |---|---|
-| `docker-compose.yml` | SQL Server 2022 (Turkish_CI_AS) · PHP 8.2-fpm + pdo_sqlsrv · nginx |
+| `docker-compose.yml` | SQL Server 2022 (Turkish_CI_AS) · PHP 8.3-fpm + pdo_sqlsrv · nginx |
 | `docker/nginx.conf` | README'deki nginx güvenlik kurallarının birebir aynısı (demo bunları da sınar) |
 | `sql/01_logo_sema.sql` | **Üretilmiş** asgari LOGO şeması — yalnız Lumen'in kullandığı tablo/kolonlar |
 | `sql/02_demo_veri.sql` | Sentetik veri: 25 ürün, 15 cari, 30 sipariş, cari hareketleri, çekler, kurlar |
