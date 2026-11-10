@@ -2,6 +2,22 @@
 
 ## [Yayımlanmadı]
 
+### ⚠️ Gereksinim değişikliği: PHP 8.3
+
+- En düşük PHP sürümü 8.3 oldu (64 bit). PHP 8.2'nin güvenlik desteği 31.12.2026'da
+  biter. Kritik açıklar nedeniyle en az 8.3.36, 8.4.27 ya da 8.5.12 kullanın.
+- Yönetici ana sayfası, kurulum sihirbazı ve Sistem ve Yedek ekranı PHP 8.2'yi,
+  yamalı olsa da, desteklenmeyen sürüm olarak bildirir.
+- `maennchen/zipstream-php` sabitlemesi kaldırıldı; paket PhpSpreadsheet'in
+  gereksinimiyle güncel 3.x sürümüne geçer.
+- CI sözdizimi, bağımlılık ve birim testleri PHP 8.3, 8.4 ve 8.5'te çalışır; demo
+  ortamının tabanı PHP 8.3 oldu.
+
+**Yükseltme:** Önce sunucunun PHP'sini 8.3.36 ya da üstüne yükseltin ve `pdo_sqlsrv`
+sürücüsünü aynı PHP sürümü için kurun. Ardından dosyaları güncelleyip `composer install`
+ve `php scripts/sema_guncelle.php` çalıştırın. PHP 8.2'de `composer install` bu sürümü
+reddeder. PHP 8.2'de kalması gereken kurulum kararlı v1.4.0'ı kullanabilir.
+
 ### Yeni özellikler (beta)
 
 - Zamanlanmış otomatik sipariş alımı: Trendyol ve Hepsiburada bağlantı ekranında kanal

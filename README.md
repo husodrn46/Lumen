@@ -7,7 +7,7 @@
 ### LOGO Tiger için modern, mobil uyumlu sipariş & stok yönetim ön yüzü
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6F1022.svg)](LICENSE)
-[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg)](https://www.php.net/)
+[![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4.svg)](https://www.php.net/)
 [![SQL Server](https://img.shields.io/badge/DB-SQL%20Server-CC2927.svg)](https://www.microsoft.com/sql-server)
 [![LOGO Tiger](https://img.shields.io/badge/ERP-LOGO%20Tiger-6F1022.svg)](#gereksinimler)
 [![Üretimde](https://img.shields.io/badge/%C3%BCretimde-AKEL%20Melamin-6F1022.svg)](#üretimde-kullanılıyor)
@@ -30,7 +30,7 @@ Lumen does **not** replace LOGO Tiger; it is a companion interface. Open source 
 
 ## Denemek için
 
-Lumen, LOGO Tiger için bir yardımcı arayüzdür; v1.3.0'dan itibaren LOGO olmadan, kendi veritabanıyla ön muhasebe programı olarak da çalışır (**Bağımsız mod**). **PHP 8.2+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
+Lumen, LOGO Tiger için bir yardımcı arayüzdür; v1.3.0'dan itibaren LOGO olmadan, kendi veritabanıyla ön muhasebe programı olarak da çalışır (**Bağımsız mod**). **PHP 8.3+**, `pdo_sqlsrv` ve **Microsoft SQL Server** gerekir.
 
 **[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.4.0](https://github.com/husodrn46/Lumen/releases/tag/v1.4.0) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.4.0.zip)
 
@@ -100,20 +100,20 @@ Bu depo, aynı kod tabanının **markasızlaştırılmış ve yapılandırılabi
 ## Gereksinimler
 
 - **LOGO Tiger** kurulu bir **Microsoft SQL Server** veritabanı
-- **PHP 8.2+** ve `pdo_sqlsrv` sürücüsü ([Microsoft Drivers for PHP for SQL Server](https://learn.microsoft.com/sql/connect/php/download-drivers-php-sql-server))
+- **PHP 8.3+** (64 bit) ve `pdo_sqlsrv` sürücüsü ([Microsoft Drivers for PHP for SQL Server](https://learn.microsoft.com/sql/connect/php/download-drivers-php-sql-server))
   > 🔒 **Güvenlik:** Ekim 2026'daki kritik PHP açıkları (CVE-2026-109618, CVE-2026-109619 —
-  > "PHP2Shell", kimlik doğrulamasız uzaktan kod çalıştırma) nedeniyle en az **8.2.35 / 8.3.36 /
+  > "PHP2Shell", kimlik doğrulamasız uzaktan kod çalıştırma) nedeniyle en az **8.3.36 /
   > 8.4.27 / 8.5.12** kullanın. Güncelleyene kadar `php.ini`'de `session.upload_progress.enabled=0`
   > yapıp web sunucusunu yeniden başlatın (Lumen bu özelliği kullanmaz; tam çözüm değildir).
-  > Lumen yamasız PHP'yi kurulumda, yönetici ana sayfasında ve Sistem ve Yedek ekranında uyarır.
+  > Lumen desteklenmeyen ya da yamasız PHP'yi kurulumda, yönetici ana sayfasında ve Sistem ve
+  > Yedek ekranında uyarır.
 - Web sunucusu: IIS (FastCGI) veya Apache/nginx
 - [Composer](https://getcomposer.org/) (bağımlılıklar için)
 
-> **PHP 8.2 tabanı neden sabit:** `composer.json`daki
-> `maennchen/zipstream-php: ~3.1.2` kısıtı kasıtlıdır. PhpSpreadsheet’in dolaylı
-> bağımlılığı olan bu paket 3.2’den itibaren `php-64bit ^8.3` istiyor; sabitleme
-> kaldırılırsa kilit dosyası PHP 8.3’e bağlanır ve 8.2 kurulumlarında
-> `composer install` reddeder. Taban 8.3’e çıkarılırsa bu satır da kaldırılmalı.
+> **PHP 8.2:** v1.5.0'dan itibaren desteklenmez (PHP 8.2'nin güvenlik desteği
+> 31.12.2026'da biter). 8.2 kullanan kurulum önce PHP'yi 8.3.36 ya da üstüne yükseltmelidir;
+> 8.2'de `composer install` bu sürümü reddeder. PHP 8.2 gerekiyorsa kararlı
+> [v1.4.0](https://github.com/husodrn46/Lumen/releases/tag/v1.4.0) kullanılabilir.
 
 ## Kurulum
 

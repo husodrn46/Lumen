@@ -1357,7 +1357,7 @@ $okunmamis_bildirim = lumen_bildirim_okunmamis($dbh, (int) $terminalkullanici);
         if ($phpSorunlari !== []): ?>
     <div role="alert" style="max-width:1200px;margin:12px auto 0;padding:12px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:13.5px;">
         <i class="fa-solid fa-shield-halved"></i>
-        <strong>Sunucu PHP'si güncellenmeli (kritik güvenlik açığı).</strong>
+        <strong>Sunucu PHP'si güncellenmeli.</strong>
         <?php echo e(implode(' ', $phpSorunlari)); ?>
     </div>
     <?php endif;

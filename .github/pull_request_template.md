@@ -4,7 +4,7 @@
 
 ## Nasıl doğrulandı?
 
-- [ ] PHP 8.2 ve 8.3 sözdizimi
+- [ ] PHP 8.3, 8.4 ve 8.5 sözdizimi
 - [ ] Birim testleri
 - [ ] Güvenlik regresyonları
 - [ ] Demo ortamı ve ilgili akış testleri
