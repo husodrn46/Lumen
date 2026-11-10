@@ -65,6 +65,6 @@ adaptörüne verilmemeli; ayrı bir adaptör gerektirir.
   mevcut durumu geri almaz. Engel ancak daha yeni doğrulanmış zamanla kalkar;
   güncelleme zamanı yoksa kendiliğinden kaldırılmaz.
 - Aktarımdan sonra gelen iptal uyarılır; Lumen siparişi otomatik iptal edilmez.
-- Hepsiburada paketlenmemiş siparişleri ve ayrı iptal/iade servisleri, webhook, zamanlanmış arka plan işçisi,
+- Hepsiburada paketlenmemiş siparişleri ve ayrı iptal/iade servisleri, webhook,
   kargo/komisyon mutabakatı ve Hepsiburada indirim/fatura farklarının otomasyonu
   bu adımda yoktur. TRY, ADET ve mevcut 1 MB/100 paket sınırları geçerlidir.

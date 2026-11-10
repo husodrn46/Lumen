@@ -64,7 +64,9 @@ try {
             bekle((int) tek($eski,'SELECT STOK_ID FROM M_ET_URUN_ESLEME WHERE ID=1')===123,'eşleme kayboldu');
             $bag=$eski->query('SELECT * FROM M_ET_BAGLANTI WHERE KANAL_ID=2')->fetch(PDO::FETCH_ASSOC);
             bekle($bag['TUR']==='trendyol' && $bag['SATICI_ID']==='123' && $bag['SIFRELI']===$eskiSifre && et_sir_coz($bag['SIFRELI'],1,2)===$eskiSir,'eski Trendyol bağlantısı değişti');
+            bekle((int) $bag['OTOMATIK']===0 && $bag['OTOMATIK_SON']===null && $bag['OTOMATIK_HATA']===null,'yükseltilen bağlantıda otomatik alım açık geldi');
             bekle(tek($eski,'SELECT IMLEC FROM M_ET_CEKIM WHERE ID=:i',[':i'=>$eskiCekim])==='opaque-eski-cursor','eski cursor kayboldu');
+            bekle(tek($eski,'SELECT OTOMATIK_BITIS FROM M_ET_CEKIM WHERE ID=:i',[':i'=>$eskiCekim])===null,'eski alım otomatik alım sayıldı');
             bekle(evds_sifre_coz(evds_baglanti($eski,1,1)['SIFRELI_ANAHTAR'],evds_ana_anahtar(),'1:1')===str_repeat('c',32),'EVDS bağlantısı tekrar şemada değişti');
             $ekle=$eski->prepare("INSERT INTO M_ET_SIPARIS (KANAL_ID,AKTARIM_ID,HARICI_ID,HARICI_NO,PAKET_KIMLIGI,HAM,NORMAL,ANAHTAR,OLUSTURAN) VALUES (1,1,:i,'PAKETLI-1','A','{}','{}',:a,1)");
             $ekle->execute([':i'=>'P-A',':a'=>str_repeat('d',64)]);

@@ -27,7 +27,8 @@ M16 birlikte gerekir. Kullanıcı kendi ortamına ait şu bilgileri girer:
 
 Kaydetmek veya sayfayı açmak ağ isteği göndermez. Kullanıcı açıkça alımı başlatır.
 Her çağrı en fazla bir sayfa alır; ekran açıkken devam eder, kapatılırsa SQL'deki
-ilerlemeden sürdürülebilir. Zamanlanmış arka plan işçisi kurulmaz.
+ilerlemeden sürdürülebilir. Bağlantıda otomatik alım açıksa sunucudaki zamanlanmış
+görev 24 saatlik aralıklarla alır: [Otomatik alım](OTOMATIK_ALIM.md).
 
 ## Sayfalama ve kontroller
 

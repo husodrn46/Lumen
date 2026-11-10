@@ -24,6 +24,8 @@ satış siparişine aktarım M1, liste değerinden farklı fiyat/KDV kullanımı
    Hepsiburada için **Bağlantı** ekranında Merchant ID, API kullanıcı adı, servis
    anahtarı ve tanımlı User-Agent bilgisini girin; **Paketleri al** ile en fazla
    24 saat seçin. Paketlenmemiş ve ayrı iptal/iade servisleri bu alımda bulunmaz.
+   Bağlantı ekranında **Otomatik alım** açılırsa sunucudaki zamanlanmış görev yeni
+   siparişleri ve paketleri düzenli aralıklarla kutuya alır: [Otomatik alım](OTOMATIK_ALIM.md).
 3. **Sipariş kutusuna al** yalnız ara tablolara yazar; satış siparişi oluşturmaz.
 4. Kutudaki siparişi açın. SKU/barkod için stok kodu ve kaynak birimine uygun birim
    seçerek kanalın ürün eşlemesini kaydedin. Stok araması kod/ad ile yapılır.

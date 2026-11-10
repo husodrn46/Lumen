@@ -3,7 +3,7 @@ declare(strict_types=1);
 require __DIR__.'/_ortak.php';
 if (!in_array($DB,['LUMEN_DEMO','LUMEN_BAGIMSIZ'],true)) { fwrite(STDERR,"REDDEDİLDİ: yalnız sentetik demo veritabanı.\n");exit(3); }
 require_once dirname(__DIR__,2).'/ayr.php';
-require_once dirname(__DIR__,2).'/includes/eticaret/cekim.php';
+require_once dirname(__DIR__,2).'/includes/eticaret/otomatik.php';
 $dbh=$pdo;$firmano=1;$kanal=0;
 $d=sys_get_temp_dir().'/lumen-hb-akis-'.bin2hex(random_bytes(8));mkdir($d,0700);$eski=getenv('LUMEN_ETICARET_ANAHTAR_DOSYASI');putenv('LUMEN_ETICARET_ANAHTAR_DOSYASI='.$d.'/master');
 $bag=['ortam'=>'stage','satici'=>'00000000-0000-4000-8000-000000000123','anahtar'=>'sentetik-api-kullanici','gizli'=>str_repeat('s',32),'istemci'=>'Lumen_Demo'];
@@ -89,6 +89,25 @@ try {
             bekle((int) tek($pdo,"SELECT COUNT(*) FROM M_ET_SIPARIS WHERE KANAL_ID=:k AND HARICI_NO='HB-API-999'",[':k'=>$kanal])===0,'yarım sipariş kaldı');
         } finally { if ($olustu) { $pdo->exec("DROP TRIGGER [{$ad}]"); } }
         et_cekimi_yonet($pdo,$kanal,$i,1,'tekrar');hb_akis_hazir($pdo,$kanal,$i);$r=et_cekimi_adim($pdo,$kanal,$i,1,static fn()=>hb_akis_sayfa(hb_akis_paketler(999,1),1));bekle($r['DURUM']==='tamam' && (int) $r['YENI']===1,'başarısız sayfa tekrarlanamadı');
+    });
+    akis('Hepsiburada otomatik: üç günlük boşluk 24 saatlik dilimlerle kapanır, dilimler 10 dk örtüşür',function () use ($pdo,$kanal,$bag): void {
+        et_baglanti_kaydet($pdo,$kanal,1,$bag+['otomatik'=>'1']);
+        $pdo->prepare("UPDATE M_ET_BAGLANTI SET OTOMATIK_SON=DATEADD(DAY,-3,CAST(CONVERT(VARCHAR(16),SYSUTCDATETIME(),120) AS DATETIME2)) WHERE KANAL_ID=:k")->execute([':k'=>$kanal]);
+        $uyu=static function () use ($pdo,$kanal): void {
+            $pdo->prepare('UPDATE M_ET_BAGLANTI SET SON_ISTEK=DATEADD(SECOND,-10,SYSUTCDATETIME()) WHERE KANAL_ID=:k')->execute([':k'=>$kanal]);
+            $pdo->prepare("UPDATE M_ET_CEKIM SET SONRAKI=DATEADD(SECOND,-10,SYSUTCDATETIME()),KILIT_BITIS=NULL WHERE KANAL_ID=:k AND DURUM='suruyor'")->execute([':k'=>$kanal]);
+        };
+        $once=(int) tek($pdo,'SELECT COUNT(*) FROM M_ET_CEKIM WHERE KANAL_ID=:k AND OTOMATIK_BITIS IS NOT NULL',[':k'=>$kanal]);$araliklar=[];
+        $o=et_otomatik_calistir($pdo,120,$kanal,static function (array $i) use (&$araliklar): array {
+            parse_str((string) parse_url($i['url'],PHP_URL_QUERY),$q);$araliklar[]=[$q['begindate'],$q['enddate']];return hb_akis_sayfa([],0);
+        },$uyu)[$kanal];
+        bekle($o['durum']==='guncel' && $o['hata']===null && count($araliklar)===4,'üç günlük boşluk dört dilimde kapanmadı: '.json_encode([$o,$araliklar]));
+        foreach ($araliklar as $n=>[$bas,$bit]) {
+            bekle(strtotime($bit)-strtotime($bas)<=86400,'dilim 24 saati aştı');
+            if ($n>0) { bekle(strtotime($araliklar[$n-1][1])-strtotime($bas)===600,'dilimler 10 dk örtüşmüyor'); }
+        }
+        bekle((int) tek($pdo,'SELECT COUNT(*) FROM M_ET_CEKIM WHERE KANAL_ID=:k AND OTOMATIK_BITIS IS NOT NULL',[':k'=>$kanal])===$once+4,'otomatik alım kayıtları eksik');
+        et_baglanti_kaydet($pdo,$kanal,1,$bag);bekle((int) et_baglanti($pdo,$kanal)['OTOMATIK']===0,'otomatik alım kapatılamadı');
     });
     akis('Hepsiburada: uygun olmayan kaynak kutuda bekler; muhasebe yazılmaz, sırlar denetime girmez',function () use ($pdo,$kanal,$bag,$belgeTablo,$belgeSayisi): void {
         $i=hb_akis_baslat($pdo,$kanal);$p=hb_akis_paketler(1000,1);$p[0]['status']='CancelledByCustomer';

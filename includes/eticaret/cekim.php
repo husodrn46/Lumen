@@ -35,23 +35,27 @@ function et_baglanti_kaydet(PDO $db, int $kanal, int $kullanici, ?array $v): voi
     try {
         et_cekim_kilit($db,$kanal);$k=et_kanal($db,$kanal);
         $a=et_ag_adaptor($k['TUR']);
-        $eski=et_baglanti($db,$kanal);$sifre=null;
+        $eski=et_baglanti($db,$kanal);$sifre=null;$ayniHesap=false;$otomatik=false;
         if ($v!==null) {
             $ortam=(string) ($v['ortam'] ?? '');$satici=trim((string) ($v['satici'] ?? ''));
             if (!in_array($ortam,['stage','prod'],true)) { throw new DomainException('Test veya üretim ortamını seçin.'); }
             $istemci=$k['TUR']==='hepsiburada' ? et_hb_istemci(trim((string) ($v['istemci'] ?? ''))) : null;
             if ($k['TUR']==='hepsiburada') { $satici=et_hb_merchant($satici); }
             $anahtar=(string) ($v['anahtar'] ?? '');$gizli=(string) ($v['gizli'] ?? '');
-            if ($anahtar==='' && $gizli==='' && $eski && $eski['TUR']===$k['TUR'] && $eski['ORTAM']===$ortam && $eski['SATICI_ID']===$satici) { $sifre=$eski['SIFRELI']; }
+            $ayniHesap=$eski && $eski['TUR']===$k['TUR'] && $eski['ORTAM']===$ortam && $eski['SATICI_ID']===$satici;
+            if ($anahtar==='' && $gizli==='' && $ayniHesap) { $sifre=$eski['SIFRELI']; }
             else { $sir=($a['kimlik'])($satici,$anahtar,$gizli);$sifre=et_sir_sifrele($sir,(int) $k['FIRMA'],$kanal); }
+            $otomatik=!empty($v['otomatik']);
         }
         $db->prepare("UPDATE dbo.M_ET_CEKIM SET DURUM='durduruldu',BITIS=SYSUTCDATETIME(),KILIT=NULL,KILIT_BITIS=NULL WHERE KANAL_ID=:k AND DURUM='suruyor'")->execute([':k'=>$kanal]);
         $db->prepare('DELETE FROM dbo.M_ET_BAGLANTI WHERE KANAL_ID=:k')->execute([':k'=>$kanal]);
         if ($v!==null) {
-            $db->prepare('INSERT INTO dbo.M_ET_BAGLANTI (KANAL_ID,ORTAM,SATICI_ID,TUR,ISTEMCI,SIFRELI,SURUM,SON_ISTEK,GUNCELLEYEN) VALUES (:k,:o,:s,:tur,:c,:g,:v,:t,:u)')
-                ->execute([':k'=>$kanal,':o'=>$ortam,':s'=>$satici,':tur'=>$k['TUR'],':c'=>$istemci,':g'=>$sifre,':v'=>bin2hex(random_bytes(16)),':t'=>$eski['SON_ISTEK'] ?? null,':u'=>$kullanici]);
+            // Otomatik alımın kaldığı yer yalnız aynı satıcı hesabında korunur; görevin son kontrol anı sunucuya aittir.
+            $db->prepare('INSERT INTO dbo.M_ET_BAGLANTI (KANAL_ID,ORTAM,SATICI_ID,TUR,ISTEMCI,SIFRELI,SURUM,SON_ISTEK,GUNCELLEYEN,OTOMATIK,OTOMATIK_SON,OTOMATIK_KONTROL) VALUES (:k,:o,:s,:tur,:c,:g,:v,:t,:u,:ot,:os,:ok)')
+                ->execute([':k'=>$kanal,':o'=>$ortam,':s'=>$satici,':tur'=>$k['TUR'],':c'=>$istemci,':g'=>$sifre,':v'=>bin2hex(random_bytes(16)),':t'=>$eski['SON_ISTEK'] ?? null,':u'=>$kullanici,
+                    ':ot'=>$otomatik ? 1 : 0,':os'=>$ayniHesap ? $eski['OTOMATIK_SON'] : null,':ok'=>$eski['OTOMATIK_KONTROL'] ?? null]);
         }
-        et_olay($db,$kanal,null,$kullanici,'api_baglanti',$v===null ? 'API bağlantısı kaldırıldı.' : $a['ad'].' API bağlantısı kaydedildi.',$v===null ? null : ['ortam'=>$ortam,'satici'=>$satici]);
+        et_olay($db,$kanal,null,$kullanici,'api_baglanti',$v===null ? 'API bağlantısı kaldırıldı.' : $a['ad'].' API bağlantısı kaydedildi.'.($otomatik ? ' Otomatik alım açık.' : ''),$v===null ? null : ['ortam'=>$ortam,'satici'=>$satici,'otomatik'=>$otomatik]);
         $db->commit();
     } catch (Throwable $e) { if ($db->inTransaction()) { $db->rollBack(); }throw $e; }
 }
@@ -62,17 +66,21 @@ function et_cekimi_oku(PDO $db, int $kanal, int $id = 0): ?array
     return et_tek($db,'SELECT TOP 1 * FROM dbo.M_ET_CEKIM WHERE KANAL_ID=:k'.($id ? ' AND ID=:i' : '').' ORDER BY ID DESC',[':k'=>$kanal]+($id ? [':i'=>$id] : []));
 }
 
-function et_cekimi_baslat(PDO $db, int $kanal, int $kullanici, string $bas, string $bit): int
+/** $otomatik: zamanlanmış görevin aralığı; tamamlanınca bağlantının OTOMATIK_SON değeri bu aralığın sonuna ilerler. */
+function et_cekimi_baslat(PDO $db, int $kanal, int $kullanici, string $bas, string $bit, bool $otomatik = false): int
 {
     et_baglanti_yetki($kullanici);$db->beginTransaction();
     try {
         et_cekim_kilit($db,$kanal);$k=et_kanal($db,$kanal);$bag=et_baglanti($db,$kanal);
         $a=et_ag_adaptor($k['TUR']);$filtre=($a['aralik'])($bas,$bit);
         if (!$k['AKTIF'] || !$bag || $bag['TUR']!==$k['TUR']) { throw new DomainException('Aktif bir kanal ve türüne uygun API bağlantısı gerekiyor.'); }
+        if ($otomatik && !(int) $bag['OTOMATIK']) { throw new DomainException('Bu kanalda otomatik alım kapalı.'); }
         if (et_tek($db,"SELECT ID FROM dbo.M_ET_CEKIM WHERE KANAL_ID=:k AND DURUM='suruyor'",[':k'=>$kanal])) { throw new DomainException('Bu kanalda yarım kalan alımı sürdürün veya durdurun.'); }
-        $id=lumen_insert_kimlik($db,'INSERT INTO dbo.M_ET_CEKIM (KANAL_ID,BAG_SURUM,FILTRE,KULLANICI,SON_KULLANICI) VALUES (:k,:v,:f,:u,:s)',
-            [':k'=>$kanal,':v'=>$bag['SURUM'],':f'=>et_json($filtre),':u'=>$kullanici,':s'=>$kullanici],'ID');
-        et_olay($db,$kanal,null,$kullanici,'api_baslat',$a['ad'].' sipariş alımı başlatıldı.',['cekim'=>$id,'filtre'=>$filtre]);$db->commit();return $id;
+        // Aralık 'aralik' adaptörüyle doğrulandı; bitişi UTC olarak saklanır.
+        $bitis=$otomatik ? DateTimeImmutable::createFromFormat('!Y-m-d\TH:i',$bit,new DateTimeZone('Europe/Istanbul'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s') : null;
+        $id=lumen_insert_kimlik($db,'INSERT INTO dbo.M_ET_CEKIM (KANAL_ID,BAG_SURUM,FILTRE,KULLANICI,SON_KULLANICI,OTOMATIK_BITIS) VALUES (:k,:v,:f,:u,:s,:o)',
+            [':k'=>$kanal,':v'=>$bag['SURUM'],':f'=>et_json($filtre),':u'=>$kullanici,':s'=>$kullanici,':o'=>$bitis],'ID');
+        et_olay($db,$kanal,null,$kullanici,'api_baslat',$a['ad'].($otomatik ? ' otomatik sipariş alımı başlatıldı.' : ' sipariş alımı başlatıldı.'),['cekim'=>$id,'filtre'=>$filtre]+($otomatik ? ['otomatik'=>true] : []));$db->commit();return $id;
     } catch (Throwable $e) { if ($db->inTransaction()) { $db->rollBack(); }throw $e; }
 }
 
@@ -131,6 +139,11 @@ function et_cekimi_adim(PDO $db, int $kanal, int $id, int $kullanici, ?callable 
         $db->prepare('INSERT INTO dbo.M_ET_CEKIM_SAYFA (CEKIM_ID,SIRA,ISTEK_OZET,AKTARIM_ID,VERI_OZET) VALUES (:i,:s,:h,:a,:v)')->execute([':i'=>$id,':s'=>(int) $r['SAYFA']+1,':h'=>$imlecOzet,':a'=>$sonuc['aktarim_id'],':v'=>$sayfa['kayit_ozeti'] ?? null]);
         $db->prepare("UPDATE dbo.M_ET_CEKIM SET IMLEC=:c,DURUM=:d,SAYFA=SAYFA+1,YENI=YENI+:y,MUKERRER=MUKERRER+:m,CAKISMA=CAKISMA+:ca,HATALI=HATALI+:h,ESKI=ESKI+:e,DENEME=0,HATA=NULL,KILIT=NULL,KILIT_BITIS=NULL,BITIS=:b WHERE ID=:i")
             ->execute([':c'=>$sayfa['imlec'],':d'=>$sayfa['imlec']===null ? 'tamam' : 'suruyor',':y'=>$sonuc['yeni'],':m'=>$sonuc['mukerrer'],':ca'=>$sonuc['cakisma'],':h'=>$sonuc['hatali'],':e'=>$sonuc['eski'],':b'=>$sayfa['imlec']===null ? gmdate('Y-m-d H:i:s') : null,':i'=>$id]);
+        if ($sayfa['imlec']===null && $r['OTOMATIK_BITIS']!==null) {
+            // Tamamlanan otomatik aralık, sonraki aralığın başlangıcını aynı transaction içinde ilerletir.
+            $db->prepare('UPDATE dbo.M_ET_BAGLANTI SET OTOMATIK_SON=:s WHERE KANAL_ID=:k AND SURUM=:v AND (OTOMATIK_SON IS NULL OR OTOMATIK_SON<:s2)')
+                ->execute([':s'=>$r['OTOMATIK_BITIS'],':k'=>$kanal,':v'=>$r['BAG_SURUM'],':s2'=>$r['OTOMATIK_BITIS']]);
+        }
         et_olay($db,$kanal,null,$kullanici,'api_sayfa',$a['ad'].' sayfası sipariş kutusuna alındı.',['cekim'=>$id,'sayfa'=>(int) $r['SAYFA']+1,'sonuc'=>$sonuc,'sayfalama'=>$sayfa['meta'] ?? null]);$db->commit();
     } catch (Throwable) {
         if ($db->inTransaction()) { $db->rollBack(); }

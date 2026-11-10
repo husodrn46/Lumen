@@ -12,8 +12,8 @@ onayıyla yapılır. Trendyol'a durum, stok, fiyat, fatura veya kargo bilgisi g�
   iki anahtar yeniden girilir. Formlar saklanan sırları geri göstermez.
 - Ayarı kaydetmek veya sayfayı açmak API isteği yapmaz. Kullanıcı tarih aralığını
   seçip alımı başlatır. Ekran açıkken sayfalar otomatik alınabilir; kapatıldığında
-  ilerleme SQL'de kalır ve aynı alım sürdürülebilir. Zamanlanmış arka plan işçisi
-  bu sürümün kapsamında değildir.
+  ilerleme SQL'de kalır ve aynı alım sürdürülebilir. Bağlantıda otomatik alım açıksa
+  sunucudaki zamanlanmış görev de alır: [Otomatik alım](OTOMATIK_ALIM.md).
 - Tarih aralığı son üç ay içinde ve en fazla 14 gündür. İstanbul zamanları epoch
   milisaniyeye çevrilir. Başlangıç filtreleri alım boyunca değişmez; `nextCursor`
   aynen saklanır. Durum filtresi uygulanmaz; iptal gibi güncellemeler de kutuya gelir.
