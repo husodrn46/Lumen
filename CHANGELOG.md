@@ -63,23 +63,6 @@ siparişine aktarım kullanıcı onayında kalır. LOGO ve bağımsız modda ayn
    çalışacak şekilde tanımlayın ve bağlantı ekranında kanal için açın:
    [docs/eticaret/OTOMATIK_ALIM.md](docs/eticaret/OTOMATIK_ALIM.md).
 
-### Yeni özellikler (beta)
-
-- Zamanlanmış otomatik sipariş alımı: Trendyol ve Hepsiburada bağlantı ekranında kanal
-  başına **Otomatik alım** açılabilir. `scripts/eticaret_al.php` (Görev Zamanlayıcı veya
-  cron, 15 dakikada bir) yarım kalan alımı sürdürür, ardından son alınan noktadan bugüne
-  yeni aralık alır. Aralıklar 10 dakika örtüşür; Hepsiburada boşlukları 24 saatlik
-  dilimlerle kapanır. Siparişler yine yalnız kontrol kutusuna gelir, aktarım kullanıcı
-  onayında kalır. Ayrıntı: [docs/eticaret/OTOMATIK_ALIM.md](docs/eticaret/OTOMATIK_ALIM.md).
-- Görev, bağlantıyı kaydeden kişi adına çalışır; kişi etkin değilse veya M33/M16 yetkisi
-  yoksa alım yapmaz. Son kontrol zamanı, gecikmiş görev ve son görev hatası bağlantı
-  ekranında görünür. Yükseltilen bağlantılarda otomatik alım kapalı başlar.
-- Sunucu denetimi `database/eticaret-master.key` dosyasının web'den indirilemediğini de
-  denetler.
-
-**Yükseltme:** `php scripts/sema_guncelle.php` bağlantı ve alım tablolarına otomatik alım
-alanlarını ekler. Görevi kullanmak için sunucuda ayrıca zamanlanmış görev tanımlanmalıdır.
-
 ## [1.5.0-beta.1] — 2026-10-26 (ÖN SÜRÜM)
 
 v1.4.0 üzerine Trendyol sipariş akışı ve Hepsiburada hazırlanmış açık paket
