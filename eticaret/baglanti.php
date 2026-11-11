@@ -42,8 +42,8 @@ if (isset($_GET['ok'])) { echo '<p class="bildirim basari" role="status">Bağlan
 <aside class="et-baglanti-not"><h2>Siparişler önce kutuya gelir</h2><ol><li>Bağlantı bilgilerini kaydet.</li><li>Tarih aralığı seçerek <?= $hb ? 'paketleri' : 'siparişleri' ?> al ya da otomatik alımı aç.</li><li>Kutuda eşlemeleri ve tutarları inceleyip aktar.</li></ol><p class="et-kucuk">Pazaryerindeki siparişler bu bağlantıyla değiştirilmez. Satış siparişini Lumen'de sen onaylarsın.</p>
 <?php if ($b): $od=et_otomatik_durum($b); ?>
 <?php if (!$od['acik']): ?><p class="et-kucuk"><strong>Otomatik alım kapalı.</strong></p>
-<?php elseif ($od['hata']): ?><p class="bildirim hata" role="status"><strong>Otomatik alım durdu.</strong> <?= bh($od['hata']) ?></p>
-<?php elseif ($od['gecikti']): ?><p class="bildirim uyari" role="status"><strong><?= $od['kontrol'] ? 'Zamanlanmış görev en son '.bh($od['kontrol']->format('d.m.Y H:i')).' tarihinde çalıştı.' : 'Zamanlanmış görev bu bağlantıyı henüz çalıştırmadı.' ?></strong> Sunucuda <code>php scripts/eticaret_al.php</code> görevinin 15 dakikada bir çalıştığını kontrol et.</p>
+<?php elseif ($od['hata']): ?><p class="bildirim hata" role="status"><span><strong>Otomatik alım durdu.</strong> <?= bh($od['hata']) ?></span></p>
+<?php elseif ($od['gecikti']): ?><p class="bildirim uyari" role="status"><span><strong><?= $od['kontrol'] ? 'Zamanlanmış görev en son '.bh($od['kontrol']->format('d.m.Y H:i')).' tarihinde çalıştı.' : 'Zamanlanmış görev bu bağlantıyı henüz çalıştırmadı.' ?></strong> Sunucuda <code>php scripts/eticaret_al.php</code> görevinin 15 dakikada bir çalıştığını kontrol et.</span></p>
 <?php else: ?><p class="et-kucuk" role="status"><strong>Otomatik alım açık.</strong> Son kontrol <?= bh($od['kontrol']->format('d.m.Y H:i')) ?>.<?= $od['son'] ? ' Kutu '.bh($od['son']->format('d.m.Y H:i')).' itibarıyla güncel.' : '' ?></p>
 <?php endif; ?>
 <?php endif; ?>
