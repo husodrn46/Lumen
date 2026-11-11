@@ -2,6 +2,12 @@
 
 ## [Yayımlanmadı]
 
+## [1.5.0-beta.2] — 2026-11-11 (ÖN SÜRÜM)
+
+v1.5.0-beta.1 üzerine Trendyol ve Hepsiburada için zamanlanmış otomatik alım eklenir ve
+en düşük PHP sürümü 8.3 olur. Alınan kayıtlar yine kontrol kutusunda bekler; satış
+siparişine aktarım kullanıcı onayında kalır. LOGO ve bağımsız modda aynı akış kullanılır.
+
 ### ⚠️ Gereksinim değişikliği: PHP 8.3
 
 - En düşük PHP sürümü 8.3 oldu (64 bit). PHP 8.2'nin güvenlik desteği 31.12.2026'da
@@ -12,11 +18,6 @@
   gereksinimiyle güncel 3.x sürümüne geçer.
 - CI sözdizimi, bağımlılık ve birim testleri PHP 8.3, 8.4 ve 8.5'te çalışır; demo
   ortamının tabanı PHP 8.3 oldu.
-
-**Yükseltme:** Önce sunucunun PHP'sini 8.3.36 ya da üstüne yükseltin ve `pdo_sqlsrv`
-sürücüsünü aynı PHP sürümü için kurun. Ardından dosyaları güncelleyip `composer install`
-ve `php scripts/sema_guncelle.php` çalıştırın. PHP 8.2'de `composer install` bu sürümü
-reddeder. PHP 8.2'de kalması gereken kurulum kararlı v1.4.0'ı kullanabilir.
 
 ### Yeni özellikler (beta)
 
@@ -32,8 +33,35 @@ reddeder. PHP 8.2'de kalması gereken kurulum kararlı v1.4.0'ı kullanabilir.
 - Sunucu denetimi `database/eticaret-master.key` dosyasının web'den indirilemediğini de
   denetler.
 
-**Yükseltme:** `php scripts/sema_guncelle.php` bağlantı ve alım tablolarına otomatik alım
-alanlarını ekler. Görevi kullanmak için sunucuda ayrıca zamanlanmış görev tanımlanmalıdır.
+### Doğrulama
+
+- Kabul paketine otomatik alım akışları eklendi: aralık hesabı, 10 dakika örtüşme,
+  Hepsiburada'nın 24 saatlik dilimleri, yetki ve etkin kullanıcı, 401 sonrası durma, süre
+  dolunca devam, elle alımla birlikte çalışma, betiğin kilidi ve bağlantı ekranı. Eski
+  şemadan yükseltmede otomatik alımın kapalı geldiği sınanır.
+- Etiket öncesi tam kabul PHP 8.3.36 demo ortamında 28 adımda geçti: 77 birim testi, iki
+  modda 16 Trendyol ve 12 Hepsiburada akışı; sunucu denetiminde 0 hata ve HTTP demo
+  nedeniyle beklenen 1 HTTPS uyarısı. CI'da sözdizimi, bağımlılık ve birim testleri PHP
+  8.3, 8.4 ve 8.5'te geçti. Ön sürüm etiketi yayımlanmadan önce kendi kabul
+  çalışmasıyla ayrıca doğrulanır.
+- Gerçek pazaryeri hesabı, gerçek Görev Zamanlayıcı kurulumu ve LOGO/IIS pilotu bu
+  doğrulamaya dahil değildir.
+
+### Yükseltme
+
+1. Uygulama ve veritabanı yedeğini doğrulayın. `database/eticaret-master.key` ve
+   `database/evds-master.key` dosyalarını (özel yolları varsa onları) SQL yedeğinden ayrı
+   ve güvenli biçimde saklayın.
+2. Sunucunun PHP'sini 8.3.36 ya da üstüne yükseltin ve `pdo_sqlsrv` sürücüsünü aynı PHP
+   sürümü için kurun. PHP 8.2'de `composer install` bu sürümü reddeder; 8.2'de kalması
+   gereken kurulum kararlı v1.4.0'ı kullanabilir.
+3. Dosyaları güncelleyip `composer install --no-dev` çalıştırın. Mevcut `.env`, bağlantı ve
+   ayar dosyalarını sürüm dosyalarıyla ezmeyin.
+4. Doğru veritabanında `php scripts/sema_guncelle.php` çalıştırın. Betik bağlantı ve alım
+   tablolarına otomatik alım alanlarını ekler; mevcut bağlantılarda otomatik alım kapalı kalır.
+5. Otomatik alım kullanılacaksa `scripts/eticaret_al.php` görevini 15 dakikada bir
+   çalışacak şekilde tanımlayın ve bağlantı ekranında kanal için açın:
+   [docs/eticaret/OTOMATIK_ALIM.md](docs/eticaret/OTOMATIK_ALIM.md).
 
 ## [1.5.0-beta.1] — 2026-10-26 (ÖN SÜRÜM)
 
