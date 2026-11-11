@@ -2,7 +2,7 @@
 
 <img src="logo.png" alt="Lumen" height="76">
 
-**v1.5.0-beta.1:** [Trendyol sipariş bağlantısı](docs/eticaret/TRENDYOL_BAGLANTI.md) ve [Hepsiburada paket bağlantısı](docs/eticaret/HEPSIBURADA_BAGLANTI.md) — kullanıcıya ait API bilgileriyle kontrol kutusuna alım ve onaylı satış siparişi aktarımı.
+**v1.5.0-beta.2:** [Zamanlanmış otomatik alım](docs/eticaret/OTOMATIK_ALIM.md) — Trendyol ve Hepsiburada siparişleri ekran açık olmadan kontrol kutusuna gelir; aktarım yine kullanıcı onayındadır. En düşük PHP sürümü 8.3.
 
 ### LOGO Tiger için modern, mobil uyumlu sipariş & stok yönetim ön yüzü
 
@@ -34,12 +34,12 @@ Lumen, LOGO Tiger için bir yardımcı arayüzdür; v1.3.0'dan itibaren LOGO olm
 
 **[Kurulum adımları](#kurulum)** · **[Sentetik demo veritabanı notları](#demo-veritabanı)** · [Kararlı sürüm v1.4.0](https://github.com/husodrn46/Lumen/releases/tag/v1.4.0) · [Kararlı sürüm kaynak kodunu indir](https://github.com/husodrn46/Lumen/archive/refs/tags/v1.4.0.zip)
 
-**Yeni ön sürüm:** [v1.5.0-beta.1](https://github.com/husodrn46/Lumen/releases/tag/v1.5.0-beta.1).
-Trendyol ve Hepsiburada bağlantıları beta kapsamındadır; yalnız sentetik demo ve
-taşıyıcılarla doğrulanmıştır. Gerçek pazaryeri hesabıyla pilot kabul yapılmamıştır.
-Hepsiburada yalnız hazırlanmış açık paketleri alır; paketlenmemiş siparişler ve
-ayrı iptal/iade servisleri dahil değildir. Alım ekran açıkken ilerler;
-zamanlanmış işçi içermez. Yükseltme ve anahtar yedeği: [CHANGELOG.md](CHANGELOG.md).
+**Yeni ön sürüm:** [v1.5.0-beta.2](https://github.com/husodrn46/Lumen/releases/tag/v1.5.0-beta.2).
+Trendyol ve Hepsiburada bağlantıları ile otomatik alım beta kapsamındadır; yalnız
+sentetik demo ve taşıyıcılarla doğrulanmıştır. Gerçek pazaryeri hesabıyla pilot kabul
+yapılmamıştır. Hepsiburada yalnız hazırlanmış açık paketleri alır; paketlenmemiş
+siparişler ve ayrı iptal/iade servisleri dahil değildir. Bu ön sürüm **PHP 8.3** ister.
+Yükseltme ve anahtar yedeği: [CHANGELOG.md](CHANGELOG.md).
 
 **Bağımsız mod (v1.3.0):** LOGO'suz, kendi veritabanıyla ön muhasebe — mimari ve LOGO'dan geçiş: [docs/mimari/bagimsiz-lumen.md](docs/mimari/bagimsiz-lumen.md).
 
